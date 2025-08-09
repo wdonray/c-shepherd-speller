@@ -1,217 +1,209 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 interface SpellingData {
-  words: string[];
-  sounds: string[];
-  spelling: string[];
+  words: string[]
+  sounds: string[]
+  spelling: string[]
 }
 
 export default function SpellingManager() {
-  const { data: session } = useSession();
-  const [userId, setUserId] = useState<string>("");
+  const { data: session } = useSession()
+  const [userId, setUserId] = useState<string>('')
   const [spellingData, setSpellingData] = useState<SpellingData>({
     words: [],
     sounds: [],
     spelling: [],
-  });
-  const [newWord, setNewWord] = useState("");
-  const [newSound, setNewSound] = useState("");
-  const [newSpelling, setNewSpelling] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  })
+  const [newWord, setNewWord] = useState('')
+  const [newSound, setNewSound] = useState('')
+  const [newSpelling, setNewSpelling] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState('')
 
   // Load existing data when component mounts
   useEffect(() => {
     async function loadSpellingData() {
       try {
-        const currentUserId = session?.user?.id;
+        const currentUserId = session?.user?.id
 
         if (!currentUserId) {
-          return;
+          return
         }
 
-        setUserId(currentUserId);
+        setUserId(currentUserId)
 
         // Then get the spelling data using the user ID
-        const spellingResponse = await fetch(
-          `/api/users/${currentUserId}/spelling`
-        );
+        const spellingResponse = await fetch(`/api/users/${currentUserId}/spelling`)
         if (spellingResponse.ok) {
-          const data = await spellingResponse.json();
-          setSpellingData(data.spellingData);
+          const data = await spellingResponse.json()
+          setSpellingData(data.spellingData)
         }
       } catch (error) {
-        console.error("Error loading spelling data:", error);
+        console.error('Error loading spelling data:', error)
       }
     }
 
     if (session?.user?.id) {
-      loadSpellingData();
+      loadSpellingData()
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id])
 
   async function addWord() {
-    if (!newWord.trim() || !userId) return;
+    if (!newWord.trim() || !userId) return
 
-    setIsLoading(true);
-    setMessage("");
+    setIsLoading(true)
+    setMessage('')
 
     try {
       const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           words: [...spellingData.words, newWord.trim()],
         }),
-      });
+      })
 
       if (response.ok) {
         setSpellingData((prev) => ({
           ...prev,
           words: [...prev.words, newWord.trim()],
-        }));
-        setNewWord("");
-        setMessage("Word added successfully!");
+        }))
+        setNewWord('')
+        setMessage('Word added successfully!')
       } else {
-        setMessage("Failed to add word");
+        setMessage('Failed to add word')
       }
     } catch (error) {
-      setMessage("Error adding word");
-      console.error("Error:", error);
+      setMessage('Error adding word')
+      console.error('Error:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   async function addSound() {
-    if (!newSound.trim() || !userId) return;
+    if (!newSound.trim() || !userId) return
 
-    setIsLoading(true);
-    setMessage("");
+    setIsLoading(true)
+    setMessage('')
 
     try {
       const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sounds: [...spellingData.sounds, newSound.trim()],
         }),
-      });
+      })
 
       if (response.ok) {
         setSpellingData((prev) => ({
           ...prev,
           sounds: [...prev.sounds, newSound.trim()],
-        }));
-        setNewSound("");
-        setMessage("Sound added successfully!");
+        }))
+        setNewSound('')
+        setMessage('Sound added successfully!')
       } else {
-        setMessage("Failed to add sound");
+        setMessage('Failed to add sound')
       }
     } catch (error) {
-      setMessage("Error adding sound");
-      console.error("Error:", error);
+      setMessage('Error adding sound')
+      console.error('Error:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   async function addSpelling() {
-    if (!newSpelling.trim() || !userId) return;
+    if (!newSpelling.trim() || !userId) return
 
-    setIsLoading(true);
-    setMessage("");
+    setIsLoading(true)
+    setMessage('')
 
     try {
       const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           spelling: [...spellingData.spelling, newSpelling.trim()],
         }),
-      });
+      })
 
       if (response.ok) {
         setSpellingData((prev) => ({
           ...prev,
           spelling: [...prev.spelling, newSpelling.trim()],
-        }));
-        setNewSpelling("");
-        setMessage("Spelling added successfully!");
+        }))
+        setNewSpelling('')
+        setMessage('Spelling added successfully!')
       } else {
-        setMessage("Failed to add spelling");
+        setMessage('Failed to add spelling')
       }
     } catch (error) {
-      setMessage("Error adding spelling");
-      console.error("Error:", error);
+      setMessage('Error adding spelling')
+      console.error('Error:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   async function removeItem(type: keyof SpellingData, index: number) {
-    if (!userId) return;
+    if (!userId) return
 
-    setIsLoading(true);
-    setMessage("");
+    setIsLoading(true)
+    setMessage('')
 
     try {
-      const updatedArray = spellingData[type].filter((_, i) => i !== index);
+      const updatedArray = spellingData[type].filter((_, i) => i !== index)
       const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           [type]: updatedArray,
         }),
-      });
+      })
 
       if (response.ok) {
         setSpellingData((prev) => ({
           ...prev,
           [type]: updatedArray,
-        }));
-        setMessage(`${type} removed successfully!`);
+        }))
+        setMessage(`${type} removed successfully!`)
       } else {
-        setMessage(`Failed to remove ${type}`);
+        setMessage(`Failed to remove ${type}`)
       }
     } catch (error) {
-      setMessage(`Error removing ${type}`);
-      console.error("Error:", error);
+      setMessage(`Error removing ${type}`)
+      console.error('Error:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   if (!session?.user?.email || !userId) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">
-          Please sign in to manage your spelling data.
-        </p>
+        <p className="text-gray-500">Please sign in to manage your spelling data.</p>
       </div>
-    );
+    )
   }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Spelling Manager
-        </h2>
-        <p className="text-gray-600">
-          Manage your words, sounds, and spelling data
-        </p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Spelling Manager</h2>
+        <p className="text-gray-600">Manage your words, sounds, and spelling data</p>
       </div>
 
       {message && (
         <div
           className={`p-4 rounded-md ${
-            message.includes("successfully")
-              ? "bg-green-50 text-green-800 border border-green-200"
-              : "bg-red-50 text-red-800 border border-red-200"
+            message.includes('successfully')
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
           {message}
@@ -230,7 +222,7 @@ export default function SpellingManager() {
                 onChange={(e) => setNewWord(e.target.value)}
                 placeholder="Enter a word"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                onKeyPress={(e) => e.key === "Enter" && addWord()}
+                onKeyPress={(e) => e.key === 'Enter' && addWord()}
               />
               <button
                 onClick={addWord}
@@ -242,13 +234,10 @@ export default function SpellingManager() {
             </div>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {spellingData.words.map((word, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
-                >
+                <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
                   <span className="text-gray-800">{word}</span>
                   <button
-                    onClick={() => removeItem("words", index)}
+                    onClick={() => removeItem('words', index)}
                     disabled={isLoading}
                     className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
                   >
@@ -257,9 +246,7 @@ export default function SpellingManager() {
                 </div>
               ))}
               {spellingData.words.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  No words added yet
-                </p>
+                <p className="text-gray-500 text-sm text-center py-4">No words added yet</p>
               )}
             </div>
           </div>
@@ -276,7 +263,7 @@ export default function SpellingManager() {
                 onChange={(e) => setNewSound(e.target.value)}
                 placeholder="Enter a sound"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                onKeyPress={(e) => e.key === "Enter" && addSound()}
+                onKeyPress={(e) => e.key === 'Enter' && addSound()}
               />
               <button
                 onClick={addSound}
@@ -288,13 +275,10 @@ export default function SpellingManager() {
             </div>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {spellingData.sounds.map((sound, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
-                >
+                <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
                   <span className="text-gray-800">{sound}</span>
                   <button
-                    onClick={() => removeItem("sounds", index)}
+                    onClick={() => removeItem('sounds', index)}
                     disabled={isLoading}
                     className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
                   >
@@ -303,9 +287,7 @@ export default function SpellingManager() {
                 </div>
               ))}
               {spellingData.sounds.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  No sounds added yet
-                </p>
+                <p className="text-gray-500 text-sm text-center py-4">No sounds added yet</p>
               )}
             </div>
           </div>
@@ -322,7 +304,7 @@ export default function SpellingManager() {
                 onChange={(e) => setNewSpelling(e.target.value)}
                 placeholder="Enter spelling"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                onKeyPress={(e) => e.key === "Enter" && addSpelling()}
+                onKeyPress={(e) => e.key === 'Enter' && addSpelling()}
               />
               <button
                 onClick={addSpelling}
@@ -334,13 +316,10 @@ export default function SpellingManager() {
             </div>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {spellingData.spelling.map((spell, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
-                >
+                <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
                   <span className="text-gray-800">{spell}</span>
                   <button
-                    onClick={() => removeItem("spelling", index)}
+                    onClick={() => removeItem('spelling', index)}
                     disabled={isLoading}
                     className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
                   >
@@ -349,9 +328,7 @@ export default function SpellingManager() {
                 </div>
               ))}
               {spellingData.spelling.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  No spelling added yet
-                </p>
+                <p className="text-gray-500 text-sm text-center py-4">No spelling added yet</p>
               )}
             </div>
           </div>
@@ -389,5 +366,5 @@ export default function SpellingManager() {
         </div>
       </div>
     </div>
-  );
+  )
 }

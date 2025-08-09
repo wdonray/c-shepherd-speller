@@ -11,18 +11,18 @@
  * - Created and updated timestamps
  */
 
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from 'mongoose'
 
 export interface IUser extends Document {
-  email: string;
-  name: string;
-  image?: string;
-  lastActive: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  words: string[];
-  sounds: string[];
-  spelling: string[];
+  email: string
+  name: string
+  image?: string
+  lastActive: Date
+  createdAt: Date
+  updatedAt: Date
+  words: string[]
+  sounds: string[]
+  spelling: string[]
 }
 
 const UserSchema: Schema = new Schema(
@@ -63,11 +63,10 @@ const UserSchema: Schema = new Schema(
   {
     timestamps: true,
   }
-);
+)
 
 // Indexes for better query performance
-UserSchema.index({ email: 1 });
-UserSchema.index({ lastActive: -1 });
+UserSchema.index({ email: 1 })
+UserSchema.index({ lastActive: -1 })
 
-export default mongoose.models.User ||
-  mongoose.model<IUser>("User", UserSchema);
+export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)

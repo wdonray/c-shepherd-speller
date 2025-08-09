@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { signOut, useSession } from "next-auth/react";
-import SpellingManager from "../components/SpellingManager";
+import { signOut, useSession } from 'next-auth/react'
+import SpellingManager from '../components/SpellingManager'
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session } = useSession()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -14,12 +14,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Shepherd Speller
-                </h1>
-                <p className="text-gray-600">
-                  Hello, {session?.user?.name || "User"}!
-                </p>
+                <h1 className="text-3xl font-bold text-gray-900">Shepherd Speller</h1>
+                <p className="text-gray-600">Hello, {session?.user?.name || 'User'}!</p>
               </div>
               <button
                 onClick={() => signOut()}
@@ -37,13 +33,11 @@ export default function Home() {
             <SpellingManager />
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">
-                Please sign in to access the spelling manager.
-              </p>
+              <p className="text-gray-500">Please sign in to access the spelling manager.</p>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

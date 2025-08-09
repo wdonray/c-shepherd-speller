@@ -1,22 +1,18 @@
-"use client";
+'use client'
 
-import { signIn } from "next-auth/react";
+import { signIn } from 'next-auth/react'
 
 export default function SignIn() {
   const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/" });
-  };
+    signIn('google', { callbackUrl: '/' })
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Use your Google account to continue
-          </p>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">Use your Google account to continue</p>
         </div>
 
         <div className="mt-8 space-y-6">
@@ -29,5 +25,5 @@ export default function SignIn() {
         </div>
       </div>
     </div>
-  );
+  )
 }

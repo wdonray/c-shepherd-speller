@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: Request) {
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-  });
+  })
 
   if (!token) {
-    return NextResponse.redirect(new URL("/auth/signin", request.url));
+    return NextResponse.redirect(new URL('/auth/signin', request.url))
   }
 
-  return NextResponse.next();
+  return NextResponse.next()
 }
 
 export const config = {
@@ -24,6 +24,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - auth (authentication pages)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|auth).*)",
+    '/((?!api|_next/static|_next/image|favicon.ico|auth).*)',
   ],
-};
+}

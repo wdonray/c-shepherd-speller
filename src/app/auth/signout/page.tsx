@@ -1,26 +1,22 @@
-"use client";
+'use client'
 
-import { signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 export default function SignOut() {
-  const router = useRouter();
+  const router = useRouter()
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push("/");
-  };
+    await signOut({ redirect: false })
+    router.push('/')
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign Out
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Are you sure you want to sign out?
-          </p>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign Out</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">Are you sure you want to sign out?</p>
         </div>
 
         <div className="mt-8 space-y-6">
@@ -40,5 +36,5 @@ export default function SignOut() {
         </div>
       </div>
     </div>
-  );
+  )
 }

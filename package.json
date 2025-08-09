@@ -9,7 +9,11 @@
     "lint": "oxlint --import-plugin",
     "lint:fix": "oxlint --fix --import-plugin",
     "lint:all": "npm run lint:ox",
-    "test-db": "node scripts/test-db.mjs"
+    "test-db": "node scripts/test-db.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky install",
+    "pre-commit": "lint-staged"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
@@ -33,8 +37,17 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
+    "husky": "^9.1.7",
     "oxlint": "^1.11.1",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "oxlint --fix --import-plugin",
+      "prettier --write"
+    ],
+    "*.{json,css,md,html}": "prettier --write"
   }
 }
