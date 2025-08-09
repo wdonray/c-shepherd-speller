@@ -25,35 +25,35 @@ export default function SpellingManager() {
 
   // Load existing data when component mounts
   useEffect(() => {
+    async function loadSpellingData() {
+      try {
+        const currentUserId = session?.user?.id;
+
+        if (!currentUserId) {
+          return;
+        }
+
+        setUserId(currentUserId);
+
+        // Then get the spelling data using the user ID
+        const spellingResponse = await fetch(
+          `/api/users/${currentUserId}/spelling`
+        );
+        if (spellingResponse.ok) {
+          const data = await spellingResponse.json();
+          setSpellingData(data.spellingData);
+        }
+      } catch (error) {
+        console.error("Error loading spelling data:", error);
+      }
+    }
+
     if (session?.user?.id) {
       loadSpellingData();
     }
   }, [session?.user?.id]);
 
-  const loadSpellingData = async () => {
-    try {
-      const currentUserId = session?.user?.id;
-
-      if (!currentUserId) {
-        return;
-      }
-
-      setUserId(currentUserId);
-
-      // Then get the spelling data using the user ID
-      const spellingResponse = await fetch(
-        `/api/users/${currentUserId}/spelling`
-      );
-      if (spellingResponse.ok) {
-        const data = await spellingResponse.json();
-        setSpellingData(data.spellingData);
-      }
-    } catch (error) {
-      console.error("Error loading spelling data:", error);
-    }
-  };
-
-  const addWord = async () => {
+  async function addWord() {
     if (!newWord.trim() || !userId) return;
 
     setIsLoading(true);
@@ -84,9 +84,9 @@ export default function SpellingManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const addSound = async () => {
+  async function addSound() {
     if (!newSound.trim() || !userId) return;
 
     setIsLoading(true);
@@ -117,9 +117,9 @@ export default function SpellingManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const addSpelling = async () => {
+  async function addSpelling() {
     if (!newSpelling.trim() || !userId) return;
 
     setIsLoading(true);
@@ -150,9 +150,9 @@ export default function SpellingManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
-  const removeItem = async (type: keyof SpellingData, index: number) => {
+  async function removeItem(type: keyof SpellingData, index: number) {
     if (!userId) return;
 
     setIsLoading(true);
@@ -183,7 +183,7 @@ export default function SpellingManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   if (!session?.user?.email || !userId) {
     return (
