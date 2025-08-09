@@ -12,7 +12,6 @@
     "test-db": "node scripts/test-db.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky install",
     "pre-commit": "lint-staged"
   },
   "dependencies": {
