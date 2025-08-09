@@ -1,27 +1,26 @@
 # C-Shepherd Speller
 
-A modern web application for intelligent spelling assistance and language learning tools.
+A simple web application for managing personal spelling data with Google OAuth authentication.
 
 ## 🎯 About
 
-C-Shepherd Speller is a Next.js 15 application designed to provide real-time spelling assistance, personalized learning paths, and comprehensive language support with accessibility-first design principles.
+C-Shepherd Speller is a Next.js 15 application designed for teachers to help children learn spelling. It allows teachers to manage spelling data including words, sounds, and spelling patterns for their students. The app features Google OAuth authentication for teachers and stores educational data in MongoDB.
 
-### Key Features
+### Current Features
 
-- **Real-Time Spelling Check**: Instant feedback and suggestions as you type
-- **Personalized Learning**: Adaptive difficulty based on your performance
-- **Multi-Language Support**: English variants, Spanish, French, German
-- **Accessibility First**: WCAG 2.1 AA compliant with screen reader support
-- **Educational Tools**: Word definitions, etymology, and usage examples
-- **Progress Tracking**: Visual analytics and improvement insights
+- **Google OAuth Authentication**: Secure sign-in for teachers using Google accounts
+- **Spelling Data Management**: Add, remove, and organize words, sounds, and spelling patterns for students
+- **Teacher Dashboard**: Manage multiple spelling lists and educational content
+- **Simple Interface**: Clean, responsive UI built with Tailwind CSS for classroom use
+- **MongoDB Storage**: Persistent storage of educational data and student progress
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+ (see `.nvmrc`)
 - MongoDB (local or Atlas)
-- npm or yarn
+- Google OAuth credentials
 
 ### Installation
 
@@ -54,17 +53,20 @@ NEXTAUTH_SECRET=your-super-secret-key-here
 
 # MongoDB Configuration
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/c-shepherd-speller
-MONGODB_DB_NAME=c-shepherd-speller
 
-# OAuth Providers (Optional)
+# Google OAuth (Required)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-
-# Environment
-NODE_ENV=development
 ```
+
+### Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add `http://localhost:3000/api/auth/callback/google` to authorized redirect URIs
+6. Copy Client ID and Client Secret to your `.env.local`
 
 ## 📁 Project Structure
 
@@ -73,32 +75,36 @@ c-shepherd-speller/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── api/               # API routes
+│   │   │   ├── auth/         # NextAuth authentication
+│   │   │   └── users/        # User data management
 │   │   ├── auth/              # Authentication pages
-│   │   ├── dashboard/         # Dashboard pages
-│   │   ├── practice/          # Practice interface
-│   │   └── progress/          # Progress tracking
+│   │   │   ├── signin/       # Sign in page
+│   │   │   ├── signout/      # Sign out page
+│   │   │   ├── error/        # Error handling
+│   │   │   └── verify-request/ # Email verification
+│   │   ├── layout.tsx        # Root layout
+│   │   ├── page.tsx          # Home page
+│   │   └── globals.css       # Global styles
 │   ├── components/            # React components
-│   │   ├── auth/             # Authentication components
-│   │   ├── ui/               # UI components
-│   │   └── layout/           # Layout components
+│   │   ├── providers/        # Context providers
+│   │   │   └── SessionProvider.tsx
+│   │   └── SpellingManager.tsx # Main spelling management component
+│   ├── hooks/                # Custom React hooks
+│   │   └── useAuth.ts        # Authentication hook
 │   ├── lib/                  # Utility functions
+│   │   ├── db-utils.ts       # Database operations
+│   │   ├── mongodb.ts        # MongoDB connection
+│   │   └── mongodb-adapter.ts # NextAuth MongoDB adapter
 │   ├── models/               # Database models
+│   │   └── User.ts           # User schema
 │   ├── types/                # TypeScript types
-│   └── hooks/                # Custom React hooks
-├── docs/                     # Documentation
+│   │   └── next-auth.d.ts    # NextAuth type extensions
+│   └── middleware.ts         # Next.js middleware
+├── scripts/                   # Utility scripts
+│   └── test-db.mjs          # Database connection test
 ├── public/                   # Static assets
-└── tests/                    # Test files
+└── package.json              # Dependencies and scripts
 ```
-
-## 📚 Documentation
-
-- **[Implementation Guide](docs/implementation-guide.md)** - Step-by-step development roadmap
-- **[App Usage & Product Vision](docs/app-usage-and-product-vision.md)** - Product overview and features
-- **[MongoDB Connection Guide](docs/mongodb-connection-guide.md)** - Database setup and configuration
-- **[UI Guidelines](docs/ui-guidelines.md)** - Design system and component library
-- **[API Route Skeletons](docs/api-route-skeletons.md)** - API structure and patterns
-- **[NextAuth Integration](docs/nextauth-integration.md)** - Authentication setup
-- **[Security & Compliance](docs/security-and-compliance.md)** - Security best practices
 
 ## 🛠️ Available Scripts
 
@@ -106,26 +112,85 @@ c-shepherd-speller/
 npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
-npm run lint         # Run ESLint
+npm run lint         # Run ESLint (oxlint)
 npm run lint:fix     # Fix ESLint errors
-npm test             # Run tests
-npm run test:e2e     # Run E2E tests
+npm run test-db      # Test MongoDB connection
 ```
 
-## 🎯 Success Metrics
+## 🗄️ Database Schema
 
-- **Performance**: < 2s page load time, < 500ms API response
-- **Accessibility**: WCAG 2.1 AA compliance
-- **User Engagement**: 70% daily active users
-- **Learning Outcomes**: 25% improvement in spelling accuracy
-- **Technical**: 99.9% uptime, < 1% error rate
+### User Model
 
-## 🛡️ Security & Privacy
+```typescript
+interface User {
+  email: string;           // Unique email (from Google OAuth)
+  name: string;            // Display name (from Google OAuth)
+  image?: string;          // Profile image URL (from Google OAuth)
+  words: string[];         // User's word list
+  sounds: string[];        # User's sound list
+  spelling: string[];      # User's spelling patterns
+  lastActive: Date;        # Last activity timestamp
+  createdAt: Date;         # Account creation date
+  updatedAt: Date;         # Last update date
+}
+```
 
-- Data encryption in transit and at rest
-- GDPR and CCPA compliance
-- Regular security audits
-- Privacy-first design principles
+## 🔐 Authentication
+
+The application uses NextAuth.js with Google OAuth provider for teacher authentication:
+
+- **Provider**: Google OAuth 2.0
+- **Session Strategy**: JWT
+- **Database Adapter**: MongoDB
+- **Protected Routes**: All spelling management features require teacher authentication
+
+## 📱 API Endpoints
+
+### Authentication
+
+- `GET/POST /api/auth/*` - NextAuth.js authentication routes
+
+### Teacher Data
+
+- `GET /api/users/[id]/spelling` - Retrieve teacher's spelling data for students
+- `PUT /api/users/[id]/spelling` - Update teacher's spelling data for students
+
+## 🎨 UI Components
+
+- **SpellingManager**: Main component for teachers to manage spelling data for students
+- **SessionProvider**: Wraps the app with authentication context
+- **Responsive Design**: Built with Tailwind CSS for classroom and mobile use
+
+## 🧪 Testing
+
+```bash
+# Test database connection
+npm run test-db
+```
+
+## 🚧 Current Status
+
+**Current Status**: 🟡 Basic Implementation Complete  
+**Version**: 0.1.0  
+**Last Updated**: December 2024
+
+### What's Implemented
+
+- ✅ Google OAuth authentication for teachers
+- ✅ Teacher dashboard for managing spelling data (words, sounds, spelling patterns)
+- ✅ MongoDB integration for storing educational content
+- ✅ Basic UI for classroom spelling management
+- ✅ API endpoints for CRUD operations on spelling data
+
+### What's Not Yet Implemented
+
+- ❌ Student accounts and progress tracking
+- ❌ Interactive spelling exercises and games
+- ❌ Multi-language support for diverse classrooms
+- ❌ Assessment and quiz tools
+- ❌ Student performance analytics
+- ❌ Classroom management features
+- ❌ Accessibility features for special needs students
 
 ## 🤝 Contributing
 
@@ -137,11 +202,11 @@ npm run test:e2e     # Run E2E tests
 
 ### Development Guidelines
 
-- Follow the [Implementation Guide](docs/implementation-guide.md) for setup
-- Adhere to the [UI Guidelines](docs/ui-guidelines.md) for components
-- Write tests for new features
-- Ensure accessibility compliance
 - Follow TypeScript best practices
+- Use Tailwind CSS for styling
+- Ensure proper error handling
+- Add tests for new features
+- Follow the existing code structure
 
 ## 📄 License
 
@@ -149,16 +214,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: Check the [docs](docs/) folder for detailed guides
 - **Issues**: Create an issue in the repository
-- **Email**: support@c-shepherd-speller.com
+- **Documentation**: Check the code comments and TypeScript types
 
-## 🚧 Status
+## 🔮 Future Roadmap
 
-**Current Status**: 🟡 In Development  
-**Version**: 0.1.0  
-**Last Updated**: December 2024
+- Student accounts and progress tracking
+- Interactive spelling exercises and games
+- Multi-language support for diverse classrooms
+- Assessment and quiz tools for spelling tests
+- Student performance analytics and reports
+- Classroom management and student grouping
+- Accessibility features for special needs students
+- Mobile app for students to practice spelling
+- Integration with educational standards and curricula
 
 ---
 
-Built with ❤️ using Next.js, TypeScript, Tailwind CSS, and MongoDB.
+Built with ❤️ for educators using Next.js 15, TypeScript, Tailwind CSS, MongoDB, and NextAuth.js.
