@@ -13,7 +13,7 @@ export default function VerifyRequest() {
 
         <div className="mt-8 space-y-6">
           <div className="text-center">
-            <p className="text-sm text-gray-500">If you don't see it, check your spam folder.</p>
+            <p className="text-sm text-gray-500">If you don&apos;t see it, check your spam folder.</p>
           </div>
 
           <Link
