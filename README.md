@@ -4,7 +4,7 @@ A simple web application for managing personal spelling data with Google OAuth a
 
 ## 🎯 About
 
-C-Shepherd Speller is a Next.js 15 application designed for teachers to help children learn spelling. It allows teachers to manage spelling data including words, sounds, and spelling patterns for their students. The app features Google OAuth authentication for teachers and stores educational data in MongoDB.
+**C**-Shepherd Speller is a Next.js 15 application designed for teachers to help children learn spelling. It allows teachers to manage spelling data including words, sounds, and spelling patterns for their students. The app features Google OAuth authentication for teachers and stores educational data in DynamoDB.
 
 ### Current Features
 
@@ -12,14 +12,14 @@ C-Shepherd Speller is a Next.js 15 application designed for teachers to help chi
 - **Spelling Data Management**: Add, remove, and organize words, sounds, and spelling patterns for students
 - **Teacher Dashboard**: Manage multiple spelling lists and educational content
 - **Simple Interface**: Clean, responsive UI built with Tailwind CSS for classroom use
-- **MongoDB Storage**: Persistent storage of educational data and student progress
+- **DynamoDB Storage**: Persistent storage of educational data and student progress
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 22+ (see `.nvmrc`)
-- MongoDB (local or Atlas)
+- AWS Account with DynamoDB access
 - Google OAuth credentials
 
 ### Installation
@@ -51,8 +51,14 @@ Create a `.env.local` file in the root directory:
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-super-secret-key-here
 
-# MongoDB Configuration
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/c-shepherd-speller
+# DynamoDB Configuration (using official AuthJS naming convention)
+AUTH_DYNAMODB_REGION=us-east-1
+AUTH_DYNAMODB_ID=your_access_key_id
+AUTH_DYNAMODB_SECRET=your_secret_access_key
+
+# Table Names
+USER_TABLE_NAME=c-shepherd-users
+AUTH_TABLE_NAME=next-auth
 
 # Google OAuth (Required)
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -67,6 +73,19 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 4. Create OAuth 2.0 credentials
 5. Add `http://localhost:3000/api/auth/callback/google` to authorized redirect URIs
 6. Copy Client ID and Client Secret to your `.env.local`
+
+### DynamoDB Setup
+
+1. **Create an AWS Account** (if you don't have one)
+2. **Create an IAM User** with DynamoDB permissions:
+   - Go to AWS IAM Console
+   - Create a new user
+   - Attach the `AmazonDynamoDBFullAccess` policy (or create a custom policy with minimal permissions)
+   - Generate access keys and add them to your `.env.local` as `AUTH_DYNAMODB_ID` and `AUTH_DYNAMODB_SECRET`
+3. **Create Tables**: Run `npm run create-tables` to create the required DynamoDB tables
+4. **Test Connection**: Run `npm run test-db` to verify your setup
+
+For detailed setup instructions, see [DYNAMODB_SETUP.md](DYNAMODB_SETUP.md).
 
 ## 📁 Project Structure
 
@@ -93,8 +112,7 @@ c-shepherd-speller/
 │   │   └── useAuth.ts        # Authentication hook
 │   ├── lib/                  # Utility functions
 │   │   ├── db-utils.ts       # Database operations
-│   │   ├── mongodb.ts        # MongoDB connection
-│   │   └── mongodb-adapter.ts # NextAuth MongoDB adapter
+│   │   └── dynamodb.ts       # DynamoDB connection
 │   ├── models/               # Database models
 │   │   └── User.ts           # User schema
 │   ├── types/                # TypeScript types
@@ -114,7 +132,8 @@ npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint (oxlint)
 npm run lint:fix     # Fix ESLint errors
-npm run test-db      # Test MongoDB connection
+npm run test-db      # Test DynamoDB connection
+npm run create-tables # Create DynamoDB tables
 ```
 
 ## 🗄️ Database Schema
@@ -141,7 +160,7 @@ The application uses NextAuth.js with Google OAuth provider for teacher authenti
 
 - **Provider**: Google OAuth 2.0
 - **Session Strategy**: JWT
-- **Database Adapter**: MongoDB
+- **Database Adapter**: DynamoDB
 - **Protected Routes**: All spelling management features require teacher authentication
 
 ## 📱 API Endpoints
@@ -178,7 +197,7 @@ npm run test-db
 
 - ✅ Google OAuth authentication for teachers
 - ✅ Teacher dashboard for managing spelling data (words, sounds, spelling patterns)
-- ✅ MongoDB integration for storing educational content
+- ✅ DynamoDB integration for storing educational content
 - ✅ Basic UI for classroom spelling management
 - ✅ API endpoints for CRUD operations on spelling data
 
@@ -231,4 +250,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Built with ❤️ for educators using Next.js 15, TypeScript, Tailwind CSS, MongoDB, and NextAuth.js.
+Built with ❤️ for educators using Next.js 15, TypeScript, Tailwind CSS, DynamoDB, and NextAuth.js.

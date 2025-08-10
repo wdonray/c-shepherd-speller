@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Alert, AlertDescription } from './ui/alert'
+import {
+  getSpelling,
+  addWord as addWordApi,
+  addSound as addSoundApi,
+  addSpelling as addSpellingApi,
+  removeItem as removeItemApi,
+  updateLastActive,
+  getUserByEmail,
+} from '@/lib/spelling-api'
 
 interface SpellingData {
   words: string[]
@@ -23,32 +35,19 @@ export default function SpellingManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  // Load existing data when component mounts
   useEffect(() => {
     async function loadSpellingData() {
-      try {
-        const currentUserId = session?.user?.id
-
-        if (!currentUserId) {
-          return
-        }
-
-        setUserId(currentUserId)
-
-        // Then get the spelling data using the user ID
-        const spellingResponse = await fetch(`/api/users/${currentUserId}/spelling`)
-        if (spellingResponse.ok) {
-          const data = await spellingResponse.json()
-          setSpellingData(data.spellingData)
-        }
-      } catch (error) {
-        console.error('Error loading spelling data:', error)
-      }
+      const userEmail = session?.user?.email
+      if (!userEmail) return
+      const userId = await getUserByEmail(userEmail)
+      if (!userId) return
+      setUserId(userId)
+      const spellingData = await getSpelling(userId)
+      setSpellingData(spellingData)
+      updateLastActive(userId)
     }
 
-    if (session?.user?.id) {
-      loadSpellingData()
-    }
+    if (session?.user?.id) loadSpellingData()
   }, [session?.user?.id])
 
   async function addWord() {
@@ -58,27 +57,16 @@ export default function SpellingManager() {
     setMessage('')
 
     try {
-      const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          words: [...spellingData.words, newWord.trim()],
-        }),
-      })
-
-      if (response.ok) {
-        setSpellingData((prev) => ({
-          ...prev,
-          words: [...prev.words, newWord.trim()],
-        }))
-        setNewWord('')
-        setMessage('Word added successfully!')
-      } else {
-        setMessage('Failed to add word')
-      }
+      await addWordApi(userId, newWord.trim(), spellingData.words)
+      setSpellingData((prev) => ({
+        ...prev,
+        words: [...prev.words, newWord.trim()],
+      }))
+      setNewWord('')
+      setMessage('Word added successfully!')
+      await updateLastActive(userId)
     } catch (error) {
       setMessage('Error adding word')
-      console.error('Error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -91,27 +79,16 @@ export default function SpellingManager() {
     setMessage('')
 
     try {
-      const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sounds: [...spellingData.sounds, newSound.trim()],
-        }),
-      })
-
-      if (response.ok) {
-        setSpellingData((prev) => ({
-          ...prev,
-          sounds: [...prev.sounds, newSound.trim()],
-        }))
-        setNewSound('')
-        setMessage('Sound added successfully!')
-      } else {
-        setMessage('Failed to add sound')
-      }
+      await addSoundApi(userId, newSound.trim(), spellingData.sounds)
+      setSpellingData((prev) => ({
+        ...prev,
+        sounds: [...prev.sounds, newSound.trim()],
+      }))
+      setNewSound('')
+      setMessage('Sound added successfully!')
+      updateLastActive(userId)
     } catch (error) {
       setMessage('Error adding sound')
-      console.error('Error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -124,27 +101,16 @@ export default function SpellingManager() {
     setMessage('')
 
     try {
-      const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spelling: [...spellingData.spelling, newSpelling.trim()],
-        }),
-      })
-
-      if (response.ok) {
-        setSpellingData((prev) => ({
-          ...prev,
-          spelling: [...prev.spelling, newSpelling.trim()],
-        }))
-        setNewSpelling('')
-        setMessage('Spelling added successfully!')
-      } else {
-        setMessage('Failed to add spelling')
-      }
+      await addSpellingApi(userId, newSpelling.trim(), spellingData.spelling)
+      setSpellingData((prev) => ({
+        ...prev,
+        spelling: [...prev.spelling, newSpelling.trim()],
+      }))
+      setNewSpelling('')
+      setMessage('Spelling added successfully!')
+      updateLastActive(userId)
     } catch (error) {
       setMessage('Error adding spelling')
-      console.error('Error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -157,27 +123,16 @@ export default function SpellingManager() {
     setMessage('')
 
     try {
+      await removeItemApi(userId, type, index, spellingData[type])
       const updatedArray = spellingData[type].filter((_, i) => i !== index)
-      const response = await fetch(`/api/users/${userId}/spelling`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          [type]: updatedArray,
-        }),
-      })
-
-      if (response.ok) {
-        setSpellingData((prev) => ({
-          ...prev,
-          [type]: updatedArray,
-        }))
-        setMessage(`${type} removed successfully!`)
-      } else {
-        setMessage(`Failed to remove ${type}`)
-      }
+      setSpellingData((prev) => ({
+        ...prev,
+        [type]: updatedArray,
+      }))
+      setMessage(`${type} removed successfully!`)
+      updateLastActive(userId)
     } catch (error) {
       setMessage(`Error removing ${type}`)
-      console.error('Error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -192,30 +147,21 @@ export default function SpellingManager() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
-          Spelling Manager
-        </h2>
-        <p className="text-gray-600 text-lg">Manage your words, sounds, and spelling data</p>
-      </div>
-
+    <div className="space-y-4">
       {message && (
-        <div
-          className={`p-4 rounded-md ${
-            message.includes('successfully')
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
+        <Alert
+          className={message.includes('successfully') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}
         >
-          {message}
-        </div>
+          <AlertDescription className={message.includes('successfully') ? 'text-green-800' : 'text-red-800'}>
+            {message}
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {/* Words Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
             <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -228,42 +174,40 @@ export default function SpellingManager() {
           </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="text"
                 value={newWord}
                 onChange={(e) => setNewWord(e.target.value)}
                 placeholder="Enter a word"
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
                 onKeyPress={(e) => e.key === 'Enter' && addWord()}
+                className="flex-1"
               />
-              <button
-                onClick={addWord}
-                disabled={isLoading || !newWord.trim()}
-                className="flex-shrink-0 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium whitespace-nowrap"
-              >
+              <Button onClick={addWord} disabled={isLoading || !newWord.trim()} size="sm" className="flex-shrink-0">
                 {isLoading ? 'Adding...' : 'Add'}
-              </button>
+              </Button>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {spellingData.words.map((word, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group"
                 >
-                  <span className="text-gray-800 font-medium">{word}</span>
-                  <button
+                  <span className="text-gray-800 font-medium text-sm">{word}</span>
+                  <Button
                     onClick={() => removeItem('words', index)}
                     disabled={isLoading}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 px-2 py-1 rounded"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200 h-7 px-2"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
               {spellingData.words.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-6">
+                  <div className="mx-auto w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -281,8 +225,8 @@ export default function SpellingManager() {
         </div>
 
         {/* Sounds Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
             <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -295,42 +239,40 @@ export default function SpellingManager() {
           </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="text"
                 value={newSound}
                 onChange={(e) => setNewSound(e.target.value)}
                 placeholder="Enter a sound"
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
                 onKeyPress={(e) => e.key === 'Enter' && addSound()}
+                className="flex-1"
               />
-              <button
-                onClick={addSound}
-                disabled={isLoading || !newSound.trim()}
-                className="flex-shrink-0 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium whitespace-nowrap"
-              >
+              <Button onClick={addSound} disabled={isLoading || !newSound.trim()} size="sm" className="flex-shrink-0">
                 {isLoading ? 'Adding...' : 'Add'}
-              </button>
+              </Button>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {spellingData.sounds.map((sound, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group"
                 >
-                  <span className="text-gray-800 font-medium">{sound}</span>
-                  <button
+                  <span className="text-gray-800 font-medium text-sm">{sound}</span>
+                  <Button
                     onClick={() => removeItem('sounds', index)}
                     disabled={isLoading}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 px-2 py-1 rounded"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200 h-7 px-2"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
               {spellingData.sounds.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-6">
+                  <div className="mx-auto w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -348,8 +290,8 @@ export default function SpellingManager() {
         </div>
 
         {/* Spelling Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
             <svg className="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -362,42 +304,45 @@ export default function SpellingManager() {
           </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="text"
                 value={newSpelling}
                 onChange={(e) => setNewSpelling(e.target.value)}
                 placeholder="Enter spelling"
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
                 onKeyPress={(e) => e.key === 'Enter' && addSpelling()}
+                className="flex-1"
               />
-              <button
+              <Button
                 onClick={addSpelling}
                 disabled={isLoading || !newSpelling.trim()}
-                className="flex-shrink-0 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium whitespace-nowrap"
+                size="sm"
+                className="flex-shrink-0"
               >
                 {isLoading ? 'Adding...' : 'Add'}
-              </button>
+              </Button>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {spellingData.spelling.map((spell, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group"
                 >
-                  <span className="text-gray-800 font-medium">{spell}</span>
-                  <button
+                  <span className="text-gray-800 font-medium text-sm">{spell}</span>
+                  <Button
                     onClick={() => removeItem('spelling', index)}
                     disabled={isLoading}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 px-2 py-1 rounded"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200 h-7 px-2"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               ))}
               {spellingData.spelling.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-6">
+                  <div className="mx-auto w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -416,20 +361,20 @@ export default function SpellingManager() {
       </div>
 
       {/* Summary */}
-      <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-            <div className="text-2xl font-bold text-blue-600 mb-1">{spellingData.words.length}</div>
-            <div className="text-sm font-medium text-blue-700">Words</div>
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">Summary</h3>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+            <div className="text-xl font-bold text-blue-600 mb-1">{spellingData.words.length}</div>
+            <div className="text-xs font-medium text-blue-700">Words</div>
           </div>
-          <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
-            <div className="text-2xl font-bold text-green-600 mb-1">{spellingData.sounds.length}</div>
-            <div className="text-sm font-medium text-green-700">Sounds</div>
+          <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+            <div className="text-xl font-bold text-green-600 mb-1">{spellingData.sounds.length}</div>
+            <div className="text-xs font-medium text-green-700">Sounds</div>
           </div>
-          <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
-            <div className="text-2xl font-bold text-purple-600 mb-1">{spellingData.spelling.length}</div>
-            <div className="text-sm font-medium text-purple-700">Spelling</div>
+          <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
+            <div className="text-xl font-bold text-purple-600 mb-1">{spellingData.spelling.length}</div>
+            <div className="text-xs font-medium text-purple-700">Spelling</div>
           </div>
         </div>
       </div>

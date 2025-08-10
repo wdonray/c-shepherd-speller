@@ -1,13 +1,45 @@
 'use client'
 
 import { signOut, useSession } from 'next-auth/react'
-import SpellingManager from '../components/SpellingManager'
-import { useMemo } from 'react'
+import SpellingManagerSheet from '../components/SpellingManagerSheet'
+import { useMemo, useEffect, useState } from 'react'
 
 export default function Home() {
   const { data: session, status } = useSession()
+  const [isSyncing, setIsSyncing] = useState(false)
 
-  const isLoading = useMemo(() => status === 'loading', [status])
+  useEffect(() => {
+    async function syncUser() {
+      setIsSyncing(true)
+
+      const email = session?.user?.email
+
+      if (!email) {
+        setIsSyncing(false)
+        return
+      }
+
+      const user = await fetch(`/api/users?email=${email}`)
+      const userData = await user.json()
+
+      if (!userData.user.id) {
+        console.log('Creating user')
+        await fetch(`/api/users`, {
+          method: 'POST',
+          body: JSON.stringify({
+            email: session?.user?.email || '',
+            name: session?.user?.name || '',
+          }),
+        })
+      }
+
+      setIsSyncing(false)
+    }
+
+    syncUser()
+  }, [session?.user])
+
+  const isLoading = useMemo(() => status === 'loading' || isSyncing, [status, isSyncing])
 
   if (isLoading) {
     return (
@@ -39,7 +71,13 @@ export default function Home() {
           </div>
         </div>
 
-        <SpellingManager />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Shepherd Speller</h2>
+            <p className="text-lg text-gray-600 mb-8">Manage your spelling data with our interactive tools</p>
+            <SpellingManagerSheet />
+          </div>
+        </div>
       </div>
     </div>
   )

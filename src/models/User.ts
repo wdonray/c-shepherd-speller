@@ -1,7 +1,7 @@
 /**
- * User Model for Users
+ * User Model for DynamoDB
  *
- * This module defines the User schema for users who use the C-Shepherd Speller
+ * This module defines the User interface and utilities for users who use the C-Shepherd Speller
  * application. Uses basic information from Google authentication.
  *
  * Features:
@@ -11,61 +11,27 @@
  * - Created and updated timestamps
  */
 
-import mongoose, { Schema, Document } from 'mongoose'
-
-export interface IUser extends Document {
+export interface IUser {
+  id: string
   email: string
   name: string
   image?: string
-  lastActive: Date
-  createdAt: Date
-  updatedAt: Date
+  lastActive: string
+  createdAt: string
+  updatedAt: string
   words: string[]
   sounds: string[]
   spelling: string[]
 }
 
-const UserSchema: Schema = new Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    image: {
-      type: String,
-      trim: true,
-    },
-    lastActive: {
-      type: Date,
-      default: Date.now,
-    },
-    words: {
-      type: [String],
-      default: [],
-    },
-    sounds: {
-      type: [String],
-      default: [],
-    },
-    spelling: {
-      type: [String],
-      default: [],
-    },
-  },
-  {
-    timestamps: true,
-  }
-)
+export const USER_TABLE_NAME = process.env.USER_TABLE_NAME || 'c-shepherd-users'
+export const USER_KEY_SCHEMA = { PK: '${id}-user', SK: '${id}-profile' }
 
-// Indexes for better query performance
-UserSchema.index({ lastActive: -1 })
+export function createUserItem(userData: Omit<IUser, 'id' | 'createdAt' | 'updatedAt'> & { id: string }): IUser {
+  const now = new Date().toISOString()
+  return { ...userData, createdAt: now, updatedAt: now }
+}
 
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
+export function updateUserTimestamps(user: IUser): IUser {
+  return { ...user, updatedAt: new Date().toISOString() }
+}
