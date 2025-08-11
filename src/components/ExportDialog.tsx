@@ -52,7 +52,7 @@ export default function ExportDialog({ isOpen, onClose, onExport }: ExportDialog
         <DialogHeader>
           <DialogTitle>Save Your Spelling Collection</DialogTitle>
           <DialogDescription>
-            Give your file a name so you can easily find it later. We'll save it as a JSON file for you.
+            Give your file a name so you can easily find it later. We&apos;ll save it as a JSON file for you.
           </DialogDescription>
         </DialogHeader>
 
