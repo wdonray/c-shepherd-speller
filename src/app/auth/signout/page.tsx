@@ -2,39 +2,69 @@
 
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { LogOutIcon, Loader2, AlertTriangle } from 'lucide-react'
 
 export default function SignOut() {
   const router = useRouter()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push('/')
+  async function handleSignOut() {
+    setIsSigningOut(true)
+    try {
+      await signOut({ redirect: false })
+      router.push('/')
+    } catch (error) {
+      setIsSigningOut(false)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign Out</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">Are you sure you want to sign out?</p>
-        </div>
-
-        <div className="mt-8 space-y-6">
-          <button
+    <div className="p-8 flex justify-center">
+      <Card className="w-full max-w-[400px] min-h-[300px] flex flex-col mx-4 sm:mx-0">
+        <CardHeader>
+          <div className="flex flex-col items-center space-y-2">
+            <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-destructive" />
+            </div>
+            <CardTitle>Sign Out</CardTitle>
+            <CardDescription>Are you sure you want to sign out?</CardDescription>
+          </div>
+        </CardHeader>
+        <CardFooter className="flex-col space-y-3 flex-1 flex items-end justify-center">
+          <Button
             onClick={handleSignOut}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            variant="destructive"
+            className="w-full"
+            disabled={isSigningOut}
+            aria-label="Confirm sign out"
+            onKeyDown={(e) => e.key === 'Enter' && !isSigningOut && handleSignOut()}
           >
-            Sign Out
-          </button>
-
-          <button
+            {isSigningOut ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing out...
+              </>
+            ) : (
+              <>
+                <LogOutIcon className="mr-2 h-4 w-4" />
+                Sign Out
+              </>
+            )}
+          </Button>
+          <Button
             onClick={() => router.back()}
-            className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            variant="outline"
+            className="w-full"
+            disabled={isSigningOut}
+            aria-label="Cancel sign out"
           >
             Cancel
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

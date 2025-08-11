@@ -44,8 +44,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+      </head>
       <SessionProvider>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
+          <noscript>
+            <div className="fixed inset-0 bg-background flex items-center justify-center p-4 z-50">
+              <div className="text-center space-y-4">
+                <h1 className="text-2xl font-bold">JavaScript Required</h1>
+                <p className="text-muted-foreground">
+                  Shepherd Speller requires JavaScript to function. Please enable it in your browser to continue.
+                </p>
+              </div>
+            </div>
+          </noscript>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <Header />
             <main className="min-h-screen container m-auto p-8">{children}</main>

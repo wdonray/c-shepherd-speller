@@ -18,6 +18,10 @@ export function Header() {
   const { data: session } = useSession()
   const [isSpellingManagerOpen, setIsSpellingManagerOpen] = useState(false)
 
+  if (session?.user?.id == null) {
+    return null
+  }
+
   return (
     <fieldset disabled={session?.user?.id == null}>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -1,29 +1,38 @@
 'use client'
 
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Mail, ArrowLeft } from 'lucide-react'
 
 export default function VerifyRequest() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Check your email</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">A sign in link has been sent to your email address.</p>
-        </div>
-
-        <div className="mt-8 space-y-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-500">If you don&apos;t see it, check your spam folder.</p>
+    <div className="p-8 flex justify-center">
+      <Card className="w-full max-w-[400px] min-h-[300px] flex flex-col mx-4 sm:mx-0">
+        <CardHeader>
+          <div className="flex flex-col items-center space-y-2">
+            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Mail className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle>Check Your Email</CardTitle>
+            <CardDescription>We've sent you a sign in link to your email address.</CardDescription>
           </div>
-
-          <Link
-            href="/auth/signin"
-            className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Back to Sign In
-          </Link>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">If you don't see the email, check your spam folder.</p>
+            <p className="text-xs text-muted-foreground">The link will expire in 24 hours for security.</p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex items-center justify-center">
+          <Button asChild variant="outline" className="w-full" aria-label="Return to sign in page">
+            <Link href="/auth/signin">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Sign In
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
