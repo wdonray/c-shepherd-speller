@@ -15,12 +15,12 @@ export default function VerifyRequest() {
               <Mail className="w-6 h-6 text-primary" />
             </div>
             <CardTitle>Check Your Email</CardTitle>
-            <CardDescription>We've sent you a sign in link to your email address.</CardDescription>
+            <CardDescription>We&apos;ve sent you a sign in link to your email address.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">If you don't see the email, check your spam folder.</p>
+            <p className="text-sm text-muted-foreground">If you don&apos;t see the email, check your spam folder.</p>
             <p className="text-xs text-muted-foreground">The link will expire in 24 hours for security.</p>
           </div>
         </CardContent>

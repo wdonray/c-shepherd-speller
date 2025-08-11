@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpenIcon, Chrome, Loader2 } from 'lucide-react'
+import { BookOpenIcon, Loader2, ExternalLink } from 'lucide-react'
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
@@ -15,6 +15,7 @@ export default function SignIn() {
       await signIn('google', { callbackUrl: '/' })
     } catch (error) {
       setIsLoading(false)
+      console.error(error)
     }
   }
 
@@ -45,7 +46,7 @@ export default function SignIn() {
               </>
             ) : (
               <>
-                <Chrome className="mr-2 h-4 w-4" />
+                <ExternalLink className="mr-2 h-4 w-4" />
                 Continue with Google
               </>
             )}

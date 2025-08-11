@@ -18,6 +18,7 @@ export default function SignOut() {
       router.push('/')
     } catch (error) {
       setIsSigningOut(false)
+      console.error(error)
     }
   }
 
