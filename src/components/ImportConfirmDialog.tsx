@@ -14,26 +14,27 @@ import { Download, Upload } from 'lucide-react'
 interface ImportConfirmDialogProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
   onExport: () => void
+  onProceed: () => void
   existingDataCount: number
 }
 
 export default function ImportConfirmDialog({
   isOpen,
   onClose,
-  onConfirm,
   onExport,
+  onProceed,
   existingDataCount,
 }: ImportConfirmDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import Spelling Data</DialogTitle>
+          <DialogTitle>Add New Spelling Collection</DialogTitle>
           <DialogDescription>
-            You currently have {existingDataCount} item{existingDataCount !== 1 ? 's' : ''} in your spelling data.
-            Importing new data will replace all existing items.
+            You currently have {existingDataCount} item{existingDataCount !== 1 ? 's' : ''} in your spelling collection.
+            Adding a new collection will replace your current items. Would you like to save your current collection
+            first?
           </DialogDescription>
         </DialogHeader>
 
@@ -43,11 +44,11 @@ export default function ImportConfirmDialog({
           </Button>
           <Button variant="outline" onClick={onExport} className="gap-2">
             <Download className="h-4 w-4" />
-            Export Current Data
+            Save Current Collection
           </Button>
-          <Button variant="destructive" onClick={onConfirm} className="gap-2">
+          <Button onClick={onProceed} className="gap-2">
             <Upload className="h-4 w-4" />
-            Import & Replace
+            Add New Collection
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -24,9 +24,9 @@ export default function SpellingDataCard({
   loading,
 }: SpellingDataCardProps) {
   const placeHolder: Record<string, string> = {
-    words: 'Enter a word',
-    sounds: 'Enter a sound',
-    spelling: 'Enter a spelling',
+    words: 'Add a new word to your list',
+    sounds: 'Add a new sound pattern',
+    spelling: 'Add a new spelling rule',
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -86,7 +86,7 @@ export default function SpellingDataCard({
                 {spellingData.length === 0 && (
                   <Alert variant="destructive" className="text-sm text-muted-foreground">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>No {title.toLowerCase()} added</AlertTitle>
+                    <AlertTitle>No {title.toLowerCase()} in your collection yet</AlertTitle>
                   </Alert>
                 )}
               </div>

@@ -31,6 +31,20 @@ export async function getSpelling(userId: string): Promise<SpellingData> {
 }
 
 /**
+ * Save entire spelling data for a user
+ */
+export async function saveSpellingData(userId: string, spellingData: SpellingData): Promise<void> {
+  const response = await fetch(`/api/users/${userId}/spelling`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(spellingData),
+  })
+  if (!response.ok) {
+    throw new Error('Failed to save spelling data')
+  }
+}
+
+/**
  * Add a word to user's spelling data
  */
 export async function addWord(userId: string, word: string, currentWords: string[]): Promise<void> {

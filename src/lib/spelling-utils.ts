@@ -7,7 +7,7 @@ export interface SpellingData {
 /**
  * Export spelling data to JSON format and trigger download
  */
-export function exportSpellingData(data: SpellingData, filename: string = 'spelling-data.json'): void {
+export function exportSpellingData(data: SpellingData, filename: string): void {
   const jsonData = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonData], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -42,6 +42,7 @@ export function importSpellingData(file: File): Promise<SpellingData> {
         resolve(data)
       } catch (error) {
         reject(new Error('Failed to parse JSON file'))
+        console.error(error)
       }
     }
 
@@ -56,16 +57,16 @@ export function importSpellingData(file: File): Promise<SpellingData> {
 /**
  * Validate spelling data structure
  */
-function isValidSpellingData(data: any): data is SpellingData {
+function isValidSpellingData(data: SpellingData): data is SpellingData {
   return (
     typeof data === 'object' &&
     data !== null &&
     Array.isArray(data.words) &&
     Array.isArray(data.sounds) &&
     Array.isArray(data.spelling) &&
-    data.words.every((item: any) => typeof item === 'string') &&
-    data.sounds.every((item: any) => typeof item === 'string') &&
-    data.spelling.every((item: any) => typeof item === 'string')
+    data.words.every((item: string) => typeof item === 'string') &&
+    data.sounds.every((item: string) => typeof item === 'string') &&
+    data.spelling.every((item: string) => typeof item === 'string')
   )
 }
 
