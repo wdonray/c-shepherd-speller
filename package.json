@@ -12,7 +12,8 @@
     "test-db": "node scripts/test-db.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/dynamodb-adapter": "^2.10.0",

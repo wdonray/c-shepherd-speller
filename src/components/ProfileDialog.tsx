@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from './ui/separator'
 import { GraduationCap, School, CheckCircle, UserIcon } from 'lucide-react'
 import { Badge } from './ui/badge'
+import { UpdateUserBody } from '@/types/User'
 
 interface ProfileDialogProps {
   isOpen: boolean
@@ -67,7 +68,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     fetchUser()
   }, [session?.user?.email, user])
 
-  async function updateUser(userId: string, data: any): Promise<void> {
+  async function updateUser(userId: string, data: UpdateUserBody): Promise<void> {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -85,7 +86,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
 
     try {
       if (user?.id) {
-        const updateData: any = {}
+        const updateData: UpdateUserBody = {}
         if (formData.name) updateData.name = formData.name
         if (formData.preferredName) updateData.preferredName = formData.preferredName
         if (formData.gradeLevel) updateData.gradeLevel = formData.gradeLevel

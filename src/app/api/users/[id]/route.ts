@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateUser, getUserById } from '@/lib/db-utils'
+import { UpdateUserBody } from '@/types/User'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +12,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    const updateData: any = {}
+    const updateData: UpdateUserBody = {}
     if (name !== undefined) updateData.name = name
     if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel
     if (subject !== undefined) updateData.subject = subject
