@@ -4,10 +4,18 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, ArrowLeft } from 'lucide-react'
+import { useEffect } from 'react'
 
 export default function VerifyRequest() {
+  useEffect(() => {
+    document.body.setAttribute('data-auth-page', 'true')
+    return () => {
+      document.body.removeAttribute('data-auth-page')
+    }
+  }, [])
+
   return (
-    <div className="p-8 flex justify-center">
+    <div className="pt-32 pb-8 px-8 flex justify-center">
       <Card className="w-full max-w-[400px] min-h-[300px] flex flex-col mx-4 sm:mx-0">
         <CardHeader>
           <div className="flex flex-col items-center space-y-2">

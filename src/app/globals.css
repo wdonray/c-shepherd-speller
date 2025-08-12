@@ -119,4 +119,9 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Prevent scrolling on auth pages */
+  body[data-auth-page='true'] {
+    overflow: hidden;
+  }
 }

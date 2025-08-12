@@ -2,7 +2,7 @@
 
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogOutIcon, Loader2, AlertTriangle } from 'lucide-react'
@@ -10,6 +10,13 @@ import { LogOutIcon, Loader2, AlertTriangle } from 'lucide-react'
 export default function SignOut() {
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
+
+  useEffect(() => {
+    document.body.setAttribute('data-auth-page', 'true')
+    return () => {
+      document.body.removeAttribute('data-auth-page')
+    }
+  }, [])
 
   async function handleSignOut() {
     setIsSigningOut(true)
@@ -23,7 +30,7 @@ export default function SignOut() {
   }
 
   return (
-    <div className="p-8 flex justify-center">
+    <div className="pt-32 pb-8 px-8 flex justify-center">
       <Card className="w-full max-w-[400px] min-h-[300px] flex flex-col mx-4 sm:mx-0">
         <CardHeader>
           <div className="flex flex-col items-center space-y-2">

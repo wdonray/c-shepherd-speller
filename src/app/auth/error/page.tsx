@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
@@ -10,6 +10,13 @@ import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
 function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+
+  useEffect(() => {
+    document.body.setAttribute('data-auth-page', 'true')
+    return () => {
+      document.body.removeAttribute('data-auth-page')
+    }
+  }, [])
 
   const errorMessages: Record<string, { title: string; description: string; action?: string }> = {
     Configuration: {
@@ -83,7 +90,7 @@ function AuthErrorContent() {
   const currentError = errorMessages[error ?? 'Default']
 
   return (
-    <div className="p-8 flex justify-center">
+    <div className="pt-32 pb-8 px-8 flex justify-center">
       <Card className="w-full max-w-[450px] min-h-[350px] flex flex-col mx-4 sm:mx-0">
         <CardHeader>
           <div className="flex flex-col items-center space-y-3">
@@ -125,7 +132,7 @@ export default function AuthError() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 flex justify-center">
+        <div className="pt-32 pb-8 px-8 flex justify-center">
           <Card className="w-full max-w-[450px] min-h-[350px] flex flex-col mx-4 sm:mx-0">
             <CardHeader>
               <div className="flex flex-col items-center space-y-3">
