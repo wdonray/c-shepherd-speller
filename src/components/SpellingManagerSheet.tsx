@@ -52,12 +52,12 @@ export default function SpellingManagerSheet({
       setLoadingSpellingData(true)
       const userEmail = session?.user?.email
       if (!userEmail) return
-      const userId = await getUserByEmail(userEmail)
-      if (!userId) return
-      setUserId(userId)
-      const spellingData = await getSpelling(userId)
+      const user = await getUserByEmail(userEmail)
+      if (!user) return
+      setUserId(user.id)
+      const spellingData = await getSpelling(user.id)
       setSpellingData(spellingData)
-      updateLastActive(userId)
+      updateLastActive(user.id)
       setLoadingSpellingData(false)
     }
 

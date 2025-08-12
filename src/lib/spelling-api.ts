@@ -3,19 +3,34 @@
  * These functions make HTTP requests to the API routes
  */
 
+export interface User {
+  id: string
+  email: string
+  name: string
+  words: string[]
+  sounds: string[]
+  spelling: string[]
+  // Teacher-specific fields
+  gradeLevel?: string
+  subject?: string
+  schoolName?: string
+  classroomSize?: number
+  preferredName?: string
+}
+
 export interface SpellingData {
   words: string[]
   sounds: string[]
   spelling: string[]
 }
 
-export async function getUserByEmail(email: string): Promise<string> {
+export async function getUserByEmail(email: string): Promise<User> {
   const response = await fetch(`/api/users?email=${encodeURIComponent(email)}`)
   if (!response.ok) {
     throw new Error('Failed to fetch user by email')
   }
   const data = await response.json()
-  return data.user.id
+  return data.user
 }
 
 /**

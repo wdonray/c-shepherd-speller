@@ -1,7 +1,6 @@
 'use client'
 
 import { signOut, useSession } from 'next-auth/react'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import SpellingManagerSheet from './SpellingManagerSheet'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,12 +10,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { UserIcon, LogOutIcon, HelpCircleIcon, BookOpenIcon } from 'lucide-react'
-import { useState } from 'react'
+import { UserIcon, LogOutIcon, HelpCircleIcon, BookOpenIcon, Settings, SunIcon, MoonIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
+import HelpDialog from './HelpDialog'
+import ProfileDialog from './ProfileDialog'
 
 export function Header() {
   const { data: session } = useSession()
   const [isSpellingManagerOpen, setIsSpellingManagerOpen] = useState(false)
+  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
+  const { setTheme, theme } = useTheme()
+  const isDark = useMemo(() => theme === 'dark', [theme])
 
   if (session?.user?.id == null) {
     return null
@@ -37,21 +43,22 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
-                  <UserIcon className="size-4" />
-                  <span className="hidden sm:inline-block">{session?.user?.name || 'Teacher'}</span>
+                  <Settings className="size-4" />
+                  <span className="hidden sm:inline-block">Menu</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{session?.user?.name || 'Teacher'}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{session?.user?.email}</p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme(isDark ? 'light' : 'dark')}>
+                  {isDark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+                  <span>{isDark ? 'Light' : 'Dark'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsHelpDialogOpen(true)}>
                   <HelpCircleIcon className="size-4" />
                   Get Help
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
+                  <UserIcon className="size-4" />
+                  Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
@@ -60,10 +67,11 @@ export function Header() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <ThemeToggle />
           </div>
         </div>
         <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
+        <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
+        <ProfileDialog isOpen={isProfileDialogOpen} onClose={() => setIsProfileDialogOpen(false)} />
       </header>
     </fieldset>
   )

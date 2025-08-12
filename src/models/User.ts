@@ -22,6 +22,12 @@ export interface IUser {
   words: string[]
   sounds: string[]
   spelling: string[]
+  // Teacher-specific fields
+  gradeLevel?: string
+  subject?: string
+  schoolName?: string
+  classroomSize?: number
+  preferredName?: string // How they want to be addressed by students
 }
 
 export const USER_TABLE_NAME = process.env.USER_TABLE_NAME || 'c-shepherd-users'
@@ -30,6 +36,10 @@ export const USER_KEY_SCHEMA = { PK: '${id}-user', SK: '${id}-profile' }
 export function createUserItem(userData: Omit<IUser, 'id' | 'createdAt' | 'updatedAt'> & { id: string }): IUser {
   const now = new Date().toISOString()
   return { ...userData, createdAt: now, updatedAt: now }
+}
+
+export function updateUserItem(user: IUser, userData: Partial<IUser>): IUser {
+  return { ...user, ...userData, updatedAt: new Date().toISOString() }
 }
 
 export function updateUserTimestamps(user: IUser): IUser {

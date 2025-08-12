@@ -1,6 +1,6 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
-import { IUser, USER_TABLE_NAME, createUserItem, updateUserTimestamps } from '../models/User'
+import { IUser, USER_TABLE_NAME, createUserItem, updateUserItem, updateUserTimestamps } from '../models/User'
 
 // Helper function to generate consistent DynamoDB keys from userId
 function getUserKeys(userId: string) {
@@ -39,6 +39,35 @@ export async function createUser(userData: {
 
   await docClient.send(command)
   return user
+}
+
+export async function updateUser(
+  userId: string,
+  userData: {
+    name?: string
+    gradeLevel?: string
+    subject?: string
+    schoolName?: string
+    classroomSize?: number
+    preferredName?: string
+  }
+) {
+  const user = await getUserById(userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+  const updatedUser = updateUserItem(user, userData)
+  const keys = getUserKeys(userId)
+
+  const command = new PutCommand({
+    TableName: USER_TABLE_NAME,
+    Item: {
+      ...keys,
+      ...updatedUser,
+    },
+  })
+  await docClient.send(command)
+  return updatedUser
 }
 
 export async function getUserByEmail(email: string) {
