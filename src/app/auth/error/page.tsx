@@ -11,7 +11,7 @@ function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
-  const getErrorMessage = (errorCode: string | null) => {
+  function getErrorMessage(errorCode: string | null) {
     switch (errorCode) {
       case 'Configuration':
         return "We're experiencing technical difficulties. Please try again later."
@@ -34,7 +34,7 @@ function AuthErrorContent() {
               <AlertCircle className="w-6 h-6 text-destructive" />
             </div>
             <CardTitle>Sign In Error</CardTitle>
-            <CardDescription>{getErrorMessage(error)}</CardDescription>
+            <CardDescription className="text-center">{getErrorMessage(error)}</CardDescription>
           </div>
         </CardHeader>
         <CardFooter className="flex-col space-y-3 flex-1 flex items-end justify-center">
