@@ -35,6 +35,15 @@ describe('DisplayMode', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
     getSpellingMock.mockReset()
+    // Mock the email -> DB user ID lookup. The DB ID ('db-u1') differs from
+    // the session ID ('u1') to verify DisplayMode uses the database ID.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ user: { id: 'db-u1' } }),
+      })
+    )
   })
 
   afterEach(() => {
@@ -61,7 +70,7 @@ describe('DisplayMode', () => {
     expect(items).toHaveLength(3)
     expect(items[0]).toHaveTextContent('1')
     expect(items[2]).toHaveTextContent('3')
-    expect(getSpellingMock).toHaveBeenCalledWith('u1')
+    expect(getSpellingMock).toHaveBeenCalledWith('db-u1')
   })
 
   it('switches between the three lists with the picker', async () => {
@@ -169,6 +178,8 @@ describe('DisplayMode', () => {
 
     mockSession('u2')
     rerender(<DisplayMode />)
-    await waitFor(() => expect(getSpellingMock).toHaveBeenCalledWith('u2'))
+    await waitFor(() => expect(getSpellingMock).toHaveBeenCalledTimes(2))
+    // Uses the database ID resolved via email, not the session ID.
+    expect(getSpellingMock).toHaveBeenLastCalledWith('db-u1')
   })
 })

@@ -31,18 +31,31 @@ export default function DisplayMode() {
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    const userId = session?.user?.id
-    if (!userId) return
+    const email = session?.user?.email
+    if (!email) return
     let cancelled = false
     setLoadError(null)
-    getSpelling(userId).then(
-      (data) => {
-        if (!cancelled) setSpellingData(data)
-      },
-      () => {
-        if (!cancelled) setLoadError(LOAD_ERROR)
-      }
-    )
+    // Resolve the app's database user ID via email. session.user.id is the
+    // NextAuth UUID, not the user record ID that the API's ownership check
+    // expects (see requireOwnership in src/lib/require-auth.ts).
+    fetch(`/api/users?email=${encodeURIComponent(email)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to resolve user')
+        return res.json()
+      })
+      .then((data) => {
+        const dbUserId = data.user?.id
+        if (!dbUserId) throw new Error('User not found')
+        return getSpelling(dbUserId)
+      })
+      .then(
+        (data) => {
+          if (!cancelled) setSpellingData(data)
+        },
+        () => {
+          if (!cancelled) setLoadError(LOAD_ERROR)
+        }
+      )
     return () => {
       cancelled = true
     }
