@@ -45,8 +45,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
       setIsLoading(true)
       try {
         if (session?.user?.email) {
-          const email = session?.user?.email
-          if (!email) return
+          const email = session.user.email
           const user = await getUserByEmail(email)
           if (!user) return
           setUser(user)
