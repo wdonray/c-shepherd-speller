@@ -11,7 +11,7 @@
  *   2. next-auth (AUTH_TABLE_NAME) — the next-auth DynamoDB adapter table.
  *      Partition key pk (S), sort key sk (S),
  *      plus the GSI1 index on GSI1PK (S)/GSI1SK (S) the adapter queries.
- *      (Required by @auth/dynamodb-adapter; matches the adapter's defaults.)
+ *      (Required by @next-auth/dynamodb-adapter; matches the adapter's defaults.)
  *
  * Connection:
  *   - DYNAMODB_ENDPOINT set  -> DynamoDB Local (e.g. http://localhost:8000).
