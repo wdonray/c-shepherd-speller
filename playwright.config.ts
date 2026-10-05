@@ -40,6 +40,8 @@ export default defineConfig({
     timeout: 120 * 1000,
     env: {
       DYNAMODB_ENDPOINT: process.env.DYNAMODB_ENDPOINT ?? 'http://localhost:8000',
+      AUTH_DYNAMODB_ID: process.env.AUTH_DYNAMODB_ID ?? 'AKIAIOSFODNN7EXAMPLE',
+      AUTH_DYNAMODB_SECRET: process.env.AUTH_DYNAMODB_SECRET ?? 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? 'e2e-local-secret',
       NEXTAUTH_URL: 'http://localhost:3000',
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? 'e2e-dummy',

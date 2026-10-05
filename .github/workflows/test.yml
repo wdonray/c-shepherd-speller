@@ -168,6 +168,8 @@ jobs:
         run: npm run test:e2e
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
+          AUTH_DYNAMODB_ID: AKIAIOSFODNN7EXAMPLE
+          AUTH_DYNAMODB_SECRET: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
           NEXTAUTH_SECRET: e2e-ci-secret
           NEXTAUTH_URL: http://localhost:3000
           GOOGLE_CLIENT_ID: e2e-dummy
