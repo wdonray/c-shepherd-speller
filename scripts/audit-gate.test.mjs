@@ -215,3 +215,12 @@ describe('packagesForAdvisories', () => {
     expect(packagesForAdvisories({ vulnerabilities: {} }, ['GHSA-AAAA-0000-0000']).size).toBe(0)
   })
 })
+
+describe('audit-gate legacy-shape failure report', () => {
+  it('reports unallowlisted advisories without package context', () => {
+    const result = main(() => JSON.stringify({ advisories: { 99: { url: GHSA_URL('GHSA-new0-0000-0003') } } }))
+    expect(result.code).toBe(1)
+    expect(result.message).toMatch(/1 unallowlisted advisory:/)
+    expect(result.message).toMatch(/GHSA-NEW0-0000-0003/)
+  })
+})
