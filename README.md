@@ -26,8 +26,7 @@ This app was written in August 2025, never deployed, and has no users. A revival
   - `GET` / `PUT /api/users/[id]/spelling` (read, update lists)
   - `POST /api/users/[id]/last-active` (activity ping)
 - **Storage**: two DynamoDB tables, `c-shepherd-users` (teacher records) and `next-auth` (session/adapter data). Table names are overridable via `USER_TABLE_NAME` and `AUTH_TABLE_NAME`.
-
-Known gaps being worked through during the revival: E2E test coverage is still landing (unit tests and CI gates are in place).
+- **Testing**: 100% unit-test coverage (vitest, thresholds enforced in CI), Playwright E2E plus axe-core accessibility gates on every PR.
 
 ## Setup
 
