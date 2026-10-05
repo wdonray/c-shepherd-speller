@@ -24,6 +24,8 @@ describe('dynamodb connection manager', () => {
   })
 
   it('has no static credentials when env vars are absent', async () => {
+    vi.stubEnv('AUTH_DYNAMODB_ID', '')
+    vi.stubEnv('AUTH_DYNAMODB_SECRET', '')
     const { client } = await import('./dynamodb')
     await expect(client.config.credentials()).rejects.toThrow()
   })
@@ -40,6 +42,7 @@ describe('dynamodb connection manager', () => {
 
   it('has no static credentials when only one env var is present', async () => {
     vi.stubEnv('AUTH_DYNAMODB_ID', 'test-key')
+    vi.stubEnv('AUTH_DYNAMODB_SECRET', '')
     const { client } = await import('./dynamodb')
     await expect(client.config.credentials()).rejects.toThrow()
   })
@@ -54,6 +57,7 @@ describe('dynamodb connection manager', () => {
   })
 
   it('omits the endpoint by default', async () => {
+    vi.stubEnv('DYNAMODB_ENDPOINT', '')
     const { client } = await import('./dynamodb')
     expect(client.config.endpoint).toBeUndefined()
   })
