@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateUserLastActive } from '@/lib/db-utils'
+import { requireOwnership } from '@/lib/require-auth'
 
 export async function PUT(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const auth = await requireOwnership(id)
+    if (auth.response) return auth.response
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
