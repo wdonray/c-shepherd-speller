@@ -1,0 +1,74 @@
+name: Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, '[RELEASE]') && !contains(github.event.head_commit.message, 'skip-release')"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Check if a release is needed
+        id: check
+        run: |
+          # Docs, legal, and CI-process files never change the app.
+          # If every file in this push matches, skip the version bump
+          # automatically (same effect as a manual `skip-release`).
+          if git diff --name-only HEAD~1 HEAD | grep -qvE '(\.md$|^LICENSE$|^\.github/)'; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Release-worthy changes detected."
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Docs/meta-only push. Skipping release automatically."
+          fi
+
+      - name: Determine bump type
+        id: bump
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == feat:* ]]; then
+            echo "newversion=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "newversion=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure git
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Bump version
+        if: steps.check.outputs.needed == 'true'
+        run: npm version ${{ steps.bump.outputs.newversion }} -m "[RELEASE] %s"
+
+      - name: Push version commit and tag
+        if: steps.check.outputs.needed == 'true'
+        run: git push --follow-tags
+
+      # donray.dev creates the GitHub release in a separate tag-triggered
+      # workflow, which only fires when the tag is pushed with a PAT.
+      # This repo has no PAT secret, and GITHUB_TOKEN pushes never trigger
+      # downstream workflows, so the release is created here in the same
+      # run instead. Tag -> version -> changelog still holds.
+      - name: Create GitHub release
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          gh release create "$VERSION" --generate-notes --title "$VERSION"
