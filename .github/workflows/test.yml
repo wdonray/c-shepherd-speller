@@ -41,18 +41,15 @@ jobs:
         run: npm run typecheck
 
       - name: Audit dependencies
-        # Advisory until the baseline is clear (continue-on-error): 2026-10-05
-        # triage found 16 advisories (see PR body). The fixable set is E1's
-        # job; the Next.js critical is owned by E2 (major upgrade, deliberately
-        # sequenced after test baselines); @auth/core via next-auth v4 has no
-        # patched release in the v4 line and is a documented exception. E1
-        # flips this to a hard gate once the baseline is remediated.
+        # Hard gate via scripts/audit-gate.mjs: fails unless every finding is
+        # a documented allowlist entry. npm audit has no ignore-list
+        # mechanism, so the script is the gate (see its ALLOWLIST for the
+        # documented exceptions and their reasons).
         # Full audit (not --omit=dev): devDependencies execute on this VM and
         # in CI, so the baseline covers the whole install.
         # NOTE: npm audit cannot run from the dev VM (registry proxy blocks
         # the audit endpoint); CI is the source of truth for this step.
-        continue-on-error: true
-        run: npm audit
+        run: node scripts/audit-gate.mjs
 
   build:
     name: Build

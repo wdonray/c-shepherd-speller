@@ -29,7 +29,6 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
-    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
@@ -49,7 +48,6 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26.6.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -72,5 +70,19 @@
       "prettier --write"
     ],
     "*.{json,css,md,html}": "prettier --write"
+  },
+  "overrides": {
+    "@humanfs/node": "0.16.8",
+    "@smithy/config-resolver": "4.4.0",
+    "ajv": "6.14.0",
+    "brace-expansion": "1.1.21",
+    "fast-xml-parser": "5.7.0",
+    "flatted": "3.4.2",
+    "js-yaml": "4.3.2",
+    "minimatch": "3.1.4",
+    "picomatch": "2.3.2",
+    "postcss": "8.5.29",
+    "sharp": "0.35.5",
+    "tar": "7.5.22"
   }
 }
