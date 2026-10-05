@@ -14,7 +14,7 @@ test.describe('unauthenticated smoke', () => {
 
   test('home redirects to signin when unauthenticated', async ({ page }) => {
     const response = await page.goto('/')
-    // Next.js middleware issues a 307 to /auth/signin; Playwright follows it.
+    // Next.js proxy issues a 307 to /auth/signin; Playwright follows it.
     expect(response?.status()).toBe(200)
     expect(page.url()).toContain('/auth/signin')
   })

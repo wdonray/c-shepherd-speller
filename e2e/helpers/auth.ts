@@ -5,7 +5,7 @@
  * REAL next-auth v4 JWT session token (the same JWE the Google OAuth flow
  * would produce) and set it as the `next-auth.session-token` cookie. The app
  * then treats the request as a genuinely authenticated session through the
- * normal middleware -> getServerSession path.
+ * normal proxy -> getServerSession path.
  *
  * Why this is safe for production:
  * - Minting requires NEXTAUTH_SECRET, which is only known to the test runner.
