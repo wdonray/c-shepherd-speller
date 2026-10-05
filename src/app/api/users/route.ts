@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUser, getUserByEmail } from '@/lib/db-utils'
+import { requireSession, isSelfEmail } from '@/lib/require-auth'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireSession()
+    if (auth.response) return auth.response
+
     const body = await request.json()
     const { email, name, words = [], sounds = [], spelling = [] } = body
 
     if (!email || !name) {
       return NextResponse.json({ error: 'Email and name are required' }, { status: 400 })
+    }
+
+    // Callers may only create a record for their own email
+    if (!isSelfEmail(auth.session, email)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const user = await createUser({
@@ -30,8 +39,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
 
+    const auth = await requireSession()
+    if (auth.response) return auth.response
+
     if (!email) {
       return NextResponse.json({ error: 'Email parameter is required' }, { status: 400 })
+    }
+
+    // Callers may only look up their own record
+    if (!isSelfEmail(auth.session, email)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const user = await getUserByEmail(email)

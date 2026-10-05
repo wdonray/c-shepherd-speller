@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateUser, getUserById } from '@/lib/db-utils'
 import { UpdateUserBody } from '@/types/User'
+import { requireOwnership } from '@/lib/require-auth'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const auth = await requireOwnership(id)
+    if (auth.response) return auth.response
+
     const body = await request.json()
     const { name, gradeLevel, subject, schoolName, classroomSize, preferredName } = body
 
@@ -31,6 +36,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const auth = await requireOwnership(id)
+    if (auth.response) return auth.response
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
