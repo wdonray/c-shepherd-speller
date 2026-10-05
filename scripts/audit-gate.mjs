@@ -62,6 +62,33 @@ export function findUnallowlisted(ids, allowlist = ALLOWLIST) {
     .sort()
 }
 
+/**
+ * For each GHSA ID, the package names in `npm audit --json` whose `via`
+ * chain references it (with the reported range and fix availability).
+ * Used for the failure report so triage doesn't need a second lookup.
+ */
+export function packagesForAdvisories(audit, ids) {
+  const wanted = new Set(ids.map((id) => id.toUpperCase()))
+  const found = new Map()
+  const vulns = audit?.vulnerabilities ?? audit?.advisories ?? {}
+  for (const [name, vuln] of Object.entries(vulns)) {
+    for (const via of vuln?.via ?? []) {
+      if (typeof via !== 'object' || via === null || typeof via.url !== 'string') continue
+      const m = via.url.match(GHSA_RE)
+      const id = m ? m[0].toUpperCase() : null
+      if (id && wanted.has(id)) {
+        if (!found.has(id)) found.set(id, new Set())
+        found
+          .get(id)
+          .add(
+            `${name}${vuln?.range ? `@${vuln.range}` : ''}${via?.fixAvailable ? ` (fix: ${typeof via.fixAvailable === 'string' ? via.fixAvailable : 'available'})` : ''}`
+          )
+      }
+    }
+  }
+  return new Map([...found].map(([id, pkgs]) => [id, [...pkgs]]))
+}
+
 export function runAuditJson(execFn = execFileSync) {
   try {
     return execFn('npm', ['audit', '--json'], {
@@ -95,11 +122,17 @@ export function main(runAudit = runAuditJson) {
   const ids = ghsaIdsFromAudit(audit)
   const bad = findUnallowlisted(ids)
   if (bad.length > 0) {
+    const where = packagesForAdvisories(audit, bad)
+    const lines = bad.map((id) => {
+      const pkgs = where.get(id) ?? []
+      const detail = pkgs.length > 0 ? ` — ${pkgs.join(', ')}` : ''
+      return `  ${id}${detail}`
+    })
     return {
       code: 1,
       message:
         `audit-gate: FAIL — ${bad.length} unallowlisted ${bad.length === 1 ? 'advisory' : 'advisories'}:\n` +
-        bad.map((id) => `  ${id}`).join('\n') +
+        lines.join('\n') +
         '\nTriage each one: upgrade to the fixed version, or document it in ALLOWLIST with a reason.',
     }
   }

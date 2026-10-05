@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ALLOWLIST, findUnallowlisted, ghsaIdsFromAudit, main, runAuditJson } from './audit-gate.mjs'
+import {
+  ALLOWLIST,
+  findUnallowlisted,
+  ghsaIdsFromAudit,
+  main,
+  packagesForAdvisories,
+  runAuditJson,
+} from './audit-gate.mjs'
 
 const GHSA_URL = (id) => `https://github.com/advisories/${id}`
 
@@ -167,5 +174,44 @@ describe('ALLOWLIST', () => {
       expect(id).toMatch(/^GHSA-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
       expect(reason.length).toBeGreaterThan(20)
     }
+  })
+})
+
+describe('packagesForAdvisories', () => {
+  const audit = {
+    vulnerabilities: {
+      minimatch: {
+        range: '3.1.2',
+        via: [
+          { url: GHSA_URL('GHSA-23c5-xmqv-rm74'), fixAvailable: true },
+          { url: GHSA_URL('GHSA-23c5-xmqv-rm74'), fixAvailable: true },
+          { url: GHSA_URL('GHSA-aaaa-1111-2222'), fixAvailable: 'minimatch@3.1.4' },
+          'minimatch',
+          null,
+          {},
+          { url: 42 },
+          { url: 'https://example.com/no-advisory' },
+        ],
+      },
+      braces: {
+        via: [{ url: GHSA_URL('GHSA-vfj7-8cjw-p6xm') }],
+      },
+    },
+  }
+
+  it('maps advisories to packages with range and fix info', () => {
+    const found = packagesForAdvisories(audit, ['GHSA-23C5-XMQV-RM74'])
+    expect(found.get('GHSA-23C5-XMQV-RM74')).toEqual(['minimatch@3.1.2 (fix: available)'])
+  })
+
+  it('deduplicates, handles string fix versions, and skips non-matching entries', () => {
+    const found = packagesForAdvisories(audit, ['GHSA-AAAA-1111-2222', 'GHSA-VFJ7-8CJW-P6XM'])
+    expect(found.get('GHSA-AAAA-1111-2222')).toEqual(['minimatch@3.1.2 (fix: minimatch@3.1.4)'])
+    expect(found.get('GHSA-VFJ7-8CJW-P6XM')).toEqual(['braces'])
+  })
+
+  it('returns an empty map for missing input or unknown IDs', () => {
+    expect(packagesForAdvisories(undefined, ['GHSA-AAAA-0000-0000']).size).toBe(0)
+    expect(packagesForAdvisories({ vulnerabilities: {} }, ['GHSA-AAAA-0000-0000']).size).toBe(0)
   })
 })
