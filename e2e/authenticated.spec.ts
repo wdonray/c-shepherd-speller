@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { writeFileSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 import { ensureE2EUser, sessionCookie, E2E_USER_NAME } from './helpers/auth'
 
@@ -71,5 +74,57 @@ test.describe('authenticated flows', () => {
     await page.getByRole('button', { name: /save file/i }).click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/\.json$/)
+  })
+
+  test('list manager: edits an item inline', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /my spelling lists/i }).click()
+
+    await page.getByPlaceholder('Add a new word to your list').fill('cat')
+    await page.getByPlaceholder('Add a new word to your list').press('Enter')
+    await expect(page.getByText('cat')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit "cat"' }).click()
+    await page.getByLabel('Edit words 1').fill('bat')
+    await page.getByRole('button', { name: 'Save "cat"' }).click()
+
+    await expect(page.getByText('bat')).toBeVisible()
+    await expect(page.getByText('cat')).not.toBeVisible()
+  })
+
+  test('list manager: blocks duplicate adds with an inline error', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: /my spelling lists/i }).click()
+
+    const input = page.getByPlaceholder('Add a new word to your list')
+    await input.fill('cat')
+    await input.press('Enter')
+    await expect(page.getByText('cat')).toBeVisible()
+
+    await input.fill('CAT')
+    await input.press('Enter')
+    await expect(page.getByRole('alert')).toContainText('already in your words list')
+    // Still exactly one item row for "cat".
+    await expect(page.getByText('cat', { exact: true })).toHaveCount(1)
+  })
+
+  test('list manager: malformed import shows an inline error, not a native dialog', async ({ page }) => {
+    const badFile = join(tmpdir(), 'shepherd-speller-bad-import.json')
+    writeFileSync(badFile, '{ this is not json')
+
+    const dialogs: string[] = []
+    page.on('dialog', (d) => dialogs.push(d.type()))
+
+    await page.goto('/')
+    await page.getByRole('button', { name: /my spelling lists/i }).click()
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByRole('button', { name: /import/i }).click(),
+    ])
+    await fileChooser.setFiles(badFile)
+
+    await expect(page.getByRole('alert')).toContainText('Could not import that file')
+    expect(dialogs).toEqual([])
   })
 })

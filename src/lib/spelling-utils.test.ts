@@ -4,6 +4,7 @@ import {
   importSpellingData,
   hasSpellingData,
   getSpellingDataCount,
+  isDuplicateItem,
   type SpellingData,
 } from './spelling-utils'
 
@@ -136,5 +137,27 @@ describe('getSpellingDataCount', () => {
   it('sums all lists', () => {
     expect(getSpellingDataCount(sample)).toBe(4)
     expect(getSpellingDataCount({ words: [], sounds: [], spelling: [] })).toBe(0)
+  })
+})
+
+describe('isDuplicateItem', () => {
+  it('finds exact duplicates', () => {
+    expect(isDuplicateItem(['cat', 'dog'], 'cat')).toBe(true)
+    expect(isDuplicateItem(['cat', 'dog'], 'bat')).toBe(false)
+  })
+
+  it('compares case-insensitively and trimmed', () => {
+    expect(isDuplicateItem(['cat'], '  CAT ')).toBe(true)
+    expect(isDuplicateItem(['Cat'], 'cAt')).toBe(true)
+  })
+
+  it('excludes the item being edited', () => {
+    expect(isDuplicateItem(['cat', 'dog'], 'cat', 0)).toBe(false)
+    expect(isDuplicateItem(['cat', 'dog'], 'dog', 0)).toBe(true)
+  })
+
+  it('returns false for blank values and empty lists', () => {
+    expect(isDuplicateItem(['cat'], '   ')).toBe(false)
+    expect(isDuplicateItem([], 'cat')).toBe(false)
   })
 })

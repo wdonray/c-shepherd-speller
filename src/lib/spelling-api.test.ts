@@ -7,6 +7,7 @@ import {
   addSound,
   addSpelling,
   removeItem,
+  updateItem,
   updateLastActive,
   type SpellingData,
 } from './spelling-api'
@@ -127,6 +128,21 @@ describe('spelling-api', () => {
   it('removeItem throws on failure', async () => {
     mockFetchOnce({ ok: false })
     await expect(removeItem('u1', 'sounds', 0, ['sh'])).rejects.toThrow('Failed to remove sounds')
+  })
+
+  it('updateItem replaces the value at the index', async () => {
+    const fetchMock = mockFetchOnce({ ok: true })
+    await updateItem('u1', 'words', 0, 'bat', ['cat', 'dog'])
+    expect(fetchMock).toHaveBeenCalledWith('/api/users/u1/spelling', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ words: ['bat', 'dog'] }),
+    })
+  })
+
+  it('updateItem throws on failure', async () => {
+    mockFetchOnce({ ok: false })
+    await expect(updateItem('u1', 'spelling', 1, 'tion', ['a', 'b'])).rejects.toThrow('Failed to update spelling')
   })
 
   it('updateLastActive PUTs without a body', async () => {

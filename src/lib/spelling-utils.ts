@@ -71,6 +71,16 @@ function isValidSpellingData(data: SpellingData): data is SpellingData {
 }
 
 /**
+ * Check if a value already exists in a list (case-insensitive, trimmed).
+ * Used to block duplicates when adding or editing items.
+ */
+export function isDuplicateItem(items: string[], value: string, excludeIndex = -1): boolean {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return false
+  return items.some((item, i) => i !== excludeIndex && item.trim().toLowerCase() === normalized)
+}
+
+/**
  * Check if spelling data has any content
  */
 export function hasSpellingData(data: SpellingData): boolean {
