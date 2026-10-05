@@ -72,3 +72,52 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local
+        ports:
+          - 8000:8000
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Wait for DynamoDB Local
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000)
+            [ "$code" = "400" ] && break
+            sleep 2
+          done
+
+      - name: Create tables
+        run: npm run create-tables
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+          # DynamoDB Local accepts any non-empty credentials, but they must
+          # look like real AWS keys (20-char ID, 40-char secret); the SDK
+          # needs something to sign with, and CI runners have no credential
+          # chain.
+          AUTH_DYNAMODB_ID: AKIAIOSFODNN7EXAMPLE
+          AUTH_DYNAMODB_SECRET: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+      - name: Unit tests (vitest, 100% coverage thresholds)
+        run: npm run test:unit
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+          # Note: AUTH_DYNAMODB_ID/SECRET are NOT set here. The adapter
+          # regression test (src/lib/auth.test.ts) stubs its own credentials;
+          # the dynamodb.test.ts "absent credentials" cases require the vars
+          # to be unset.

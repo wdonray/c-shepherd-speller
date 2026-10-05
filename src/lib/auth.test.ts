@@ -21,9 +21,10 @@ describe('auth adapter wiring', () => {
   beforeAll(async () => {
     vi.stubEnv('DYNAMODB_ENDPOINT', 'http://localhost:8000')
     vi.stubEnv('AUTH_DYNAMODB_REGION', 'us-east-1')
-    // DynamoDB Local accepts any credentials, but the SDK needs some configured.
-    vi.stubEnv('AUTH_DYNAMODB_ID', 'test')
-    vi.stubEnv('AUTH_DYNAMODB_SECRET', 'test')
+    // DynamoDB Local accepts any credentials, but they must look like real
+    // AWS keys (the SDK validates the format).
+    vi.stubEnv('AUTH_DYNAMODB_ID', 'AKIAIOSFODNN7EXAMPLE')
+    vi.stubEnv('AUTH_DYNAMODB_SECRET', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
     vi.stubEnv('AUTH_TABLE_NAME', 'next-auth')
     ;({ authOptions } = await import('./auth'))
     expect(authOptions.adapter).toBeDefined()
