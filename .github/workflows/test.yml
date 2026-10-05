@@ -143,7 +143,7 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Install Playwright chromium (headless shell)
+      - name: Install Playwright chromium
         run: npx playwright install --only-shell chromium
 
       - name: Wait for DynamoDB Local
@@ -154,40 +154,22 @@ jobs:
             sleep 2
           done
 
-      - name: Debug DynamoDB
-        run: |
-          echo "Testing DynamoDB Local connectivity..."
-          curl -s -o /dev/null -w "Root path HTTP: %{http_code}\n" http://localhost:8000/
-          echo "Env vars set:"
-          echo "DYNAMODB_ENDPOINT=$DYNAMODB_ENDPOINT"
-          echo "AUTH_DYNAMODB_ID length: ${#AUTH_DYNAMODB_ID}"
-        env:
-          DYNAMODB_ENDPOINT: http://localhost:8000
-          AUTH_DYNAMODB_ID: <redacted>
-          AUTH_DYNAMODB_SECRET: <redacted>
-
       - name: Create tables
-        run: |
-          for i in $(seq 1 5); do
-            npm run create-tables && break
-            echo "create-tables failed (attempt $i), retrying in 5s..."
-            sleep 5
-          done
+        run: npm run create-tables
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
-          AUTH_DYNAMODB_ID: <redacted>
-          AUTH_DYNAMODB_SECRET: <redacted>
+          AUTH_DYNAMODB_ID: AKIAIOSFODNN7EXAMPLE
+          AUTH_DYNAMODB_SECRET: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
       - name: Build
         run: npm run build
 
-      - name: E2E tests (Playwright + axe-core)
+      - name: E2E tests
         run: npm run test:e2e
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
           NEXTAUTH_SECRET: e2e-ci-secret
           NEXTAUTH_URL: http://localhost:3000
-          # The suite never hits Google; the auth bypass mints real JWTs.
           GOOGLE_CLIENT_ID: e2e-dummy
           GOOGLE_CLIENT_SECRET: e2e-dummy
 
