@@ -154,8 +154,25 @@ jobs:
             sleep 2
           done
 
+      - name: Debug DynamoDB
+        run: |
+          echo "Testing DynamoDB Local connectivity..."
+          curl -s -o /dev/null -w "Root path HTTP: %{http_code}\n" http://localhost:8000/
+          echo "Env vars set:"
+          echo "DYNAMODB_ENDPOINT=$DYNAMODB_ENDPOINT"
+          echo "AUTH_DYNAMODB_ID length: ${#AUTH_DYNAMODB_ID}"
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+          AUTH_DYNAMODB_ID: <redacted>
+          AUTH_DYNAMODB_SECRET: <redacted>
+
       - name: Create tables
-        run: npm run create-tables
+        run: |
+          for i in $(seq 1 5); do
+            npm run create-tables && break
+            echo "create-tables failed (attempt $i), retrying in 5s..."
+            sleep 5
+          done
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
           AUTH_DYNAMODB_ID: <redacted>
