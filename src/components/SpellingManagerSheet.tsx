@@ -20,6 +20,7 @@ import {
   addWord as addWordApi,
   addSound as addSoundApi,
   addSpelling as addSpellingApi,
+  updateItem as updateItemApi,
   removeItem as removeItemApi,
   updateLastActive,
   getUserByEmail,
@@ -45,6 +46,7 @@ export default function SpellingManagerSheet({
   const [loadingHandler, setLoadingHandler] = useState({ words: false, sounds: false, spelling: false })
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -98,6 +100,17 @@ export default function SpellingManagerSheet({
     setLoadingHandler((prev) => ({ ...prev, spelling: false }))
   }
 
+  async function updateItem(type: SpellingDataKey, index: number, newValue: string) {
+    setLoadingHandler((prev) => ({ ...prev, [type]: true }))
+    await updateItemApi(userId, type, index, newValue, spellingData[type])
+    setSpellingData((prev) => ({
+      ...prev,
+      [type]: prev[type].map((item, i) => (i === index ? newValue : item)),
+    }))
+    updateLastActive(userId)
+    setLoadingHandler((prev) => ({ ...prev, [type]: false }))
+  }
+
   async function removeItem(type: SpellingDataKey, index: number) {
     setLoadingHandler((prev) => ({ ...prev, [type]: true }))
     await removeItemApi(userId, type, index, spellingData[type])
@@ -139,8 +152,9 @@ export default function SpellingManagerSheet({
       }
 
       setSpellingData(importedData)
+      setImportError(null)
     } catch (error) {
-      alert('Failed to import file. Please check the file format.')
+      setImportError('Could not import that file. Make sure it is a JSON export from Shepherd Speller.')
       console.error(error)
     }
 
@@ -206,10 +220,22 @@ export default function SpellingManagerSheet({
               addWord={addWord}
               addSound={addSound}
               addSpelling={addSpelling}
+              updateItem={updateItem}
               removeItem={removeItem}
               loadingSpellingData={loadingSpellingData}
               loadingHandler={loadingHandler}
             />
+            {importError && (
+              <div
+                role="alert"
+                className="flex items-center justify-between gap-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg"
+              >
+                <p className="text-sm text-destructive">{importError}</p>
+                <Button variant="ghost" size="sm" onClick={() => setImportError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

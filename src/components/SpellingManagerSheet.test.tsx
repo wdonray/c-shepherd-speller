@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   addWord: vi.fn(),
   addSound: vi.fn(),
   addSpelling: vi.fn(),
+  updateItem: vi.fn(),
   removeItem: vi.fn(),
   updateLastActive: vi.fn(),
   saveSpellingData: vi.fn(),
@@ -174,6 +175,22 @@ describe('SpellingManagerSheet', () => {
     })
   })
 
+  it('updates an item through the API', async () => {
+    api.getSpelling.mockResolvedValue({ words: ['cat', 'dog'], sounds: [], spelling: [] })
+    renderSheet()
+    await screen.findByText('cat')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit "cat"' }))
+    fireEvent.change(screen.getByLabelText('Edit words 1'), { target: { value: 'bat' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save "cat"' }))
+
+    await waitFor(() => {
+      expect(api.updateItem).toHaveBeenCalledWith('u1', 'words', 0, 'bat', ['cat', 'dog'])
+      expect(api.updateLastActive).toHaveBeenCalledWith('u1')
+    })
+    await waitFor(() => expect(screen.getByText('bat')).toBeInTheDocument())
+  })
+
   describe('import', () => {
     it('shows the confirm dialog when data exists and proceeds to file selection', async () => {
       api.getSpelling.mockResolvedValue({ words: ['cat'], sounds: [], spelling: [] })
@@ -245,10 +262,9 @@ describe('SpellingManagerSheet', () => {
       expect(screen.getByText('zebra')).toBeInTheDocument()
     })
 
-    it('alerts and logs when the import fails', async () => {
+    it('shows an inline error and logs when the import fails', async () => {
       const error = new Error('bad file')
       importMock.mockRejectedValue(error)
-      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const { container } = renderSheet()
       await waitFor(() => expect(api.getUserByEmail).toHaveBeenCalled())
@@ -256,10 +272,25 @@ describe('SpellingManagerSheet', () => {
       selectFile(container.querySelector('input[type="file"]') as HTMLInputElement, 'x.json')
 
       await waitFor(() => {
-        expect(alertSpy).toHaveBeenCalledWith('Failed to import file. Please check the file format.')
+        expect(
+          screen.getByText('Could not import that file. Make sure it is a JSON export from Shepherd Speller.')
+        ).toBeInTheDocument()
         expect(consoleSpy).toHaveBeenCalledWith(error)
       })
       expect(api.saveSpellingData).not.toHaveBeenCalled()
+    })
+
+    it('dismisses the import error', async () => {
+      importMock.mockRejectedValue(new Error('bad file'))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { container } = renderSheet()
+      await waitFor(() => expect(api.getUserByEmail).toHaveBeenCalled())
+
+      selectFile(container.querySelector('input[type="file"]') as HTMLInputElement, 'x.json')
+
+      await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     it('ignores file selection with no file', async () => {

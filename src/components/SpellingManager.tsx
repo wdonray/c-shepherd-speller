@@ -21,6 +21,7 @@ interface SpellingManagerProps {
   addWord: () => Promise<void>
   addSound: () => Promise<void>
   addSpelling: () => Promise<void>
+  updateItem: (type: SpellingDataKey, index: number, newValue: string) => Promise<void>
   removeItem: (type: SpellingDataKey, index: number) => Promise<void>
   loadingSpellingData: boolean
   loadingHandler: { words: boolean; sounds: boolean; spelling: boolean }
@@ -37,6 +38,7 @@ export default function SpellingManager({
   addWord,
   addSound,
   addSpelling,
+  updateItem,
   removeItem,
   loadingSpellingData,
   loadingHandler,
@@ -56,6 +58,7 @@ export default function SpellingManager({
         value={newWord}
         setValue={setNewWord}
         addItem={addWord}
+        updateItem={(index, newValue) => updateItem('words', index, newValue)}
         removeItem={(index) => removeItem('words', index)}
         spellingData={spellingData.words}
         loading={loadingHandler.words}
@@ -66,6 +69,7 @@ export default function SpellingManager({
         value={newSound}
         setValue={setNewSound}
         addItem={addSound}
+        updateItem={(index, newValue) => updateItem('sounds', index, newValue)}
         removeItem={(index) => removeItem('sounds', index)}
         spellingData={spellingData.sounds}
         loading={loadingHandler.sounds}
@@ -76,6 +80,7 @@ export default function SpellingManager({
         value={newSpelling}
         setValue={setNewSpelling}
         addItem={addSpelling}
+        updateItem={(index, newValue) => updateItem('spelling', index, newValue)}
         removeItem={(index) => removeItem('spelling', index)}
         spellingData={spellingData.spelling}
         loading={loadingHandler.spelling}

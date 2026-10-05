@@ -13,6 +13,7 @@ const defaultProps = {
   addWord: vi.fn(),
   addSound: vi.fn(),
   addSpelling: vi.fn(),
+  updateItem: vi.fn(),
   removeItem: vi.fn(),
   loadingSpellingData: false,
   loadingHandler: { words: false, sounds: false, spelling: false },
@@ -57,5 +58,23 @@ describe('SpellingManager', () => {
     expect(defaultProps.removeItem).toHaveBeenCalledWith('sounds', 0)
     fireEvent.click(cards[2])
     expect(defaultProps.removeItem).toHaveBeenCalledWith('spelling', 0)
+  })
+
+  it('wires updateItem with the right type, index, and value', () => {
+    render(<SpellingManager {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit "cat"' }))
+    fireEvent.change(screen.getByLabelText('Edit words 1'), { target: { value: 'bat' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save "cat"' }))
+    expect(defaultProps.updateItem).toHaveBeenCalledWith('words', 0, 'bat')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit "sh"' }))
+    fireEvent.change(screen.getByLabelText('Edit sounds 1'), { target: { value: 'ch' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save "sh"' }))
+    expect(defaultProps.updateItem).toHaveBeenCalledWith('sounds', 0, 'ch')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit "tion"' }))
+    fireEvent.change(screen.getByLabelText('Edit spelling 1'), { target: { value: 'sion' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save "tion"' }))
+    expect(defaultProps.updateItem).toHaveBeenCalledWith('spelling', 0, 'sion')
   })
 })

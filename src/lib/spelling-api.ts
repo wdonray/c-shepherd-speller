@@ -130,6 +130,29 @@ export async function removeItem(
 }
 
 /**
+ * Update an item in user's spelling data (by index)
+ */
+export async function updateItem(
+  userId: string,
+  type: 'words' | 'sounds' | 'spelling',
+  index: number,
+  newValue: string,
+  currentItems: string[]
+): Promise<void> {
+  const updatedItems = currentItems.map((item, i) => (i === index ? newValue : item))
+  const response = await fetch(`/api/users/${userId}/spelling`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      [type]: updatedItems,
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to update ${type}`)
+  }
+}
+
+/**
  * Update user's last active timestamp
  */
 export async function updateLastActive(userId: string): Promise<void> {
