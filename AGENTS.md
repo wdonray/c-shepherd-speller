@@ -7,6 +7,8 @@ he decides, you execute. He verifies your work as a habit, be precise.
 
 - **One PR per task.** Small, focused PRs. Merge as soon as all required CI
   checks are green; do not wait for human review and do not let green PRs sit.
+- **If CI doesn't start on a PR:** newly added workflows sometimes miss the
+  `opened` event; push an empty commit to trigger `synchronize` and start them.
 - **Run formatting before the first push:** `npm run format` (prettier).
 - **PR titles follow conventional commits.** PR bodies use
   `## What` / `## Why` / `## How` sections.
