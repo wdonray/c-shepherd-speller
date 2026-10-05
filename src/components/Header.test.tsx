@@ -66,6 +66,13 @@ describe('Header', () => {
     expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'true')
   })
 
+  it('links to the display mode from the Present button', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    expect(screen.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
+  })
+
   it('toggles the theme from the menu', () => {
     mockSignedIn('light')
     render(<Header />)

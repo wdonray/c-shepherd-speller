@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
+import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
 const geistSans = Geist({
@@ -61,9 +60,7 @@ export default function RootLayout({
             </div>
           </noscript>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <Header />
-            <main className="min-h-screen container m-auto p-8">{children}</main>
-            <Footer />
+            <SiteChrome>{children}</SiteChrome>
           </ThemeProvider>
         </body>
       </SessionProvider>

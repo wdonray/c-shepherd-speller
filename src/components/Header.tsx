@@ -1,6 +1,7 @@
 'use client'
 
 import { signOut, useSession } from 'next-auth/react'
+import Link from 'next/link'
 import SpellingManagerSheet from './SpellingManagerSheet'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,7 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { UserIcon, LogOutIcon, HelpCircleIcon, BookOpenIcon, Settings, SunIcon, MoonIcon } from 'lucide-react'
+import {
+  UserIcon,
+  LogOutIcon,
+  HelpCircleIcon,
+  BookOpenIcon,
+  PresentationIcon,
+  Settings,
+  SunIcon,
+  MoonIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
@@ -39,6 +49,12 @@ export function Header() {
             <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
               <BookOpenIcon className="size-4" />
               <span className="hidden sm:inline-block">My Spelling Lists</span>
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/display">
+                <PresentationIcon className="size-4" />
+                <span className="hidden sm:inline-block">Present</span>
+              </Link>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
