@@ -25,7 +25,7 @@ export default function Home() {
         await fetch(`/api/users`, {
           method: 'POST',
           body: JSON.stringify({
-            email: session?.user?.email || '',
+            email,
             name: session?.user?.name || '',
           }),
         })

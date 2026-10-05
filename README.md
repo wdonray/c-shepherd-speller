@@ -1,5 +1,8 @@
 # C-Shepherd Speller
 
+[![Tests](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml/badge.svg)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
+[![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
+
 A login-gated web app for teachers to manage classroom spelling lists (words, sounds, spelling patterns) and store them in DynamoDB. Google OAuth handles sign-in.
 
 ## Status
@@ -24,7 +27,7 @@ This app was written in August 2025, never deployed, and has no users. A revival
   - `POST /api/users/[id]/last-active` (activity ping)
 - **Storage**: two DynamoDB tables, `c-shepherd-users` (teacher records) and `next-auth` (session/adapter data). Table names are overridable via `USER_TABLE_NAME` and `AUTH_TABLE_NAME`.
 
-Known gaps being worked through during the revival: no test suite or CI yet, and the `/api/users` routes are getting authentication and ownership checks (they are currently unauthenticated).
+Known gaps being worked through during the revival: E2E test coverage is still landing (unit tests and CI gates are in place).
 
 ## Setup
 
@@ -83,6 +86,15 @@ npm run format          # Format everything with prettier
 npm run format:check    # Check formatting with prettier
 npm run create-tables   # Create the DynamoDB tables (idempotent; see scripts/create-tables.mjs)
 npm run test-db         # Test the DynamoDB connection and check required tables exist
+npm run test:unit       # Vitest unit suite with 100% coverage thresholds (requires DynamoDB Local running; see below)
+```
+
+The unit suite needs DynamoDB Local for the auth-adapter regression test. Start it first (any credentials work locally), then create the tables:
+
+```bash
+docker run -p 8000:8000 amazon/dynamodb-local
+DYNAMODB_ENDPOINT=http://localhost:8000 npm run create-tables
+npm run test:unit
 ```
 
 ## Project structure

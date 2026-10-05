@@ -48,11 +48,12 @@ export default function SpellingManagerSheet({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    async function loadSpellingData() {
+    const userEmail = session?.user?.email
+    if (!userEmail) return
+
+    async function loadSpellingData(email: string) {
       setLoadingSpellingData(true)
-      const userEmail = session?.user?.email
-      if (!userEmail) return
-      const user = await getUserByEmail(userEmail)
+      const user = await getUserByEmail(email)
       if (!user) return
       setUserId(user.id)
       const spellingData = await getSpelling(user.id)
@@ -61,7 +62,7 @@ export default function SpellingManagerSheet({
       setLoadingSpellingData(false)
     }
 
-    if (session?.user?.email) loadSpellingData()
+    loadSpellingData(userEmail)
   }, [session])
 
   async function addWord() {
@@ -98,8 +99,6 @@ export default function SpellingManagerSheet({
   }
 
   async function removeItem(type: SpellingDataKey, index: number) {
-    if (!userId) return
-
     setLoadingHandler((prev) => ({ ...prev, [type]: true }))
     await removeItemApi(userId, type, index, spellingData[type])
     const updatedArray = spellingData[type].filter((_, i) => i !== index)
