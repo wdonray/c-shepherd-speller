@@ -159,7 +159,7 @@ jobs:
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
           AUTH_DYNAMODB_ID: <redacted>
-AUTH_DYNAMODB_SECRET: <redacted>
+          AUTH_DYNAMODB_SECRET: <redacted>
 
       - name: Build
         run: npm run build
