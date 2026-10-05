@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 // TEMPORARY diagnostic endpoint for the Amplify preview deployment.
 // Reports only whether watched env vars are present (non-empty), NEVER values.
 // Added 2026-10-05 to diagnose the /api/auth 500; will be reverted immediately after.
+// Lives under /api/auth/* so the auth proxy (which 401s other /api/* routes)
+// lets it through unauthenticated.
 const WATCHED = [
   'NODE_ENV',
   'NEXTAUTH_SECRET',
