@@ -17,6 +17,7 @@ test.describe('accessibility', () => {
   const pages = [
     { path: '/auth/signin', name: 'signin' },
     { path: '/', name: 'home' },
+    { path: '/display', name: 'display' },
   ]
 
   for (const { path, name } of pages) {
