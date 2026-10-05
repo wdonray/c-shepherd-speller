@@ -27,6 +27,44 @@ export const ALLOWLIST = {
   'GHSA-GRV7-FG5C-XMJG': 'braces@3.0.3 (high): same as above — no patched version exists.',
   'GHSA-4342-X723-CH2F':
     'next@15.4.6 (critical, middleware redirect SSRF): TEMPORARY — owned by the E2 Next.js 16 upgrade (the next PR in the revival plan). Remove this entry in E2.',
+  // --- TEMPORARY: 30 further next@15.4.6 advisories, all owned by E2. ---
+  // E2 must upgrade to next >= 16.3.3, not just "16.x": GHSA-2xp9-vwfh-vxw4
+  // (critical RCE) and GHSA-p293-qw3h-jr36 affect 16.x below 16.3.3, and most
+  // of the rest affect 16.x below 16.2.5/16.2.11. Verified 2026-10-05 via the
+  // GitHub Advisory API. Remove this whole block in E2; the gate will fail
+  // if the upgrade does not clear them.
+  'GHSA-267C-6GRR-H53F': 'next@15.4.6 (high): TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-26HH-7CQF-HHC6': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-2XP9-VWFH-VXW4':
+    'next@15.4.6 (critical RCE): TEMPORARY — E2 Next.js >= 16.3.3 upgrade (this one needs >= 16.3.3). Remove in E2.',
+  'GHSA-36QX-FR4F-26G5': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-3G8H-86W9-WVMQ': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-3X4C-7XQ6-9PQ8': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-4633-3J49-MH5Q': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-492V-C6PP-MQQV': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-4C39-4CCG-62R3': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-68G3-V927-F742': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-89XV-2M56-2M9X': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-8H8Q-6873-Q5FJ': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-955P-X3MX-JCVP': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-9G9P-9GW9-JX7F': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-9QR9-H5GF-34MP': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-C4J6-FC7J-M34R': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-FFHC-5MCF-PF4Q': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-GGV3-7P47-PFV8': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-GX5P-JG67-6X7H': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-H25M-26QC-WCJF': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-H64F-5H5J-JQJH': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-M99W-X7HQ-7VFJ': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-MG66-MRH9-M8JX': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-MWV6-3258-Q52C': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-P293-QW3H-JR36':
+    'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade (this one needs >= 16.3.3). Remove in E2.',
+  'GHSA-P9J2-GV94-2WF4': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-Q4GF-8MX6-V5V3': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-VFV6-92FF-J949': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-W37M-7FHW-FMV9': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
+  'GHSA-WFC6-R584-VFW7': 'next@15.4.6: TEMPORARY — E2 Next.js >= 16.3.3 upgrade. Remove in E2.',
 }
 
 const GHSA_RE = /GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/gi

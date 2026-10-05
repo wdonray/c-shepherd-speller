@@ -34,7 +34,7 @@
     "dotenv": "^17.2.1",
     "lucide-react": "^0.539.0",
     "next": "15.4.6",
-    "next-auth": "^4.24.11",
+    "next-auth": "^4.24.15",
     "next-themes": "^0.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -72,8 +72,14 @@
     "*.{json,css,md,html}": "prettier --write"
   },
   "overrides": {
+    "@auth/core": {
+      "cookie": "0.7.2"
+    },
     "@humanfs/node": "0.16.8",
     "@smithy/config-resolver": "4.4.0",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "9.0.9"
+    },
     "ajv": "6.14.0",
     "brace-expansion": "1.1.21",
     "fast-xml-parser": "5.7.0",
@@ -83,6 +89,7 @@
     "picomatch": "2.3.2",
     "postcss": "8.5.29",
     "sharp": "0.35.5",
-    "tar": "7.5.22"
+    "tar": "7.5.22",
+    "uuid": "11.1.1"
   }
 }
