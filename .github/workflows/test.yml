@@ -40,6 +40,13 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Audit dependencies
+        # Full audit (not --omit=dev): devDependencies execute on this VM and
+        # in CI, so the baseline covers the whole install. Triage in E1.
+        # NOTE: npm audit cannot run from the dev VM (registry proxy blocks
+        # the audit endpoint); CI is the source of truth for this step.
+        run: npm audit
+
   build:
     name: Build
     runs-on: ubuntu-latest
