@@ -1,101 +1,127 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
-const pattern: SpellingPattern = {
+const basePattern: SpellingPattern = {
   id: 'p1',
   sound: 'long a',
   pattern: 'a_e',
   frequency: 'common',
-  words: ['cake'],
+  words: ['cake', 'bake'],
 }
 
 function renderEditor(overrides: Partial<SpellingPattern> = {}) {
   const onChange = vi.fn()
   const onRemove = vi.fn()
-  render(<PatternEditor pattern={{ ...pattern, ...overrides }} onChange={onChange} onRemove={onRemove} />)
-  return { onChange, onRemove }
+  const pattern = { ...basePattern, ...overrides }
+  render(<PatternEditor pattern={pattern} onChange={onChange} onRemove={onRemove} />)
+  return { onChange, onRemove, pattern }
 }
 
 describe('PatternEditor', () => {
-  it('renders sound and pattern inputs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('renders the pattern name, sound, frequency, and words', () => {
     renderEditor()
-    expect(screen.getByLabelText('Sound')).toHaveValue('long a')
-    expect(screen.getByLabelText('Pattern')).toHaveValue('a_e')
+    expect(screen.getByLabelText('Pattern spelling')).toHaveValue('a_e')
+    expect(screen.getByLabelText('Target sound')).toHaveValue('long a')
+    expect(screen.getByText('Common')).toBeInTheDocument()
+    expect(screen.getByText('Words (2)')).toBeInTheDocument()
+    expect(screen.getByText('cake')).toBeInTheDocument()
+    expect(screen.getByText('bake')).toBeInTheDocument()
   })
 
-  it('updates the sound on change', () => {
+  it('announces an untitled pattern accessibly', () => {
+    renderEditor({ pattern: '' })
+    expect(screen.getByRole('region', { name: 'Untitled pattern' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete this pattern' })).toBeInTheDocument()
+  })
+
+  it('edits the pattern spelling', () => {
     const { onChange } = renderEditor()
-    fireEvent.change(screen.getByLabelText('Sound'), { target: { value: 'short a' } })
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ sound: 'short a' }))
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, pattern: 'ai' })
   })
 
-  it('updates the pattern on change', () => {
+  it('edits the target sound', () => {
     const { onChange } = renderEditor()
-    fireEvent.change(screen.getByLabelText('Pattern'), { target: { value: 'ai' } })
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'ai' }))
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long o' } })
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, sound: 'long o' })
   })
 
-  it('updates the frequency when a button is clicked', () => {
+  it('changes frequency through the radio buttons', () => {
     const { onChange } = renderEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Rare' }))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ frequency: 'rare' }))
+    const lessCommon = screen.getByRole('radio', { name: 'Less common' })
+    expect(lessCommon).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(lessCommon)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, frequency: 'less-common' })
   })
 
-  it('toggles the odd duck checkbox', () => {
+  it('marks the selected frequency', () => {
+    renderEditor({ frequency: 'rare' })
+    expect(screen.getByRole('radio', { name: 'Rare' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByText('Rare')).toBeInTheDocument()
+  })
+
+  it('toggles the odd-duck mark on', () => {
     const { onChange } = renderEditor()
-    fireEvent.click(screen.getByLabelText(/odd duck/i))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ isOddDuck: true }))
+    const toggle = screen.getByRole('button', { name: /mark as odd duck/i })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isOddDuck: true })
   })
 
-  it('renders the odd duck checkbox as checked when isOddDuck is true', () => {
-    renderEditor({ isOddDuck: true })
-    expect(screen.getByLabelText(/odd duck/i)).toBeChecked()
+  it('shows the odd-duck state when set and toggles it off', () => {
+    const { onChange } = renderEditor({ isOddDuck: true })
+    const toggle = screen.getByRole('button', { name: 'Odd duck' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(toggle).toHaveTextContent('Odd duck')
+    fireEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isOddDuck: false })
   })
 
-  it('adds a word on Enter', () => {
+  it('adds a word with the Add button', () => {
     const { onChange } = renderEditor()
-    const input = screen.getByLabelText('New word')
-    fireEvent.change(input, { target: { value: 'bake' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: ['cake', 'bake'] }))
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'Game' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['cake', 'bake', 'game'] })
   })
 
-  it('does not add a word on non-Enter key', () => {
+  it('adds a word with the Enter key', () => {
     const { onChange } = renderEditor()
-    const input = screen.getByLabelText('New word')
-    fireEvent.change(input, { target: { value: 'bake' } })
-    fireEvent.keyDown(input, { key: 'a' })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'late' } })
+    fireEvent.keyDown(screen.getByLabelText('New word'), { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['cake', 'bake', 'late'] })
+  })
+
+  it('ignores other keys in the word input', () => {
+    const { onChange } = renderEditor()
+    fireEvent.keyDown(screen.getByLabelText('New word'), { key: 'a' })
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('adds a word via the Add button', () => {
-    const { onChange } = renderEditor()
-    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'lake' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: ['cake', 'lake'] }))
-  })
-
-  it('does not add duplicate or blank words', () => {
+  it('ignores empty and duplicate words', () => {
     const { onChange } = renderEditor()
     const input = screen.getByLabelText('New word')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
     fireEvent.change(input, { target: { value: 'cake' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    fireEvent.change(input, { target: { value: '   ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('removes a word when its X is clicked', () => {
+  it('removes a word through its chip button', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: [] }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['bake'] })
   })
 
-  it('calls onRemove when the trash button is clicked', () => {
+  it('calls onRemove when the delete button is pressed', () => {
     const { onRemove } = renderEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Remove pattern' }))
-    expect(onRemove).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
+    expect(onRemove).toHaveBeenCalledTimes(1)
   })
 })

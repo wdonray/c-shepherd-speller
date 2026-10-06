@@ -27,7 +27,7 @@ describe('SpellingManagerSheet', () => {
 
     expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
     await waitFor(() => {
-      expect(screen.getByText('No word lists yet.')).toBeInTheDocument()
+      expect(screen.getByText('No word lists yet')).toBeInTheDocument()
     })
   })
 

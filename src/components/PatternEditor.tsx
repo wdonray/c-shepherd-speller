@@ -1,28 +1,41 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { XIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
+import { XIcon } from 'lucide-react'
+import { OddDuck } from './OddDuck'
 import type { SpellingPattern, PatternFrequency } from '@/models/WordList'
 
 interface PatternEditorProps {
   pattern: SpellingPattern
   onChange: (pattern: SpellingPattern) => void
+  /** Called when the delete button is pressed; the parent confirms before removing. */
   onRemove: () => void
 }
 
-const FREQUENCIES: { value: PatternFrequency; label: string }[] = [
-  { value: 'common', label: 'Common' },
-  { value: 'less-common', label: 'Less common' },
-  { value: 'rare', label: 'Rare' },
+const FREQUENCIES: { value: PatternFrequency; label: string; level: PowerBarLevel }[] = [
+  { value: 'common', label: 'Common', level: 3 },
+  { value: 'less-common', label: 'Less common', level: 2 },
+  { value: 'rare', label: 'Rare', level: 1 },
 ]
 
-/** Editor for a single spelling pattern (one branch of the tree). */
+const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
+  common: 'Common',
+  'less-common': 'Less common',
+  rare: 'Rare',
+}
+
+/** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({ pattern, onChange, onRemove }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
+  const isOddDuck = pattern.isOddDuck ?? false
+
+  const accent = isOddDuck
+    ? { bar: 'bg-plum', text: 'text-plum-ink', fill: 'bg-plum', soft: 'bg-plum-soft' }
+    : { bar: 'bg-leaf', text: 'text-leaf-ink', fill: 'bg-leaf', soft: 'bg-leaf-soft' }
 
   const update = (updates: Partial<SpellingPattern>) => {
     onChange({ ...pattern, ...updates })
@@ -40,76 +53,119 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   }
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="grid grid-cols-2 gap-2 flex-1">
-          <div>
-            <Label htmlFor={`sound-${pattern.id}`}>Sound</Label>
+    <section
+      aria-label={pattern.pattern ? `Pattern ${pattern.pattern}` : 'Untitled pattern'}
+      className="relative overflow-hidden rounded-[20px] border-2 border-line bg-card p-6"
+    >
+      <div className={cn('absolute inset-x-0 top-0 h-2', accent.bar)} aria-hidden="true" />
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <Input
+            value={pattern.pattern}
+            onChange={(e) => update({ pattern: e.target.value })}
+            placeholder="e.g. a_e"
+            maxLength={20}
+            aria-label="Pattern spelling"
+            className={cn(
+              'h-auto border-2 border-transparent bg-transparent px-2 text-[22px] font-bold hover:border-line',
+              'focus-visible:border-ring focus-visible:bg-card',
+              accent.text
+            )}
+          />
+          <div className="mt-1 flex items-center gap-2">
+            <span className="shrink-0 text-[15px] text-muted-foreground">Sound:</span>
             <Input
-              id={`sound-${pattern.id}`}
               value={pattern.sound}
               onChange={(e) => update({ sound: e.target.value })}
               placeholder="e.g. long a"
               maxLength={50}
+              aria-label="Target sound"
+              className="h-9 border-2 border-transparent bg-transparent px-2 text-[15px] text-muted-foreground hover:border-line focus-visible:border-ring focus-visible:bg-card"
             />
           </div>
-          <div>
-            <Label htmlFor={`pattern-${pattern.id}`}>Pattern</Label>
-            <Input
-              id={`pattern-${pattern.id}`}
-              value={pattern.pattern}
-              onChange={(e) => update({ pattern: e.target.value })}
-              placeholder="e.g. a_e"
-              maxLength={20}
-            />
-          </div>
+          <button
+            type="button"
+            aria-pressed={isOddDuck}
+            onClick={() => update({ isOddDuck: !isOddDuck })}
+            title={isOddDuck ? 'Remove the odd-duck mark' : 'Mark as an odd duck (irregular spelling)'}
+            className={cn(
+              'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition-all',
+              isOddDuck
+                ? 'border-plum bg-plum-soft text-plum-ink'
+                : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink'
+            )}
+          >
+            <OddDuck className="size-5 text-plum" />
+            {isOddDuck ? 'Odd duck' : 'Mark as odd duck'}
+          </button>
         </div>
-        <Button size="sm" variant="ghost" onClick={onRemove} aria-label="Remove pattern">
-          <TrashIcon className="size-4" />
+
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <span id={`frequency-${pattern.id}`} className="text-[13px] font-medium text-muted-foreground">
+            Frequency
+          </span>
+          <div role="radiogroup" aria-labelledby={`frequency-${pattern.id}`} className="flex gap-1.5">
+            {FREQUENCIES.map((f) => {
+              const selected = pattern.frequency === f.value
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={f.label}
+                  title={f.label}
+                  onClick={() => update({ frequency: f.value })}
+                  className={cn(
+                    'cursor-pointer rounded-xl border-2 p-2 transition-all',
+                    selected
+                      ? cn('border-current', accent.text, accent.soft)
+                      : 'border-line opacity-50 hover:opacity-100'
+                  )}
+                >
+                  <PowerBar level={f.level} filledClassName={accent.fill} />
+                </button>
+              )
+            })}
+          </div>
+          <span className="text-[13px] font-semibold">{FREQUENCY_LABELS[pattern.frequency]}</span>
+        </div>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onRemove}
+          aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+        >
+          <XIcon className="size-4" />
         </Button>
       </div>
 
-      <div>
-        <Label>Frequency</Label>
-        <div className="flex gap-2 mt-1">
-          {FREQUENCIES.map((f) => (
-            <Button
-              key={f.value}
-              size="sm"
-              variant={pattern.frequency === f.value ? 'default' : 'outline'}
-              onClick={() => update({ frequency: f.value })}
-            >
-              {f.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label>
-          <input
-            type="checkbox"
-            checked={pattern.isOddDuck ?? false}
-            onChange={(e) => update({ isOddDuck: e.target.checked })}
-            className="mr-2"
-          />
-          Odd duck (irregular spelling)
-        </Label>
-      </div>
-
-      <div>
-        <Label>Words ({pattern.words.length})</Label>
-        <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-          {pattern.words.map((word) => (
-            <Badge key={word} variant="secondary" className="gap-1">
-              {word}
-              <button onClick={() => removeWord(word)} aria-label={`Remove ${word}`} className="hover:text-destructive">
-                <XIcon className="size-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-        <div className="flex gap-2">
+      <div className="mt-5">
+        <h4 className="text-[15px] font-bold">Words ({pattern.words.length})</h4>
+        {pattern.words.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {pattern.words.map((word) => (
+              <span
+                key={word}
+                className="inline-flex items-center gap-1.5 rounded-full bg-leaf-soft py-2 pr-2 pl-4 text-[15px] font-semibold"
+              >
+                {word}
+                <button
+                  type="button"
+                  onClick={() => removeWord(word)}
+                  aria-label={`Remove ${word}`}
+                  className="cursor-pointer rounded-full p-1 font-bold text-muted-foreground hover:bg-card hover:text-destructive"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 flex max-w-md gap-2">
           <Input
             value={newWord}
             onChange={(e) => setNewWord(e.target.value)}
@@ -123,12 +179,11 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             maxLength={50}
             aria-label="New word"
           />
-          <Button size="sm" onClick={addWord}>
-            <PlusIcon className="size-4" />
+          <Button onClick={addWord} disabled={!newWord.trim()}>
             Add
           </Button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

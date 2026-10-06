@@ -16,7 +16,7 @@ export default function SpellingManagerSheet({
 }) {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetContent className="w-[95vw] max-w-[1000px] overflow-y-auto">
+      <SheetContent className="w-[95vw] max-w-[1000px] overflow-y-auto sm:max-w-[1000px]">
         <SheetHeader>
           <SheetTitle className="text-2xl font-bold text-foreground">My Spelling Lists</SheetTitle>
           <SheetDescription>

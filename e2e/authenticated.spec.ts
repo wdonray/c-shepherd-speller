@@ -26,17 +26,17 @@ test.describe('authenticated flows', () => {
     await page.getByRole('button', { name: /my spelling lists/i }).click()
 
     // Create a new list.
-    await page.getByRole('button', { name: 'New list' }).click()
+    await page.getByRole('button', { name: 'New list' }).first().click()
     await page.getByLabel('List name').fill('E2E Week 1')
     await page.getByRole('button', { name: 'Create list' }).click()
 
     // The editor opens. Add a pattern.
     await expect(page.getByText('Spelling patterns (0)')).toBeVisible()
-    await page.getByRole('button', { name: 'Add pattern' }).click()
+    await page.getByRole('button', { name: 'Add a pattern' }).click()
     await expect(page.getByText('Spelling patterns (1)')).toBeVisible()
 
     // Fill in the pattern.
-    await page.getByLabel('Sound').fill('long a')
+    await page.getByLabel('Target sound').fill('long a')
     await page.getByPlaceholder('e.g. a_e').fill('a_e')
 
     // Add a word.
@@ -46,7 +46,8 @@ test.describe('authenticated flows', () => {
 
     // Save and return to the overview.
     await page.getByRole('button', { name: 'Save list' }).click()
-    await page.getByRole('button', { name: 'All lists' }).click()
+    await expect(page.getByText('No unsaved changes')).toBeVisible()
+    await page.getByRole('button', { name: 'My lists' }).click()
     await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
 
