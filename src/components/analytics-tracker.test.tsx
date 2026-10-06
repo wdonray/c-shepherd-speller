@@ -86,4 +86,11 @@ describe('AnalyticsTracker', () => {
       setItem.mockRestore()
     }
   })
+
+  it('does nothing when the pathname is not available', () => {
+    usePathnameMock.mockReturnValue(null)
+    render(<AnalyticsTracker />)
+    expect(sendBeaconMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })
