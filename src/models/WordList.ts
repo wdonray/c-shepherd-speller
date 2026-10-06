@@ -3,8 +3,8 @@
  *
  * A WordList organizes spelling instruction around a target sound, with words
  * grouped by the spelling pattern that represents that sound. This mirrors the
- * CKLA "spelling tree" structure teachers already know: trunk = target sound,
- * branches = spelling patterns (sized by frequency), odd ducks = irregulars.
+ * CKLA pattern-chart structure teachers already know: target sound first,
+ * then spelling patterns as columns (sized by frequency), odd ducks = irregulars.
  *
  * Research basis: explicit pattern-based instruction (Graham & Santangelo 2014),
  * morphology transfer (Colenbrander et al. 2025), orthographic mapping (Ehri).
@@ -16,7 +16,7 @@ import { z } from 'zod'
 export const PatternFrequencySchema = z.enum(['common', 'less-common', 'rare'])
 export type PatternFrequency = z.infer<typeof PatternFrequencySchema>
 
-/** One spelling pattern within a list (one "branch" of the tree). */
+/** One spelling pattern within a list (one column of the pattern chart). */
 export const SpellingPatternSchema = z.object({
   id: z.string().min(1),
   /** Target sound, e.g. "/ā/" or "long a" */
@@ -32,7 +32,7 @@ export const SpellingPatternSchema = z.object({
 })
 export type SpellingPattern = z.infer<typeof SpellingPatternSchema>
 
-/** A teacher's pattern-based spelling list (one "tree"). */
+/** A teacher's pattern-based spelling list. */
 export const WordListSchema = z.object({
   id: z.string().min(1),
   /** Owner's database user ID (from c-shepherd-users) */

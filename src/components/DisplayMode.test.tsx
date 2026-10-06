@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import TreeDisplayMode from './TreeDisplayMode'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import DisplayMode from './DisplayMode'
 import type { WordList } from '@/models/WordList'
 
 const { getList, getLists } = vi.hoisted(() => ({
@@ -10,8 +10,10 @@ const { getList, getLists } = vi.hoisted(() => ({
 vi.mock('@/lib/lists-api', () => ({ getList, getLists }))
 
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
+const mockPush = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
+  useRouter: () => ({ push: mockPush }),
 }))
 
 vi.mock('next/link', () => ({
@@ -35,7 +37,7 @@ const list: WordList = {
   updatedAt: '2026-10-06T00:00:00.000Z',
 }
 
-describe('TreeDisplayMode', () => {
+describe('DisplayMode', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSearchParams.get.mockReturnValue(null)
@@ -43,70 +45,65 @@ describe('TreeDisplayMode', () => {
 
   it('shows a loading state initially', () => {
     getLists.mockImplementation(() => new Promise(() => {}))
-    render(<TreeDisplayMode />)
-    expect(screen.getByRole('status')).toHaveTextContent('Loading...')
+    render(<DisplayMode />)
+    expect(screen.getByRole('status')).toBeInTheDocument()
   })
 
   it('shows the list picker when no list is selected', async () => {
     getLists.mockResolvedValue([list])
-    render(<TreeDisplayMode />)
+    render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByText('Choose a list to present')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Present a list' })).toBeInTheDocument()
     })
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
-  it('uses plural forms in the list picker', async () => {
-    const multiPatternList: WordList = {
-      ...list,
-      patterns: [
-        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
-        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
-      ],
-    }
-    getLists.mockResolvedValue([multiPatternList])
-    render(<TreeDisplayMode />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/2 patterns · 3 words/)).toBeInTheDocument()
-    })
-  })
-
-  it('shows an empty state when there are no lists', async () => {
-    getLists.mockResolvedValue([])
-    render(<TreeDisplayMode />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/no word lists yet/i)).toBeInTheDocument()
-    })
-  })
-
-  it('shows the tree when a list is selected', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
-    getList.mockResolvedValue(list)
-    render(<TreeDisplayMode />)
+  it('navigates to the chart when a list card is opened', async () => {
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    // Tree renders the word as a leaf
-    expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    expect(mockPush).toHaveBeenCalledWith('/display?list=l1')
   })
 
-  it('shows an error when loading fails', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
-    getList.mockRejectedValue(new Error('network down'))
-    render(<TreeDisplayMode />)
+  it('shows an empty state when there are no lists', async () => {
+    getLists.mockResolvedValue([])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No word lists yet')).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error state when loading fails', async () => {
+    getLists.mockRejectedValue(new Error('offline'))
+    render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
     })
   })
 
-  it('shows an error when the list picker fails', async () => {
-    getLists.mockRejectedValue(new Error('network down'))
-    render(<TreeDisplayMode />)
+  it('shows the pattern chart for the selected list', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('region', { name: 'Pattern a_e' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hear and analyze the word cake' })).toBeInTheDocument()
+  })
+
+  it('shows an error state when the selected list fails to load', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockRejectedValue(new Error('offline'))
+    render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
