@@ -1,12 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import Home from './page'
+import type { WordList } from '@/models/WordList'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
-vi.mock('@/lib/lists-api', () => ({
-  getLists: vi.fn().mockResolvedValue([]),
-}))
+const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
+vi.mock('@/lib/lists-api', () => ({ getLists }))
+
+const list: WordList = {
+  id: 'l1',
+  userId: 'u1',
+  name: 'Week 5',
+  patterns: [],
+  createdAt: '2026-10-06T00:00:00.000Z',
+  updatedAt: '2026-10-06T00:00:00.000Z',
+}
 
 const useSessionMock = vi.mocked(useSession)
 
@@ -23,6 +32,7 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Promise<unknown
 describe('Home page', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
+    getLists.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -87,5 +97,53 @@ describe('Home page', () => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('opens the sheet when New list is clicked', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'New list' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
+    // The sheet should open (SpellingManagerSheet renders)
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
+  })
+
+  it('opens the sheet when Edit is clicked on a list card', async () => {
+    getLists.mockResolvedValue([list])
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
+  })
+
+  it('opens the sheet when Delete is clicked on a list card', async () => {
+    getLists.mockResolvedValue([list])
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
   })
 })
