@@ -39,7 +39,6 @@ export default function PatternListsManager() {
   }, [loadLists])
 
   const handleCreate = async () => {
-    if (!newName.trim()) return
     setSaving(true)
     try {
       const list = await createList({
@@ -70,13 +69,12 @@ export default function PatternListsManager() {
   }
 
   const handleSave = async () => {
-    if (!editingList) return
     setSaving(true)
     try {
-      const updated = await updateList(editingList.id, {
-        name: editingList.name,
-        gradeLevel: editingList.gradeLevel,
-        patterns: editingList.patterns,
+      const updated = await updateList(editingList!.id, {
+        name: editingList!.name,
+        gradeLevel: editingList!.gradeLevel,
+        patterns: editingList!.patterns,
       })
       setLists((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
       setEditingList(updated)
@@ -88,7 +86,6 @@ export default function PatternListsManager() {
   }
 
   const addPattern = () => {
-    if (!editingList) return
     const newPattern: SpellingPattern = {
       id: generatePatternId(),
       sound: '',
@@ -96,22 +93,20 @@ export default function PatternListsManager() {
       frequency: 'common',
       words: [],
     }
-    setEditingList({ ...editingList, patterns: [...editingList.patterns, newPattern] })
+    setEditingList({ ...editingList!, patterns: [...editingList!.patterns, newPattern] })
   }
 
   const updatePattern = (patternId: string, updated: SpellingPattern) => {
-    if (!editingList) return
     setEditingList({
-      ...editingList,
-      patterns: editingList.patterns.map((p) => (p.id === patternId ? updated : p)),
+      ...editingList!,
+      patterns: editingList!.patterns.map((p) => (p.id === patternId ? updated : p)),
     })
   }
 
   const removePattern = (patternId: string) => {
-    if (!editingList) return
     setEditingList({
-      ...editingList,
-      patterns: editingList.patterns.filter((p) => p.id !== patternId),
+      ...editingList!,
+      patterns: editingList!.patterns.filter((p) => p.id !== patternId),
     })
   }
 
