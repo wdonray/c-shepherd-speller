@@ -2,10 +2,14 @@
 
 import { useSession } from 'next-auth/react'
 import { useMemo, useEffect, useState } from 'react'
+import Dashboard from '@/components/Dashboard'
+import SpellingManagerSheet from '@/components/SpellingManagerSheet'
+import type { WordList } from '@/models/WordList'
 
 export default function Home() {
   const { data: session, status } = useSession()
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   useEffect(() => {
     async function syncUser() {
@@ -48,11 +52,13 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-      <h1 className="text-2xl font-semibold">Welcome, {session?.user?.name || 'User'}! 👋</h1>
-      <p className="text-muted-foreground text-center max-w-md">
-        Use the buttons in the header to manage your spelling data and sign out.
-      </p>
-    </div>
+    <>
+      <Dashboard
+        onNewList={() => setIsSheetOpen(true)}
+        onEditList={(_list: WordList) => setIsSheetOpen(true)}
+        onDeleteList={(_list: WordList) => setIsSheetOpen(true)}
+      />
+      <SpellingManagerSheet isOpen={isSheetOpen} setIsOpen={setIsSheetOpen} />
+    </>
   )
 }
