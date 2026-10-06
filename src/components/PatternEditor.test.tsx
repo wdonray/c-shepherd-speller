@@ -31,6 +31,12 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ sound: 'short a' }))
   })
 
+  it('updates the pattern on change', () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('Pattern'), { target: { value: 'ai' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'ai' }))
+  })
+
   it('updates the frequency when a button is clicked', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Rare' }))

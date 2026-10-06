@@ -74,10 +74,29 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 6' } })
+    fireEvent.change(screen.getByLabelText('Grade level (optional)'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
-      expect(createList).toHaveBeenCalledWith({ name: 'Week 6', gradeLevel: undefined, patterns: [] })
+      expect(createList).toHaveBeenCalledWith({ name: 'Week 6', gradeLevel: '1', patterns: [] })
+    })
+  })
+
+  it('shows an error when list creation fails', async () => {
+    getLists.mockResolvedValue([])
+    createList.mockRejectedValue(new Error('create failed'))
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No word lists yet.')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('create failed')
     })
   })
 
@@ -132,6 +151,36 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
     expect(screen.getByText('Spelling patterns (1)')).toBeInTheDocument()
+  })
+
+  it('edits a pattern in the editor', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
+    // Change the pattern via the PatternEditor
+    fireEvent.change(screen.getByLabelText('Pattern'), { target: { value: 'ai' } })
+    expect(screen.getByLabelText('Pattern')).toHaveValue('ai')
+  })
+
+  it('removes a pattern in the editor', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
+    expect(screen.getByText('Spelling patterns (1)')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove pattern' }))
+    expect(screen.getByText('Spelling patterns (0)')).toBeInTheDocument()
   })
 
   it('saves the edited list', async () => {
