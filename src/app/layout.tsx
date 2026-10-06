@@ -4,6 +4,7 @@ import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
 import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import AnalyticsTracker from '@/components/analytics-tracker'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -61,6 +62,7 @@ export default function RootLayout({
           </noscript>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <SiteChrome>{children}</SiteChrome>
+            <AnalyticsTracker />
           </ThemeProvider>
         </body>
       </SessionProvider>
