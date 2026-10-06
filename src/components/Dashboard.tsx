@@ -21,13 +21,37 @@ interface DashboardProps {
 export default function Dashboard({ onNewList, onEditList, onDeleteList }: DashboardProps) {
   const [lists, setLists] = useState<WordList[]>([])
   const [loading, setLoading] = useState(true)
+  const [migrating, setMigrating] = useState(false)
+  const [migrateError, setMigrateError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadLists = () => {
+    setLoading(true)
     getLists()
       .then(setLists)
       .catch(() => setLists([]))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadLists()
   }, [])
+
+  const handleMigrate = async () => {
+    setMigrating(true)
+    setMigrateError(null)
+    try {
+      const res = await fetch('/api/migrate', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Migration failed')
+      }
+      loadLists()
+    } catch (e) {
+      setMigrateError(e instanceof Error ? e.message : 'Migration failed')
+    } finally {
+      setMigrating(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -58,7 +82,15 @@ export default function Dashboard({ onNewList, onEditList, onDeleteList }: Dashb
               Present
             </Link>
           </Button>
+          <Button size="lg" variant="secondary" onClick={handleMigrate} disabled={migrating}>
+            {migrating ? 'Migrating...' : 'Migrate old lists'}
+          </Button>
         </div>
+        {migrateError && (
+          <p className="text-sm text-destructive mt-2" role="alert">
+            {migrateError}
+          </p>
+        )}
       </section>
 
       {/* My lists */}
