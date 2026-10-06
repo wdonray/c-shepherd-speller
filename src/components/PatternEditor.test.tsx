@@ -49,6 +49,11 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ isOddDuck: true }))
   })
 
+  it('renders the odd duck checkbox as checked when isOddDuck is true', () => {
+    renderEditor({ isOddDuck: true })
+    expect(screen.getByLabelText(/odd duck/i)).toBeChecked()
+  })
+
   it('adds a word on Enter', () => {
     const { onChange } = renderEditor()
     const input = screen.getByLabelText('New word')

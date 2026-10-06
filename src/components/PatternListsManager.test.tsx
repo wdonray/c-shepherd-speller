@@ -91,6 +91,25 @@ describe('PatternListsManager', () => {
     })
   })
 
+  it('creates a list without a grade level', async () => {
+    getLists.mockResolvedValue([])
+    createList.mockResolvedValue({ ...list, name: 'Week 6' })
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No word lists yet.')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 6' } })
+    // Leave grade blank
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalledWith({ name: 'Week 6', gradeLevel: undefined, patterns: [] })
+    })
+  })
+
   it('shows an error when list creation fails', async () => {
     getLists.mockResolvedValue([])
     createList.mockRejectedValue(new Error('create failed'))
