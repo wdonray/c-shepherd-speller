@@ -5,6 +5,17 @@
 
 import type { WordList, CreateWordListInput, UpdateWordListInput } from '@/models/WordList'
 
+/**
+ * Browser event fired whenever the list collection changes outside the
+ * dashboard (import, migration). Views that show lists listen for it and
+ * reload. This module is only imported by client components.
+ */
+export const LISTS_CHANGED_EVENT = 'shepherd-speller:lists-changed'
+
+export function notifyListsChanged(): void {
+  window.dispatchEvent(new Event(LISTS_CHANGED_EVENT))
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

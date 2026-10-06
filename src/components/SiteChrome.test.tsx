@@ -14,7 +14,7 @@ describe('SiteChrome', () => {
     usePathnameMock.mockReset()
   })
 
-  it('renders the header, footer, and contained main on regular pages', () => {
+  it('renders the header, footer, and full-width main on regular pages', () => {
     usePathnameMock.mockReturnValue('/')
     render(
       <SiteChrome>
@@ -26,7 +26,7 @@ describe('SiteChrome', () => {
     expect(screen.getByTestId('site-footer')).toBeInTheDocument()
     const main = screen.getByRole('main')
     expect(main).toHaveTextContent('page content')
-    expect(main.className).toContain('container')
+    expect(main.className).toContain('min-h-screen')
   })
 
   it('renders a chrome-free full-bleed main on /display', () => {

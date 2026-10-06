@@ -25,8 +25,8 @@ describe('Footer', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('renders the copyright line', () => {
+  it('renders the tagline', () => {
     render(<Footer />)
-    expect(screen.getByText('© 2025 Donray Williams')).toBeInTheDocument()
+    expect(screen.getByText('Shepherd Speller. Made for K-3 classrooms.')).toBeInTheDocument()
   })
 })

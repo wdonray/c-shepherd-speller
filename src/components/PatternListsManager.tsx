@@ -263,7 +263,7 @@ export default function PatternListsManager() {
       ) : (
         <div className="grid gap-3">
           {lists.map((list) => (
-            <WordListCard key={list.id} list={list} onEdit={setEditingList} onDelete={handleDelete} />
+            <WordListCard key={list.id} list={list} onOpen={setEditingList} onDelete={handleDelete} />
           ))}
         </div>
       )}

@@ -1,13 +1,14 @@
 export function Footer() {
   return (
-    <footer className="sticky bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container m-auto px-8 flex h-14 items-center justify-between">
+    <footer className="w-full border-t-2 border-line bg-card">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
+        <p className="text-sm text-muted-foreground">Shepherd Speller. Made for K-3 classrooms.</p>
         <div className="flex items-center gap-4">
           <a
             href="https://www.donray.dev/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             donray.dev
           </a>
@@ -15,12 +16,11 @@ export function Footer() {
             href="https://www.linkedin.com/in/donrayxwilliams/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             LinkedIn
           </a>
         </div>
-        <div className="text-sm text-muted-foreground">© 2025 Donray Williams</div>
       </div>
     </footer>
   )

@@ -180,7 +180,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     expect(screen.getByLabelText('List name')).toHaveValue('Week 5: Long A')
     expect(screen.getByText('Spelling patterns (0)')).toBeInTheDocument()
   })
@@ -193,7 +193,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
     expect(screen.getByText('Spelling patterns (1)')).toBeInTheDocument()
   })
@@ -206,7 +206,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
     // Add a second pattern so the map covers both branches
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
@@ -226,7 +226,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
     expect(screen.getByText('Spelling patterns (1)')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove pattern' }))
@@ -242,7 +242,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
 
@@ -261,9 +261,9 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    // Edit the first list
-    const editButtons = screen.getAllByRole('button', { name: 'Edit' })
-    fireEvent.click(editButtons[0])
+    // Open the first list
+    const openButtons = screen.getAllByRole('button', { name: 'Open' })
+    fireEvent.click(openButtons[0])
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
 
@@ -286,7 +286,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
 
     await waitFor(() => {
@@ -303,7 +303,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
 
     await waitFor(() => {
@@ -320,7 +320,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     const gradeInput = screen.getByLabelText('Grade level (optional)')
     fireEvent.change(gradeInput, { target: { value: '2' } })
     expect(gradeInput).toHaveValue('2')
@@ -456,7 +456,7 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     expect(screen.getByLabelText('List name')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'All lists' }))
     expect(screen.getByText('My word lists (1)')).toBeInTheDocument()

@@ -6,7 +6,7 @@ import type { WordList } from '@/models/WordList'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
-vi.mock('@/lib/lists-api', () => ({ getLists }))
+vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
 
 const list: WordList = {
   id: 'l1',
@@ -115,7 +115,7 @@ describe('Home page', () => {
     })
   })
 
-  it('opens the sheet when Edit is clicked on a list card', async () => {
+  it('opens the sheet when Open is clicked on a list card', async () => {
     getLists.mockResolvedValue([list])
     mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
@@ -125,23 +125,7 @@ describe('Home page', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
-    await waitFor(() => {
-      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
-    })
-  })
-
-  it('opens the sheet when Delete is clicked on a list card', async () => {
-    getLists.mockResolvedValue([list])
-    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
-    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
-
-    render(<Home />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Week 5')).toBeInTheDocument()
-    })
-    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
     await waitFor(() => {
       expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
     })
