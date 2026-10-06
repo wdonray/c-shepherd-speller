@@ -44,7 +44,7 @@ test.describe('authenticated flows', () => {
     // Save and return to the overview.
     await page.getByRole('button', { name: 'Save list' }).click()
     await page.getByRole('button', { name: 'All lists' }).click()
-    await expect(page.getByText('E2E Week 1')).toBeVisible()
+    await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
 
   test('profile dialog opens and saves', async ({ page }) => {
