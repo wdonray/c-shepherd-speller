@@ -68,4 +68,12 @@ describe('VersionPage', () => {
       delete process.env.GITHUB_TOKEN
     }
   })
+
+  it('handles null items in the releases payload', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [null, ...RELEASES] }))
+    render(await VersionPage())
+    await waitFor(() => {
+      expect(screen.getByText('Fix display mode user ID')).toBeInTheDocument()
+    })
+  })
 })

@@ -73,4 +73,17 @@ describe('AnalyticsTracker', () => {
     const { container } = render(<AnalyticsTracker />)
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('does nothing when sessionStorage is unavailable', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('storage disabled')
+    })
+    try {
+      render(<AnalyticsTracker />)
+      expect(sendBeaconMock).not.toHaveBeenCalled()
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      setItem.mockRestore()
+    }
+  })
 })

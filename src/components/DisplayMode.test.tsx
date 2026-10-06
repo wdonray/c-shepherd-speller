@@ -126,6 +126,24 @@ describe('DisplayMode', () => {
     expect(getSpellingMock).toHaveBeenCalledTimes(2)
   })
 
+  it('shows an error when the user lookup fails', async () => {
+    mockSession('u1')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+    render(<DisplayMode />)
+    await screen.findByRole('alert')
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load your spelling lists.')
+    expect(getSpellingMock).not.toHaveBeenCalled()
+  })
+
+  it('shows an error when the user lookup returns no user', async () => {
+    mockSession('u1')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ user: {} }) }))
+    render(<DisplayMode />)
+    await screen.findByRole('alert')
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load your spelling lists.')
+    expect(getSpellingMock).not.toHaveBeenCalled()
+  })
+
   it('links back home from the display', async () => {
     mockSession('u1')
     getSpellingMock.mockResolvedValue(DATA)
