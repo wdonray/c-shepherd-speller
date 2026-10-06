@@ -12,10 +12,13 @@ test.describe('authenticated flows', () => {
     await context.addCookies([await sessionCookie()])
   })
 
-  test('home welcomes the signed-in teacher', async ({ page }) => {
+  test('home shows the teacher dashboard', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: new RegExp(`welcome, ${E2E_USER_NAME}`, 'i') })).toBeVisible()
-    await expect(page.getByText('Shepherd Speller')).toBeVisible()
+    await expect(page.getByText(/my word lists/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New list' })).toBeVisible()
+    // The dashboard has Practice and Present links (Header also has them, so use first)
+    await expect(page.getByRole('link', { name: /practice/i }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /present/i }).first()).toBeVisible()
   })
 
   test('list manager: creates a new pattern-based list', async ({ page }) => {

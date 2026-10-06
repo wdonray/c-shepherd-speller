@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import Home from './page'
+import type { WordList } from '@/models/WordList'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
+const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
+vi.mock('@/lib/lists-api', () => ({ getLists }))
+
+const list: WordList = {
+  id: 'l1',
+  userId: 'u1',
+  name: 'Week 5',
+  patterns: [],
+  createdAt: '2026-10-06T00:00:00.000Z',
+  updatedAt: '2026-10-06T00:00:00.000Z',
+}
 
 const useSessionMock = vi.mocked(useSession)
 
@@ -20,6 +32,7 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Promise<unknown
 describe('Home page', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
+    getLists.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -30,17 +43,28 @@ describe('Home page', () => {
     mockSession(null, 'loading')
     const { container } = render(<Home />)
     expect(container.querySelector('.animate-spin')).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: /welcome/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/my word lists/i)).not.toBeInTheDocument()
   })
 
-  it('welcomes the user by name and skips the POST when the user already exists', async () => {
+  it('renders the dashboard after user sync', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
+  })
+
+  it('skips the POST when the user already exists', async () => {
     mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
     const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
 
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, donray/i })).toBeInTheDocument()
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/users?email=a@b.c')
@@ -61,9 +85,6 @@ describe('Home page', () => {
     })
     const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
     expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: 'Donray' })
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, donray/i })).toBeInTheDocument()
-    })
   })
 
   it('does not call the API when the session has no email', async () => {
@@ -73,12 +94,60 @@ describe('Home page', () => {
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, donray/i })).toBeInTheDocument()
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('falls back to empty name fields and a generic greeting when the session has no name', async () => {
+  it('opens the sheet when New list is clicked', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'New list' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
+    // The sheet should open (SpellingManagerSheet renders)
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
+  })
+
+  it('opens the sheet when Edit is clicked on a list card', async () => {
+    getLists.mockResolvedValue([list])
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
+  })
+
+  it('opens the sheet when Delete is clicked on a list card', async () => {
+    getLists.mockResolvedValue([list])
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+    await waitFor(() => {
+      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
+    })
+  })
+
+  it('uses empty name when the session has no name', async () => {
     mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
     const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'POST'
@@ -89,7 +158,7 @@ describe('Home page', () => {
     render(<Home />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /welcome, user/i })).toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'POST' }))
     })
     const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
     expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: '' })
