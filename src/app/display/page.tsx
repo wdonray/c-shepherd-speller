@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import TreeDisplayMode from '@/components/TreeDisplayMode'
+import DisplayMode from '@/components/DisplayMode'
 
 export const metadata: Metadata = {
   title: 'Display Mode | Shepherd Speller',
-  description: 'Present an interactive spelling tree on the big screen for classroom spelling.',
+  description:
+    'Present an interactive pattern chart on the big screen for classroom spelling: one column per spelling pattern, sized by frequency.',
 }
 
 export default function DisplayPage() {
-  return <TreeDisplayMode />
+  return <DisplayMode />
 }

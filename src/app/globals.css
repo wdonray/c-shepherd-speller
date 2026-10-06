@@ -29,6 +29,10 @@
   --color-input: var(--line);
   --color-ring: var(--ring);
 
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+
   --color-leaf: var(--leaf);
   --color-leaf-deep: var(--leaf-deep);
   --color-leaf-soft: var(--leaf-soft);

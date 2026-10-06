@@ -9,60 +9,72 @@ test.describe('display mode', () => {
     await expect(page).toHaveURL(/\/auth\/signin/)
   })
 
-  // The authenticated display tests are skipped in PR #22.
-  // PR #23 replaces the display mode with the interactive spelling tree,
-  // which has its own E2E tests.
+  // The authenticated display tests are skipped until the pattern-chart
+  // E2E seeding is stabilized; the specs below describe the intended UI.
   test.describe.skip('authenticated', () => {
     test.beforeEach(async ({ context }) => {
       await ensureE2EUser()
       await context.addCookies([await sessionCookie()])
     })
 
-    async function seedLists(page: Page) {
-      await page.goto('/')
-      await page.getByRole('button', { name: /my spelling lists/i }).click()
-      for (const word of ['cat', 'dog', 'bird']) {
-        const input = page.getByPlaceholder('Add a new word to your list')
-        await input.fill(word)
-        await input.press('Enter')
-        await expect(page.getByRole('button', { name: `Edit "${word}"` })).toBeVisible()
-      }
-      const soundInput = page.getByPlaceholder('Add a new sound pattern')
-      await soundInput.fill('sh')
-      await soundInput.press('Enter')
-      await expect(page.getByRole('button', { name: 'Edit "sh"' })).toBeVisible()
-      await page.keyboard.press('Escape')
+    async function seedPatternList(page: Page): Promise<string> {
+      const response = await page.request.post('/api/lists', {
+        data: {
+          name: 'E2E Long A',
+          patterns: [
+            { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
+            { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+            {
+              id: 'p3',
+              sound: 'long a',
+              pattern: 'eigh',
+              frequency: 'rare',
+              words: ['eight'],
+              isOddDuck: true,
+            },
+          ],
+        },
+      })
+      expect(response.ok()).toBe(true)
+      const { list } = await response.json()
+      return list.id as string
     }
 
-    test('shows all words at once and switches lists', async ({ page }) => {
-      await seedLists(page)
+    test('shows the pattern chart with all words at once', async ({ page }) => {
+      const id = await seedPatternList(page)
+      await page.goto(`/display?list=${id}`)
 
-      await page.getByRole('link', { name: /present/i }).click()
-      await expect(page).toHaveURL(/\/display$/)
+      // Sound header with a hear button.
+      await expect(page.getByText('long a')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Hear the sound long a' })).toBeVisible()
 
-      // Chrome-free: no site header or footer.
-      await expect(page.getByRole('banner')).toHaveCount(0)
-      await expect(page.getByRole('contentinfo')).toHaveCount(0)
+      // One column per regular pattern.
+      await expect(page.getByRole('region', { name: 'Pattern a_e' })).toBeVisible()
+      await expect(page.getByRole('region', { name: 'Pattern ai' })).toBeVisible()
 
-      // All words visible at once, numbered.
-      for (const word of ['cat', 'dog', 'bird']) {
-        await expect(page.getByText(word, { exact: true })).toBeVisible()
+      // All words visible at once as tappable cards.
+      for (const word of ['cake', 'bake', 'rain', 'eight']) {
+        await expect(page.getByRole('button', { name: `Hear and analyze the word ${word}` })).toBeVisible()
       }
-      await expect(page.getByRole('button', { name: /words/i })).toHaveAttribute('aria-pressed', 'true')
 
-      // Switch to the sounds list.
-      await page.getByRole('button', { name: /sounds/i }).click()
-      await expect(page.getByText('sh', { exact: true })).toBeVisible()
-      await expect(page.getByText('cat', { exact: true })).toHaveCount(0)
+      // Odd ducks get their own band.
+      await expect(page.getByRole('region', { name: 'Odd ducks' })).toBeVisible()
 
-      // Exit back home.
-      await page.getByRole('link', { name: /exit display/i }).click()
-      await expect(page).toHaveURL(/\/$/)
+      // Tapping a word opens its analysis.
+      await page.getByRole('button', { name: 'Hear and analyze the word cake' }).click()
+      await expect(page.getByRole('dialog', { name: 'Word analysis for cake' })).toBeVisible()
     })
 
-    test('empty lists show a neutral empty state', async ({ page }) => {
+    test('picker lists available lists', async ({ page }) => {
+      await seedPatternList(page)
       await page.goto('/display')
-      await expect(page.getByText('No words in this list yet.')).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Present a list' })).toBeVisible()
+      await expect(page.getByText('E2E Long A')).toBeVisible()
+    })
+
+    test('empty picker shows a neutral empty state', async ({ page }) => {
+      await page.goto('/display')
+      await expect(page.getByText('No word lists yet')).toBeVisible()
     })
 
     for (const theme of ['light', 'dark'] as const) {
@@ -71,9 +83,9 @@ test.describe('display mode', () => {
           localStorage.setItem('theme', t)
         }, theme)
 
-        await seedLists(page)
-        await page.getByRole('link', { name: /present/i }).click()
-        await expect(page).toHaveURL(/\/display$/)
+        const id = await seedPatternList(page)
+        await page.goto(`/display?list=${id}`)
+        await expect(page.getByRole('region', { name: 'Pattern a_e' })).toBeVisible()
         await page.waitForTimeout(1000)
 
         const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
