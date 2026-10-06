@@ -120,4 +120,13 @@ describe('SpellingTree', () => {
     render(<SpellingTree list={empty} />)
     expect(screen.getByLabelText('Hear the sound Week 5: Long A')).toBeInTheDocument()
   })
+
+  it('displays short sounds without truncation', () => {
+    const shortSoundList: WordList = {
+      ...list,
+      patterns: [{ id: 'p1', sound: 'sh', pattern: 'sh', frequency: 'common', words: ['ship'] }],
+    }
+    render(<SpellingTree list={shortSoundList} />)
+    expect(screen.getByLabelText('Hear the sound sh')).toBeInTheDocument()
+  })
 })

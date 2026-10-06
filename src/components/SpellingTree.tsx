@@ -76,7 +76,7 @@ export default function SpellingTree({ list }: SpellingTreeProps) {
     // Place branches radially around the center.
     const branches: PlacedBranch[] = regular.map((pattern, i) => {
       const angle = (2 * Math.PI * i) / Math.max(regular.length, 1) - Math.PI / 2
-      const length = BRANCH_LENGTH[pattern.frequency] ?? 150
+      const length = BRANCH_LENGTH[pattern.frequency]
       const x2 = CENTER.x + length * Math.cos(angle)
       const y2 = CENTER.y + length * Math.sin(angle)
       // Label at 60% along the branch, offset perpendicular.
@@ -150,7 +150,7 @@ export default function SpellingTree({ list }: SpellingTreeProps) {
               x2={branch.x2}
               y2={branch.y2}
               stroke="currentColor"
-              strokeWidth={BRANCH_WIDTH[branch.pattern.frequency] ?? 5}
+              strokeWidth={BRANCH_WIDTH[branch.pattern.frequency]}
               strokeLinecap="round"
               className="text-muted-foreground"
             />

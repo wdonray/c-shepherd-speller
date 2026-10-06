@@ -57,6 +57,22 @@ describe('TreeDisplayMode', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
+  it('uses plural forms in the list picker', async () => {
+    const multiPatternList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
+      ],
+    }
+    getLists.mockResolvedValue([multiPatternList])
+    render(<TreeDisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/2 patterns · 3 words/)).toBeInTheDocument()
+    })
+  })
+
   it('shows an empty state when there are no lists', async () => {
     getLists.mockResolvedValue([])
     render(<TreeDisplayMode />)
