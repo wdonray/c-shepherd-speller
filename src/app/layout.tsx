@@ -1,19 +1,15 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Lexend } from 'next/font/google'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
 import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import AnalyticsTracker from '@/components/analytics-tracker'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const lexend = Lexend({
+  variable: '--font-lexend',
   subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 export const metadata: Metadata = {
@@ -49,7 +45,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://accounts.google.com" />
       </head>
       <SessionProvider>
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
+        <body className={`${lexend.variable} antialiased bg-background`}>
           <noscript>
             <div className="fixed inset-0 bg-background flex items-center justify-center p-4 z-50">
               <div className="text-center space-y-4">

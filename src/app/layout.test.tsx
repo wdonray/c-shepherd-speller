@@ -7,8 +7,7 @@ import RootLayout from './layout'
 
 vi.mock('./globals.css', () => ({}))
 vi.mock('next/font/google', () => ({
-  Geist: () => ({ variable: 'font-sans' }),
-  Geist_Mono: () => ({ variable: 'font-mono' }),
+  Lexend: () => ({ variable: 'font-lexend' }),
 }))
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
