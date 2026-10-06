@@ -82,6 +82,20 @@ describe('SpellingTree', () => {
     expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'Word analysis for rain')
   })
 
+  it('opens word analysis via Space key', () => {
+    render(<SpellingTree list={list} />)
+    const word = screen.getByRole('button', { name: 'Analyze the word rain' })
+    fireEvent.keyDown(word, { key: ' ' })
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'Word analysis for rain')
+  })
+
+  it('does not open word analysis on other keys', () => {
+    render(<SpellingTree list={list} />)
+    const word = screen.getByRole('button', { name: 'Analyze the word rain' })
+    fireEvent.keyDown(word, { key: 'a' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('closes word analysis', () => {
     render(<SpellingTree list={list} />)
     fireEvent.click(screen.getByRole('button', { name: 'Analyze the word cake' }))
@@ -113,6 +127,20 @@ describe('SpellingTree', () => {
     const { container } = render(<SpellingTree list={longWordList} />)
     const texts = Array.from(container.querySelectorAll('text')).map((t) => t.textContent)
     expect(texts).toContain('supercal')
+  })
+
+  it('uses the most common sound as the center', () => {
+    const multiSoundList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
+        { id: 'p3', sound: 'short a', pattern: 'a', frequency: 'common', words: ['cat'] },
+      ],
+    }
+    render(<SpellingTree list={multiSoundList} />)
+    // long a appears twice, short a once; long a wins
+    expect(screen.getByLabelText('Hear the sound long a')).toBeInTheDocument()
   })
 
   it('uses the list name when no patterns exist', () => {

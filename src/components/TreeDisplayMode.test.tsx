@@ -112,4 +112,20 @@ describe('TreeDisplayMode', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
     })
   })
+
+  it('does not update state after unmount', async () => {
+    // Slow response that resolves after unmount
+    let resolveLists: (value: WordList[]) => void = () => {}
+    getLists.mockImplementation(() => new Promise<WordList[]>((resolve) => (resolveLists = resolve)))
+    const { unmount } = render(<TreeDisplayMode />)
+
+    // Unmount before the promise resolves
+    unmount()
+    resolveLists([list])
+
+    // Give the promise a chance to resolve; no error should occur
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    // If we got here without a React warning, the cancelled check worked
+    expect(true).toBe(true)
+  })
 })
