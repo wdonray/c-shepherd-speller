@@ -170,6 +170,11 @@ describe('WordList model', () => {
       expect(updated.patterns).toEqual([])
     })
 
+    it('updates gradeLevel when provided', () => {
+      const updated = updateWordListItem(validList, { gradeLevel: '2' })
+      expect(updated.gradeLevel).toBe('2')
+    })
+
     it('leaves unspecified fields alone', () => {
       const updated = updateWordListItem(validList, {})
       expect(updated.name).toBe(validList.name)

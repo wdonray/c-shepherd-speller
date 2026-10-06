@@ -82,6 +82,16 @@ describe('lists-db', () => {
       expect(await getListsByUser('u1')).toEqual([])
     })
 
+    it('sorts ties by keeping stable order', async () => {
+      const same = '2026-10-06T00:00:00.000Z'
+      const a = { ...storedList, id: 'la', SK: 'LIST#la', updatedAt: same }
+      const b = { ...storedList, id: 'lb', SK: 'LIST#lb', updatedAt: same }
+      send.mockResolvedValue({ Items: [a, b] })
+
+      const lists = await getListsByUser('u1')
+      expect(lists).toHaveLength(2)
+    })
+
     it('handles a missing Items array', async () => {
       send.mockResolvedValue({})
       expect(await getListsByUser('u1')).toEqual([])
