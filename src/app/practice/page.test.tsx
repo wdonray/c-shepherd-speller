@@ -26,7 +26,10 @@ vi.mock('next/link', () => ({
 
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
+  buildSentencePrompt: (word: string) => `The word is ${word}. Can you spell ${word}?`,
 }))
+const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
+vi.mock('@/lib/activity', () => ({ logActivity }))
 
 const list: WordList = {
   id: 'l1',
@@ -53,6 +56,18 @@ describe('PracticePage', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
+  it('opens practice for the chosen list', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    getLists.mockResolvedValue([list])
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    expect(mockPush).toHaveBeenCalledWith('/practice?list=l1')
+  })
+
   it('shows an empty state when there are no lists', async () => {
     getLists.mockResolvedValue([])
     render(<PracticePage />)
@@ -68,9 +83,9 @@ describe('PracticePage', () => {
     render(<PracticePage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Week 5')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Practice: Week 5' })).toBeInTheDocument()
     })
-    expect(screen.getByLabelText('Type the spelling')).toBeInTheDocument()
+    expect(screen.getByLabelText('Spell the word you hear')).toBeInTheDocument()
   })
 
   it('shows an error when loading fails', async () => {
@@ -90,7 +105,7 @@ describe('PracticePage', () => {
     render(<PracticePage />)
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Type the spelling')).toBeInTheDocument()
+      expect(screen.getByLabelText('Spell the word you hear')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Exit practice' }))
     expect(mockPush).toHaveBeenCalledWith('/practice')
