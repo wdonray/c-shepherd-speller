@@ -20,6 +20,8 @@ import {
   Settings,
   SunIcon,
   MoonIcon,
+  InfoIcon,
+  BarChart3Icon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
@@ -75,6 +77,18 @@ export function Header() {
                 <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
                   <UserIcon className="size-4" />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/version">
+                    <InfoIcon className="size-4" />
+                    Version
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/analytics">
+                    <BarChart3Icon className="size-4" />
+                    Analytics
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
