@@ -32,7 +32,7 @@ test.describe('authenticated flows', () => {
 
     // The editor opens. Add a pattern.
     await expect(page.getByText('Spelling patterns (0)')).toBeVisible()
-    await page.getByRole('button', { name: 'Add a pattern' }).click()
+    await page.getByRole('button', { name: 'Add a pattern', exact: true }).click()
     await expect(page.getByText('Spelling patterns (1)')).toBeVisible()
 
     // Fill in the pattern.
