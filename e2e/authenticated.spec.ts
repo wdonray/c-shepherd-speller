@@ -38,7 +38,7 @@ test.describe('authenticated flows', () => {
 
     // Add a word.
     await page.getByLabel('New word').fill('cake')
-    await page.getByRole('button', { name: 'Add' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('cake')).toBeVisible()
 
     // Save and return to the overview.
