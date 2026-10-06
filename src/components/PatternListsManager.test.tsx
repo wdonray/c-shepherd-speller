@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
 import type { WordList } from '@/models/WordList'
 
@@ -342,7 +342,7 @@ describe('PatternListsManager', () => {
     await waitFor(() => {
       expect(screen.getByText('Delete word list?')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
       expect(deleteList).toHaveBeenCalledWith('l1')
     })
@@ -361,7 +361,7 @@ describe('PatternListsManager', () => {
     await waitFor(() => {
       expect(screen.getByText('Delete word list?')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('delete failed')
     })
@@ -380,7 +380,7 @@ describe('PatternListsManager', () => {
     await waitFor(() => {
       expect(screen.getByText('Delete word list?')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Failed to delete list')
     })
