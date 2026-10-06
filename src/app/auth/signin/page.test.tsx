@@ -1,15 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import SignIn from './page'
 
-vi.mock('next-auth/react', () => ({ signIn: vi.fn() }))
+vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: vi.fn() }))
+vi.mock('next/navigation', () => ({ useRouter: vi.fn() }))
 
 const signInMock = vi.mocked(signIn)
+const useSessionMock = vi.mocked(useSession)
+const useRouterMock = vi.mocked(useRouter)
+const replaceMock = vi.fn()
 
 describe('SignIn page', () => {
   beforeEach(() => {
     signInMock.mockReset()
+    useSessionMock.mockReset()
+    replaceMock.mockReset()
+    useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
+    useRouterMock.mockReturnValue({ replace: replaceMock } as never)
     document.body.removeAttribute('data-auth-page')
   })
 
@@ -80,5 +89,26 @@ describe('SignIn page', () => {
       expect(screen.getByText('Sign in with Google')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in with google/i })).not.toBeDisabled()
     })
+  })
+
+  it('redirects authenticated users to the homepage instead of showing the form', async () => {
+    useSessionMock.mockReturnValue({
+      data: { user: { id: 'u1' } },
+      status: 'authenticated',
+    } as never)
+    render(<SignIn />)
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith('/')
+    })
+    expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument()
+  })
+
+  it('does not redirect while the session is loading', () => {
+    useSessionMock.mockReturnValue({ data: null, status: 'loading' } as never)
+    render(<SignIn />)
+
+    expect(replaceMock).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument()
   })
 })
