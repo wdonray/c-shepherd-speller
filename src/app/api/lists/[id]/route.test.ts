@@ -14,7 +14,7 @@ vi.mock('@/lib/lists-db', () => ({ getListById, updateList, deleteList }))
 import { GET, PUT, DELETE } from './route'
 
 const authed = { user: { id: 'u1', email: 't@example.com' }, response: null }
-const params = { params: { id: 'l1' } }
+const params = { params: Promise.resolve({ id: 'l1' }) }
 const stored = { id: 'l1', userId: 'u1', name: 'Week 5', patterns: [] }
 
 function jsonRequest(body: unknown): NextRequest {
