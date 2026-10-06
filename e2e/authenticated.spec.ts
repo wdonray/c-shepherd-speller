@@ -16,8 +16,9 @@ test.describe('authenticated flows', () => {
     await page.goto('/')
     await expect(page.getByText(/my word lists/i)).toBeVisible()
     await expect(page.getByRole('button', { name: 'New list' })).toBeVisible()
-    await expect(page.getByRole('link', { name: /practice/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: /present/i })).toBeVisible()
+    // The dashboard has Practice and Present links (Header also has them, so use first)
+    await expect(page.getByRole('link', { name: /practice/i }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /present/i }).first()).toBeVisible()
   })
 
   test('list manager: creates a new pattern-based list', async ({ page }) => {

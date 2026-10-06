@@ -146,4 +146,21 @@ describe('Home page', () => {
       expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
     })
   })
+
+  it('uses empty name when the session has no name', async () => {
+    mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? { ok: true, json: async () => ({ user: { id: 'u1' } }) }
+        : { ok: true, json: async () => ({ user: {} }) }
+    )
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'POST' }))
+    })
+    const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
+    expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: '' })
+  })
 })
