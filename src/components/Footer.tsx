@@ -2,7 +2,7 @@ export function Footer() {
   return (
     <footer className="w-full border-t-2 border-line bg-card">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
-        <p className="text-sm text-muted-foreground">Shepherd Speller. Made for K-3 classrooms.</p>
+        <p className="text-sm text-muted-foreground">PatternSpell. Made for K-3 classrooms.</p>
         <div className="flex items-center gap-4">
           <a
             href="https://www.donray.dev/"

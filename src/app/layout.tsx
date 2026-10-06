@@ -13,23 +13,23 @@ const lexend = Lexend({
 })
 
 export const metadata: Metadata = {
-  title: 'Shepherd Speller',
-  description: 'Interactive spelling application for learning and practicing spelling skills.',
+  title: 'PatternSpell',
+  description: 'Pattern-based spelling instruction for K-3 classrooms.',
   keywords: 'spelling, education, learning, interactive, practice, words',
   authors: [{ name: 'Donray Williams' }],
   creator: 'Donray Williams',
   publisher: 'Educational Tool',
   robots: 'index, follow',
   openGraph: {
-    title: 'Shepherd Speller',
-    description: 'Interactive spelling application for learning and practicing spelling skills.',
+    title: 'PatternSpell',
+    description: 'Pattern-based spelling instruction for K-3 classrooms.',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Shepherd Speller',
-    description: 'Interactive spelling application for learning and practicing spelling skills.',
+    title: 'PatternSpell',
+    description: 'Pattern-based spelling instruction for K-3 classrooms.',
   },
 }
 
@@ -51,7 +51,7 @@ export default function RootLayout({
               <div className="text-center space-y-4">
                 <h1 className="text-2xl font-bold">JavaScript Required</h1>
                 <p className="text-muted-foreground">
-                  Shepherd Speller requires JavaScript to function. Please enable it in your browser to continue.
+                  PatternSpell requires JavaScript to function. Please enable it in your browser to continue.
                 </p>
               </div>
             </div>

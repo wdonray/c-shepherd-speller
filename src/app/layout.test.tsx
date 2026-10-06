@@ -42,7 +42,7 @@ describe('RootLayout', () => {
     )
 
     expect(screen.getByRole('banner')).toBeInTheDocument()
-    expect(screen.getByRole('banner')).toHaveTextContent('Shepherd Speller')
+    expect(screen.getByRole('banner')).toHaveTextContent('PatternSpell')
     const main = screen.getByRole('main')
     expect(main).toBeInTheDocument()
     expect(main).toHaveTextContent('child content')

@@ -78,8 +78,8 @@ describe('Header', () => {
     mockSignedIn()
     render(<Header />)
 
-    expect(screen.getByText('Shepherd Speller')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Shepherd Speller logo' })).toBeInTheDocument()
+    expect(screen.getByText('PatternSpell')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'PatternSpell logo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
   })
 

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Analytics',
-  description: 'Public, privacy-respecting usage statistics for Shepherd Speller.',
+  description: 'Public, privacy-respecting usage statistics for PatternSpell.',
 }
 
 function formatDateTime(iso: string): string {

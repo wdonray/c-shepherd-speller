@@ -145,7 +145,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('That file does not look like a Shepherd Speller export.')
+      expect(screen.getByRole('alert')).toHaveTextContent('That file does not look like a PatternSpell export.')
     })
     expect(createList).not.toHaveBeenCalled()
   })

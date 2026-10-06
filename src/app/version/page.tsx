@@ -4,7 +4,7 @@ import VersionInfo, { RELEASES_API, toRelease, type Release } from '@/components
 
 export const metadata: Metadata = {
   title: 'Version',
-  description: 'Every deploy to Shepherd Speller, most recent first.',
+  description: 'Every deploy to PatternSpell, most recent first.',
 }
 
 async function getRecentReleases(): Promise<Release[]> {

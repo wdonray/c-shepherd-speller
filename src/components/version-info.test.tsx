@@ -234,7 +234,7 @@ describe('VersionInfo', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'Version' })).toBeInTheDocument()
-    expect(screen.getByText('Shepherd Speller')).toBeInTheDocument()
+    expect(screen.getByText('PatternSpell')).toBeInTheDocument()
     expect(screen.getByText('Deployed Oct 3, 2026')).toBeInTheDocument()
     expect(screen.getAllByText('This build')).toHaveLength(1)
     expect(screen.getAllByText('v0.5.0')).toHaveLength(2)

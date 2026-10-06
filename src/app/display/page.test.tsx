@@ -8,7 +8,7 @@ vi.mock('@/components/DisplayMode', () => ({
 
 describe('DisplayPage', () => {
   it('has display-mode metadata', () => {
-    expect(metadata.title).toBe('Display Mode | Shepherd Speller')
+    expect(metadata.title).toBe('Display Mode | PatternSpell')
     expect(metadata.description).toContain('pattern chart')
   })
 

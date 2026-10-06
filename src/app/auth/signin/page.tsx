@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { TreeMark } from '@/components/TreeMark'
+import { PatternMark } from '@/components/PatternMark'
 import { Loader2 } from 'lucide-react'
 
 function GoogleMark() {
@@ -54,8 +54,8 @@ export default function SignIn() {
     <div className="flex justify-center px-8 pt-32 pb-8">
       <Card className="mx-4 w-full max-w-[400px] sm:mx-0">
         <CardContent className="flex flex-col items-center px-10 py-12">
-          <TreeMark className="h-[110px] w-[110px]" label="Shepherd Speller logo" />
-          <h1 className="mt-6 text-center text-[26px] font-bold text-ink">Shepherd Speller</h1>
+          <PatternMark className="h-[110px] w-[110px]" label="PatternSpell logo" />
+          <h1 className="mt-6 text-center text-[26px] font-bold text-ink">PatternSpell</h1>
           <p className="mt-3 text-center text-[15px] leading-6 text-muted-foreground">
             A pattern-based spelling toolkit for K-3 teachers.
           </p>
