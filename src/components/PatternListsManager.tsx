@@ -78,11 +78,11 @@ export default function PatternListsManager() {
     try {
       await deleteList(listToDelete.id)
       setLists((prev) => prev.filter((l) => l.id !== listToDelete.id))
-      setListToDelete(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete list')
     } finally {
       setDeleting(false)
+      setListToDelete(null)
     }
   }
 
