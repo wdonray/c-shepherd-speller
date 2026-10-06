@@ -1,10 +1,6 @@
 import type { Metadata } from 'next'
 import { version } from '../../../package.json'
-import VersionInfo, {
-  RELEASES_API,
-  toRelease,
-  type Release,
-} from '@/components/version-info'
+import VersionInfo, { RELEASES_API, toRelease, type Release } from '@/components/version-info'
 
 export const metadata: Metadata = {
   title: 'Version',
@@ -30,9 +26,7 @@ async function getRecentReleases(): Promise<Release[]> {
     if (!res.ok) return []
     const data: unknown = await res.json()
     if (!Array.isArray(data)) return []
-    return data.map((item) =>
-      toRelease((item ?? {}) as Parameters<typeof toRelease>[0])
-    )
+    return data.map((item) => toRelease((item ?? {}) as Parameters<typeof toRelease>[0]))
   } catch {
     return []
   }

@@ -13,7 +13,10 @@ const SUMMARY = {
       path: '/display',
       totalViews: 42,
       uniques: 7,
-      daily: [{ day: '2026-10-04', views: 20 }, { day: '2026-10-05', views: 22 }],
+      daily: [
+        { day: '2026-10-04', views: 20 },
+        { day: '2026-10-05', views: 22 },
+      ],
     },
   ],
   totalViews: 42,
@@ -33,9 +36,7 @@ describe('AnalyticsPage', () => {
   it('shows the not-configured state when analytics is unavailable', async () => {
     getAnalyticsSummaryMock.mockResolvedValue(null)
     render(await AnalyticsPage())
-    expect(
-      screen.getByText(/isn't configured on this build yet/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/isn't configured on this build yet/i)).toBeInTheDocument()
   })
 
   it('shows the empty state when no views have been recorded', async () => {
@@ -50,9 +51,7 @@ describe('AnalyticsPage', () => {
     expect(screen.getByText('42')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('Page views per day')).toBeInTheDocument()
-    expect(
-      screen.getByRole('img', { name: /bar chart of page views per day/i })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /bar chart of page views per day/i })).toBeInTheDocument()
   })
 
   it('explains the methodology', async () => {

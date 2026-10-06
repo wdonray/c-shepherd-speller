@@ -37,10 +37,7 @@ describe('VersionPage', () => {
   })
 
   it('renders gracefully when the GitHub API is unreachable', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockRejectedValue(new Error('network down'))
-    )
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     render(await VersionPage())
     expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
     expect(screen.getByText('v0.1.4')).toBeInTheDocument()

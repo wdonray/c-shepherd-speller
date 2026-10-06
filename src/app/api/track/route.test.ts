@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './route'
-import {
-  recordPageView,
-  isRateLimited,
-  __resetRateLimitForTests,
-} from '@/lib/analytics'
+import { recordPageView, isRateLimited, __resetRateLimitForTests } from '@/lib/analytics'
 
 vi.mock('@/lib/analytics', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/analytics')>()
@@ -42,11 +38,7 @@ describe('POST /api/track', () => {
     const res = await POST(makeRequest({ path: '/display' }))
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ ok: true })
-    expect(recordPageViewMock).toHaveBeenCalledWith(
-      '/display',
-      '1.2.3.4',
-      'Mozilla/5.0'
-    )
+    expect(recordPageViewMock).toHaveBeenCalledWith('/display', '1.2.3.4', 'Mozilla/5.0')
   })
 
   it('returns 429 when rate limited', async () => {
