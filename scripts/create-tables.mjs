@@ -13,6 +13,11 @@
  *      plus the GSI1 index on GSI1PK (S)/GSI1SK (S) the adapter queries.
  *      (Required by @next-auth/dynamodb-adapter; matches the adapter's defaults.)
  *
+ *   3. shepherd-speller-lists (LISTS_TABLE_NAME) — pattern-based word lists.
+ *      Partition key PK (S), sort key SK (S).
+ *      PK = USER#<userId>, SK = LIST#<listId>; one item per list with
+ *      patterns embedded.
+ *
  * Connection:
  *   - DYNAMODB_ENDPOINT set  -> DynamoDB Local (e.g. http://localhost:8000).
  *     Start it with: docker run -p 8000:8000 amazon/dynamodb-local
@@ -41,6 +46,7 @@ const ENDPOINT = process.env.DYNAMODB_ENDPOINT
 
 const USER_TABLE_NAME = process.env.USER_TABLE_NAME || 'c-shepherd-users'
 const AUTH_TABLE_NAME = process.env.AUTH_TABLE_NAME || 'next-auth'
+const LISTS_TABLE_NAME = process.env.LISTS_TABLE_NAME || 'shepherd-speller-lists'
 
 /** Table definitions. Keep in sync with the key schemas used in src/. */
 const TABLE_DEFINITIONS = [
@@ -85,6 +91,18 @@ const TABLE_DEFINITIONS = [
         ],
         Projection: { ProjectionType: 'ALL' },
       },
+    ],
+    BillingMode: 'PAY_PER_REQUEST',
+  },
+  {
+    TableName: LISTS_TABLE_NAME,
+    KeySchema: [
+      { AttributeName: 'PK', KeyType: 'HASH' },
+      { AttributeName: 'SK', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'PK', AttributeType: 'S' },
+      { AttributeName: 'SK', AttributeType: 'S' },
     ],
     BillingMode: 'PAY_PER_REQUEST',
   },
