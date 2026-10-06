@@ -26,7 +26,6 @@ function PracticeInner() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let cancelled = false
     setLoading(true)
     setLoadError(null)
 
@@ -34,22 +33,18 @@ function PracticeInner() {
       try {
         if (listId) {
           const data = await getList(listId)
-          if (!cancelled) setList(data)
+          setList(data)
         } else {
           const data = await getLists()
-          if (!cancelled) setAllLists(data)
+          setAllLists(data)
         }
       } catch {
-        if (!cancelled) setLoadError(LOAD_ERROR)
+        setLoadError(LOAD_ERROR)
       } finally {
-        if (!cancelled) setLoading(false)
+        setLoading(false)
       }
     }
     load()
-
-    return () => {
-      cancelled = true
-    }
   }, [listId])
 
   if (loading) {
