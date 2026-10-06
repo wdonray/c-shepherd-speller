@@ -10,9 +10,10 @@ const { getList, getLists } = vi.hoisted(() => ({
 vi.mock('@/lib/lists-api', () => ({ getList, getLists }))
 
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
+const mockPush = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
 }))
 
 vi.mock('next/link', () => ({
@@ -80,5 +81,18 @@ describe('PracticePage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
     })
+  })
+
+  it('navigates back to the picker when exiting practice', async () => {
+    const { fireEvent } = await import('@testing-library/react')
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Type the spelling')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Exit practice' }))
+    expect(mockPush).toHaveBeenCalledWith('/practice')
   })
 })

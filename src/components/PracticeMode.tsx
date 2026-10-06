@@ -45,11 +45,11 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   const current = allWords[currentIndex]
 
   const speakWord = useCallback(() => {
-    if (current) speak(current.word)
+    speak(current!.word)
   }, [current])
 
   const speakSentence = useCallback(() => {
-    if (current) speak(`The word is ${current.word}.`)
+    speak(`The word is ${current!.word}.`)
   }, [current])
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,13 +95,11 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     setFeedback(null)
     // Move to next word, wrapping around. Prioritize review queue words.
     if (reviewQueue.size > 0) {
-      // Find the next review word in the list
+      // Find the next review word in the list (always found, since review words come from the list)
       const reviewWords = Array.from(reviewQueue.keys())
       const nextReviewIndex = allWords.findIndex((w) => reviewWords.includes(w.word))
-      if (nextReviewIndex !== -1) {
-        setCurrentIndex(nextReviewIndex)
-        return
-      }
+      setCurrentIndex(nextReviewIndex)
+      return
     }
     setCurrentIndex((i) => (i + 1) % allWords.length)
   }
@@ -131,9 +129,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
           <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
         </div>
         {reviewQueue.size > 0 && (
-          <p className="text-sm text-muted-foreground">
-            Review: {reviewQueue.size} {reviewQueue.size === 1 ? 'word needs' : 'words need'} practice
-          </p>
+          <p className="text-sm text-muted-foreground">Review: {reviewQueue.size} word(s) need practice</p>
         )}
       </div>
 

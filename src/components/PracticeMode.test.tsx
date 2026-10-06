@@ -80,7 +80,20 @@ describe('PracticeMode', () => {
     // Miss the first word
     fireEvent.change(screen.getByLabelText('Type the spelling'), { target: { value: 'wrong' } })
     fireEvent.click(screen.getByRole('button', { name: 'Check' }))
-    expect(screen.getByText(/Review: 1 word needs practice/)).toBeInTheDocument()
+    expect(screen.getByText(/Review: 1 word\(s\) need practice/)).toBeInTheDocument()
+  })
+
+  it('does not duplicate words already in the review queue', () => {
+    render(<PracticeMode list={list} onExit={vi.fn()} />)
+    // Miss cake twice
+    fireEvent.change(screen.getByLabelText('Type the spelling'), { target: { value: 'wrong' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next word' }))
+    // Should be back to cake (from review queue)
+    fireEvent.change(screen.getByLabelText('Type the spelling'), { target: { value: 'wrong' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }))
+    // Still 1 word in review (not duplicated)
+    expect(screen.getByText(/Review: 1 word\(s\) need practice/)).toBeInTheDocument()
   })
 
   it('requires two correct spellings to clear a word from review', () => {
@@ -96,7 +109,7 @@ describe('PracticeMode', () => {
     // Spell it correctly once
     fireEvent.change(screen.getByLabelText('Type the spelling'), { target: { value: 'cake' } })
     fireEvent.click(screen.getByRole('button', { name: 'Check' }))
-    expect(screen.getByText(/Review: 1 word needs practice/)).toBeInTheDocument()
+    expect(screen.getByText(/Review: 1 word\(s\) need practice/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Next word' }))
 
     // Spell it correctly again to clear
