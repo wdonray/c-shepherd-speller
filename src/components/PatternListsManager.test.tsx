@@ -201,6 +201,38 @@ describe('PatternListsManager', () => {
     })
   })
 
+  it('shows an error when save fails', async () => {
+    getLists.mockResolvedValue([list])
+    updateList.mockRejectedValue(new Error('save failed'))
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('save failed')
+    })
+  })
+
+  it('updates the grade level in the editor', async () => {
+    getLists.mockResolvedValue([list])
+    updateList.mockResolvedValue(list)
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    const gradeInput = screen.getByLabelText('Grade level (optional)')
+    fireEvent.change(gradeInput, { target: { value: '2' } })
+    expect(gradeInput).toHaveValue('2')
+  })
+
   it('deletes a list after confirmation', async () => {
     getLists.mockResolvedValue([list])
     deleteList.mockResolvedValue(undefined)
@@ -213,6 +245,21 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
       expect(deleteList).toHaveBeenCalledWith('l1')
+    })
+  })
+
+  it('shows an error when delete fails', async () => {
+    getLists.mockResolvedValue([list])
+    deleteList.mockRejectedValue(new Error('delete failed'))
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('delete failed')
     })
   })
 
