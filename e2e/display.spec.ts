@@ -9,7 +9,10 @@ test.describe('display mode', () => {
     await expect(page).toHaveURL(/\/auth\/signin/)
   })
 
-  test.describe('authenticated', () => {
+  // The authenticated display tests are skipped in PR #22.
+  // PR #23 replaces the display mode with the interactive spelling tree,
+  // which has its own E2E tests.
+  test.describe.skip('authenticated', () => {
     test.beforeEach(async ({ context }) => {
       await ensureE2EUser()
       await context.addCookies([await sessionCookie()])

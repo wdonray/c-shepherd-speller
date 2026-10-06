@@ -34,7 +34,7 @@ test.describe('authenticated flows', () => {
 
     // Fill in the pattern.
     await page.getByLabel('Sound').fill('long a')
-    await page.getByLabel('Pattern').fill('a_e')
+    await page.getByPlaceholder('e.g. a_e').fill('a_e')
 
     // Add a word.
     await page.getByLabel('New word').fill('cake')
