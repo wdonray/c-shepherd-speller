@@ -209,9 +209,14 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
-    // Change the pattern via the PatternEditor
-    fireEvent.change(screen.getByLabelText('Pattern'), { target: { value: 'ai' } })
-    expect(screen.getByLabelText('Pattern')).toHaveValue('ai')
+    // Add a second pattern so the map covers both branches
+    fireEvent.click(screen.getByRole('button', { name: 'Add pattern' }))
+    // Change the first pattern via the PatternEditor
+    const patternInputs = screen.getAllByLabelText('Pattern')
+    fireEvent.change(patternInputs[0], { target: { value: 'ai' } })
+    expect(patternInputs[0]).toHaveValue('ai')
+    // The second pattern is untouched
+    expect(patternInputs[1]).toHaveValue('')
   })
 
   it('removes a pattern in the editor', async () => {
@@ -244,6 +249,32 @@ describe('PatternListsManager', () => {
 
     await waitFor(() => {
       expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
+    })
+  })
+
+  it('updates only the saved list when multiple exist', async () => {
+    const list2: WordList = { ...list, id: 'l2', name: 'Week 6' }
+    getLists.mockResolvedValue([list, list2])
+    updateList.mockResolvedValue({ ...list, name: 'Renamed' })
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    // Edit the first list
+    const editButtons = screen.getAllByRole('button', { name: 'Edit' })
+    fireEvent.click(editButtons[0])
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
+    })
+    // Return to overview; the other list is untouched
+    fireEvent.click(screen.getByRole('button', { name: 'All lists' }))
+    await waitFor(() => {
+      expect(screen.getByText('Week 6')).toBeInTheDocument()
     })
   })
 

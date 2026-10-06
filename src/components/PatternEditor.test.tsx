@@ -62,6 +62,14 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: ['cake', 'bake'] }))
   })
 
+  it('does not add a word on non-Enter key', () => {
+    const { onChange } = renderEditor()
+    const input = screen.getByLabelText('New word')
+    fireEvent.change(input, { target: { value: 'bake' } })
+    fireEvent.keyDown(input, { key: 'a' })
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('adds a word via the Add button', () => {
     const { onChange } = renderEditor()
     fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'lake' } })
