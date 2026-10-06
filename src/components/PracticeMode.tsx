@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Volume2Icon, CheckIcon, XIcon } from 'lucide-react'
+import { Volume2Icon, CheckIcon, StarIcon, ChevronLeftIcon } from 'lucide-react'
 import type { WordList } from '@/models/WordList'
-import { speak } from '@/lib/tts'
+import { speak, buildSentencePrompt } from '@/lib/tts'
+import { logActivity } from '@/lib/activity'
+import { OddDuck } from './OddDuck'
 
 interface PracticeModeProps {
   list: WordList
@@ -17,10 +20,19 @@ interface WordItem {
   pattern: string
 }
 
+type Phase = 'prompt' | 'correct' | 'incorrect' | 'complete' | 'review-complete'
+
+function starsFor(pct: number): number {
+  if (pct >= 100) return 3
+  if (pct >= 80) return 2
+  if (pct >= 40) return 1
+  return 0
+}
+
 /**
- * Practice mode: TTS speaks the word, student types the spelling.
- * Missed words go into a review queue; a word must be spelled correctly
- * twice to clear from the queue (error review loop).
+ * Practice mode: TTS speaks the word, the student types the spelling.
+ * One pass through every word, then a completion card. Missed words go
+ * into a review queue; a word must be spelled correctly twice to clear it.
  */
 export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   // Flatten all words from all patterns.
@@ -34,166 +46,363 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     return words
   }, [list])
 
+  // The word on screen. Tracked explicitly so feedback banners never go
+  // stale when the review queue shrinks underneath them. Always valid in
+  // the main render path (the empty list returns early).
+  const [activeWord, setActiveWord] = useState<WordItem>(() => allWords[0] as WordItem)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [reviewIndex, setReviewIndex] = useState(0)
+  const [reviewMode, setReviewMode] = useState(false)
+  const [phase, setPhase] = useState<Phase>('prompt')
   const [input, setInput] = useState('')
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
+  const [lastAnswer, setLastAnswer] = useState('')
   const [reviewQueue, setReviewQueue] = useState<Map<string, number>>(new Map())
   const [correctCount, setCorrectCount] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
   const [streak, setStreak] = useState(0)
+  const [bestStreak, setBestStreak] = useState(0)
+  const [lastCleared, setLastCleared] = useState(false)
 
-  const current = allWords[currentIndex]
+  const reviewWords = Array.from(reviewQueue.keys())
 
-  const speakWord = useCallback(() => {
-    speak(current!.word)
-  }, [current])
+  const speakWord = () => {
+    speak(activeWord.word)
+  }
 
-  const speakSentence = useCallback(() => {
-    speak(`The word is ${current!.word}.`)
-  }, [current])
+  const speakSentence = () => {
+    speak(buildSentencePrompt(activeWord.word))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!current || feedback) return
-
-    const isCorrect = input.trim().toLowerCase() === current.word.toLowerCase()
+    // The answer input is disabled outside the prompt phase, so the form
+    // can only be submitted while answering.
+    const isCorrect = input.trim().toLowerCase() === activeWord.word.toLowerCase()
     setTotalCount((c) => c + 1)
 
     if (isCorrect) {
-      setFeedback('correct')
+      const nextStreak = streak + 1
+      setStreak(nextStreak)
+      setBestStreak((b) => Math.max(b, nextStreak))
       setCorrectCount((c) => c + 1)
-      setStreak((s) => s + 1)
-      // If this word was in the review queue, increment its clear count.
-      // A word must be spelled correctly twice to clear from the queue.
-      setReviewQueue((prev) => {
-        if (!prev.has(current.word)) return prev
-        const next = new Map(prev)
-        const count = next.get(current.word)! + 1
+      const nextQueue = new Map(reviewQueue)
+      let cleared = false
+      if (nextQueue.has(activeWord.word)) {
+        const count = nextQueue.get(activeWord.word)! + 1
         if (count >= 2) {
-          next.delete(current.word)
+          nextQueue.delete(activeWord.word)
+          cleared = true
         } else {
-          next.set(current.word, count)
+          nextQueue.set(activeWord.word, count)
         }
-        return next
-      })
+      }
+      setReviewQueue(nextQueue)
+      setLastCleared(cleared)
+      setPhase('correct')
     } else {
-      setFeedback('incorrect')
       setStreak(0)
-      // Add to review queue (or reset count if already there)
-      setReviewQueue((prev) => {
-        const next = new Map(prev)
-        if (!next.has(current.word)) {
-          next.set(current.word, 0)
-        }
-        return next
-      })
+      setLastAnswer(input.trim())
+      const nextQueue = new Map(reviewQueue)
+      if (!nextQueue.has(activeWord.word)) {
+        nextQueue.set(activeWord.word, 0)
+      }
+      setReviewQueue(nextQueue)
+      setLastCleared(false)
+      setPhase('incorrect')
     }
   }
 
   const handleNext = () => {
     setInput('')
-    setFeedback(null)
-    // Move to next word, wrapping around. Prioritize review queue words.
-    if (reviewQueue.size > 0) {
-      // Find the next review word in the list (always found, since review words come from the list)
-      const reviewWords = Array.from(reviewQueue.keys())
-      const nextReviewIndex = allWords.findIndex((w) => reviewWords.includes(w.word))
-      setCurrentIndex(nextReviewIndex)
+    if (reviewMode) {
+      if (reviewQueue.size === 0) {
+        setPhase('review-complete')
+        return
+      }
+      // A cleared word leaves the next word at this index; otherwise advance.
+      const nextIndex = lastCleared ? reviewIndex % reviewQueue.size : (reviewIndex + 1) % reviewQueue.size
+      setReviewIndex(nextIndex)
+      const word = reviewWords[nextIndex]
+      setActiveWord(allWords.find((w) => w.word === word) as WordItem)
+      setLastCleared(false)
+      setPhase('prompt')
       return
     }
-    setCurrentIndex((i) => (i + 1) % allWords.length)
+    if (currentIndex + 1 >= allWords.length) {
+      logActivity('practiced', list.name)
+      setPhase('complete')
+      return
+    }
+    const nextIndex = currentIndex + 1
+    setCurrentIndex(nextIndex)
+    setActiveWord(allWords[nextIndex] as WordItem)
+    setPhase('prompt')
   }
 
-  if (allWords.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-xl text-muted-foreground mb-4">This list has no words yet.</p>
-        <Button onClick={onExit}>Back to lists</Button>
-      </div>
-    )
+  const handleTryAgain = () => {
+    setInput('')
+    setPhase('prompt')
+  }
+
+  const startReview = () => {
+    const word = reviewWords[0]
+    setReviewMode(true)
+    setReviewIndex(0)
+    setActiveWord(allWords.find((w) => w.word === word) as WordItem)
+    setInput('')
+    setLastCleared(false)
+    setPhase('prompt')
+  }
+
+  const restart = () => {
+    setActiveWord(allWords[0] as WordItem)
+    setCurrentIndex(0)
+    setReviewIndex(0)
+    setReviewMode(false)
+    setPhase('prompt')
+    setInput('')
+    setLastAnswer('')
+    setReviewQueue(new Map())
+    setCorrectCount(0)
+    setTotalCount(0)
+    setStreak(0)
+    setBestStreak(0)
+    setLastCleared(false)
   }
 
   const progress = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Progress */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span>
-            {correctCount} of {totalCount} correct ({progress}%)
-          </span>
-          {streak > 1 && <span className="font-semibold">Streak: {streak}</span>}
-        </div>
-        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-          <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-        </div>
-        {reviewQueue.size > 0 && (
-          <p className="text-sm text-muted-foreground">Review: {reviewQueue.size} word(s) need practice</p>
+  const header = (title: string, sub: string) => (
+    <div>
+      <button
+        type="button"
+        onClick={onExit}
+        className="cursor-pointer text-[15px] font-semibold text-sky-ink hover:underline"
+      >
+        <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
+        Exit practice
+      </button>
+      <h1 className="mt-3 text-[30px] leading-tight font-bold">{title}</h1>
+      {sub && <p className="mt-1 text-[15px] text-muted-foreground">{sub}</p>}
+    </div>
+  )
+
+  const hearBlock = (
+    <div className="flex flex-col items-center">
+      <button
+        type="button"
+        onClick={speakWord}
+        aria-label="Hear the word"
+        className="flex size-50 cursor-pointer items-center justify-center rounded-full border-4 border-sky-deep bg-sky text-white shadow-[0_6px_0_var(--color-sky-dark)] transition-all hover:brightness-105 active:translate-y-1 active:shadow-none"
+      >
+        <Volume2Icon className="size-20" aria-hidden="true" />
+      </button>
+      <p className="mt-4 text-xl font-bold text-sky-ink">Hear the word</p>
+      <Button variant="secondary" onClick={speakSentence} className="mt-4">
+        Hear it in a sentence
+      </Button>
+    </div>
+  )
+
+  const answerForm = (state: 'default' | 'correct' | 'wrong') => (
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-2xl space-y-4">
+      <label htmlFor="spelling-answer" className="text-lg font-bold">
+        Spell the word you hear
+      </label>
+      <Input
+        id="spelling-answer"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Type the spelling"
+        autoComplete="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        disabled={phase !== 'prompt'}
+        className={cn(
+          'h-24 rounded-[20px] border-[3px] text-center text-3xl',
+          state === 'correct' && 'border-leaf bg-leaf-soft font-bold disabled:opacity-100',
+          state === 'wrong' && 'border-coral bg-coral-soft font-bold disabled:opacity-100'
         )}
-      </div>
+      />
+      {phase === 'prompt' && (
+        <Button type="submit" disabled={!input.trim()} className="h-18 w-full text-xl">
+          Check
+        </Button>
+      )}
+    </form>
+  )
 
-      {/* Word prompt */}
-      <div className="text-center space-y-4">
-        <div className="flex justify-center gap-2">
-          <Button size="lg" onClick={speakWord} aria-label="Hear the word">
-            <Volume2Icon className="size-5" />
-            Hear word
-          </Button>
-          <Button size="lg" variant="outline" onClick={speakSentence} aria-label="Hear the word in a sentence">
-            <Volume2Icon className="size-5" />
-            Sentence
+  const reviewPill =
+    reviewQueue.size > 0 && !reviewMode ? (
+      <div className="mx-auto w-fit">
+        <div className="inline-flex items-center gap-2 rounded-full border-2 border-plum bg-plum-soft px-5 py-2.5">
+          <OddDuck className="size-8 text-plum" />
+          <span className="text-[15px] font-bold text-plum-ink">
+            {`Review: ${reviewQueue.size} ${reviewQueue.size === 1 ? 'word' : 'words'}`}
+          </span>
+        </div>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Missed words come back in review. Spell one right twice to clear it.
+        </p>
+      </div>
+    ) : null
+
+  if (allWords.length === 0) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+        {header(`Practice: ${list.name}`, '')}
+        <div className="rounded-[20px] border-2 border-line bg-card px-6 py-14 text-center">
+          <h2 className="text-2xl font-bold">This list has no words yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-[15px] text-muted-foreground">
+            Add words to your patterns first, then come back to practice.
+          </p>
+          <Button onClick={onExit} className="mt-6">
+            Back to lists
           </Button>
         </div>
+      </div>
+    )
+  }
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type the spelling"
-            className="text-2xl text-center py-6"
-            aria-label="Type the spelling"
-            disabled={feedback !== null}
-            autoFocus
-          />
-          {!feedback ? (
-            <Button type="submit" size="lg" className="w-full" disabled={!input.trim()}>
-              Check
-            </Button>
+  if (phase === 'complete' || phase === 'review-complete') {
+    const done = phase === 'complete'
+    const earned = starsFor(progress)
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+        {header(`Practice: ${list.name}`, 'Session complete.')}
+        <div className="mx-auto max-w-[700px] rounded-[20px] border-2 border-line bg-card px-6 py-12 text-center">
+          <div className="flex items-center justify-center gap-3" aria-label={`${earned} of 3 stars`}>
+            {[0, 1, 2].map((i) => (
+              <StarIcon
+                key={i}
+                className={cn('size-[72px]', i < earned ? 'fill-sun text-sun-deep' : 'fill-line text-muted')}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+          <h2 className="mt-6 text-[32px] font-bold">{done ? 'List complete!' : 'Review complete!'}</h2>
+          {done ? (
+            <>
+              <p className="mt-2 text-xl text-muted-foreground">{`${correctCount} of ${totalCount} correct`}</p>
+              <p className="mt-1 text-base font-semibold">Best streak: {bestStreak}</p>
+            </>
           ) : (
-            <Button type="button" size="lg" className="w-full" onClick={handleNext}>
+            <p className="mt-2 text-xl text-muted-foreground">You cleared every missed word.</p>
+          )}
+          <div className="mt-8 flex flex-col items-center gap-4">
+            {done && reviewQueue.size > 0 && (
+              <Button variant="plum" onClick={startReview} className="h-16 px-8 text-base">
+                Review missed words
+              </Button>
+            )}
+            {!done && (
+              <Button onClick={restart} className="h-16 px-8 text-base">
+                Practice again
+              </Button>
+            )}
+            <Button variant="ghost" onClick={onExit} className="font-bold text-muted-foreground">
+              Back to lists
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+      {reviewMode
+        ? header('Review time', 'Words you missed, back for another try.')
+        : header(`Practice: ${list.name}`, 'Listen, then type the spelling.')}
+
+      {reviewMode ? (
+        <div className="rounded-[20px] border-2 border-plum bg-plum-soft p-6">
+          <div className="flex items-center gap-4">
+            <OddDuck className="size-[52px] shrink-0 text-plum" label="Odd duck illustration" />
+            <div>
+              <p className="text-xl font-bold text-plum-ink">{`Review ${reviewIndex + 1} of ${reviewWords.length}`}</p>
+              <p className="text-sm text-plum-ink">Spell each word right twice to clear it.</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-64 max-w-[600px] flex-1">
+            <p className="text-sm font-semibold">{`${correctCount} of ${totalCount} correct (${progress}%)`}</p>
+            <div
+              className="mt-2 h-[14px] overflow-hidden rounded-full bg-line"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Practice progress"
+            >
+              <div className="h-full rounded-full bg-leaf transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+          {streak > 1 && (
+            <div className="inline-flex items-center gap-2 rounded-full border-2 border-sun-deep bg-sun-soft px-5 py-2">
+              <StarIcon className="size-5 fill-sun text-sun-deep" aria-hidden="true" />
+              <span className="text-base font-bold">Streak {streak}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {phase === 'correct' && (
+        <div className="rounded-[20px] border-2 border-leaf bg-leaf-soft p-6" role="status">
+          <div className="flex items-center gap-4">
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-leaf text-white">
+              <CheckIcon className="size-8" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-2xl font-bold text-leaf-ink">Correct! Nice work.</p>
+              <p className="text-xl">{activeWord.word}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {phase === 'incorrect' && (
+        <div className="rounded-[20px] border-2 border-coral bg-coral-soft p-6" role="alert">
+          <p className="text-[22px] font-bold text-coral-ink">Not quite. The word is:</p>
+          <p className="mt-1 text-[34px] leading-tight font-extrabold">{activeWord.word}</p>
+          {activeWord.pattern ? (
+            <p className="mt-2 text-[15px]">Look at the {activeWord.pattern} pattern, then try again.</p>
+          ) : null}
+        </div>
+      )}
+
+      {phase === 'prompt' && hearBlock}
+
+      {phase === 'prompt' && answerForm('default')}
+      {phase === 'correct' && answerForm('correct')}
+      {phase === 'incorrect' && answerForm('wrong')}
+
+      {phase === 'correct' && (
+        <div className="mx-auto w-full max-w-2xl">
+          <Button onClick={handleNext} className="h-18 w-full text-xl">
+            Next word
+          </Button>
+        </div>
+      )}
+      {phase === 'incorrect' && (
+        <>
+          <div className="mx-auto flex w-full max-w-2xl gap-3">
+            <Button variant="sunny" onClick={handleTryAgain} className="h-18 flex-1 text-xl">
+              Try again
+            </Button>
+            <Button variant="secondary" onClick={handleNext} className="h-18 flex-1 text-xl">
               Next word
             </Button>
-          )}
-        </form>
-
-        {feedback && (
-          <div
-            role="alert"
-            className={`text-2xl font-bold flex items-center justify-center gap-2 ${
-              feedback === 'correct' ? 'text-green-600' : 'text-destructive'
-            }`}
-          >
-            {feedback === 'correct' ? (
-              <>
-                <CheckIcon className="size-8" />
-                Correct!
-              </>
-            ) : (
-              <>
-                <XIcon className="size-8" />
-                The spelling is: {current.word}
-              </>
-            )}
           </div>
-        )}
-      </div>
+          <p className="text-center text-sm text-plum-ink">
+            {`"${lastAnswer}" ${reviewMode ? 'is still' : 'joined'} your review list. Spell it right twice to clear it.`}
+          </p>
+        </>
+      )}
 
-      <div className="text-center">
-        <Button variant="ghost" onClick={onExit}>
-          Exit practice
-        </Button>
-      </div>
+      {reviewPill}
     </div>
   )
 }

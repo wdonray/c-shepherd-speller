@@ -3,11 +3,12 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftIcon } from 'lucide-react'
+import { ChevronLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getList, getLists } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 import PracticeMode from '@/components/PracticeMode'
+import WordListCard from '@/components/WordListCard'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
 
@@ -49,69 +50,82 @@ function PracticeInner() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" role="status">
-        <p className="text-2xl text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background" role="status" aria-label="Loading">
+        <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+          <div className="h-10 w-72 animate-pulse rounded-xl bg-line/60" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-48 animate-pulse rounded-[20px] border-2 border-line bg-card" />
+            ))}
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
     )
   }
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-        <p className="text-2xl text-destructive text-center" role="alert">
-          {loadError}
-        </p>
-        <Button asChild>
-          <Link href="/">Back to home</Link>
-        </Button>
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-xl px-4 py-16">
+          <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
+            <p className="text-xl font-bold">Could not load the word list</p>
+            <p className="mt-2 text-[15px] text-muted-foreground" role="alert">
+              {loadError}
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/">Back to home</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (!listId || !list) {
     return (
-      <div className="min-h-screen flex flex-col p-4 sm:p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/" aria-label="Back to home">
-              <ArrowLeftIcon className="size-4" />
-              <span className="hidden sm:inline-block">Back</span>
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+          <div>
+            <Link href="/" className="text-[15px] font-semibold text-sky-ink hover:underline" aria-label="Back to home">
+              <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
+              Back
             </Link>
-          </Button>
-          <h1 className="text-3xl font-bold">Choose a list to practice</h1>
-        </div>
-        {allLists.length === 0 ? (
-          <p className="text-xl text-muted-foreground">No word lists yet. Create one from My Spelling Lists first.</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {allLists.map((l) => (
-              <Link
-                key={l.id}
-                href={`/practice?list=${encodeURIComponent(l.id)}`}
-                className="border rounded-lg p-6 hover:border-primary transition-colors"
-              >
-                <h2 className="text-2xl font-bold mb-2">{l.name}</h2>
-                <p className="text-muted-foreground">
-                  {l.patterns.reduce((sum, p) => sum + p.words.length, 0)} words to practice
-                </p>
-              </Link>
-            ))}
+            <h1 className="mt-3 text-[30px] leading-tight font-bold">Choose a list to practice</h1>
+            <p className="mt-1 text-[15px] text-muted-foreground">
+              Pick a spelling list, listen to each word, and type the spelling.
+            </p>
           </div>
-        )}
+          {allLists.length === 0 ? (
+            <div className="rounded-[20px] border-2 border-line bg-card px-6 py-14 text-center">
+              <h2 className="text-2xl font-bold">No word lists yet</h2>
+              <p className="mx-auto mt-2 max-w-md text-[15px] text-muted-foreground">
+                Create one from My Spelling Lists first, then come back to practice.
+              </p>
+              <Button asChild className="mt-6">
+                <Link href="/">Back to home</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {allLists.map((l, i) => (
+                <WordListCard
+                  key={l.id}
+                  list={l}
+                  index={i}
+                  onOpen={(opened) => router.push(`/practice?list=${encodeURIComponent(opened.id)}`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="border-b">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <h1 className="text-2xl font-bold">{list.name}</h1>
-        </div>
-      </div>
-      <main className="flex-1 px-4 py-6 sm:px-8">
-        <PracticeMode list={list} onExit={() => router.push('/practice')} />
-      </main>
+    <div className="min-h-screen bg-background">
+      <PracticeMode list={list} onExit={() => router.push('/practice')} />
     </div>
   )
 }
@@ -120,8 +134,11 @@ export default function PracticePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" role="status">
-          <p className="text-2xl text-muted-foreground">Loading...</p>
+        <div className="min-h-screen bg-background" role="status" aria-label="Loading">
+          <div className="mx-auto max-w-6xl px-4 py-8">
+            <div className="h-10 w-72 animate-pulse rounded-xl bg-line/60" />
+            <p className="mt-6 text-muted-foreground">Loading...</p>
+          </div>
         </div>
       }
     >
