@@ -4,25 +4,42 @@ import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 
+/*
+ * Chunky design-system buttons: 16px radius, bold labels, and a 4px darker
+ * bottom edge (box-shadow) that compresses on press. Colored variants use the
+ * fixed contrast-verified fill/shadow pairs; only secondary and ghost adapt
+ * to the theme.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-base font-bold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 cursor-pointer select-none active:translate-y-[3px]",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
+        default:
+          'bg-chunk-leaf text-white shadow-[0_4px_0_var(--color-chunk-leaf-deep)] hover:brightness-105 active:shadow-[0_1px_0_var(--color-chunk-leaf-deep)]',
+        secondary:
+          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:brightness-[0.98] active:shadow-[0_1px_0_var(--line)]',
+        sunny:
+          'bg-chunk-sun text-chunk-sun-ink shadow-[0_4px_0_var(--color-chunk-sun-deep)] hover:brightness-105 active:shadow-[0_1px_0_var(--color-chunk-sun-deep)]',
+        sky: 'bg-chunk-sky text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-sky-deep)]',
         destructive:
-          'bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+          'bg-chunk-coral text-white shadow-[0_4px_0_var(--color-chunk-coral-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-coral-deep)]',
+        plum: 'bg-chunk-plum text-white shadow-[0_4px_0_var(--color-chunk-plum-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-plum-deep)]',
+        ghost: 'text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl active:translate-y-0',
+        link: 'text-sky-deep underline-offset-4 hover:underline rounded-none shadow-none active:translate-y-0',
+        /**
+         * Deprecated alias for secondary. The old shadcn `outline` variant was
+         * removed from the design system; each screen migrates to `secondary`
+         * in its redesign PR. New code must not use `outline`.
+         */
         outline:
-          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
-        secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:brightness-[0.98] active:shadow-[0_1px_0_var(--line)]',
       },
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
-        icon: 'size-9',
+        default: 'h-11 px-5 py-2 has-[>svg]:px-4',
+        sm: 'h-9 px-4 py-1.5 text-sm has-[>svg]:px-3',
+        lg: 'h-14 px-8 text-lg has-[>svg]:px-6',
+        icon: 'size-11',
       },
     },
     defaultVariants: {

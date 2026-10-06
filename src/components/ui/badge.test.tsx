@@ -6,8 +6,9 @@ import { Badge, badgeVariants } from './badge'
 describe('badgeVariants', () => {
   it('applies default variant classes by default', () => {
     const classes = badgeVariants({})
-    expect(classes).toContain('bg-primary')
-    expect(classes).toContain('text-primary-foreground')
+    expect(classes).toContain('bg-leaf-soft')
+    expect(classes).toContain('text-leaf-ink')
+    expect(classes).toContain('rounded-full')
   })
 
   it('applies distinct classes per variant', () => {
@@ -16,14 +17,18 @@ describe('badgeVariants', () => {
       secondary: badgeVariants({ variant: 'secondary' }),
       destructive: badgeVariants({ variant: 'destructive' }),
       outline: badgeVariants({ variant: 'outline' }),
+      plum: badgeVariants({ variant: 'plum' }),
+      sun: badgeVariants({ variant: 'sun' }),
     }
-    expect(byVariant.default).toContain('bg-primary')
-    expect(byVariant.secondary).toContain('bg-secondary')
-    expect(byVariant.destructive).toContain('bg-destructive')
+    expect(byVariant.default).toContain('bg-leaf-soft')
+    expect(byVariant.secondary).toContain('bg-sky-soft')
+    expect(byVariant.destructive).toContain('bg-coral-soft')
     expect(byVariant.outline).toContain('text-foreground')
+    expect(byVariant.plum).toContain('bg-plum-soft')
+    expect(byVariant.sun).toContain('bg-sun-soft')
 
     const unique = new Set(Object.values(byVariant))
-    expect(unique.size).toBe(4)
+    expect(unique.size).toBe(6)
   })
 
   it('appends a custom className', () => {
@@ -37,18 +42,24 @@ describe('Badge', () => {
     const badge = screen.getByText('New')
     expect(badge.tagName).toBe('SPAN')
     expect(badge).toHaveAttribute('data-slot', 'badge')
-    expect(badge).toHaveClass('bg-primary')
+    expect(badge).toHaveClass('bg-leaf-soft')
   })
 
   it('renders each variant with distinct classes', () => {
     const { rerender } = render(<Badge variant="secondary">S</Badge>)
-    expect(screen.getByText('S')).toHaveClass('bg-secondary')
+    expect(screen.getByText('S')).toHaveClass('bg-sky-soft')
 
     rerender(<Badge variant="destructive">D</Badge>)
-    expect(screen.getByText('D')).toHaveClass('bg-destructive')
+    expect(screen.getByText('D')).toHaveClass('bg-coral-soft')
 
     rerender(<Badge variant="outline">O</Badge>)
     expect(screen.getByText('O')).toHaveClass('text-foreground')
+
+    rerender(<Badge variant="plum">P</Badge>)
+    expect(screen.getByText('P')).toHaveClass('bg-plum-soft')
+
+    rerender(<Badge variant="sun">U</Badge>)
+    expect(screen.getByText('U')).toHaveClass('bg-sun-soft')
   })
 
   it('renders the child element when asChild is true', () => {
@@ -60,7 +71,7 @@ describe('Badge', () => {
     const link = screen.getByRole('link', { name: 'Linked' })
     expect(link.tagName).toBe('A')
     expect(link).toHaveAttribute('data-slot', 'badge')
-    expect(link).toHaveClass('bg-secondary')
+    expect(link).toHaveClass('bg-sky-soft')
   })
 
   it('merges a custom className', () => {

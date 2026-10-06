@@ -8,7 +8,7 @@ describe('Input', () => {
     render(<Input />)
     const input = screen.getByRole('textbox')
     expect(input).toHaveAttribute('data-slot', 'input')
-    expect(input).toHaveClass('h-9', 'rounded-md', 'border')
+    expect(input).toHaveClass('h-12', 'rounded-xl', 'border-2', 'border-line')
   })
 
   it('forwards the type prop', () => {

@@ -3,113 +3,195 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Shepherd Speller design system (approved 2026-10-06, contrast-remediated,
+ * WCAG 2.2 AA). Utilities reference the indirection variables so .dark and
+ * .force-light can swap the whole palette at runtime.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--leaf);
+  --color-primary-foreground: var(--on-leaf);
+  --color-secondary: var(--sky-soft);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--muted-bg);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--leaf-soft);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--coral);
+  --color-destructive-foreground: var(--on-coral);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--ring);
+
+  --color-leaf: var(--leaf);
+  --color-leaf-deep: var(--leaf-deep);
+  --color-leaf-soft: var(--leaf-soft);
+  --color-leaf-ink: var(--leaf-ink);
+  --color-sun: var(--sun);
+  --color-sun-ink: var(--sun-ink);
+  --color-sun-soft: var(--sun-soft);
+  --color-sun-deep: var(--sun-deep);
+  --color-sky: var(--sky);
+  --color-sky-deep: var(--sky-deep);
+  --color-sky-dark: var(--sky-dark);
+  --color-sky-soft: var(--sky-soft);
+  --color-sky-ink: var(--sky-ink);
+  --color-coral: var(--coral);
+  --color-coral-deep: var(--coral-deep);
+  --color-coral-soft: var(--coral-soft);
+  --color-coral-ink: var(--coral-ink);
+  --color-plum: var(--plum);
+  --color-plum-deep: var(--plum-deep);
+  --color-plum-dark: var(--plum-dark);
+  --color-plum-soft: var(--plum-soft);
+  --color-plum-ink: var(--plum-ink);
+  --color-trunk: var(--trunk);
+  --color-gold: var(--gold);
+
+  --font-sans: var(--font-lexend);
+}
+
+/*
+ * Fixed button fills. These pairs are the contrast-remediated combinations
+ * (white or ink text on the fill, verified WCAG 2.2 AA), so they deliberately
+ * do NOT adapt to dark mode: brightening the fill would break the ratio.
+ */
+@theme {
+  --color-chunk-leaf: #367b17;
+  --color-chunk-leaf-deep: #2e6510;
+  --color-chunk-sun: #ffc42e;
+  --color-chunk-sun-deep: #d99e00;
+  --color-chunk-sun-ink: #3b332b;
+  --color-chunk-sky: #176d90;
+  --color-chunk-sky-deep: #0e485c;
+  --color-chunk-coral: #b43c1c;
+  --color-chunk-coral-deep: #9c2c14;
+  --color-chunk-plum: #6d46b8;
+  --color-chunk-plum-deep: #55339a;
 }
 
 :root {
   --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.5 0.21 259.815);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  /* Light theme: warm paper */
+  --paper: #fff8ee;
+  --card: #ffffff;
+  --ink: #3b332b;
+  --muted: #6e6252;
+  --muted-bg: #f1e8d5;
+  --line: #e8d9be;
+  --leaf: #367b17;
+  --leaf-deep: #2e6510;
+  --leaf-soft: #e7f6d8;
+  --leaf-ink: #2e6510;
+  --on-leaf: #ffffff;
+  --sun: #ffc42e;
+  --sun-ink: #a06800;
+  --sun-soft: #fff3d1;
+  --sun-deep: #d99e00;
+  --sky: #2fa8de;
+  --sky-deep: #176d90;
+  --sky-dark: #0e485c;
+  --sky-soft: #ddf2fc;
+  --sky-ink: #176d90;
+  --coral: #b43c1c;
+  --coral-deep: #9c2c14;
+  --coral-soft: #ffe3d8;
+  --coral-ink: #9c2c14;
+  --on-coral: #ffffff;
+  --plum: #9068d8;
+  --plum-deep: #6d46b8;
+  --plum-dark: #55339a;
+  --plum-soft: #eae2fb;
+  --plum-ink: #6d46b8;
+  --trunk: #8a5a33;
+  --gold: #ffc42e;
+  --ring: #176d90;
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.379 0.146 265.522);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Dark theme: warmed neutrals, brightened accents */
+  --paper: #221d16;
+  --card: #2c261e;
+  --ink: #fff6e9;
+  --muted: #b7ab97;
+  --muted-bg: #3a332a;
+  --line: #4a4237;
+  --leaf: #367b17;
+  --leaf-deep: #2e6510;
+  --leaf-soft: #33431f;
+  --leaf-ink: #9be37e;
+  --on-leaf: #ffffff;
+  --sun: #ffd05a;
+  --sun-ink: #ffd05a;
+  --sun-soft: #4a3d1e;
+  --sun-deep: #d99e00;
+  --sky: #4fbfec;
+  --sky-deep: #4fbfec;
+  --sky-dark: #0e485c;
+  --sky-soft: #1e3a4a;
+  --sky-ink: #4fbfec;
+  --coral: #ff7a59;
+  --coral-deep: #9c2c14;
+  --coral-soft: #4a2418;
+  --coral-ink: #ff9a7e;
+  --on-coral: #ffffff;
+  --plum: #a98bf0;
+  --plum-deep: #a98bf0;
+  --plum-dark: #55339a;
+  --plum-soft: #352a52;
+  --plum-ink: #c0a6f5;
+  --trunk: #8a5a33;
+  --gold: #ffc42e;
+  --ring: #4fbfec;
+  color-scheme: dark;
+}
+
+/*
+ * Force the light palette inside a container (display mode stays light on
+ * projectors even when the app is in dark mode).
+ */
+.force-light {
+  --paper: #fff8ee;
+  --card: #ffffff;
+  --ink: #3b332b;
+  --muted: #6e6252;
+  --muted-bg: #f1e8d5;
+  --line: #e8d9be;
+  --leaf: #367b17;
+  --leaf-deep: #2e6510;
+  --leaf-soft: #e7f6d8;
+  --leaf-ink: #2e6510;
+  --on-leaf: #ffffff;
+  --sun: #ffc42e;
+  --sun-ink: #a06800;
+  --sun-soft: #fff3d1;
+  --sun-deep: #d99e00;
+  --sky: #2fa8de;
+  --sky-deep: #176d90;
+  --sky-dark: #0e485c;
+  --sky-soft: #ddf2fc;
+  --sky-ink: #176d90;
+  --coral: #b43c1c;
+  --coral-deep: #9c2c14;
+  --coral-soft: #ffe3d8;
+  --coral-ink: #9c2c14;
+  --on-coral: #ffffff;
+  --plum: #9068d8;
+  --plum-deep: #6d46b8;
+  --plum-dark: #55339a;
+  --plum-soft: #eae2fb;
+  --plum-ink: #6d46b8;
+  --trunk: #8a5a33;
+  --gold: #ffc42e;
+  --ring: #176d90;
+  color-scheme: light;
 }
 
 @layer base {
@@ -117,7 +199,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 
   /* Prevent scrolling on auth pages */

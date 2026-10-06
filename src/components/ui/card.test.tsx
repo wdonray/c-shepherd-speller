@@ -8,7 +8,7 @@ describe('Card', () => {
     render(<Card>Body</Card>)
     const card = screen.getByText('Body')
     expect(card).toHaveAttribute('data-slot', 'card')
-    expect(card).toHaveClass('bg-card', 'rounded-xl', 'border')
+    expect(card).toHaveClass('bg-card', 'rounded-[20px]', 'border-2', 'border-line')
   })
 
   it('merges a custom className and forwards props', () => {
@@ -41,7 +41,7 @@ describe('CardTitle', () => {
     render(<CardTitle>My title</CardTitle>)
     const title = screen.getByText('My title')
     expect(title).toHaveAttribute('data-slot', 'card-title')
-    expect(title).toHaveClass('font-semibold')
+    expect(title).toHaveClass('font-bold')
   })
 
   it('merges a custom className', () => {
