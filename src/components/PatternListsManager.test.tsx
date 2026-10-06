@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
 import type { WordList } from '@/models/WordList'
 
@@ -31,7 +31,6 @@ const list: WordList = {
 describe('PatternListsManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
   })
 
   it('shows a loading state, then the empty state', async () => {
@@ -341,7 +340,38 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
       expect(deleteList).toHaveBeenCalledWith('l1')
+    })
+  })
+
+  it('shows deleting state while delete is in progress', async () => {
+    let resolveDelete: () => void
+    const deletePromise = new Promise<void>((resolve) => {
+      resolveDelete = resolve
+    })
+    getLists.mockResolvedValue([list])
+    deleteList.mockReturnValue(deletePromise)
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Deleting...')).toBeInTheDocument()
+    })
+    resolveDelete!()
+    await waitFor(() => {
+      expect(screen.queryByText('Week 5: Long A')).not.toBeInTheDocument()
     })
   })
 
@@ -355,6 +385,10 @@ describe('PatternListsManager', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('delete failed')
     })
@@ -371,12 +405,15 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Failed to delete list')
     })
   })
 
   it('does not delete when confirmation is cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
 
@@ -385,6 +422,29 @@ describe('PatternListsManager', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(deleteList).not.toHaveBeenCalled()
+  })
+
+  it('closes the dialog when Escape is pressed', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByText('Delete word list?')).not.toBeInTheDocument()
+    })
     expect(deleteList).not.toHaveBeenCalled()
   })
 

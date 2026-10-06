@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { PlusIcon, ArrowLeftIcon, SaveIcon } from 'lucide-react'
 import { getLists, createList, updateList, deleteList } from '@/lib/lists-api'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
@@ -20,6 +28,8 @@ export default function PatternListsManager() {
   const [newName, setNewName] = useState('')
   const [newGrade, setNewGrade] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<WordList | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const loadLists = useCallback(async () => {
     setLoading(true)
@@ -58,13 +68,21 @@ export default function PatternListsManager() {
     }
   }
 
-  const handleDelete = async (list: WordList) => {
-    if (!confirm(`Delete "${list.name}"? This cannot be undone.`)) return
+  const handleDelete = (list: WordList) => {
+    setDeleteTarget(list)
+  }
+
+  const confirmDelete = async () => {
+    const target = deleteTarget
+    setDeleting(true)
     try {
-      await deleteList(list.id)
-      setLists((prev) => prev.filter((l) => l.id !== list.id))
+      await deleteList(target!.id)
+      setLists((prev) => prev.filter((l) => l.id !== target!.id))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete list')
+    } finally {
+      setDeleting(false)
+      setDeleteTarget(null)
     }
   }
 
@@ -249,6 +267,25 @@ export default function PatternListsManager() {
           ))}
         </div>
       )}
+
+      <Dialog open={deleteTarget !== null} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete word list?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget && `Delete "${deleteTarget.name}"? This cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
