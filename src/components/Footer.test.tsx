@@ -27,6 +27,6 @@ describe('Footer', () => {
 
   it('renders the tagline', () => {
     render(<Footer />)
-    expect(screen.getByText('Shepherd Speller. Made for K-3 classrooms.')).toBeInTheDocument()
+    expect(screen.getByText('PatternSpell. Made for K-3 classrooms.')).toBeInTheDocument()
   })
 })

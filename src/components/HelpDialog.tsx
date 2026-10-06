@@ -14,14 +14,7 @@ export default function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-ink">Get help</DialogTitle>
           <DialogDescription className="text-[15px] leading-6 text-muted-foreground">
-            If you need help, please contact us at{' '}
-            <a
-              href="mailto:support@shepherdspeller.com"
-              className="font-semibold text-sky-ink underline underline-offset-2"
-            >
-              support@shepherdspeller.com
-            </a>
-            .
+            If you need help with PatternSpell, please reach out to your school administrator.
           </DialogDescription>
         </DialogHeader>
       </DialogContent>

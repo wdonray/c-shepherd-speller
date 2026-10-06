@@ -86,7 +86,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       if (e instanceof Error && e.message === 'not-json') {
         setMessage({ kind: 'error', text: 'That file is not valid JSON.' })
       } else if (e instanceof Error && e.message === 'not-lists') {
-        setMessage({ kind: 'error', text: 'That file does not look like a Shepherd Speller export.' })
+        setMessage({ kind: 'error', text: 'That file does not look like a PatternSpell export.' })
       } else {
         setMessage({ kind: 'error', text: 'Could not import that file. Check your connection and try again.' })
       }
@@ -120,7 +120,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
 
           <div className="space-y-2">
             <h3 className="font-bold">Import</h3>
-            <p className="text-sm text-muted-foreground">Choose a JSON file exported from Shepherd Speller.</p>
+            <p className="text-sm text-muted-foreground">Choose a JSON file exported from PatternSpell.</p>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="secondary" onClick={openFilePicker} disabled={busy}>
                 <UploadIcon className="size-4" />

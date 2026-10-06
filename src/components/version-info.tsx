@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { TreeMark } from '@/components/TreeMark'
+import { PatternMark } from '@/components/PatternMark'
 
 export const RELEASES_API = 'https://api.github.com/repos/wdonray/c-shepherd-speller/releases?per_page=5'
 export const RELEASES_URL = 'https://github.com/wdonray/c-shepherd-speller/releases'
@@ -157,7 +157,7 @@ export default function VersionInfo({
     <div className="w-full max-w-xl space-y-8">
       <div className="space-y-2 text-center">
         <h1 className="text-[32px] font-bold text-ink">Version</h1>
-        <p className="text-[15px] text-muted-foreground">Every deploy to Shepherd Speller, most recent first.</p>
+        <p className="text-[15px] text-muted-foreground">Every deploy to PatternSpell, most recent first.</p>
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <span className="relative flex size-2" aria-hidden="true">
             {unreachable ? (
@@ -174,9 +174,9 @@ export default function VersionInfo({
       </div>
 
       <div className="flex items-center gap-6 rounded-[20px] border-2 border-line bg-card p-6">
-        <TreeMark className="h-[60px] w-[60px] shrink-0" />
+        <PatternMark className="h-[60px] w-[60px] shrink-0" />
         <div>
-          <p className="text-[22px] font-bold text-ink">Shepherd Speller</p>
+          <p className="text-[22px] font-bold text-ink">PatternSpell</p>
           <p className="text-base font-semibold text-leaf-ink">v{currentVersion}</p>
           {latestDeployed && <p className="text-sm text-muted-foreground">Deployed {latestDeployed}</p>}
         </div>

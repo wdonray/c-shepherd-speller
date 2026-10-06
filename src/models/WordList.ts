@@ -1,5 +1,5 @@
 /**
- * Pattern-based word list model for Shepherd Speller.
+ * Pattern-based word list model for PatternSpell.
  *
  * A WordList organizes spelling instruction around a target sound, with words
  * grouped by the spelling pattern that represents that sound. This mirrors the

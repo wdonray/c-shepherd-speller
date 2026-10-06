@@ -28,7 +28,7 @@ describe('VersionPage', () => {
 
   it('renders the current build version and server-fetched releases', async () => {
     render(await VersionPage())
-    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+    expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
     // "This build" appears as the row label and as a badge on the matching release.
     expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
     await waitFor(() => {
@@ -39,20 +39,20 @@ describe('VersionPage', () => {
   it('renders gracefully when the GitHub API is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     render(await VersionPage())
-    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+    expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
     expect(screen.getByText('v0.1.4')).toBeInTheDocument()
   })
 
   it('renders gracefully when GitHub returns an error status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }))
     render(await VersionPage())
-    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+    expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
   })
 
   it('renders gracefully when GitHub returns a non-array payload', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: 'oops' }) }))
     render(await VersionPage())
-    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+    expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
   })
 
   it('sends the GitHub token when GITHUB_TOKEN is set', async () => {

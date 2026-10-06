@@ -17,7 +17,7 @@ import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
 import ProfileDialog from './ProfileDialog'
 import ImportExportDialog from './ImportExportDialog'
-import { TreeMark } from './TreeMark'
+import { PatternMark } from './PatternMark'
 import { notifyListsChanged } from '@/lib/lists-api'
 
 function initialsFor(name?: string | null, email?: string | null): string {
@@ -67,8 +67,8 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full bg-card">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <TreeMark label="Shepherd Speller logo" />
-          <span className="text-[22px] font-bold tracking-tight">Shepherd Speller</span>
+          <PatternMark label="PatternSpell logo" />
+          <span className="text-[22px] font-bold tracking-tight">PatternSpell</span>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>

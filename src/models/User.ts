@@ -1,7 +1,7 @@
 /**
  * User Model for DynamoDB
  *
- * This module defines the User interface and utilities for users who use the C-Shepherd Speller
+ * This module defines the User interface and utilities for users who use the C-PatternSpell
  * application. Uses basic information from Google authentication.
  *
  * Features:

@@ -27,7 +27,7 @@ function AuthErrorContent() {
     },
     AccessDenied: {
       title: 'Access Restricted',
-      description: "Your account doesn't have permission to access Shepherd Speller at this time.",
+      description: "Your account doesn't have permission to access PatternSpell at this time.",
       action: 'Please contact your administrator or support team to request access to your account.',
     },
     Verification: {

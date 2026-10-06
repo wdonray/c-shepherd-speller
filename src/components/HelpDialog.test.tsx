@@ -13,10 +13,7 @@ describe('HelpDialog', () => {
   it('shows the title and description when open', () => {
     render(<HelpDialog isOpen onClose={vi.fn()} />)
     expect(screen.getByText('Get help')).toBeInTheDocument()
-    expect(screen.getByText(/If you need help/)).toBeInTheDocument()
-
-    const email = screen.getByRole('link', { name: 'support@shepherdspeller.com' })
-    expect(email).toHaveAttribute('href', 'mailto:support@shepherdspeller.com')
+    expect(screen.getByText(/If you need help with PatternSpell/)).toBeInTheDocument()
   })
 
   it('calls onClose when Escape is pressed', () => {

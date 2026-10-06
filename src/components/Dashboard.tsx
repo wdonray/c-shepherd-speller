@@ -9,7 +9,7 @@ import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
 import type { WordList } from '@/models/WordList'
 import WordListCard from './WordListCard'
-import { TreeMark } from './TreeMark'
+import { PatternMark } from './PatternMark'
 
 interface DashboardProps {
   onNewList: () => void
@@ -168,7 +168,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
                   Create your first list
                 </Button>
                 <Card className="mx-auto max-w-3xl p-8 text-center">
-                  <TreeMark label="Shepherd Speller logo" className="mx-auto mb-6 size-28" />
+                  <PatternMark label="PatternSpell logo" className="mx-auto mb-6 size-28" />
                   <h3 className="mb-2 text-2xl font-bold">No word lists yet</h3>
                   <p className="mx-auto mb-6 max-w-xl text-muted-foreground">
                     Group words by the spelling pattern for a target sound. For the long a sound you might create

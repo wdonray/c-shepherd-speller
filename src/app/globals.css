@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Shepherd Speller design system (approved 2026-10-06, contrast-remediated,
+ * PatternSpell design system (approved 2026-10-06, contrast-remediated,
  * WCAG 2.2 AA). Utilities reference the indirection variables so .dark and
  * .force-light can swap the whole palette at runtime.
  */
