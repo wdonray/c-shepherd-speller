@@ -172,4 +172,45 @@ describe('Dashboard', () => {
     })
     vi.unstubAllGlobals()
   })
+
+  it('shows a generic error when the migration response is unreadable', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => {
+        throw new Error('no json')
+      },
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    getLists.mockResolvedValue([])
+
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Migrate old lists' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Migrate old lists' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
+    })
+    vi.unstubAllGlobals()
+  })
+
+  it('shows a generic error when the migration throws a non-Error', async () => {
+    const fetchMock = vi.fn().mockRejectedValue('string failure')
+    vi.stubGlobal('fetch', fetchMock)
+    getLists.mockResolvedValue([])
+
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Migrate old lists' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Migrate old lists' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
+    })
+    vi.unstubAllGlobals()
+  })
 })
