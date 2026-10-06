@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Volume2Icon, XIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { SpellingPattern } from '@/models/WordList'
 
 interface WordAnalysisProps {
@@ -38,12 +39,14 @@ export function findPatternInWord(word: string, pattern: string): [number, numbe
 }
 
 /**
- * Word analysis view: shows the word with its spelling pattern highlighted,
- * the target sound, and a speak button. Supports orthographic mapping by
- * making the grapheme-phoneme connection visible.
+ * Word analysis card: shows the word with its spelling pattern highlighted,
+ * the target sound, and speak buttons. Display-only; generated from the
+ * list's pattern data. (Phoneme and word-part breakdowns are planned for a
+ * later version and are intentionally omitted here.)
  */
 export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAnalysisProps) {
   const match = findPatternInWord(word, pattern.pattern)
+  const odd = pattern.isOddDuck === true
 
   const renderWord = () => {
     if (!match) return <span>{word}</span>
@@ -51,7 +54,14 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
     return (
       <span>
         {word.slice(0, start)}
-        <span className="text-primary font-extrabold underline decoration-2">{word.slice(start, end)}</span>
+        <span
+          className={cn(
+            'font-extrabold underline decoration-[8px] underline-offset-8',
+            odd ? 'text-plum-ink decoration-plum' : 'text-sun-ink decoration-sun'
+          )}
+        >
+          {word.slice(start, end)}
+        </span>
         {word.slice(end)}
       </span>
     )
@@ -69,40 +79,50 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
-      <div className="bg-background rounded-lg p-6 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between">
-          <h2 className="text-4xl font-bold tracking-wide">{renderWord()}</h2>
+      <div
+        className="w-full max-w-2xl space-y-6 rounded-[20px] border-2 border-line bg-card p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-5xl font-bold tracking-wide text-ink">{renderWord()}</h2>
           <Button size="sm" variant="ghost" onClick={onClose} aria-label="Close word analysis">
             <XIcon className="size-5" />
           </Button>
         </div>
 
-        <dl className="space-y-2 text-lg">
-          <div className="flex gap-2">
-            <dt className="text-muted-foreground">Sound:</dt>
-            <dd className="font-semibold">{pattern.sound}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="text-muted-foreground">Pattern:</dt>
-            <dd className="font-mono font-semibold">{pattern.pattern}</dd>
-          </div>
-          {pattern.isOddDuck && (
-            <div className="flex gap-2">
-              <dt className="text-muted-foreground">Note:</dt>
-              <dd className="font-semibold">Odd duck (irregular spelling)</dd>
-            </div>
-          )}
-        </dl>
+        <div className="space-y-1 text-xl">
+          <p>
+            <span className="text-muted-foreground">Sound: </span>
+            <span className="font-semibold text-ink">{pattern.sound}</span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Pattern: </span>
+            <span className="font-semibold text-ink">{pattern.pattern}</span>
+          </p>
+        </div>
 
-        <p className="text-muted-foreground italic">{sentence}</p>
+        {odd && (
+          <div className="space-y-2">
+            <span className="inline-block rounded-full bg-plum-soft px-4 py-1.5 text-sm font-bold text-plum-ink">
+              Odd duck
+            </span>
+            <p className="text-[15px] text-ink">
+              This spelling is irregular. It does not follow the pattern, so memorize the whole word.
+            </p>
+          </div>
+        )}
 
-        <div className="flex gap-2">
-          <Button onClick={() => onSpeak(word)}>
-            <Volume2Icon className="size-4" />
+        <figure className="rounded-[14px] border-2 border-line bg-card p-5">
+          <blockquote className="text-lg text-ink">&ldquo;{sentence}&rdquo;</blockquote>
+        </figure>
+
+        <div className="flex flex-wrap gap-3">
+          <Button variant="sky" onClick={() => onSpeak(word)}>
+            <Volume2Icon className="size-4" aria-hidden="true" />
             Say it
           </Button>
-          <Button variant="outline" onClick={() => onSpeak(sentence)}>
-            <Volume2Icon className="size-4" />
+          <Button variant="secondary" onClick={() => onSpeak(sentence)}>
+            <Volume2Icon className="size-4" aria-hidden="true" />
             Say sentence
           </Button>
         </div>

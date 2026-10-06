@@ -8,6 +8,7 @@ import { Volume2Icon, CheckIcon, StarIcon, ChevronLeftIcon } from 'lucide-react'
 import type { WordList } from '@/models/WordList'
 import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
+import { trackEvent } from '@/lib/track-event'
 import { OddDuck } from './OddDuck'
 
 interface PracticeModeProps {
@@ -130,6 +131,8 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     }
     if (currentIndex + 1 >= allWords.length) {
       logActivity('practiced', list.name)
+      trackEvent('practice-session')
+      trackEvent('words-practiced', allWords.length)
       setPhase('complete')
       return
     }

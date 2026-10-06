@@ -6,13 +6,13 @@ import HelpDialog from './HelpDialog'
 describe('HelpDialog', () => {
   it('renders nothing visible when closed', () => {
     render(<HelpDialog isOpen={false} onClose={vi.fn()} />)
-    expect(screen.queryByText('Help')).not.toBeInTheDocument()
+    expect(screen.queryByText('Get help')).not.toBeInTheDocument()
     expect(screen.queryByText(/If you need help/)).not.toBeInTheDocument()
   })
 
   it('shows the title and description when open', () => {
     render(<HelpDialog isOpen onClose={vi.fn()} />)
-    expect(screen.getByText('Help')).toBeInTheDocument()
+    expect(screen.getByText('Get help')).toBeInTheDocument()
     expect(screen.getByText(/If you need help/)).toBeInTheDocument()
 
     const email = screen.getByRole('link', { name: 'support@shepherdspeller.com' })

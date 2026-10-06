@@ -9,6 +9,12 @@ vi.mock('@/lib/tts', () => ({
 }))
 const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
+const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }))
+vi.mock('@/lib/track-event', () => ({ trackEvent }))
+
+beforeEach(() => {
+  trackEvent.mockClear()
+})
 
 const list: WordList = {
   id: 'l1',
@@ -178,6 +184,8 @@ describe('PracticeMode', () => {
     expect(screen.getByText('Best streak: 3')).toBeInTheDocument()
     expect(screen.getByLabelText('3 of 3 stars')).toBeInTheDocument()
     expect(logActivity).toHaveBeenCalledWith('practiced', 'Week 5')
+    expect(trackEvent).toHaveBeenCalledWith('practice-session')
+    expect(trackEvent).toHaveBeenCalledWith('words-practiced', 3)
     // No misses, so no review button.
     expect(screen.queryByRole('button', { name: 'Review missed words' })).not.toBeInTheDocument()
   })

@@ -327,6 +327,62 @@ export async function getAnalyticsSummary(days = 30, now: Date = new Date()): Pr
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* App-usage events (list created, practice session, words practiced).  */
+/* One counter item per event: pk = "EVENT#<name>", sk = "TOTAL".       */
+/* ------------------------------------------------------------------ */
+
+/** Events the public /api/track endpoint accepts. */
+export const ALLOWED_EVENTS = ['list-created', 'practice-session', 'words-practiced'] as const
+export type AllowedEvent = (typeof ALLOWED_EVENTS)[number]
+
+/** Normalize a tracked event name: must be on the allowlist. */
+export function normalizeEvent(raw: unknown): AllowedEvent | null {
+  return typeof raw === 'string' && (ALLOWED_EVENTS as readonly string[]).includes(raw) ? (raw as AllowedEvent) : null
+}
+
+/** Normalize a count: a positive integer, capped to keep one hit sane. */
+export function normalizeCount(raw: unknown): number {
+  const n = typeof raw === 'number' ? Math.floor(raw) : 1
+  if (!Number.isFinite(n) || n < 1) return 1
+  return Math.min(n, 1000)
+}
+
+/**
+ * Record an app-usage event. Returns false when analytics is not
+ * configured; true when recorded.
+ */
+export async function recordEvent(event: AllowedEvent, count = 1): Promise<boolean> {
+  const config = getConfig()
+  if (!config) return false
+  const client = getClient(config)
+  await client.send(
+    new UpdateCommand({
+      TableName: config.table,
+      Key: { pk: `EVENT#${event}`, sk: 'TOTAL' },
+      UpdateExpression: 'ADD #count :n SET #event = if_not_exists(#event, :event)',
+      ExpressionAttributeNames: { '#count': 'count', '#event': 'event' },
+      ExpressionAttributeValues: { ':n': normalizeCount(count), ':event': event },
+    })
+  )
+  return true
+}
+
+/** Fetch an event's all-time total. Returns null when not configured. */
+export async function getEventCount(event: AllowedEvent): Promise<number | null> {
+  const config = getConfig()
+  if (!config) return null
+  const client = getClient(config)
+  const res = await client.send(
+    new GetCommand({
+      TableName: config.table,
+      Key: { pk: `EVENT#${event}`, sk: 'TOTAL' },
+    })
+  )
+  const item = res.Item as { count?: number } | undefined
+  return item?.count ?? 0
+}
+
 /** Fetch a single page's all-time total (used by small badges/embeds). */
 export async function getPageTotalViews(path: string): Promise<number | null> {
   const config = getConfig()

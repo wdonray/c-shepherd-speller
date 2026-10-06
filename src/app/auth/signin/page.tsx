@@ -3,8 +3,32 @@
 import { signIn } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpenIcon, Loader2, ExternalLink } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { TreeMark } from '@/components/TreeMark'
+import { Loader2 } from 'lucide-react'
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.6-5 3.6-8.9z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.1.1-3.7 2.9v.1C3.4 21.5 7.4 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.2-3.6-2.8-.1.1C.5 8.5 0 10.1 0 12s.5 3.5 1.4 5.2l3.8-2.8z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.6c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.4 0 3.4 2.5 1.4 6.8l3.8 2.8c1-2.9 3.7-5 6.8-5z"
+      />
+    </svg>
+  )
+}
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
@@ -27,21 +51,18 @@ export default function SignIn() {
   }
 
   return (
-    <div className="pt-32 pb-8 px-8 flex justify-center">
-      <Card className="w-full max-w-[400px] min-h-[300px] flex flex-col mx-4 sm:mx-0">
-        <CardHeader>
-          <div className="flex flex-col items-center space-y-2">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <BookOpenIcon className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <CardTitle>Welcome to Shepherd Speller</CardTitle>
-            <CardDescription>Sign in to access your spelling collections</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col items-center justify-center space-y-4">
+    <div className="flex justify-center px-8 pt-32 pb-8">
+      <Card className="mx-4 w-full max-w-[400px] sm:mx-0">
+        <CardContent className="flex flex-col items-center px-10 py-12">
+          <TreeMark className="h-[110px] w-[110px]" label="Shepherd Speller logo" />
+          <h1 className="mt-6 text-center text-[26px] font-bold text-ink">Shepherd Speller</h1>
+          <p className="mt-3 text-center text-[15px] leading-6 text-muted-foreground">
+            A pattern-based spelling toolkit for K-3 teachers.
+          </p>
           <Button
+            variant="secondary"
             onClick={handleGoogleSignIn}
-            className="w-full"
+            className="mt-8 w-full"
             disabled={isLoading}
             aria-label="Sign in with Google account"
             onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleGoogleSignIn()}
@@ -53,14 +74,12 @@ export default function SignIn() {
               </>
             ) : (
               <>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Continue with Google
+                <GoogleMark />
+                Sign in with Google
               </>
             )}
           </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            Your data is protected with industry-standard security
-          </p>
+          <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for classrooms.</p>
         </CardContent>
       </Card>
     </div>

@@ -234,7 +234,9 @@ describe('VersionInfo', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'Version' })).toBeInTheDocument()
-    expect(screen.getAllByText('This build')).toHaveLength(2)
+    expect(screen.getByText('Shepherd Speller')).toBeInTheDocument()
+    expect(screen.getByText('Deployed Oct 3, 2026')).toBeInTheDocument()
+    expect(screen.getAllByText('This build')).toHaveLength(1)
     expect(screen.getAllByText('v0.5.0')).toHaveLength(2)
     expect(screen.getByText(/Live/)).toBeInTheDocument()
     expect(screen.getByText(/updated just now/)).toBeInTheDocument()
@@ -257,7 +259,7 @@ describe('VersionInfo', () => {
     })
 
     expect(screen.getByText('Latest')).toBeInTheDocument()
-    expect(screen.getAllByText('This build')).toHaveLength(2)
+    expect(screen.getAllByText('This build')).toHaveLength(1)
     expect(screen.getAllByText('v0.5.0')).toHaveLength(2)
     expect(screen.getAllByText('Some change')).toHaveLength(2)
     expect(screen.getByText('Oct 3, 2026 · 1h ago')).toBeInTheDocument()

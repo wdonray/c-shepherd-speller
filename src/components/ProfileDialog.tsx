@@ -8,20 +8,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useSession } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { useEffect, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
 import { Label } from '@/components/ui/label'
 import { Separator } from './ui/separator'
-import { GraduationCap, School, CheckCircle, UserIcon } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
 
 interface ProfileDialogProps {
   isOpen: boolean
   onClose: () => void
+}
+
+function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+  }
+  return (email?.[0] ?? '?').toUpperCase()
 }
 
 export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
@@ -113,29 +121,39 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const displayName = user?.name || session?.user?.name || ''
+  const displayEmail = session?.user?.email || ''
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center  gap-2">
-            <GraduationCap className="w-6 h-6" />
-            Teacher Profile
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Customize your profile to personalize the spelling experience for your classroom
-          </DialogDescription>
+          <div className="flex items-center gap-4">
+            <div
+              className="flex size-[72px] shrink-0 items-center justify-center rounded-full bg-sky-deep text-[22px] font-bold text-white"
+              aria-hidden="true"
+            >
+              {initialsFor(displayName, displayEmail)}
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold text-ink">{displayName || 'Your profile'}</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">{displayEmail}</DialogDescription>
+              <p className="mt-1 text-sm text-muted-foreground">Signed in with Google</p>
+            </div>
+          </div>
         </DialogHeader>
+
+        <Button variant="secondary" className="w-full" onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
+          Sign out
+        </Button>
 
         <Separator />
 
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="flex flex-col gap-4">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              <UserIcon className="w-5 h-5 text-blue-600" />
-              Basic Information
-            </h3>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-ink">Basic information</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col justify-between gap-2">
                 <Label htmlFor="name" className="text-sm font-medium">
                   Full Name
@@ -177,7 +195,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
               <Label htmlFor="email" className="text-sm font-medium">
                 Email Address
               </Label>
-              <Input id="email" type="email" value={session?.user?.email ?? ''} disabled className="h-10 bg-muted" />
+              <Input id="email" type="email" value={displayEmail} disabled className="h-10 bg-muted" />
               <p className="text-xs text-muted-foreground">Email is managed through your Google account</p>
             </div>
           </div>
@@ -185,12 +203,9 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
           <Separator />
 
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <School className="w-5 h-5 text-green-600" />
-              <h3 className="font-semibold text-lg">Teaching Information</h3>
-            </div>
+            <h3 className="text-lg font-semibold text-ink">Teaching information</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col justify-between gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="gradeLevel" className="text-sm font-medium">
@@ -232,7 +247,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col justify-between gap-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="schoolName" className="text-sm font-medium">
@@ -279,16 +294,16 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
 
           {/* Success Message */}
           {saveSuccess && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="rounded-[20px] border-2 border-leaf bg-leaf-soft p-3">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <p className="text-green-800 text-sm font-medium">Profile updated successfully!</p>
+                <CheckCircle className="h-4 w-4 text-leaf-deep" />
+                <p className="text-sm font-medium text-leaf-deep">Profile updated successfully!</p>
               </div>
             </div>
           )}
 
           <DialogFooter className="pt-4">
-            <Button variant="outline" type="button" onClick={onClose} className="w-full md:w-auto">
+            <Button variant="secondary" type="button" onClick={onClose} className="w-full md:w-auto">
               Cancel
             </Button>
             <Button type="submit" disabled={isSaving || isLoading} className="w-full md:w-auto">

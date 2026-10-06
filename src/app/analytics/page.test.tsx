@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import AnalyticsPage from './page'
-import { getAnalyticsSummary } from '@/lib/analytics'
+import { getAnalyticsSummary, getEventCount } from '@/lib/analytics'
 
-vi.mock('@/lib/analytics', () => ({ getAnalyticsSummary: vi.fn() }))
+vi.mock('@/lib/analytics', () => ({ getAnalyticsSummary: vi.fn(), getEventCount: vi.fn() }))
 
 const getAnalyticsSummaryMock = vi.mocked(getAnalyticsSummary)
+const getEventCountMock = vi.mocked(getEventCount)
 
 const SUMMARY = {
   pages: [
@@ -28,43 +29,57 @@ const SUMMARY = {
   fetchedAt: '2026-10-05T12:00:00.000Z',
 }
 
+function mockEvents(lists = 18, sessions = 42, words = 96) {
+  getEventCountMock.mockImplementation(async (event: string) => {
+    if (event === 'list-created') return lists
+    if (event === 'practice-session') return sessions
+    if (event === 'words-practiced') return words
+    return 0
+  })
+}
+
 describe('AnalyticsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockEvents()
   })
 
   it('shows the not-configured state when analytics is unavailable', async () => {
     getAnalyticsSummaryMock.mockResolvedValue(null)
+    getEventCountMock.mockResolvedValue(null)
     render(await AnalyticsPage())
     expect(screen.getByText(/isn't configured on this build yet/i)).toBeInTheDocument()
   })
 
-  it('shows the empty state when no views have been recorded', async () => {
-    getAnalyticsSummaryMock.mockResolvedValue({ ...SUMMARY, totalViews: 0 })
-    render(await AnalyticsPage())
-    expect(screen.getByText(/no page views recorded yet/i)).toBeInTheDocument()
-  })
-
-  it('renders headline stats and the daily chart', async () => {
+  it('renders the four stat cards', async () => {
     getAnalyticsSummaryMock.mockResolvedValue(SUMMARY)
     render(await AnalyticsPage())
-    expect(screen.getByText('42')).toBeInTheDocument()
-    expect(screen.getByText('7')).toBeInTheDocument()
-    expect(screen.getByText('Page views per day')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /bar chart of page views per day/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByText('How the app is used. Counts update daily.')).toBeInTheDocument()
+    // Page views, 30 days = sum of daily totals (20 + 22); practice sessions also 42
+    expect(screen.getAllByText('42')).toHaveLength(2)
+    expect(screen.getByText('Page views, 30 days')).toBeInTheDocument()
+    expect(screen.getByText('18')).toBeInTheDocument()
+    expect(screen.getByText('Lists created')).toBeInTheDocument()
+    expect(screen.getByText('Practice sessions')).toBeInTheDocument()
+    expect(screen.getByText('96')).toBeInTheDocument()
+    expect(screen.getByText('Words practiced')).toBeInTheDocument()
   })
 
-  it('omits the daily chart when there are no daily totals', async () => {
-    getAnalyticsSummaryMock.mockResolvedValue({ ...SUMMARY, dailyTotals: [] })
+  it('treats missing event counts as zero', async () => {
+    getAnalyticsSummaryMock.mockResolvedValue(SUMMARY)
+    getEventCountMock.mockResolvedValue(null)
     render(await AnalyticsPage())
-    expect(screen.getByText('42')).toBeInTheDocument()
-    expect(screen.queryByText('Page views per day')).not.toBeInTheDocument()
+    expect(screen.getByText('Lists created')).toBeInTheDocument()
+    // The three event cards render zero; page views still come from the summary
+    expect(screen.getAllByText('0')).toHaveLength(3)
   })
 
   it('explains the methodology', async () => {
     getAnalyticsSummaryMock.mockResolvedValue(SUMMARY)
     render(await AnalyticsPage())
-    expect(screen.getByText(/how it's measured/i)).toBeInTheDocument()
-    expect(screen.getByText(/no cookies are set/i)).toBeInTheDocument()
+    expect(screen.getByText('How these numbers are measured')).toBeInTheDocument()
+    expect(screen.getByText(/bots are filtered out/i)).toBeInTheDocument()
+    expect(screen.getByText(/estimates of usage, not exact headcounts/i)).toBeInTheDocument()
   })
 })

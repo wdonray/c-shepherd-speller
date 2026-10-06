@@ -20,6 +20,8 @@ vi.mock('@/lib/lists-api', () => ({
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
+const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }))
+vi.mock('@/lib/track-event', () => ({ trackEvent }))
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -151,6 +153,7 @@ describe('PatternListsManager', () => {
       expect(createList).toHaveBeenCalledWith({ name: 'Week 7: Long O', gradeLevel: '2', patterns: [] })
     })
     expect(logActivity).toHaveBeenCalledWith('created', 'Week 7: Long O')
+    expect(trackEvent).toHaveBeenCalledWith('list-created')
     expect(notifyListsChanged).toHaveBeenCalled()
     expect(await screen.findByText('No patterns yet')).toBeInTheDocument()
     expect(screen.getByText('Grade 2')).toBeInTheDocument()

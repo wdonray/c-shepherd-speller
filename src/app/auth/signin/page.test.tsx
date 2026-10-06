@@ -19,10 +19,10 @@ describe('SignIn page', () => {
 
   it('renders the sign-in card with a Google button', () => {
     render(<SignIn />)
-    expect(screen.getByText('Welcome to Shepherd Speller')).toBeInTheDocument()
-    expect(screen.getByText('Sign in to access your spelling collections')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shepherd Speller' })).toBeInTheDocument()
+    expect(screen.getByText('A pattern-based spelling toolkit for K-3 teachers.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument()
-    expect(screen.getByText('Continue with Google')).toBeInTheDocument()
+    expect(screen.getByText('Free for classrooms.')).toBeInTheDocument()
   })
 
   it('sets data-auth-page on the body while mounted and removes it on unmount', () => {
@@ -77,7 +77,7 @@ describe('SignIn page', () => {
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith(error)
-      expect(screen.getByText('Continue with Google')).toBeInTheDocument()
+      expect(screen.getByText('Sign in with Google')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in with google/i })).not.toBeDisabled()
     })
   })

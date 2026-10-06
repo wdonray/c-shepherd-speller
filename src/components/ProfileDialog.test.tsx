@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import ProfileDialog from './ProfileDialog'
 
-vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
+const { signOutMock } = vi.hoisted(() => ({ signOutMock: vi.fn() }))
+vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: signOutMock }))
 
 const useSessionMock = vi.mocked(useSession)
 
@@ -55,6 +56,54 @@ describe('ProfileDialog', () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
     render(<ProfileDialog isOpen={false} onClose={vi.fn()} />)
     expect(screen.queryByText('Teacher Profile')).not.toBeInTheDocument()
+  })
+
+  it('shows the identity header with name, email, and sign-in method', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderDialog()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Donray Williams' })).toBeInTheDocument()
+    })
+    expect(screen.getByText('t@e.c')).toBeInTheDocument()
+    expect(screen.getByText('Signed in with Google')).toBeInTheDocument()
+  })
+
+  it('falls back to a question mark when there is no name or email', async () => {
+    useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated', update: async () => null } as never)
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
+    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
+    })
+    expect(document.querySelector('div.rounded-full[aria-hidden="true"]')?.textContent).toBe('?')
+  })
+
+  it('uses the email initial when there is no name', async () => {
+    useSessionMock.mockReturnValue({
+      data: { user: { email: 't@e.c' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
+    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
+    })
+    expect(document.querySelector('div.rounded-full[aria-hidden="true"]')?.textContent).toBe('T')
+  })
+
+  it('signs out when the Sign out button is clicked', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderDialog()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(signOutMock).toHaveBeenCalledWith({ callbackUrl: '/auth/signin' })
   })
 
   it('populates the form fields from the fetched user', async () => {
