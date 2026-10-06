@@ -32,6 +32,12 @@ describe('WordListCard', () => {
     expect(screen.getByText(/2 patterns · 3 words/)).toBeInTheDocument()
   })
 
+  it('omits the grade when not set', () => {
+    const noGrade: WordList = { ...list, gradeLevel: undefined }
+    render(<WordListCard list={noGrade} onEdit={vi.fn()} onDelete={vi.fn()} />)
+    expect(screen.queryByText(/Grade/)).not.toBeInTheDocument()
+  })
+
   it('uses singular forms for one pattern and one word', () => {
     const single: WordList = {
       ...list,
