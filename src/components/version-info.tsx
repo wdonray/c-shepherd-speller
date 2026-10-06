@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { TreeMark } from '@/components/TreeMark'
 
 export const RELEASES_API = 'https://api.github.com/repos/wdonray/c-shepherd-speller/releases?per_page=5'
 export const RELEASES_URL = 'https://github.com/wdonray/c-shepherd-speller/releases'
@@ -150,22 +151,21 @@ export default function VersionInfo({
   }, [])
 
   const checkedAgo = formatCheckedAgo(lastChecked, now)
+  const latestDeployed = releases.length > 0 ? formatDate(releases[0].publishedAt) : null
 
   return (
     <div className="w-full max-w-xl space-y-8">
-      {/* Heading: mirrors the SectionHeader accent bar + title */}
-      <div className="space-y-2">
-        <div className="h-1 w-10 rounded-full bg-primary" aria-hidden="true" />
-        <h1 className="text-3xl font-bold tracking-tight">Version</h1>
-        <p className="text-muted-foreground">Every deploy to Shepherd Speller, most recent first.</p>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="space-y-2 text-center">
+        <h1 className="text-[32px] font-bold text-ink">Version</h1>
+        <p className="text-[15px] text-muted">Every deploy to Shepherd Speller, most recent first.</p>
+        <p className="flex items-center justify-center gap-2 text-sm text-muted">
           <span className="relative flex size-2" aria-hidden="true">
             {unreachable ? (
               <span className="relative inline-flex size-2 rounded-full bg-muted-foreground" />
             ) : (
               <>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-leaf opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-leaf" />
               </>
             )}
           </span>
@@ -173,10 +173,12 @@ export default function VersionInfo({
         </p>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
-          <span className="text-sm text-muted-foreground">This build</span>
-          <span className="font-mono text-lg font-semibold">v{currentVersion}</span>
+      <div className="flex items-center gap-6 rounded-[20px] border-2 border-line bg-card p-6">
+        <TreeMark className="h-[60px] w-[60px] shrink-0" />
+        <div>
+          <p className="text-[22px] font-bold text-ink">Shepherd Speller</p>
+          <p className="text-base font-semibold text-leaf-ink">v{currentVersion}</p>
+          {latestDeployed && <p className="text-sm text-muted">Deployed {latestDeployed}</p>}
         </div>
       </div>
 
@@ -187,35 +189,32 @@ export default function VersionInfo({
               const relative = timeAgo(release.publishedAt, now)
               const isCurrentBuild = compareVersions(currentVersion, release.version) === 0
               return (
-                <li
-                  key={release.version || index}
-                  className="rounded-lg border p-4 transition-colors hover:border-primary/40"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
+                <li key={release.version || index} className="rounded-[20px] border-2 border-line bg-card p-5">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     <a
                       href={release.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-xl font-bold tracking-tight transition-colors hover:text-primary"
+                      className="text-[17px] font-bold text-ink transition-colors hover:text-sky-ink"
                     >
                       v{release.version}
                     </a>
                     {index === 0 && <Badge>Latest</Badge>}
                     {isCurrentBuild && <Badge variant="outline">This build</Badge>}
+                    {release.publishedAt && (
+                      <span className="text-[13px] text-muted">
+                        {formatDate(release.publishedAt)}
+                        {relative ? ` · ${relative}` : ''}
+                      </span>
+                    )}
                   </div>
-                  {release.summary && <p className="mt-1.5 text-sm text-muted-foreground">{release.summary}</p>}
-                  {release.publishedAt && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      {formatDate(release.publishedAt)}
-                      {relative ? ` · ${relative}` : ''}
-                    </p>
-                  )}
+                  {release.summary && <p className="mt-1 text-sm text-muted">{release.summary}</p>}
                 </li>
               )
             })}
           </ol>
         ) : (
-          <p className="rounded-lg border px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-[20px] border-2 border-line bg-card px-4 py-6 text-center text-sm text-muted">
             {unreachable ? "Couldn't reach GitHub to load releases." : 'No releases found.'}
           </p>
         )}

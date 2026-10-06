@@ -6,11 +6,15 @@ import {
   compareDays,
   dayKey,
   getConfig,
+  getEventCount,
   getPageUniqueViews,
   hashVisitor,
   isBot,
   isRateLimited,
+  normalizeCount,
+  normalizeEvent,
   normalizePath,
+  recordEvent,
   recordPageView,
 } from './analytics'
 
@@ -488,5 +492,70 @@ describe('compareDays', () => {
     expect(compareDays({ day: '2026-10-01' }, { day: '2026-10-02' })).toBe(-1)
     expect(compareDays({ day: '2026-10-02' }, { day: '2026-10-01' })).toBe(1)
     expect(compareDays({ day: '2026-10-01' }, { day: '2026-10-01' })).toBe(1)
+  })
+})
+
+describe('normalizeEvent', () => {
+  it('accepts allowlisted events', () => {
+    expect(normalizeEvent('list-created')).toBe('list-created')
+    expect(normalizeEvent('practice-session')).toBe('practice-session')
+    expect(normalizeEvent('words-practiced')).toBe('words-practiced')
+  })
+
+  it('rejects anything else', () => {
+    expect(normalizeEvent('page-view')).toBeNull()
+    expect(normalizeEvent('')).toBeNull()
+    expect(normalizeEvent(null)).toBeNull()
+    expect(normalizeEvent(undefined)).toBeNull()
+    expect(normalizeEvent(42)).toBeNull()
+  })
+})
+
+describe('normalizeCount', () => {
+  it('accepts positive integers', () => {
+    expect(normalizeCount(1)).toBe(1)
+    expect(normalizeCount(25)).toBe(25)
+    expect(normalizeCount(2.7)).toBe(2)
+  })
+
+  it('falls back to 1 for junk and caps large values', () => {
+    expect(normalizeCount(0)).toBe(1)
+    expect(normalizeCount(-5)).toBe(1)
+    expect(normalizeCount(NaN)).toBe(1)
+    expect(normalizeCount('many')).toBe(1)
+    expect(normalizeCount(undefined)).toBe(1)
+    expect(normalizeCount(1_000_000)).toBe(1000)
+  })
+})
+
+describe('recordEvent / getEventCount (with DynamoDB)', () => {
+  beforeEach(() => {
+    setTestEnv()
+    __resetClientForTests()
+  })
+
+  it('returns false without configuration', async () => {
+    vi.unstubAllEnvs()
+    await expect(recordEvent('list-created')).resolves.toBe(false)
+    await expect(getEventCount('list-created')).resolves.toBeNull()
+  })
+
+  it('writes the event counter with the given count', async () => {
+    const send = mockClient(async () => ({}))
+    await expect(recordEvent('words-practiced', 12)).resolves.toBe(true)
+    expect(send).toHaveBeenCalledTimes(1)
+    const cmd = send.mock.calls[0][0] as { input: Record<string, unknown> }
+    expect(cmd.input.Key).toEqual({ pk: 'EVENT#words-practiced', sk: 'TOTAL' })
+    expect(cmd.input.ExpressionAttributeValues).toMatchObject({ ':n': 12 })
+  })
+
+  it('reads the event total', async () => {
+    mockClient(async () => ({ Item: { count: 96 } }))
+    await expect(getEventCount('words-practiced')).resolves.toBe(96)
+  })
+
+  it('reads zero when the event has never been recorded', async () => {
+    mockClient(async () => ({}))
+    await expect(getEventCount('list-created')).resolves.toBe(0)
   })
 })

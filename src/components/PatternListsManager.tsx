@@ -15,6 +15,7 @@ import {
 import { PlusIcon, ChevronLeftIcon, XIcon } from 'lucide-react'
 import { getLists, createList, updateList, deleteList, notifyListsChanged } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
+import { trackEvent } from '@/lib/track-event'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
 import { cn } from '@/lib/utils'
 import WordListCard from './WordListCard'
@@ -109,6 +110,7 @@ export default function PatternListsManager() {
       })
       setLists((prev) => [list, ...prev])
       logActivity('created', list.name)
+      trackEvent('list-created')
       notifyListsChanged()
       setIsCreating(false)
       openEditor(list)

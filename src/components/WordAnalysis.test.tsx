@@ -45,6 +45,22 @@ describe('WordAnalysis', () => {
   it('shows the odd duck note for irregular patterns', () => {
     render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
     expect(screen.getByText(/odd duck/i)).toBeInTheDocument()
+    expect(
+      screen.getByText('This spelling is irregular. It does not follow the pattern, so memorize the whole word.')
+    ).toBeInTheDocument()
+  })
+
+  it('highlights the pattern in plum for odd ducks and sun for regular patterns', () => {
+    const { rerender } = render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
+    const heading = screen.getByRole('heading', { level: 2 })
+    expect(within(heading).getByText('ai').className).toContain('text-plum-ink')
+    rerender(<WordAnalysis {...defaultProps} />)
+    expect(within(screen.getByRole('heading', { level: 2 })).getByText('ai').className).toContain('text-sun-ink')
+  })
+
+  it('shows the sentence in a quote card', () => {
+    render(<WordAnalysis {...defaultProps} />)
+    expect(screen.getByText(/The word is rain\./)).toBeInTheDocument()
   })
 
   it('speaks the word when Say it is clicked', () => {

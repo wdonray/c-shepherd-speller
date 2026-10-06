@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server'
-import { clientIpFromHeaders, isRateLimited, normalizePath, recordPageView } from '@/lib/analytics'
+import {
+  clientIpFromHeaders,
+  isRateLimited,
+  normalizeCount,
+  normalizeEvent,
+  normalizePath,
+  recordEvent,
+  recordPageView,
+} from '@/lib/analytics'
 
 /**
  * POST /api/track { path: "/some/page" }
+ * POST /api/track { event: "list-created" | "practice-session" | "words-practiced", count?: number }
  *
- * Records one page view. Bots are filtered, and the client dedupes to one
+ * Records one page view or one app-usage event. Bots are filtered for page
+ * views, events are allowlisted, and the client dedupes page views to one
  * hit per page per browsing session: this endpoint is the last line of
  * defense, not the only one.
  */
@@ -21,7 +31,16 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => null)) as {
       path?: unknown
+      event?: unknown
+      count?: unknown
     } | null
+
+    const event = normalizeEvent(body?.event)
+    if (event) {
+      await recordEvent(event, normalizeCount(body?.count))
+      return NextResponse.json({ ok: true })
+    }
+
     const path = normalizePath(typeof body?.path === 'string' ? body.path : null)
     if (!path) {
       return NextResponse.json({ ok: false }, { status: 400 })

@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './route'
-import { recordPageView, isRateLimited, __resetRateLimitForTests } from '@/lib/analytics'
+import { recordEvent, recordPageView, isRateLimited, __resetRateLimitForTests } from '@/lib/analytics'
 
 vi.mock('@/lib/analytics', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/analytics')>()
   return {
     ...actual,
+    recordEvent: vi.fn(),
     recordPageView: vi.fn(),
     isRateLimited: vi.fn(),
   }
 })
 
+const recordEventMock = vi.mocked(recordEvent)
 const recordPageViewMock = vi.mocked(recordPageView)
 const isRateLimitedMock = vi.mocked(isRateLimited)
 
@@ -32,6 +34,7 @@ describe('POST /api/track', () => {
     __resetRateLimitForTests()
     isRateLimitedMock.mockReturnValue(false)
     recordPageViewMock.mockResolvedValue(true)
+    recordEventMock.mockResolvedValue(true)
   })
 
   it('records a valid page view and returns ok', async () => {
@@ -75,5 +78,33 @@ describe('POST /api/track', () => {
     })
     const res = await POST(req)
     expect(res.status).toBe(400)
+  })
+
+  it('records an allowlisted event and returns ok', async () => {
+    const res = await POST(makeRequest({ event: 'list-created' }))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(recordEventMock).toHaveBeenCalledWith('list-created', 1)
+    expect(recordPageViewMock).not.toHaveBeenCalled()
+  })
+
+  it('passes the event count through', async () => {
+    const res = await POST(makeRequest({ event: 'words-practiced', count: 12 }))
+    expect(res.status).toBe(200)
+    expect(recordEventMock).toHaveBeenCalledWith('words-practiced', 12)
+  })
+
+  it('returns 400 for an event not on the allowlist', async () => {
+    const res = await POST(makeRequest({ event: 'page-view' }))
+    expect(res.status).toBe(400)
+    expect(recordEventMock).not.toHaveBeenCalled()
+    expect(recordPageViewMock).not.toHaveBeenCalled()
+  })
+
+  it('prefers the event over the path when both are present', async () => {
+    const res = await POST(makeRequest({ event: 'practice-session', path: '/practice' }))
+    expect(res.status).toBe(200)
+    expect(recordEventMock).toHaveBeenCalledWith('practice-session', 1)
+    expect(recordPageViewMock).not.toHaveBeenCalled()
   })
 })
