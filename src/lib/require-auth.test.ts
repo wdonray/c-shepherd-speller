@@ -13,7 +13,7 @@ vi.mock('@/lib/db-utils', () => ({
 }))
 
 // Imported after the mocks so the module under test binds to them.
-import { requireSession, requireOwnership, isSelfEmail } from './require-auth'
+import { requireSession, requireOwnership, requireUser, isSelfEmail } from './require-auth'
 
 function session(email = 'teacher@example.com'): Session {
   return { user: { email, name: 'Teacher' }, expires: '2999-01-01' } as Session
@@ -88,6 +88,32 @@ describe('require-auth', () => {
       const result = await requireOwnership('abc-user')
       expect(result.session).toBe(s)
       expect(result.response).toBeNull()
+    })
+  })
+
+  describe('requireUser', () => {
+    it('returns 401 when there is no session', async () => {
+      getServerSession.mockResolvedValue(null)
+      const result = await requireUser()
+      expect(result.user).toBeNull()
+      expect(result.response?.status).toBe(401)
+      expect(getUserByEmail).not.toHaveBeenCalled()
+    })
+
+    it('returns 403 when the caller has no user record', async () => {
+      getServerSession.mockResolvedValue(session())
+      getUserByEmail.mockResolvedValue(undefined)
+      const result = await requireUser()
+      expect(result.user).toBeNull()
+      expect(result.response?.status).toBe(403)
+    })
+
+    it('returns the database user id and email', async () => {
+      getServerSession.mockResolvedValue(session())
+      getUserByEmail.mockResolvedValue({ id: 'db-user-1', email: 'teacher@example.com' })
+      const result = await requireUser()
+      expect(result.response).toBeNull()
+      expect(result.user).toEqual({ id: 'db-user-1', email: 'teacher@example.com' })
     })
   })
 })

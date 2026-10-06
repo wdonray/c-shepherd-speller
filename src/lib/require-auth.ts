@@ -44,3 +44,20 @@ export async function requireOwnership(id: string): Promise<AuthResult> {
   }
   return auth
 }
+
+type UserResult = { user: { id: string; email: string }; response: null } | { user: null; response: NextResponse }
+
+/**
+ * Require a signed-in session AND resolve the caller's database user record
+ * via their email. Returns the DB user (with its database ID) for scoping
+ * queries. 401 if not signed in, 403 if no user record exists yet.
+ */
+export async function requireUser(): Promise<UserResult> {
+  const auth = await requireSession()
+  if (auth.response) return { user: null, response: auth.response }
+  const dbUser = await getUserByEmail(auth.session.user.email!)
+  if (!dbUser) {
+    return { user: null, response: forbidden().response! }
+  }
+  return { user: { id: dbUser.id, email: dbUser.email }, response: null }
+}
