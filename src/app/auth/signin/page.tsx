@@ -1,6 +1,7 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,6 +33,8 @@ function GoogleMark() {
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false)
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
   useEffect(() => {
     document.body.setAttribute('data-auth-page', 'true')
@@ -39,6 +42,12 @@ export default function SignIn() {
       document.body.removeAttribute('data-auth-page')
     }
   }, [])
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id != null) {
+      router.replace('/')
+    }
+  }, [status, session, router])
 
   async function handleGoogleSignIn() {
     setIsLoading(true)
@@ -48,6 +57,10 @@ export default function SignIn() {
       setIsLoading(false)
       console.error(error)
     }
+  }
+
+  if (status === 'authenticated' && session?.user?.id != null) {
+    return null
   }
 
   return (
