@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { cn } from '@/lib/utils'
-import type { WordList } from '@/models/WordList'
+import type { WordList, PatternFrequency } from '@/models/WordList'
 
 interface WordListCardProps {
   list: WordList
@@ -22,7 +22,7 @@ const ACCENTS = [
   { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
 ] as const
 
-const frequencyToLevel: Record<string, PowerBarLevel> = {
+const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
   common: 3,
   'less-common': 2,
   rare: 1,
@@ -53,7 +53,7 @@ export default function WordListCard({ list, index = 0, onOpen, onDelete }: Word
           {list.patterns.slice(0, 3).map((pattern) => (
             <li key={pattern.id} className="flex items-center gap-3">
               <span className="w-24 shrink-0 truncate text-sm font-semibold">{pattern.pattern}</span>
-              <PowerBar level={frequencyToLevel[pattern.frequency] ?? 1} filledClassName={accent.fill} />
+              <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
             </li>
           ))}
         </ul>
