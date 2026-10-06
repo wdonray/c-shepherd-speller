@@ -39,6 +39,16 @@ describe('ImportExportDialog', () => {
     expect(screen.getByRole('button', { name: /choose file/i })).toBeInTheDocument()
   })
 
+  it('opens the file picker when Choose file is clicked', () => {
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {})
+
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: /choose file/i }))
+
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
+
   it('exports lists to a downloaded JSON file', async () => {
     getLists.mockResolvedValue([list])
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -52,6 +62,18 @@ describe('ImportExportDialog', () => {
     expect(getLists).toHaveBeenCalled()
     expect(clickSpy).toHaveBeenCalled()
     clickSpy.mockRestore()
+  })
+
+  it('uses the plural when exporting multiple lists', async () => {
+    getLists.mockResolvedValue([list, { ...list, id: 'l2', name: 'Week 6' }])
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Exported 2 lists.')
+    })
   })
 
   it('shows an error when export fails', async () => {
@@ -80,6 +102,28 @@ describe('ImportExportDialog', () => {
     expect(createList).toHaveBeenCalledWith({ name: 'Week 7: Long O', patterns: [] })
     expect(onImported).toHaveBeenCalled()
     expect(screen.getByText('lists.json')).toBeInTheDocument()
+  })
+
+  it('uses the plural when importing multiple lists', async () => {
+    createList.mockResolvedValue(list)
+    renderDialog()
+
+    const file = new File(
+      [
+        JSON.stringify([
+          { name: 'Week 7: Long O', patterns: [] },
+          { name: 'Week 8', patterns: [] },
+        ]),
+      ],
+      'lists.json',
+      { type: 'application/json' }
+    )
+    fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Imported 2 lists.')
+    })
+    expect(createList).toHaveBeenCalledTimes(2)
   })
 
   it('rejects a file that is not JSON', async () => {

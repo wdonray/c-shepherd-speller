@@ -27,6 +27,10 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // The file input is always rendered alongside its button, so the ref is set
+  // whenever this can be clicked.
+  const openFilePicker = () => (fileInputRef.current as HTMLInputElement).click()
+
   const handleExport = async () => {
     setBusy(true)
     setMessage(null)
@@ -88,8 +92,9 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       }
     } finally {
       setBusy(false)
-      // Reset the input so the same file can be picked again.
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      // Reset the input so the same file can be picked again. The input is
+      // always rendered, so the ref is set here.
+      ;(fileInputRef.current as HTMLInputElement).value = ''
     }
   }
 
@@ -117,7 +122,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
             <h3 className="font-bold">Import</h3>
             <p className="text-sm text-muted-foreground">Choose a JSON file exported from Shepherd Speller.</p>
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={busy}>
+              <Button variant="secondary" onClick={openFilePicker} disabled={busy}>
                 <UploadIcon className="size-4" />
                 Choose file
               </Button>

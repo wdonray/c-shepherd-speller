@@ -83,10 +83,27 @@ describe('Header', () => {
     expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
   })
 
+  it('shows a single initial for a one-word name', () => {
+    mockSignedIn('light', 'Donray')
+    render(<Header />)
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('D')
+  })
+
   it('falls back to the email initial when there is no name', () => {
     mockSignedIn('light', null)
     render(<Header />)
     expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('T')
+  })
+
+  it('shows a question mark when there is no name or email', () => {
+    useSessionMock.mockReturnValue({
+      data: { user: { id: 'u1' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
+    render(<Header />)
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('?')
   })
 
   it('opens the spelling sheet from My Spelling Lists', () => {
@@ -214,6 +231,85 @@ describe('Header', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
     })
+  })
+
+  it('ignores repeated migrate clicks while a migration is running', async () => {
+    let resolveFetch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+          resolveFetch = resolve
+        })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    const item = screen.getByText('Migrate old lists')
+    fireEvent.click(item)
+    fireEvent.click(item)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    resolveFetch({ ok: true, json: async () => ({}) })
+    await waitFor(() => {
+      expect(screen.getByText('Migrate old lists')).toBeInTheDocument()
+    })
+  })
+
+  it('shows a generic error when the migration error body is unreadable', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.reject(new Error('bad json')) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Migrate old lists'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
+    })
+  })
+
+  it('shows a generic error when migration fails without an error message', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Migrate old lists'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
+    })
+  })
+
+  it('opens and closes the help dialog from the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Get help'))
+    expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'true')
+
+    fireEvent.click(screen.getByText('close help'))
+    expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'false')
+  })
+
+  it('opens and closes the profile dialog from the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Profile'))
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
+
+    fireEvent.click(screen.getByText('close profile'))
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
   })
 
   it('signs out from the menu', () => {
