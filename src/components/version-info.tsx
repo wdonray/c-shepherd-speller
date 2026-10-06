@@ -157,8 +157,8 @@ export default function VersionInfo({
     <div className="w-full max-w-xl space-y-8">
       <div className="space-y-2 text-center">
         <h1 className="text-[32px] font-bold text-ink">Version</h1>
-        <p className="text-[15px] text-muted">Every deploy to Shepherd Speller, most recent first.</p>
-        <p className="flex items-center justify-center gap-2 text-sm text-muted">
+        <p className="text-[15px] text-muted-foreground">Every deploy to Shepherd Speller, most recent first.</p>
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <span className="relative flex size-2" aria-hidden="true">
             {unreachable ? (
               <span className="relative inline-flex size-2 rounded-full bg-muted-foreground" />
@@ -178,7 +178,7 @@ export default function VersionInfo({
         <div>
           <p className="text-[22px] font-bold text-ink">Shepherd Speller</p>
           <p className="text-base font-semibold text-leaf-ink">v{currentVersion}</p>
-          {latestDeployed && <p className="text-sm text-muted">Deployed {latestDeployed}</p>}
+          {latestDeployed && <p className="text-sm text-muted-foreground">Deployed {latestDeployed}</p>}
         </div>
       </div>
 
@@ -202,19 +202,19 @@ export default function VersionInfo({
                     {index === 0 && <Badge>Latest</Badge>}
                     {isCurrentBuild && <Badge variant="outline">This build</Badge>}
                     {release.publishedAt && (
-                      <span className="text-[13px] text-muted">
+                      <span className="text-[13px] text-muted-foreground">
                         {formatDate(release.publishedAt)}
                         {relative ? ` · ${relative}` : ''}
                       </span>
                     )}
                   </div>
-                  {release.summary && <p className="mt-1 text-sm text-muted">{release.summary}</p>}
+                  {release.summary && <p className="mt-1 text-sm text-muted-foreground">{release.summary}</p>}
                 </li>
               )
             })}
           </ol>
         ) : (
-          <p className="rounded-[20px] border-2 border-line bg-card px-4 py-6 text-center text-sm text-muted">
+          <p className="rounded-[20px] border-2 border-line bg-card px-4 py-6 text-center text-sm text-muted-foreground">
             {unreachable ? "Couldn't reach GitHub to load releases." : 'No releases found.'}
           </p>
         )}

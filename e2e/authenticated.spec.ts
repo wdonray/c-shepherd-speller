@@ -57,7 +57,8 @@ test.describe('authenticated flows', () => {
     await page.getByRole('button', { name: /menu/i }).click()
     await page.getByText('Profile').click()
 
-    await expect(page.getByText('Teacher Profile')).toBeVisible()
+    await expect(page.getByText('Signed in with Google')).toBeVisible()
+    await expect(page.getByRole('heading', { name: E2E_USER_NAME })).toBeVisible()
     const nameInput = page.getByLabel(/full name/i)
     await expect(nameInput).toHaveValue(E2E_USER_NAME)
 

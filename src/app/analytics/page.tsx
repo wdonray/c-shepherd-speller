@@ -44,12 +44,12 @@ export default async function AnalyticsPage() {
     <div className="mx-auto w-full max-w-6xl space-y-8 px-4 pt-24 pb-16 md:px-8">
       <div className="space-y-2 text-center">
         <h1 className="text-[32px] font-bold text-ink">Analytics</h1>
-        <p className="text-[15px] text-muted">How the app is used. Counts update daily.</p>
+        <p className="text-[15px] text-muted-foreground">How the app is used. Counts update daily.</p>
       </div>
 
       {!summary ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted">
+          <CardContent className="py-12 text-center text-muted-foreground">
             Analytics isn&apos;t configured on this build yet. Check back soon.
           </CardContent>
         </Card>
@@ -61,7 +61,7 @@ export default async function AnalyticsPage() {
                 <div className={cn('h-2 w-full', stat.bar)} aria-hidden="true" />
                 <CardContent className="px-6 pt-6 pb-8 text-center">
                   <div className="text-4xl font-extrabold text-ink">{values[stat.key].toLocaleString()}</div>
-                  <p className="mt-3 text-sm text-muted">{stat.label}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{stat.label}</p>
                 </CardContent>
               </Card>
             ))}
@@ -70,13 +70,13 @@ export default async function AnalyticsPage() {
           <Card>
             <CardContent className="space-y-3 p-8">
               <h2 className="text-[17px] font-bold text-ink">How these numbers are measured</h2>
-              <p className="text-sm leading-6 text-muted">
+              <p className="text-sm leading-6 text-muted-foreground">
                 Page views count one page load per page per browsing session, and bots are filtered out. List and
                 practice counts come from saved app data: a practice session counts when a student finishes a list, and
                 words practiced counts the words in finished sessions. Numbers are estimates of usage, not exact
                 headcounts. No cookies are set and no raw IP addresses are stored.
               </p>
-              <p className="text-xs text-muted">Last updated {formatDateTime(summary.fetchedAt)}</p>
+              <p className="text-xs text-muted-foreground">Last updated {formatDateTime(summary.fetchedAt)}</p>
             </CardContent>
           </Card>
         </>

@@ -13,7 +13,7 @@ export default function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-ink">Get help</DialogTitle>
-          <DialogDescription className="text-[15px] leading-6 text-muted">
+          <DialogDescription className="text-[15px] leading-6 text-muted-foreground">
             If you need help, please contact us at{' '}
             <a
               href="mailto:support@shepherdspeller.com"

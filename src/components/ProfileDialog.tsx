@@ -137,8 +137,8 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-ink">{displayName || 'Your profile'}</DialogTitle>
-              <DialogDescription className="text-sm text-muted">{displayEmail}</DialogDescription>
-              <p className="mt-1 text-sm text-muted">Signed in with Google</p>
+              <DialogDescription className="text-sm text-muted-foreground">{displayEmail}</DialogDescription>
+              <p className="mt-1 text-sm text-muted-foreground">Signed in with Google</p>
             </div>
           </div>
         </DialogHeader>

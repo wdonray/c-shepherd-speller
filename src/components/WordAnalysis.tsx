@@ -92,11 +92,11 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
 
         <div className="space-y-1 text-xl">
           <p>
-            <span className="text-muted">Sound: </span>
+            <span className="text-muted-foreground">Sound: </span>
             <span className="font-semibold text-ink">{pattern.sound}</span>
           </p>
           <p>
-            <span className="text-muted">Pattern: </span>
+            <span className="text-muted-foreground">Pattern: </span>
             <span className="font-semibold text-ink">{pattern.pattern}</span>
           </p>
         </div>

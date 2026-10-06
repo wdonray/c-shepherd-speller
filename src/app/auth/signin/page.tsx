@@ -56,7 +56,7 @@ export default function SignIn() {
         <CardContent className="flex flex-col items-center px-10 py-12">
           <TreeMark className="h-[110px] w-[110px]" label="Shepherd Speller logo" />
           <h1 className="mt-6 text-center text-[26px] font-bold text-ink">Shepherd Speller</h1>
-          <p className="mt-3 text-center text-[15px] leading-6 text-muted">
+          <p className="mt-3 text-center text-[15px] leading-6 text-muted-foreground">
             A pattern-based spelling toolkit for K-3 teachers.
           </p>
           <Button
@@ -79,7 +79,7 @@ export default function SignIn() {
               </>
             )}
           </Button>
-          <p className="mt-6 text-center text-[13px] text-muted">Free for classrooms.</p>
+          <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for classrooms.</p>
         </CardContent>
       </Card>
     </div>

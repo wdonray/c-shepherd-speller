@@ -8,7 +8,8 @@ test.describe('unauthenticated smoke', () => {
   test('signin page renders with a Google button', async ({ page }) => {
     const response = await page.goto('/auth/signin')
     expect(response?.status()).toBe(200)
-    await expect(page.getByText('Welcome to Shepherd Speller')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Shepherd Speller' })).toBeVisible()
+    await expect(page.getByText('A pattern-based spelling toolkit for K-3 teachers.')).toBeVisible()
     await expect(page.getByRole('button', { name: /sign in with google/i })).toBeVisible()
   })
 
