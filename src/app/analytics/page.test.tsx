@@ -54,6 +54,13 @@ describe('AnalyticsPage', () => {
     expect(screen.getByRole('img', { name: /bar chart of page views per day/i })).toBeInTheDocument()
   })
 
+  it('omits the daily chart when there are no daily totals', async () => {
+    getAnalyticsSummaryMock.mockResolvedValue({ ...SUMMARY, dailyTotals: [] })
+    render(await AnalyticsPage())
+    expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.queryByText('Page views per day')).not.toBeInTheDocument()
+  })
+
   it('explains the methodology', async () => {
     getAnalyticsSummaryMock.mockResolvedValue(SUMMARY)
     render(await AnalyticsPage())

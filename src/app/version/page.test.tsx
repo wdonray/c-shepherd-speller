@@ -42,4 +42,30 @@ describe('VersionPage', () => {
     expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
     expect(screen.getByText('v0.1.4')).toBeInTheDocument()
   })
+
+  it('renders gracefully when GitHub returns an error status', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }))
+    render(await VersionPage())
+    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+  })
+
+  it('renders gracefully when GitHub returns a non-array payload', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: 'oops' }) }))
+    render(await VersionPage())
+    expect(screen.getByText(/every deploy to shepherd speller/i)).toBeInTheDocument()
+  })
+
+  it('sends the GitHub token when GITHUB_TOKEN is set', async () => {
+    process.env.GITHUB_TOKEN = 'test-token'
+    try {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+      vi.stubGlobal('fetch', fetchMock)
+      render(await VersionPage())
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+      const [, init] = fetchMock.mock.calls[0]
+      expect(init.headers.Authorization).toBe('Bearer test-token')
+    } finally {
+      delete process.env.GITHUB_TOKEN
+    }
+  })
 })
