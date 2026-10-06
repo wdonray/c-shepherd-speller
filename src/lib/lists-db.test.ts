@@ -84,12 +84,15 @@ describe('lists-db', () => {
 
     it('sorts ties by keeping stable order', async () => {
       const same = '2026-10-06T00:00:00.000Z'
+      const newer = '2026-10-07T00:00:00.000Z'
       const a = { ...storedList, id: 'la', SK: 'LIST#la', updatedAt: same }
-      const b = { ...storedList, id: 'lb', SK: 'LIST#lb', updatedAt: same }
-      send.mockResolvedValue({ Items: [a, b] })
+      const b = { ...storedList, id: 'lb', SK: 'LIST#lb', updatedAt: newer }
+      const c = { ...storedList, id: 'lc', SK: 'LIST#lc', updatedAt: same }
+      send.mockResolvedValue({ Items: [a, b, c] })
 
       const lists = await getListsByUser('u1')
-      expect(lists).toHaveLength(2)
+      expect(lists).toHaveLength(3)
+      expect(lists[0].id).toBe('lb') // newest first
     })
 
     it('handles a missing Items array', async () => {
