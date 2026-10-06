@@ -348,6 +348,33 @@ describe('PatternListsManager', () => {
     })
   })
 
+  it('shows deleting state while delete is in progress', async () => {
+    let resolveDelete: () => void
+    const deletePromise = new Promise<void>((resolve) => {
+      resolveDelete = resolve
+    })
+    getLists.mockResolvedValue([list])
+    deleteList.mockReturnValue(deletePromise)
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Deleting...')).toBeInTheDocument()
+    })
+    resolveDelete!()
+    await waitFor(() => {
+      expect(screen.queryByText('Week 5: Long A')).not.toBeInTheDocument()
+    })
+  })
+
   it('shows an error when delete fails', async () => {
     getLists.mockResolvedValue([list])
     deleteList.mockRejectedValue(new Error('delete failed'))
@@ -399,6 +426,25 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Delete word list?')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(deleteList).not.toHaveBeenCalled()
+  })
+
+  it('closes the dialog when Escape is pressed', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByText('Delete word list?')).not.toBeInTheDocument()
+    })
     expect(deleteList).not.toHaveBeenCalled()
   })
 

@@ -28,7 +28,7 @@ export default function PatternListsManager() {
   const [newName, setNewName] = useState('')
   const [newGrade, setNewGrade] = useState('')
   const [saving, setSaving] = useState(false)
-  const [listToDelete, setListToDelete] = useState<WordList | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<WordList | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const loadLists = useCallback(async () => {
@@ -69,20 +69,20 @@ export default function PatternListsManager() {
   }
 
   const handleDelete = (list: WordList) => {
-    setListToDelete(list)
+    setDeleteTarget(list)
   }
 
   const confirmDelete = async () => {
-    if (!listToDelete) return
+    const target = deleteTarget
     setDeleting(true)
     try {
-      await deleteList(listToDelete.id)
-      setLists((prev) => prev.filter((l) => l.id !== listToDelete.id))
+      await deleteList(target!.id)
+      setLists((prev) => prev.filter((l) => l.id !== target!.id))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete list')
     } finally {
       setDeleting(false)
-      setListToDelete(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -268,16 +268,16 @@ export default function PatternListsManager() {
         </div>
       )}
 
-      <Dialog open={listToDelete !== null} onOpenChange={(open) => !open && setListToDelete(null)}>
+      <Dialog open={deleteTarget !== null} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete word list?</DialogTitle>
             <DialogDescription>
-              {listToDelete && `Delete "${listToDelete.name}"? This cannot be undone.`}
+              {deleteTarget && `Delete "${deleteTarget.name}"? This cannot be undone.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setListToDelete(null)} disabled={deleting}>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
