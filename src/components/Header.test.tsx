@@ -1,11 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Header } from './Header'
+import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: vi.fn() }))
 vi.mock('next-themes', () => ({ useTheme: vi.fn() }))
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}))
 vi.mock('./SpellingManagerSheet', () => ({
   default: ({ isOpen }: { isOpen: boolean }) => <div data-testid="spelling-sheet" data-open={String(isOpen)} />,
 }))
@@ -23,14 +31,21 @@ vi.mock('./ProfileDialog', () => ({
     </div>
   ),
 }))
+vi.mock('./ImportExportDialog', () => ({
+  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
+    <div data-testid="import-export-dialog" data-open={String(isOpen)}>
+      {isOpen && <button onClick={onClose}>close import-export</button>}
+    </div>
+  ),
+}))
 
 const useSessionMock = vi.mocked(useSession)
 const signOutMock = vi.mocked(signOut)
 const useThemeMock = vi.mocked(useTheme)
 
-function mockSignedIn(theme = 'light') {
+function mockSignedIn(theme = 'light', name: string | null = 'Donray Williams') {
   useSessionMock.mockReturnValue({
-    data: { user: { id: 'u1', email: 't@e.c' } },
+    data: { user: { id: 'u1', email: 't@e.c', name } },
     status: 'authenticated',
     update: async () => null,
   } as never)
@@ -38,7 +53,7 @@ function mockSignedIn(theme = 'light') {
 }
 
 function openMenu() {
-  fireEvent.pointerDown(screen.getByRole('button', { name: /menu/i }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: /open account menu/i }))
 }
 
 describe('Header', () => {
@@ -48,6 +63,10 @@ describe('Header', () => {
     useThemeMock.mockReset()
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('renders nothing without a session user id', () => {
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated', update: async () => null } as never)
     useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
@@ -55,13 +74,26 @@ describe('Header', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('renders the title and opens the spelling sheet', () => {
+  it('renders the logo, title, and avatar initials', () => {
     mockSignedIn()
     render(<Header />)
 
     expect(screen.getByText('Shepherd Speller')).toBeInTheDocument()
-    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'false')
+    expect(screen.getByRole('img', { name: 'Shepherd Speller logo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
+  })
 
+  it('falls back to the email initial when there is no name', () => {
+    mockSignedIn('light', null)
+    render(<Header />)
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('T')
+  })
+
+  it('opens the spelling sheet from My Spelling Lists', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'false')
     fireEvent.click(screen.getByRole('button', { name: /my spelling lists/i }))
     expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'true')
   })
@@ -73,13 +105,25 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
   })
 
+  it('opens the import/export dialog from the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Import / export'))
+    expect(screen.getByTestId('import-export-dialog')).toHaveAttribute('data-open', 'true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'close import-export' }))
+    expect(screen.getByTestId('import-export-dialog')).toHaveAttribute('data-open', 'false')
+  })
+
   it('toggles the theme from the menu', () => {
     mockSignedIn('light')
     render(<Header />)
 
     openMenu()
     const setTheme = vi.mocked(useTheme).mock.results[0].value.setTheme
-    fireEvent.click(screen.getByText('Dark'))
+    fireEvent.click(screen.getByText('Theme: Dark'))
     expect(setTheme).toHaveBeenCalledWith('dark')
   })
 
@@ -89,7 +133,7 @@ describe('Header', () => {
 
     openMenu()
     const setTheme = vi.mocked(useTheme).mock.results[0].value.setTheme
-    fireEvent.click(screen.getByText('Light'))
+    fireEvent.click(screen.getByText('Theme: Light'))
     expect(setTheme).toHaveBeenCalledWith('light')
   })
 
@@ -98,7 +142,7 @@ describe('Header', () => {
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByText('Get Help'))
+    fireEvent.click(screen.getByText('Get help'))
     expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'true')
   })
 
@@ -111,37 +155,74 @@ describe('Header', () => {
     expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
   })
 
+  it('links to version and analytics from the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: 'Version' })).toHaveAttribute('href', '/version')
+    expect(screen.getByRole('menuitem', { name: 'Analytics' })).toHaveAttribute('href', '/analytics')
+  })
+
+  it('migrates old lists from the menu and notifies listeners', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchMock)
+    const changed = vi.fn()
+    window.addEventListener(LISTS_CHANGED_EVENT, changed)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Migrate old lists'))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/migrate', { method: 'POST' })
+    })
+    expect(changed).toHaveBeenCalledTimes(1)
+    window.removeEventListener(LISTS_CHANGED_EVENT, changed)
+  })
+
+  it('shows an error in the menu when migration fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: 'No data to migrate' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Migrate old lists'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('No data to migrate')
+    })
+  })
+
+  it('shows a generic error when migration throws', async () => {
+    const fetchMock = vi.fn().mockRejectedValue('string failure')
+    vi.stubGlobal('fetch', fetchMock)
+
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Migrate old lists'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
+    })
+  })
+
   it('signs out from the menu', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByText('Sign Out'))
+    fireEvent.click(screen.getByText('Sign out'))
     expect(signOutMock).toHaveBeenCalledTimes(1)
     expect(signOutMock).toHaveBeenCalledWith({ callbackUrl: '/auth/signin' })
-  })
-
-  it('closes the help dialog via its onClose', () => {
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Get Help'))
-    expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'true')
-
-    fireEvent.click(screen.getByRole('button', { name: 'close help' }))
-    expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'false')
-  })
-
-  it('closes the profile dialog via its onClose', () => {
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
-
-    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
   })
 })

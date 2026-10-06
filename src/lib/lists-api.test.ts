@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getLists, getList, createList, updateList, deleteList } from './lists-api'
+import {
+  getLists,
+  getList,
+  createList,
+  updateList,
+  deleteList,
+  notifyListsChanged,
+  LISTS_CHANGED_EVENT,
+} from './lists-api'
 
 describe('lists-api', () => {
   beforeEach(() => {
@@ -92,5 +100,15 @@ describe('lists-api', () => {
     } as unknown as Response)
 
     await expect(getLists()).rejects.toThrow('Request failed with status 500')
+  })
+})
+
+describe('notifyListsChanged', () => {
+  it('dispatches the lists-changed event on window', () => {
+    const handler = vi.fn()
+    window.addEventListener(LISTS_CHANGED_EVENT, handler)
+    notifyListsChanged()
+    expect(handler).toHaveBeenCalledTimes(1)
+    window.removeEventListener(LISTS_CHANGED_EVENT, handler)
   })
 })

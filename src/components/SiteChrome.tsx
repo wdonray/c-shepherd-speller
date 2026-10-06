@@ -18,7 +18,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <main className="min-h-screen container m-auto p-8">{children}</main>
+      <main className="min-h-screen">{children}</main>
       <Footer />
     </>
   )

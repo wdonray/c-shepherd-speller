@@ -11,28 +11,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  UserIcon,
-  LogOutIcon,
-  HelpCircleIcon,
-  BookOpenIcon,
-  PresentationIcon,
-  Settings,
-  SunIcon,
-  MoonIcon,
-  InfoIcon,
-  BarChart3Icon,
-} from 'lucide-react'
+import { LogOutIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
 import ProfileDialog from './ProfileDialog'
+import ImportExportDialog from './ImportExportDialog'
+import { TreeMark } from './TreeMark'
+import { notifyListsChanged } from '@/lib/lists-api'
+
+function initialsFor(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
+  }
+  return (email?.[0] ?? '?').toUpperCase()
+}
 
 export function Header() {
   const { data: session } = useSession()
   const [isSpellingManagerOpen, setIsSpellingManagerOpen] = useState(false)
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrateError, setMigrateError] = useState<string | null>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
 
@@ -40,69 +43,120 @@ export function Header() {
     return null
   }
 
+  const handleMigrate = async (e: Event) => {
+    // Keep the menu open so the error (if any) is visible in place.
+    e.preventDefault()
+    if (migrating) return
+    setMigrating(true)
+    setMigrateError(null)
+    try {
+      const res = await fetch('/api/migrate', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Migration failed')
+      }
+      notifyListsChanged()
+    } catch (err) {
+      setMigrateError(err instanceof Error ? err.message : 'Migration failed')
+    } finally {
+      setMigrating(false)
+    }
+  }
+
   return (
-    <fieldset disabled={session?.user?.id == null}>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container m-auto px-8 flex h-14 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg md:text-2xl font-bold">Shepherd Speller</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
-              <BookOpenIcon className="size-4" />
-              <span className="hidden sm:inline-block">My Spelling Lists</span>
-            </Button>
-            <Button size="sm" variant="outline" asChild>
-              <Link href="/display">
-                <PresentationIcon className="size-4" />
-                <span className="hidden sm:inline-block">Present</span>
-              </Link>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings className="size-4" />
-                  <span className="hidden sm:inline-block">Menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => setTheme(isDark ? 'light' : 'dark')}>
-                  {isDark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
-                  <span>{isDark ? 'Light' : 'Dark'}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsHelpDialogOpen(true)}>
-                  <HelpCircleIcon className="size-4" />
-                  Get Help
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
-                  <UserIcon className="size-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/version">
-                    <InfoIcon className="size-4" />
-                    Version
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/analytics">
-                    <BarChart3Icon className="size-4" />
-                    Analytics
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
-                  <LogOutIcon className="size-4" />
-                  <span>Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+    <header className="sticky top-0 z-50 w-full bg-card">
+      <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <TreeMark label="Shepherd Speller logo" />
+          <span className="text-[22px] font-bold tracking-tight">Shepherd Speller</span>
         </div>
-        <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
-        <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
-        <ProfileDialog isOpen={isProfileDialogOpen} onClose={() => setIsProfileDialogOpen(false)} />
-      </header>
-    </fieldset>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
+            My Spelling Lists
+          </Button>
+          <Button size="sm" variant="secondary" asChild>
+            <Link href="/display">Present</Link>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open account menu"
+                className="flex size-10 items-center justify-center rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition-all hover:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
+              >
+                {initialsFor(session.user.name, session.user.email)}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                onSelect={() => setIsImportExportOpen(true)}
+              >
+                Import / export
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                onSelect={() => setTheme(isDark ? 'light' : 'dark')}
+              >
+                Theme: {isDark ? 'Light' : 'Dark'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                onSelect={() => setIsHelpDialogOpen(true)}
+              >
+                Get help
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                onSelect={() => setIsProfileDialogOpen(true)}
+              >
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-line" />
+              <DropdownMenuItem
+                asChild
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+              >
+                <Link href="/version">Version</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                asChild
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+              >
+                <Link href="/analytics">Analytics</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-line" />
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                onSelect={handleMigrate}
+              >
+                {migrating ? 'Migrating...' : 'Migrate old lists'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-xl px-4 py-3 text-[15px] font-semibold text-coral-ink cursor-pointer focus:bg-coral-soft"
+                onSelect={() => signOut({ callbackUrl: '/auth/signin' })}
+              >
+                <LogOutIcon className="size-4" />
+                Sign out
+              </DropdownMenuItem>
+              {migrateError && (
+                <p role="alert" className="px-4 py-2 text-sm font-semibold text-coral-ink">
+                  {migrateError}
+                </p>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+      <div className="h-[2px] w-full bg-line" aria-hidden="true" />
+      <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
+      <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
+      <ProfileDialog isOpen={isProfileDialogOpen} onClose={() => setIsProfileDialogOpen(false)} />
+      <ImportExportDialog
+        isOpen={isImportExportOpen}
+        onClose={() => setIsImportExportOpen(false)}
+        onImported={notifyListsChanged}
+      />
+    </header>
   )
 }

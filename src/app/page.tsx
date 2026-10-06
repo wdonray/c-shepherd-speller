@@ -53,11 +53,7 @@ export default function Home() {
 
   return (
     <>
-      <Dashboard
-        onNewList={() => setIsSheetOpen(true)}
-        onEditList={(_list: WordList) => setIsSheetOpen(true)}
-        onDeleteList={(_list: WordList) => setIsSheetOpen(true)}
-      />
+      <Dashboard onNewList={() => setIsSheetOpen(true)} onEditList={(_list: WordList) => setIsSheetOpen(true)} />
       <SpellingManagerSheet isOpen={isSheetOpen} setIsOpen={setIsSheetOpen} />
     </>
   )

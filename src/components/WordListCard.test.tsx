@@ -18,52 +18,74 @@ const list: WordList = {
   gradeLevel: '1',
   patterns: [
     { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
-    { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
+    { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
   ],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',
 }
 
 describe('WordListCard', () => {
-  it('renders the name, grade, and counts', () => {
-    render(<WordListCard list={list} onEdit={vi.fn()} onDelete={vi.fn()} />)
+  it('renders the list name, grade pill, and counts', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} />)
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     expect(screen.getByText('Grade 1')).toBeInTheDocument()
-    expect(screen.getByText(/2 patterns · 3 words/)).toBeInTheDocument()
+    expect(screen.getByText('2 patterns, 3 words')).toBeInTheDocument()
   })
 
-  it('omits the grade when not set', () => {
-    const noGrade: WordList = { ...list, gradeLevel: undefined }
-    render(<WordListCard list={noGrade} onEdit={vi.fn()} onDelete={vi.fn()} />)
+  it('shows pattern rows with power bars', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} />)
+    expect(screen.getByText('a_e')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Frequency: Less common' })).toBeInTheDocument()
+  })
+
+  it('cycles the accent color by index', () => {
+    const { container, rerender } = render(<WordListCard list={list} index={0} onOpen={vi.fn()} />)
+    expect(container.querySelector('.bg-leaf.h-2')).toBeInTheDocument()
+
+    rerender(<WordListCard list={list} index={1} onOpen={vi.fn()} />)
+    expect(container.querySelector('.bg-sky.h-2')).toBeInTheDocument()
+
+    rerender(<WordListCard list={list} index={2} onOpen={vi.fn()} />)
+    expect(container.querySelector('.bg-plum.h-2')).toBeInTheDocument()
+  })
+
+  it('calls onOpen when Open is clicked', () => {
+    const onOpen = vi.fn()
+    render(<WordListCard list={list} onOpen={onOpen} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    expect(onOpen).toHaveBeenCalledWith(list)
+  })
+
+  it('links Present to the display mode for the list', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} />)
+    expect(screen.getByRole('link', { name: 'Present' })).toHaveAttribute('href', '/display?list=l1')
+  })
+
+  it('renders a Delete button when onDelete is provided', () => {
+    const onDelete = vi.fn()
+    render(<WordListCard list={list} onOpen={vi.fn()} onDelete={onDelete} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(onDelete).toHaveBeenCalledWith(list)
+  })
+
+  it('omits the Delete button when onDelete is not provided', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+  })
+
+  it('omits the grade pill when the list has no grade level', () => {
+    render(<WordListCard list={{ ...list, gradeLevel: undefined }} onOpen={vi.fn()} />)
     expect(screen.queryByText(/Grade/)).not.toBeInTheDocument()
   })
 
-  it('uses singular forms for one pattern and one word', () => {
+  it('uses singular wording for one pattern and one word', () => {
     const single: WordList = {
       ...list,
-      patterns: [{ id: 'p1', sound: 's', pattern: 's', frequency: 'common', words: ['sun'] }],
+      patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'rare', words: ['cake'] }],
     }
-    render(<WordListCard list={single} onEdit={vi.fn()} onDelete={vi.fn()} />)
-    expect(screen.getByText(/1 pattern · 1 word/)).toBeInTheDocument()
-  })
-
-  it('links to the display page with the list id', () => {
-    render(<WordListCard list={list} onEdit={vi.fn()} onDelete={vi.fn()} />)
-    const link = screen.getByRole('link', { name: /present/i })
-    expect(link).toHaveAttribute('href', '/display?list=l1')
-  })
-
-  it('calls onEdit when Edit is clicked', () => {
-    const onEdit = vi.fn()
-    render(<WordListCard list={list} onEdit={onEdit} onDelete={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
-    expect(onEdit).toHaveBeenCalledWith(list)
-  })
-
-  it('calls onDelete when Delete is clicked', () => {
-    const onDelete = vi.fn()
-    render(<WordListCard list={list} onEdit={vi.fn()} onDelete={onDelete} />)
-    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
-    expect(onDelete).toHaveBeenCalledWith(list)
+    render(<WordListCard list={single} onOpen={vi.fn()} />)
+    expect(screen.getByText('1 pattern, 1 word')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Frequency: Rare' })).toBeInTheDocument()
   })
 })

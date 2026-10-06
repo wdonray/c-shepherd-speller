@@ -1,54 +1,76 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { PencilIcon, TrashIcon, PresentationIcon } from 'lucide-react'
-import type { WordList } from '@/models/WordList'
 import Link from 'next/link'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
+import { cn } from '@/lib/utils'
+import type { WordList } from '@/models/WordList'
 
 interface WordListCardProps {
   list: WordList
-  onEdit: (list: WordList) => void
-  onDelete: (list: WordList) => void
+  /** Position in the grid; picks the card's accent color. */
+  index?: number
+  onOpen: (list: WordList) => void
+  /** When provided, renders a Delete button (used by the list manager). */
+  onDelete?: (list: WordList) => void
+}
+
+const ACCENTS = [
+  { bar: 'bg-leaf', fill: 'bg-leaf', soft: 'bg-leaf-soft', text: 'text-leaf-ink' },
+  { bar: 'bg-sky', fill: 'bg-sky', soft: 'bg-sky-soft', text: 'text-sky-ink' },
+  { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
+] as const
+
+const frequencyToLevel: Record<string, PowerBarLevel> = {
+  common: 3,
+  'less-common': 2,
+  rare: 1,
 }
 
 /** Summary card for a pattern-based word list. */
-export default function WordListCard({ list, onEdit, onDelete }: WordListCardProps) {
+export default function WordListCard({ list, index = 0, onOpen, onDelete }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
+  const accent = ACCENTS[index % ACCENTS.length]
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between gap-2">
-          <span className="truncate">{list.name}</span>
+    <Card className="overflow-hidden">
+      <div className={cn('h-2 w-full', accent.bar)} aria-hidden="true" />
+      <div className="flex flex-1 flex-col gap-3 p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-xl font-bold">{list.name}</h3>
           {list.gradeLevel && (
-            <span className="text-xs font-normal text-muted-foreground shrink-0">Grade {list.gradeLevel}</span>
+            <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
+              Grade {list.gradeLevel}
+            </span>
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-3">
-          {patternCount} {patternCount === 1 ? 'pattern' : 'patterns'} · {wordCount}{' '}
-          {wordCount === 1 ? 'word' : 'words'}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" asChild>
-            <Link href={`/display?list=${encodeURIComponent(list.id)}`}>
-              <PresentationIcon className="size-4" />
-              Present
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onEdit(list)}>
-            <PencilIcon className="size-4" />
-            Edit
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onDelete(list)}>
-            <TrashIcon className="size-4" />
-            Delete
-          </Button>
         </div>
-      </CardContent>
+        <p className="text-sm text-muted-foreground">
+          {patternCount} {patternCount === 1 ? 'pattern' : 'patterns'}, {wordCount} {wordCount === 1 ? 'word' : 'words'}
+        </p>
+        <ul className="space-y-2" aria-label="Spelling patterns">
+          {list.patterns.slice(0, 3).map((pattern) => (
+            <li key={pattern.id} className="flex items-center gap-3">
+              <span className="w-24 shrink-0 truncate text-sm font-semibold">{pattern.pattern}</span>
+              <PowerBar level={frequencyToLevel[pattern.frequency] ?? 1} filledClassName={accent.fill} />
+            </li>
+          ))}
+        </ul>
+        <div className="mt-auto flex flex-wrap gap-2 pt-2">
+          <Button size="sm" onClick={() => onOpen(list)}>
+            Open
+          </Button>
+          <Button size="sm" variant="secondary" asChild>
+            <Link href={`/display?list=${encodeURIComponent(list.id)}`}>Present</Link>
+          </Button>
+          {onDelete && (
+            <Button size="sm" variant="destructive" onClick={() => onDelete(list)}>
+              Delete
+            </Button>
+          )}
+        </div>
+      </div>
     </Card>
   )
 }
