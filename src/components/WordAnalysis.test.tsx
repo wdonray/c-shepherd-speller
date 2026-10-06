@@ -44,7 +44,7 @@ describe('WordAnalysis', () => {
 
   it('shows the odd duck note for irregular patterns', () => {
     render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.getByText(/odd duck/i)).toBeInTheDocument()
+    expect(screen.getByText('Odd duck')).toBeInTheDocument()
     expect(
       screen.getByText('This spelling is irregular. It does not follow the pattern, so memorize the whole word.')
     ).toBeInTheDocument()
@@ -56,6 +56,38 @@ describe('WordAnalysis', () => {
     expect(within(heading).getByText('ai').className).toContain('text-plum-ink')
     rerender(<WordAnalysis {...defaultProps} />)
     expect(within(screen.getByRole('heading', { level: 2 })).getByText('ai').className).toContain('text-sun-ink')
+  })
+
+  it('shows the mapping note for a multi-letter pattern', () => {
+    render(<WordAnalysis {...defaultProps} />)
+    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
+  })
+
+  it('shows the mapping note for a single-letter pattern', () => {
+    render(<WordAnalysis {...defaultProps} word="cat" pattern={{ ...pattern, pattern: 'a', sound: 'short a' }} />)
+    expect(screen.getByText('The letter a spells short a here.')).toBeInTheDocument()
+  })
+
+  it('shows the odd-duck mapping note for irregular patterns', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
+    expect(screen.getByText('This word does not follow the usual pattern. It is an odd duck.')).toBeInTheDocument()
+  })
+
+  it('shows word parts for a clean suffix split', () => {
+    render(<WordAnalysis {...defaultProps} word="playing" />)
+    const line = screen.getByText(/base word/)
+    expect(line.textContent).toBe('Word parts: base word \u2018play\u2019 plus the suffix \u2018ing\u2019.')
+  })
+
+  it('shows word parts for a clean prefix split', () => {
+    render(<WordAnalysis {...defaultProps} word="redo" />)
+    const line = screen.getByText(/base word/)
+    expect(line.textContent).toBe('Word parts: base word \u2018do\u2019 plus the prefix \u2018re\u2019.')
+  })
+
+  it('omits the word parts line when no clean split applies', () => {
+    render(<WordAnalysis {...defaultProps} />)
+    expect(screen.queryByText(/base word/)).not.toBeInTheDocument()
   })
 
   it('shows the sentence in a quote card', () => {
