@@ -31,7 +31,6 @@ const list: WordList = {
 describe('PatternListsManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
   })
 
   it('shows a loading state, then the empty state', async () => {
@@ -341,6 +340,10 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    await waitFor(() => {
       expect(deleteList).toHaveBeenCalledWith('l1')
     })
   })
@@ -355,6 +358,10 @@ describe('PatternListsManager', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('delete failed')
     })
@@ -371,12 +378,15 @@ describe('PatternListsManager', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+    await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Failed to delete list')
     })
   })
 
   it('does not delete when confirmation is cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
 
@@ -385,6 +395,10 @@ describe('PatternListsManager', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => {
+      expect(screen.getByText('Delete word list?')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(deleteList).not.toHaveBeenCalled()
   })
 
