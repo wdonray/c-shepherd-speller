@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   KeyboardSensor,
   useDraggable,
@@ -11,7 +12,6 @@ import {
   type DragStartEvent,
   type DragOverEvent,
 } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
 import { XIcon, CheckIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,24 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
   rare: 1,
 }
 
+const WORD_BANK_ID = 'word-bank'
+
+function WordBank({ isOver, children }: { isOver: boolean; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: WORD_BANK_ID })
+  return (
+    <div
+      ref={setNodeRef}
+      aria-label="Word bank drop area"
+      className={cn(
+        'mb-8 overflow-x-auto rounded-2xl border-2 border-line bg-card p-4 transition-colors',
+        isOver && 'border-sky-deep bg-sky-soft'
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
 const COLUMN_ACCENTS = [
   { border: 'border-leaf', fill: 'bg-leaf', text: 'text-leaf-ink' },
   { border: 'border-sun-deep', fill: 'bg-sun', text: 'text-sun-ink' },
@@ -39,11 +57,7 @@ const COLUMN_ACCENTS = [
 ] as const
 
 function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checked: boolean; correct: boolean | null }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: entry.id })
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    touchAction: 'none' as const,
-  }
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
   return (
     <li>
       <button
@@ -51,13 +65,15 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
         type="button"
         {...listeners}
         {...attributes}
-        style={style}
+        style={{ touchAction: 'none' }}
         aria-label={`Drag the word ${entry.word}`}
         className={cn(
           'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:cursor-grabbing',
-          isDragging && 'opacity-50',
+          // The DragOverlay renders the floating copy; hide the original
+          // so it does not shift layout or get clipped by scroll containers.
+          isDragging && 'invisible',
           checked && correct && 'border-leaf bg-leaf-soft',
           checked && correct === false && 'border-coral bg-coral-soft'
         )}
@@ -67,6 +83,15 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
         {checked && correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </button>
     </li>
+  )
+}
+
+/** Floating copy of the dragged word, rendered in a portal above everything. */
+function DraggingWordCard({ entry }: { entry: BankWord }) {
+  return (
+    <div className="flex min-h-[56px] min-w-[120px] cursor-grabbing items-center justify-center rounded-[14px] border-2 border-sky-deep bg-sky-soft px-4 py-3 text-[24px] font-bold text-ink shadow-lg">
+      {entry.word}
+    </div>
   )
 }
 
@@ -119,6 +144,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   const [score, setScore] = useState<{ correct: number; total: number } | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [overId, setOverId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   const patterns = useMemo(() => {
     const regular = list.patterns.filter((p) => !p.isOddDuck)
@@ -136,6 +162,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
+      setActiveId(String(event.active.id))
       const entry = bank.find((w) => w.id === event.active.id)
       if (entry) announce(`Picked up '${entry.word}'`)
     },
@@ -150,16 +177,25 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     (event: DragEndEvent) => {
       const { active, over } = event
       setOverId(null)
-      if (!over) {
-        const entry = bank.find((w) => w.id === active.id)
-        if (entry) announce(`Put '${entry.word}' back in the word bank`)
+      setActiveId(null)
+      const entry = bank.find((w) => w.id === active.id)
+      if (!over || !entry) return
+      const overIdStr = String(over.id)
+      if (overIdStr === WORD_BANK_ID) {
+        // Dragged back into the word bank: remove any placement.
+        setPlacements((prev) => {
+          if (!(entry.id in prev)) return prev
+          const next = { ...prev }
+          delete next[entry.id]
+          return next
+        })
+        setChecked(false)
+        announce(`Put '${entry.word}' back in the word bank`)
         return
       }
-      const columnId = String(over.id)
-      const pattern = patterns.find((p) => p.id === columnId)
-      const entry = bank.find((w) => w.id === active.id)
-      if (pattern && entry) {
-        setPlacements((prev) => ({ ...prev, [entry.id]: columnId }))
+      const pattern = patterns.find((p) => p.id === overIdStr)
+      if (pattern) {
+        setPlacements((prev) => ({ ...prev, [entry.id]: overIdStr }))
         setChecked(false)
         announce(`Dropped '${entry.word}' in column ${pattern.pattern}`)
       }
@@ -218,7 +254,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           {announcement}
         </div>
 
-        <div className="mb-8 overflow-x-auto rounded-2xl border-2 border-line bg-card p-4">
+        <WordBank isOver={overId === WORD_BANK_ID}>
           <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
           {bankWords.length === 0 ? (
             <p className="py-4 text-center text-[15px] text-muted-foreground">
@@ -236,7 +272,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
               ))}
             </ul>
           )}
-        </div>
+        </WordBank>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
           {patterns.map((pattern, i) => {
@@ -300,6 +336,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           </p>
         )}
       </div>
+      <DragOverlay dropAnimation={null} style={{ zIndex: 100 }}>
+        {activeId ? <DraggingWordCard entry={bank.find((w) => w.id === activeId)!} /> : null}
+      </DragOverlay>
     </DndContext>
   )
 }
