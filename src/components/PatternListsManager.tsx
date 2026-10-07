@@ -33,7 +33,7 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="cursor-pointer rounded-full p-1 text-coral-ink hover:bg-card"
+        className="cursor-pointer rounded-full p-1 text-coral-ink outline-none hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         <XIcon className="size-4" />
       </button>
@@ -216,7 +216,7 @@ export default function PatternListsManager() {
         <button
           type="button"
           onClick={() => setEditingList(null)}
-          className="cursor-pointer text-[15px] font-semibold text-sky-ink hover:underline"
+          className="cursor-pointer text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
           <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
           My lists
@@ -284,7 +284,7 @@ export default function PatternListsManager() {
         <button
           type="button"
           onClick={addPattern}
-          className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink transition-all hover:brightness-95"
+          className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition-all hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
           + Add a pattern
         </button>

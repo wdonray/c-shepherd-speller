@@ -94,4 +94,20 @@ describe('PatternChartDisplay', () => {
     const { container } = render(<PatternChartDisplay list={list} />)
     expect(container.firstChild).toHaveClass('force-light')
   })
+
+  it('gives word cards a visible hover and matching focus-visible treatment, motion-free', () => {
+    render(<PatternChartDisplay list={list} />)
+    const card = screen.getByRole('button', { name: 'Hear and analyze the word cake' })
+    expect(card).toHaveClass(
+      'hover:border-sky-deep',
+      'hover:bg-sky-soft',
+      'focus-visible:border-sky-deep',
+      'focus-visible:bg-sky-soft',
+      'focus-visible:ring-[3px]',
+      'focus-visible:ring-ring/60'
+    )
+    // No hover translate/lift: it would fight the press effect and break the
+    // flat-card convention on projectors.
+    expect(card.className).not.toMatch(/hover:translate-/)
+  })
 })

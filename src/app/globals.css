@@ -32,6 +32,7 @@
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-line: var(--line);
+  --color-line-deep: var(--line-deep);
 
   --color-leaf: var(--leaf);
   --color-leaf-deep: var(--leaf-deep);
@@ -89,6 +90,7 @@
   --muted: #6e6252;
   --muted-bg: #f1e8d5;
   --line: #e8d9be;
+  --line-deep: #c9b28c;
   --leaf: #367b17;
   --leaf-deep: #2e6510;
   --leaf-soft: #e7f6d8;
@@ -127,6 +129,7 @@
   --muted: #b7ab97;
   --muted-bg: #3a332a;
   --line: #4a4237;
+  --line-deep: #655a48;
   --leaf: #367b17;
   --leaf-deep: #2e6510;
   --leaf-soft: #33431f;
@@ -168,6 +171,7 @@
   --muted: #6e6252;
   --muted-bg: #f1e8d5;
   --line: #e8d9be;
+  --line-deep: #c9b28c;
   --leaf: #367b17;
   --leaf-deep: #2e6510;
   --leaf-soft: #e7f6d8;
