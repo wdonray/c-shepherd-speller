@@ -196,7 +196,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
         type="button"
         onClick={speakWord}
         aria-label="Hear the word"
-        className="flex size-50 cursor-pointer items-center justify-center rounded-full border-4 border-sky-deep bg-sky text-white shadow-[0_6px_0_var(--color-sky-dark)] outline-none transition-all hover:brightness-110 focus-visible:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60 active:translate-y-1 active:shadow-none"
+        className="flex size-50 cursor-pointer items-center justify-center rounded-full border-4 border-sky-deep bg-sky text-white shadow-[0_6px_0_var(--color-sky-dark)] outline-none transition hover:brightness-110 focus-visible:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60 active:translate-y-1 active:shadow-none"
       >
         <Volume2Icon className="size-20" aria-hidden="true" />
       </button>
@@ -340,7 +340,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
               aria-valuemax={100}
               aria-label="Practice progress"
             >
-              <div className="h-full rounded-full bg-leaf transition-all" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-leaf transition-[width]" style={{ width: `${progress}%` }} />
             </div>
           </div>
           {streak > 1 && (

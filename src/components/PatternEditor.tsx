@@ -115,7 +115,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             onClick={() => update({ isOddDuck: !isOddDuck })}
             title={isOddDuck ? 'Remove the odd-duck mark' : 'Mark as an odd duck (irregular spelling)'}
             className={cn(
-              'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+              'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
               isOddDuck
                 ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
                 : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
@@ -151,7 +151,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                   title={f.meaning}
                   onClick={() => update({ frequency: f.value })}
                   className={cn(
-                    'cursor-pointer rounded-xl border-2 p-2 transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                    'cursor-pointer rounded-xl border-2 p-2 transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
                     selected
                       ? cn('border-current hover:brightness-95 focus-visible:brightness-95', accent.text, accent.soft)
                       : 'border-line opacity-50 hover:opacity-100 focus-visible:opacity-100'

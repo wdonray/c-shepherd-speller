@@ -52,9 +52,13 @@ function DisplayModeInner() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center" role="status">
-        <div className="w-full max-w-3xl space-y-4 px-4">
+        <div className="w-full max-w-6xl space-y-4 px-4">
           <div className="h-10 w-2/3 animate-pulse rounded-[20px] bg-line" />
-          <div className="h-64 animate-pulse rounded-[20px] bg-line" />
+          <div className="flex flex-col gap-6 lg:flex-row" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-64 flex-1 animate-pulse rounded-2xl bg-line" />
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -137,9 +141,13 @@ export default function DisplayMode() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center" role="status">
-          <div className="w-full max-w-3xl space-y-4 px-4">
+          <div className="w-full max-w-6xl space-y-4 px-4">
             <div className="h-10 w-2/3 animate-pulse rounded-[20px] bg-line" />
-            <div className="h-64 animate-pulse rounded-[20px] bg-line" />
+            <div className="flex flex-col gap-6 lg:flex-row" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-64 flex-1 animate-pulse rounded-2xl bg-line" />
+              ))}
+            </div>
           </div>
         </div>
       }

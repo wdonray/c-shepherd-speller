@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
  * the base focus-visible ring (WCAG 2.2 AA 2.4.7).
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-base font-bold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 cursor-pointer select-none active:translate-y-[3px]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-base font-bold transition disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 cursor-pointer select-none active:translate-y-[3px]",
   {
     variants: {
       variant: {

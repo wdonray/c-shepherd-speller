@@ -214,4 +214,15 @@
   body[data-auth-page='true'] {
     overflow: hidden;
   }
+
+  /* Respect users who prefer reduced motion: disable animations and
+     transitions globally so state changes are instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
