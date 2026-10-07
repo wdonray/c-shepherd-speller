@@ -256,7 +256,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                         key={entry.id}
                         entry={entry}
                         checked={checked}
-                        correct={checked ? (results[entry.id] ?? false) : null}
+                        correct={checked ? results[entry.id]! : null}
                       />
                     ))}
                     {columnWords.length === 0 && (
