@@ -30,16 +30,11 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
     if (!open) return
     setLoading(true)
     setSentences([])
-    let cancelled = false
     fetchExampleSentences(word).then((results) => {
-      if (cancelled) return
       setSentences(results)
       setLoading(false)
       setSelected((prev) => prev ?? results[0])
     })
-    return () => {
-      cancelled = true
-    }
   }, [open, word])
 
   useEffect(() => {
