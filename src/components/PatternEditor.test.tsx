@@ -212,4 +212,46 @@ describe('PatternEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
     expect(onRemove).toHaveBeenCalledTimes(1)
   })
+
+  it('shows up to 3 suggestion chips on exact sound+pattern match', () => {
+    renderEditor()
+    const group = screen.getByRole('group', { name: 'Try:' })
+    expect(group).toBeInTheDocument()
+    const chips = group.querySelectorAll('button')
+    expect(chips.length).toBeLessThanOrEqual(3)
+    expect(chips.length).toBeGreaterThan(0)
+    // Each chip is a 44px touch target.
+    chips.forEach((chip) => {
+      expect(chip).toHaveClass('min-h-[44px]')
+    })
+  })
+
+  it('shows no suggestions on near-miss pattern', () => {
+    renderEditor({ pattern: 'aie' })
+    expect(screen.queryByRole('group', { name: 'Try:' })).not.toBeInTheDocument()
+  })
+
+  it('shows no suggestions when sound is empty', () => {
+    renderEditor({ sound: '' })
+    expect(screen.queryByRole('group', { name: 'Try:' })).not.toBeInTheDocument()
+  })
+
+  it('adds a suggested word through the existing dedupe path', () => {
+    const { onChange } = renderEditor()
+    const group = screen.getByRole('group', { name: 'Try:' })
+    const chip = group.querySelectorAll('button')[0]
+    const word = chip.textContent
+    fireEvent.click(chip)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: [...basePattern.words, word] })
+  })
+
+  it('does not suggest words already in the list', () => {
+    renderEditor()
+    const group = screen.getByRole('group', { name: 'Try:' })
+    const chipTexts = Array.from(group.querySelectorAll('button')).map((b) => b.textContent)
+    // 'cake' and 'bake' are already in basePattern.words, so they are filtered out.
+    expect(chipTexts).not.toContain('cake')
+    expect(chipTexts).not.toContain('bake')
+    expect(chipTexts).toContain('made')
+  })
 })
