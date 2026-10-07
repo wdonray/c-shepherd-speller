@@ -369,6 +369,17 @@ describe('ProfileDialog', () => {
       await waitFor(() => expect(processProfileImageMock).toHaveBeenCalledWith(file))
     }
 
+    it('opens the file picker when the avatar button is clicked', async () => {
+      renderWithUser()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+      const input = screen.getByLabelText(/profile photo file input/i) as HTMLInputElement
+      const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
+      const avatarButton = screen.getByRole('button', { name: /upload profile photo/i })
+      fireEvent.click(avatarButton)
+      expect(clickSpy).toHaveBeenCalled()
+      clickSpy.mockRestore()
+    })
+
     it('shows the saved photo instead of initials', async () => {
       renderWithUser({ image: 'data:image/jpeg;base64,saved' })
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
