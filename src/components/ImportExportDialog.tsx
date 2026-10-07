@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { DownloadIcon, UploadIcon } from 'lucide-react'
 import { createList, getLists } from '@/lib/lists-api'
+import { buildExportFilename } from '@/lib/export-filename'
 import { CreateWordListSchema } from '@/models/WordList'
 
 const ImportFileSchema = z.array(CreateWordListSchema)
@@ -38,10 +39,9 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       const lists = await getLists()
       const blob = new Blob([JSON.stringify(lists, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
-      const date = new Date().toISOString().slice(0, 10)
       const a = document.createElement('a')
       a.href = url
-      a.download = `shepherd-speller-lists-${date}.json`
+      a.download = buildExportFilename()
       document.body.appendChild(a)
       a.click()
       a.remove()
