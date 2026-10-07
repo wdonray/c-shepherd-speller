@@ -148,4 +148,31 @@ describe('fetchExampleSentences', () => {
     await fetchExampleSentences('cake')
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
+
+  it('handles corrupt localStorage gracefully', async () => {
+    window.localStorage.setItem('patternspell-sentences', 'not-json{')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const sentences = await fetchExampleSentences('cake')
+    expect(sentences).toEqual(['We baked a cake.'])
+  })
+
+  it('handles localStorage write errors gracefully', async () => {
+    const setItem = vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const sentences = await fetchExampleSentences('cake')
+    expect(sentences).toEqual(['We baked a cake.'])
+    setItem.mockRestore()
+  })
 })

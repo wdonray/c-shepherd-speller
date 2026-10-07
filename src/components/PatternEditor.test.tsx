@@ -257,12 +257,8 @@ describe('PatternEditor', () => {
 
   it('renders a sentence picker for each word', () => {
     renderEditor()
-    expect(
-      screen.getByRole('button', { name: 'Pick an example sentence for cake' })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Pick an example sentence for bake' })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pick an example sentence for cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pick an example sentence for bake' })).toBeInTheDocument()
   })
 
   it('removes the word sentence when the word is removed', () => {

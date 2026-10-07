@@ -94,4 +94,29 @@ describe('SentencePicker', () => {
       expect(screen.getByText('No example sentences found for this word yet.')).toBeInTheDocument()
     })
   })
+
+  it('clears the sentence when Clear is clicked', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    const onSelect = vi.fn()
+    render(<SentencePicker word="cake" patternId="p1" currentSentence="We baked a cake." onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Change example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(onSelect).toHaveBeenCalledWith(undefined)
+  })
+
+  it('closes via the X button', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Close sentence picker' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
 })
