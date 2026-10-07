@@ -49,7 +49,7 @@ let cachedVoices: SpeechSynthesisVoice[] | null = null
 let voicesListenerAttached = false
 
 function loadVoices(): SpeechSynthesisVoice[] {
-  if (!isTtsSupported()) return []
+  // Called only from speak(), which already verified TTS support.
   if (cachedVoices !== null) return cachedVoices
   const synth = globalThis.speechSynthesis
   // getVoices may be missing on partial implementations; fall back to empty.
