@@ -40,6 +40,23 @@ describe('WordList model', () => {
       expect(result.success).toBe(true)
     })
 
+    it('accepts a pattern with example sentences', () => {
+      const result = SpellingPatternSchema.safeParse({
+        ...validPattern,
+        sentences: { cake: 'We baked a cake.' },
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts a pattern without sentences (backwards compatible)', () => {
+      const { sentences: _sentences, ...withoutSentences } = {
+        ...validPattern,
+        sentences: { cake: 'We baked a cake.' },
+      }
+      const result = SpellingPatternSchema.safeParse(withoutSentences)
+      expect(result.success).toBe(true)
+    })
+
     it('rejects an invalid frequency', () => {
       const result = SpellingPatternSchema.safeParse({ ...validPattern, frequency: 'sometimes' })
       expect(result.success).toBe(false)

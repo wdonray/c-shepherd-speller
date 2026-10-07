@@ -20,6 +20,7 @@ interface PracticeModeProps {
 interface WordItem {
   word: string
   pattern: string
+  sentence?: string
 }
 
 type Phase = 'prompt' | 'correct' | 'incorrect' | 'complete' | 'review-complete'
@@ -42,7 +43,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     const words: WordItem[] = []
     for (const pattern of list.patterns) {
       for (const word of pattern.words) {
-        words.push({ word, pattern: pattern.pattern })
+        words.push({ word, pattern: pattern.pattern, sentence: pattern.sentences?.[word] })
       }
     }
     return words
@@ -73,7 +74,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   }
 
   const speakSentence = () => {
-    speak(buildSentencePrompt(activeWord.word))
+    speak(buildSentencePrompt(activeWord.word, activeWord.sentence))
   }
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -94,8 +94,10 @@ export function stopSpeaking(): void {
 
 /**
  * Build the "hear it in a sentence" prompt for a spelling word.
- * Kept to a simple template on purpose: no NLP, just a spoken cue.
+ * When the teacher picked an example sentence, speak it; otherwise fall
+ * back to the simple template.
  */
-export function buildSentencePrompt(word: string): string {
+export function buildSentencePrompt(word: string, sentence?: string): string {
+  if (sentence && sentence.trim().length > 0) return sentence.trim()
   return `The word is ${word}. Can you spell ${word}?`
 }

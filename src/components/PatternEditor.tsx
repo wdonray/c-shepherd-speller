@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { XIcon } from 'lucide-react'
 import { OddDuck } from './OddDuck'
+import SentencePicker from './SentencePicker'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import type { SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -74,7 +75,22 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   }
 
   const removeWord = (word: string) => {
-    update({ words: pattern.words.filter((w) => w !== word) })
+    const sentences = { ...(pattern.sentences ?? {}) }
+    delete sentences[word]
+    update({
+      words: pattern.words.filter((w) => w !== word),
+      sentences: Object.keys(sentences).length > 0 ? sentences : undefined,
+    })
+  }
+
+  const setWordSentence = (word: string, sentence: string | undefined) => {
+    const sentences = { ...(pattern.sentences ?? {}) }
+    if (sentence) {
+      sentences[word] = sentence
+    } else {
+      delete sentences[word]
+    }
+    update({ sentences: Object.keys(sentences).length > 0 ? sentences : undefined })
   }
 
   const addSuggestedWord = (word: string) => {
@@ -222,16 +238,23 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             {pattern.words.map((word) => (
               <span
                 key={word}
-                className="inline-flex items-center gap-1.5 rounded-full bg-leaf-soft py-2 pr-2 pl-4 text-[15px] font-semibold"
+                className="inline-flex items-center gap-1 rounded-full bg-leaf-soft py-1 pr-1 pl-4 text-[15px] font-semibold"
               >
                 {word}
+                <SentencePicker
+                  word={word}
+                  patternId={pattern.id}
+                  currentSentence={pattern.sentences?.[word]}
+                  onSelect={(sentence) => setWordSentence(word, sentence)}
+                />
+                <span className="w-1" aria-hidden="true" />
                 <button
                   type="button"
                   onClick={() => removeWord(word)}
                   aria-label={`Remove ${word}`}
-                  className="cursor-pointer rounded-full p-1 font-bold text-muted-foreground outline-none hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 font-bold text-muted-foreground outline-none transition hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
                 >
-                  <XIcon className="size-3.5" />
+                  <XIcon className="size-4" aria-hidden="true" />
                 </button>
               </span>
             ))}

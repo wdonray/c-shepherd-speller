@@ -254,4 +254,26 @@ describe('PatternEditor', () => {
     expect(chipTexts).not.toContain('bake')
     expect(chipTexts).toContain('made')
   })
+
+  it('renders a sentence picker for each word', () => {
+    renderEditor()
+    expect(
+      screen.getByRole('button', { name: 'Pick an example sentence for cake' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Pick an example sentence for bake' })
+    ).toBeInTheDocument()
+  })
+
+  it('removes the word sentence when the word is removed', () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake'],
+      sentences: undefined,
+    })
+  })
 })

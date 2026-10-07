@@ -103,6 +103,14 @@ describe('tts', () => {
     it('builds a simple spoken cue for the word', () => {
       expect(buildSentencePrompt('rain')).toBe('The word is rain. Can you spell rain?')
     })
+
+    it('uses the stored sentence when provided', () => {
+      expect(buildSentencePrompt('rain', 'The rain fell all day.')).toBe('The rain fell all day.')
+    })
+
+    it('falls back to the template for blank sentences', () => {
+      expect(buildSentencePrompt('rain', '   ')).toBe('The word is rain. Can you spell rain?')
+    })
   })
 
   describe('pickVoice', () => {

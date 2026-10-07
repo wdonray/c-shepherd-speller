@@ -5,7 +5,7 @@ import type { WordList } from '@/models/WordList'
 
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
-  buildSentencePrompt: (word: string) => `The word is ${word}. Can you spell ${word}?`,
+  buildSentencePrompt: (word: string, sentence?: string) => sentence ?? `The word is ${word}. Can you spell ${word}?`,
 }))
 const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
@@ -108,6 +108,23 @@ describe('PracticeMode', () => {
     render(<PracticeMode list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Hear it in a sentence' }))
     expect(vi.mocked(speak)).toHaveBeenCalledWith('The word is cake. Can you spell cake?')
+  })
+
+  it('speaks the stored example sentence when one exists', async () => {
+    const { speak } = await import('@/lib/tts')
+    const listWithSentence: WordList = {
+      ...list,
+      patterns: [
+        {
+          ...list.patterns[0],
+          sentences: { cake: 'We baked a cake for the party.' },
+        },
+        list.patterns[1],
+      ],
+    }
+    render(<PracticeMode list={listWithSentence} onExit={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Hear it in a sentence' }))
+    expect(vi.mocked(speak)).toHaveBeenCalledWith('We baked a cake for the party.')
   })
 
   it('marks a correct spelling and advances', () => {
