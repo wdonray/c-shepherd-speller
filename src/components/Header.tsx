@@ -69,10 +69,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
-        <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          aria-label="PatternSpell home"
+          className="flex items-center gap-3 rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        >
           <PatternMark label="PatternSpell logo" />
           <span className="text-[22px] font-bold tracking-tight">PatternSpell</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
             My Spelling Lists
