@@ -1,8 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Volume2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
@@ -85,16 +83,6 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
     <div className="force-light w-full rounded-[20px] bg-background p-6 sm:p-10">
       <div className="mb-8 text-center">
         <p className="text-[30px] font-extrabold text-ink">{targetSound}</p>
-        <Button
-          variant="sky"
-          size="sm"
-          className="mt-3"
-          onClick={() => speak(targetSound)}
-          aria-label={`Hear the sound ${targetSound}`}
-        >
-          <Volume2Icon className="size-4" aria-hidden="true" />
-          Hear sound
-        </Button>
       </div>
 
       {columns.length === 0 && oddDucks.length === 0 ? (
