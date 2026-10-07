@@ -292,4 +292,34 @@ describe('PatternEditor', () => {
       sentences: { cake: 'We baked a cake.' },
     })
   })
+
+  it('keeps other sentences when removing a word with a sentence', () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.', bake: 'We bake bread.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake'],
+      sentences: { bake: 'We bake bread.' },
+    })
+  })
+
+  it('clears a sentence through the picker', async () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Change example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      sentences: undefined,
+    })
+  })
 })
