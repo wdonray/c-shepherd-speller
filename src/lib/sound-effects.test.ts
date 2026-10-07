@@ -137,6 +137,16 @@ describe('sound-effects', () => {
     expect(mock.ctx.createOscillator).not.toHaveBeenCalled()
   })
 
+  it('reuses the cached audio context across plays', async () => {
+    const { playCorrectSound, playIncorrectSound } = await loadModule()
+    playCorrectSound()
+    playIncorrectSound()
+    // AudioContext constructor called once; second play reuses the cached instance.
+    const MockAudioContext = window.AudioContext as unknown as ReturnType<typeof vi.fn>
+    expect(MockAudioContext).toHaveBeenCalledTimes(1)
+    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(4)
+  })
+
   it('does nothing when AudioContext is unavailable', async () => {
     vi.stubGlobal('AudioContext', undefined)
     const { playCorrectSound, playIncorrectSound } = await loadModule()
