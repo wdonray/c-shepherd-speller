@@ -181,6 +181,7 @@ describe('Dashboard', () => {
   it('shows recent activity when events exist', async () => {
     logActivity('practiced', 'Practiced Week 5: Long A, 8 of 10 correct')
     logActivity('created', 'Created Week 6: Long E')
+    logActivity('presented', 'Presented Week 5: Long A')
     getLists.mockResolvedValue([])
 
     render(<Dashboard {...defaultProps} />)
@@ -190,6 +191,13 @@ describe('Dashboard', () => {
     })
     expect(screen.getByText(/Practiced Week 5: Long A, 8 of 10 correct/)).toBeInTheDocument()
     expect(screen.getByText(/Created Week 6: Long E/)).toBeInTheDocument()
+    // Each activity kind shows a labeled chip with its color classes.
+    const practicedChip = screen.getByText('Practiced', { selector: 'span' })
+    expect(practicedChip).toHaveClass('bg-leaf-soft', 'text-leaf-ink')
+    const createdChip = screen.getByText('Created', { selector: 'span' })
+    expect(createdChip).toHaveClass('bg-plum-soft', 'text-plum-ink')
+    const presentedChip = screen.getByText('Presented', { selector: 'span' })
+    expect(presentedChip).toHaveClass('bg-sky-soft', 'text-sky-ink')
   })
 
   it('hides the recent activity section when there are no events', async () => {

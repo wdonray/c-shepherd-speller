@@ -31,10 +31,10 @@ const GETTING_STARTED_STEPS = [
   },
 ]
 
-const ACTIVITY_DOTS: Record<ActivityEvent['kind'], string> = {
-  practiced: 'bg-leaf',
-  presented: 'bg-sky',
-  created: 'bg-plum',
+const ACTIVITY_META: Record<ActivityEvent['kind'], { label: string; chipClasses: string }> = {
+  practiced: { label: 'Practiced', chipClasses: 'bg-leaf-soft text-leaf-ink' },
+  presented: { label: 'Presented', chipClasses: 'bg-sky-soft text-sky-ink' },
+  created: { label: 'Created', chipClasses: 'bg-plum-soft text-plum-ink' },
 }
 
 function GettingStarted() {
@@ -71,16 +71,21 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
     <section aria-label="Recent activity" className="space-y-4">
       <h2 className="text-2xl font-bold">Recent activity</h2>
       <ul className="space-y-2">
-        {events.slice(0, 5).map((event) => (
-          <li key={event.id}>
-            <Card className="flex flex-row items-center gap-4 p-4">
-              <span aria-hidden="true" className={`size-6 shrink-0 rounded-full ${ACTIVITY_DOTS[event.kind]}`} />
-              <p>
-                {event.text}, <span className="text-muted-foreground">{timeAgo(event.at)}</span>
-              </p>
-            </Card>
-          </li>
-        ))}
+        {events.slice(0, 5).map((event) => {
+          const meta = ACTIVITY_META[event.kind]
+          return (
+            <li key={event.id}>
+              <Card className="flex flex-row items-center gap-4 p-4">
+                <span className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-bold ${meta.chipClasses}`}>
+                  {meta.label}
+                </span>
+                <p>
+                  {event.text}, <span className="text-muted-foreground">{timeAgo(event.at)}</span>
+                </p>
+              </Card>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
