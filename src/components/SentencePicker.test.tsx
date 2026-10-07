@@ -96,12 +96,43 @@ describe('SentencePicker', () => {
     render(<SentencePicker word="xyzzy" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for xyzzy' }))
     await waitFor(() => {
-      expect(screen.getByText('No example sentences found for this word yet.')).toBeInTheDocument()
+      expect(screen.getByText(/No example sentences found for this word yet/)).toBeInTheDocument()
     })
     // Focus moves to the close button when there are no radios.
     await waitFor(() => {
       expect(document.activeElement).toHaveAttribute('aria-label', 'Close sentence picker')
     })
+  })
+
+  it('lets the teacher add a custom sentence when none are found', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue([])
+    const onSelect = vi.fn()
+    render(<SentencePicker word="xyzzy" patternId="p1" onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for xyzzy' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText(/or write your own/i)).toBeInTheDocument()
+    })
+    const input = screen.getByLabelText(/or write your own/i)
+    fireEvent.change(input, { target: { value: 'The xyzzy glowed brightly.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    // The custom sentence becomes selected and can be confirmed.
+    fireEvent.click(screen.getByRole('button', { name: 'Use this sentence' }))
+    expect(onSelect).toHaveBeenCalledWith('The xyzzy glowed brightly.')
+  })
+
+  it('lets the teacher add a custom sentence alongside API sentences', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    const onSelect = vi.fn()
+    render(<SentencePicker word="cake" patternId="p1" onSelect={onSelect} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByText('We baked a cake.')).toBeInTheDocument()
+    })
+    const input = screen.getByLabelText(/or write your own/i)
+    fireEvent.change(input, { target: { value: 'I like cake.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Use this sentence' }))
+    expect(onSelect).toHaveBeenCalledWith('I like cake.')
   })
 
   it('clears the sentence when Clear is clicked', async () => {

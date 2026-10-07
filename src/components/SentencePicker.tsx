@@ -24,6 +24,7 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
   const [loading, setLoading] = useState(false)
   const [sentences, setSentences] = useState<string[]>([])
   const [selected, setSelected] = useState<string | undefined>(currentSentence)
+  const [customSentence, setCustomSentence] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
   const buttonId = `sentence-btn-${patternId}-${word}`
 
@@ -31,6 +32,7 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
     if (!open) return
     setLoading(true)
     setSentences([])
+    setCustomSentence('')
     fetchExampleSentences(word).then((results) => {
       setSentences(results)
       setLoading(false)
@@ -118,7 +120,9 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
               Finding sentences&hellip;
             </p>
           ) : sentences.length === 0 ? (
-            <p className="py-4 text-[14px] text-muted-foreground">No example sentences found for this word yet.</p>
+            <p className="py-4 text-[14px] text-muted-foreground">
+              No example sentences found for this word yet. Add your own below.
+            </p>
           ) : (
             <div role="radiogroup" aria-label={`Choose a sentence for ${word}`} className="space-y-2">
               {sentences.map((sentence) => (
@@ -143,16 +147,47 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
             </div>
           )}
         </div>
-        {!loading && sentences.length > 0 && (
-          <div className="mt-4 flex gap-2">
-            <Button size="sm" data-confirm onClick={handleConfirm} disabled={!selected}>
-              Use this sentence
-            </Button>
-            {currentSentence && (
-              <Button size="sm" variant="ghost" onClick={handleClear}>
-                Clear
+        {!loading && (
+          <div className="mt-4 space-y-3">
+            <div>
+              <label
+                htmlFor={`custom-sentence-${patternId}-${word}`}
+                className="mb-1 block text-[13px] font-semibold text-ink"
+              >
+                Or write your own
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id={`custom-sentence-${patternId}-${word}`}
+                  type="text"
+                  value={customSentence}
+                  onChange={(e) => setCustomSentence(e.target.value)}
+                  placeholder={`Write a sentence using "${word}"`}
+                  className="h-10 flex-1 rounded-xl border-2 border-line bg-card px-3 text-[14px] text-ink outline-none placeholder:text-muted-foreground focus-visible:border-sky-deep"
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setSelected(customSentence.trim())
+                    setCustomSentence('')
+                  }}
+                  disabled={!customSentence.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" data-confirm onClick={handleConfirm} disabled={!selected}>
+                Use this sentence
               </Button>
-            )}
+              {currentSentence && (
+                <Button size="sm" variant="ghost" onClick={handleClear}>
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
         )}
         <p className="mt-3 text-[12px] text-muted-foreground">
