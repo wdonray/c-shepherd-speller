@@ -62,6 +62,12 @@ describe('WordListCard', () => {
     expect(screen.getByRole('link', { name: 'Present' })).toHaveAttribute('href', '/display?list=l1')
   })
 
+  it('hides the Present link when showPresent is false', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} showPresent={false} />)
+    expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
+  })
+
   it('renders a Delete button when onDelete is provided', () => {
     const onDelete = vi.fn()
     render(<WordListCard list={list} onOpen={vi.fn()} onDelete={onDelete} />)

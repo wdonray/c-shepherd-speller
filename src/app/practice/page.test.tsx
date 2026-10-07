@@ -56,6 +56,17 @@ describe('PracticePage', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
+  it('hides the Present link on practice picker cards', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
+  })
+
   it('opens practice for the chosen list', async () => {
     const { fireEvent } = await import('@testing-library/react')
     getLists.mockResolvedValue([list])
