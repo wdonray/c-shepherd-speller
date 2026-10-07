@@ -39,10 +39,12 @@ describe('Home page', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows a spinner while the session is loading', () => {
+  it('shows a dashboard skeleton while the session is loading', () => {
     mockSession(null, 'loading')
     const { container } = render(<Home />)
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
+    expect(container.querySelector('.animate-spin')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
     expect(screen.queryByText(/my word lists/i)).not.toBeInTheDocument()
   })
 

@@ -45,8 +45,24 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-8" role="status" aria-label="Loading">
+        <div className="space-y-2" aria-hidden="true">
+          <div className="h-9 w-56 animate-pulse rounded-xl bg-line/60" />
+        </div>
+        <div className="flex flex-wrap gap-3" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 w-32 animate-pulse rounded-2xl bg-line/60" />
+          ))}
+        </div>
+        <div className="space-y-4" aria-hidden="true">
+          <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-48 animate-pulse rounded-[20px] bg-line/60" />
+            ))}
+          </div>
+        </div>
+        <p className="text-muted-foreground">Loading your dashboard...</p>
       </div>
     )
   }

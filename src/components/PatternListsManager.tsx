@@ -285,7 +285,7 @@ export default function PatternListsManager() {
           <button
             type="button"
             onClick={addPattern}
-            className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition-all hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
           >
             + Add a pattern
           </button>

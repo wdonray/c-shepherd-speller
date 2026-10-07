@@ -130,11 +130,27 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
       </div>
 
       {loading ? (
-        <div className="space-y-4" role="status">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+        <div className="space-y-10" role="status">
+          <div className="flex flex-wrap gap-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-48 animate-pulse rounded-[20px] bg-line/60" />
+              <div key={i} className="h-12 w-32 animate-pulse rounded-2xl bg-line/60" />
             ))}
+          </div>
+          <div className="space-y-4" aria-hidden="true">
+            <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-48 animate-pulse rounded-[20px] bg-line/60" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4" aria-hidden="true">
+            <div className="h-8 w-72 animate-pulse rounded-xl bg-line/60" />
+            <div className="grid gap-4 md:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-44 animate-pulse rounded-[20px] bg-line/60" />
+              ))}
+            </div>
           </div>
           <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
