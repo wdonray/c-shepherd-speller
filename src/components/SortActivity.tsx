@@ -190,7 +190,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     setResults({})
     setScore(null)
     announce('Incorrect words returned to the word bank. Try again.')
-    bankRef.current?.scrollTo({ left: 0 })
+    // jsdom does not implement scrollTo; guard for the test environment.
+    if (typeof bankRef.current?.scrollTo === 'function') {
+      bankRef.current.scrollTo({ left: 0 })
+    }
   }, [results, announce])
 
   const sensors = useMemo(() => {
