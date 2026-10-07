@@ -48,6 +48,7 @@ function renderDialog() {
 describe('ProfileDialog', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
+    processProfileImageMock.mockReset()
   })
 
   afterEach(() => {
@@ -443,6 +444,27 @@ describe('ProfileDialog', () => {
       })
       const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
       expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('')
+    })
+
+    it('ignores photo selection when no file is chosen', async () => {
+      stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      const input = screen.getByLabelText(/upload profile photo/i) as HTMLInputElement
+      fireEvent.change(input, { target: { files: [] } })
+      expect(processProfileImageMock).not.toHaveBeenCalled()
+    })
+
+    it('shows a generic error when photo processing rejects with a non-Error', async () => {
+      processProfileImageMock.mockRejectedValue('string failure')
+      stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      const input = screen.getByLabelText(/upload profile photo/i)
+      fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } })
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not read the image file.')
     })
   })
 })
