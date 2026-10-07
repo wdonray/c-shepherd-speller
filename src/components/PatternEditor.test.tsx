@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
+
+vi.mock('@/lib/example-sentences', () => ({
+  fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
+}))
 
 const basePattern: SpellingPattern = {
   id: 'p1',
@@ -253,5 +257,69 @@ describe('PatternEditor', () => {
     expect(chipTexts).not.toContain('cake')
     expect(chipTexts).not.toContain('bake')
     expect(chipTexts).toContain('made')
+  })
+
+  it('renders a sentence picker for each word', () => {
+    renderEditor()
+    expect(screen.getByRole('button', { name: 'Pick an example sentence for cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pick an example sentence for bake' })).toBeInTheDocument()
+  })
+
+  it('removes the word sentence when the word is removed', () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake'],
+      sentences: undefined,
+    })
+  })
+
+  it('saves the picked sentence on the pattern', async () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'We baked a cake.' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Use this sentence' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      sentences: { cake: 'We baked a cake.' },
+    })
+  })
+
+  it('keeps other sentences when removing a word with a sentence', () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.', bake: 'We bake bread.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake'],
+      sentences: { bake: 'We bake bread.' },
+    })
+  })
+
+  it('clears a sentence through the picker', async () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Change example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      sentences: undefined,
+    })
   })
 })
