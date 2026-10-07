@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -119,7 +119,6 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   const [score, setScore] = useState<{ correct: number; total: number } | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [overId, setOverId] = useState<string | null>(null)
-  const bankRef = useRef<HTMLDivElement>(null)
 
   const patterns = useMemo(() => {
     const regular = list.patterns.filter((p) => !p.isOddDuck)
@@ -190,10 +189,6 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     setResults({})
     setScore(null)
     announce('Incorrect words returned to the word bank. Try again.')
-    // jsdom does not implement scrollTo; guard for the test environment.
-    if (typeof bankRef.current?.scrollTo === 'function') {
-      bankRef.current.scrollTo({ left: 0 })
-    }
   }, [results, announce])
 
   const sensors = useMemo(() => {
@@ -223,7 +218,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           {announcement}
         </div>
 
-        <div ref={bankRef} className="mb-8 overflow-x-auto rounded-2xl border-2 border-line bg-card p-4">
+        <div className="mb-8 overflow-x-auto rounded-2xl border-2 border-line bg-card p-4">
           <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
           {bankWords.length === 0 ? (
             <p className="py-4 text-center text-[15px] text-muted-foreground">
