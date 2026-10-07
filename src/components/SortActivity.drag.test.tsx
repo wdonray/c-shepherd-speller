@@ -126,21 +126,30 @@ describe('SortActivity drag flow', () => {
   })
 
   it('try again returns only incorrect words to the bank', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} />)
-    dragWord('p1:cake', 'p1')
-    dragWord('p1:bake', 'p2')
+    // Mock scrollTo so the bank reset scroll is covered.
+    const scrollTo = vi.fn()
+    HTMLElement.prototype.scrollTo = scrollTo
+    try {
+      render(<SortActivity list={list} onExit={vi.fn()} />)
+      dragWord('p1:cake', 'p1')
+      dragWord('p1:bake', 'p2')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-    await waitFor(() => {
-      expect(screen.getAllByText('1 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
-    })
+      fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
+      await waitFor(() => {
+        expect(screen.getAllByText('1 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
+      })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    // The incorrect word (bake) returns to the bank; the correct one (cake) stays placed.
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
-    })
-    expect(screen.queryByText('1 of 3 in the right column.')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+      // The incorrect word (bake) returns to the bank; the correct one (cake) stays placed.
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
+      })
+      expect(screen.queryByText('1 of 3 in the right column.')).not.toBeInTheDocument()
+      expect(scrollTo).toHaveBeenCalledWith({ left: 0 })
+    } finally {
+      // @ts-expect-error restoring jsdom default (no scrollTo)
+      delete HTMLElement.prototype.scrollTo
+    }
   })
 
   it('announces drop in the live region', () => {
