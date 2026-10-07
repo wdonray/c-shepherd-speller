@@ -133,9 +133,9 @@ describe('Header', () => {
   })
 
   it('ignores the profile image fetch when unmounted before it resolves', async () => {
-    let resolveFetch!: (value: unknown) => void
+    let resolveFetch!: (value: { image?: string }) => void
     getUserByEmailMock.mockReturnValue(
-      new Promise((resolve) => {
+      new Promise<{ image?: string }>((resolve) => {
         resolveFetch = resolve
       })
     )

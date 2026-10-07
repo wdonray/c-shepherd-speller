@@ -44,7 +44,7 @@ describe('processProfileImage', () => {
     )
 
     const createElement = document.createElement.bind(document)
-    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string, options?: unknown) => {
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => {
       if (tagName === 'canvas') {
         return {
           width: 0,
@@ -53,8 +53,8 @@ describe('processProfileImage', () => {
           toDataURL,
         } as unknown as HTMLCanvasElement
       }
-      return createElement(tagName, options)
-    }) as typeof document.createElement)
+      return createElement(tagName as keyof HTMLElementTagNameMap, options)
+    })
 
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn().mockReturnValue('blob:fake'),
