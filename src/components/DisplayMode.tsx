@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getList, getLists } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
+import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
@@ -26,6 +27,7 @@ function DisplayModeInner() {
   const [allLists, setAllLists] = useState<WordList[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [sortMode, setSortMode] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -129,10 +131,21 @@ function DisplayModeInner() {
             </Link>
           </Button>
           <h1 className="text-xl font-bold text-ink">{list.name}</h1>
+          <div className="ml-auto">
+            {!sortMode && (
+              <Button size="sm" onClick={() => setSortMode(true)}>
+                Sort words
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       <main className="flex-1 px-4 py-6 sm:px-8">
-        <PatternChartDisplay list={list} />
+        {sortMode ? (
+          <SortActivity list={list} onExit={() => setSortMode(false)} />
+        ) : (
+          <PatternChartDisplay list={list} />
+        )}
       </main>
     </div>
   )

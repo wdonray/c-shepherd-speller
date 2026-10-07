@@ -112,6 +112,24 @@ describe('DisplayMode', () => {
     expect(screen.getByRole('button', { name: 'Hear and analyze the word cake' })).toBeInTheDocument()
   })
 
+  it('enters sort mode from the Sort words button and exits back', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    expect(screen.getByText('Sort the words')).toBeInTheDocument()
+    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+  })
+
   it('shows an error state when the selected list fails to load', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockRejectedValue(new Error('offline'))
