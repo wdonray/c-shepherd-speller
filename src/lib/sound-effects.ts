@@ -14,7 +14,6 @@ const MASTER_GAIN = 0.2
 let audioContext: AudioContext | null = null
 
 function getContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null
   const Ctor = window.AudioContext
   if (!Ctor) return null
   if (!audioContext) {
@@ -24,7 +23,6 @@ function getContext(): AudioContext | null {
 }
 
 export function isSoundEnabled(): boolean {
-  if (typeof window === 'undefined') return true
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     return stored === null ? true : stored === 'true'
@@ -34,7 +32,6 @@ export function isSoundEnabled(): boolean {
 }
 
 export function setSoundEnabled(enabled: boolean): void {
-  if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem(STORAGE_KEY, String(enabled))
   } catch {

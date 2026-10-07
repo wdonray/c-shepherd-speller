@@ -145,4 +145,22 @@ describe('sound-effects', () => {
       playIncorrectSound()
     }).not.toThrow()
   })
+
+  it('returns true when localStorage throws on read', async () => {
+    vi.spyOn(window.localStorage.__proto__, 'getItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    const { isSoundEnabled } = await loadModule()
+    expect(isSoundEnabled()).toBe(true)
+    vi.restoreAllMocks()
+  })
+
+  it('ignores localStorage errors on write', async () => {
+    vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    const { setSoundEnabled } = await loadModule()
+    expect(() => setSoundEnabled(false)).not.toThrow()
+    vi.restoreAllMocks()
+  })
 })
