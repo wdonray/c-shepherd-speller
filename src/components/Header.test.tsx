@@ -266,6 +266,14 @@ describe('Header', () => {
     expect(setTheme).toHaveBeenCalledWith('light')
   })
 
+  it('does not show a migrate old lists item in the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    expect(screen.queryByText(/migrate old lists/i)).not.toBeInTheDocument()
+  })
+
   it('opens the help dialog from the menu', () => {
     mockSignedIn()
     render(<Header />)
@@ -291,113 +299,6 @@ describe('Header', () => {
     openMenu()
     expect(screen.getByRole('menuitem', { name: 'Version' })).toHaveAttribute('href', '/version')
     expect(screen.getByRole('menuitem', { name: 'Analytics' })).toHaveAttribute('href', '/analytics')
-  })
-
-  it('migrates old lists from the menu and notifies listeners', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
-    vi.stubGlobal('fetch', fetchMock)
-    const changed = vi.fn()
-    window.addEventListener(LISTS_CHANGED_EVENT, changed)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Migrate old lists'))
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/migrate', { method: 'POST' })
-    })
-    expect(changed).toHaveBeenCalledTimes(1)
-    window.removeEventListener(LISTS_CHANGED_EVENT, changed)
-  })
-
-  it('shows an error in the menu when migration fails', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: async () => ({ error: 'No data to migrate' }),
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Migrate old lists'))
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('No data to migrate')
-    })
-  })
-
-  it('shows a generic error when migration throws', async () => {
-    const fetchMock = vi.fn().mockRejectedValue('string failure')
-    vi.stubGlobal('fetch', fetchMock)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Migrate old lists'))
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
-    })
-  })
-
-  it('ignores repeated migrate clicks while a migration is running', async () => {
-    let resolveFetch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void
-    const fetchMock = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
-          resolveFetch = resolve
-        })
-    )
-    vi.stubGlobal('fetch', fetchMock)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    const item = screen.getByText('Migrate old lists')
-    fireEvent.click(item)
-    fireEvent.click(item)
-
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    resolveFetch({ ok: true, json: async () => ({}) })
-    await waitFor(() => {
-      expect(screen.getByText('Migrate old lists')).toBeInTheDocument()
-    })
-  })
-
-  it('shows a generic error when the migration error body is unreadable', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, json: () => Promise.reject(new Error('bad json')) })
-    vi.stubGlobal('fetch', fetchMock)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Migrate old lists'))
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
-    })
-  })
-
-  it('shows a generic error when migration fails without an error message', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
-    vi.stubGlobal('fetch', fetchMock)
-
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Migrate old lists'))
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Migration failed')
-    })
   })
 
   it('opens and closes the help dialog from the menu', () => {

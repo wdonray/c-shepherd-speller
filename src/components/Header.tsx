@@ -35,8 +35,6 @@ export function Header() {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
-  const [migrating, setMigrating] = useState(false)
-  const [migrateError, setMigrateError] = useState<string | null>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
@@ -67,26 +65,6 @@ export function Header() {
 
   // An uploaded photo overrides the Google-provided image; initials are the last resort.
   const avatarImage = profileImage ?? session.user.image ?? undefined
-
-  const handleMigrate = async (e: Event) => {
-    // Keep the menu open so the error (if any) is visible in place.
-    e.preventDefault()
-    if (migrating) return
-    setMigrating(true)
-    setMigrateError(null)
-    try {
-      const res = await fetch('/api/migrate', { method: 'POST' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || 'Migration failed')
-      }
-      notifyListsChanged()
-    } catch (err) {
-      setMigrateError(err instanceof Error ? err.message : 'Migration failed')
-    } finally {
-      setMigrating(false)
-    }
-  }
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
@@ -156,23 +134,12 @@ export function Header() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-line" />
               <DropdownMenuItem
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-                onSelect={handleMigrate}
-              >
-                {migrating ? 'Migrating...' : 'Migrate old lists'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
                 className="rounded-xl px-4 py-3 text-[15px] font-semibold text-coral-ink cursor-pointer focus:bg-coral-soft"
                 onSelect={() => signOut({ callbackUrl: '/auth/signin' })}
               >
                 <LogOutIcon className="size-4" />
                 Sign out
               </DropdownMenuItem>
-              {migrateError && (
-                <p role="alert" className="px-4 py-2 text-sm font-semibold text-coral-ink">
-                  {migrateError}
-                </p>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
