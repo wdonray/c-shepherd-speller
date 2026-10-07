@@ -38,6 +38,7 @@ export function Header() {
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
+  const [avatarBroken, setAvatarBroken] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -64,7 +65,8 @@ export function Header() {
   }
 
   // An uploaded photo overrides the Google-provided image; initials are the last resort.
-  const avatarImage = profileImage ?? session.user.image ?? undefined
+  // If the image URL fails to load, fall back to initials instead of a broken image.
+  const avatarImage = avatarBroken ? undefined : (profileImage ?? session.user.image ?? undefined)
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
@@ -92,7 +94,13 @@ export function Header() {
                 className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
               >
                 {avatarImage ? (
-                  <img src={avatarImage} alt="" aria-hidden="true" className="size-full object-cover" />
+                  <img
+                    src={avatarImage}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-full object-cover"
+                    onError={() => setAvatarBroken(true)}
+                  />
                 ) : (
                   initialsFor(session.user.name, session.user.email)
                 )}

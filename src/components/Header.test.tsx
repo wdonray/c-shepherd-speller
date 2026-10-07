@@ -191,6 +191,29 @@ describe('Header', () => {
     expect(avatar).not.toHaveTextContent('DW')
   })
 
+  it('falls back to initials when the avatar image fails to load', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,broken',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledWith('t@e.c'))
+    const avatar = screen.getByRole('button', { name: /open account menu/i })
+    const img = avatar.querySelector('img')
+    expect(img).toBeInTheDocument()
+    fireEvent.error(img!)
+    await waitFor(() => {
+      expect(avatar.querySelector('img')).not.toBeInTheDocument()
+    })
+    expect(avatar).toHaveTextContent('DW')
+  })
+
   it('falls back to the Google session image when no photo was uploaded', async () => {
     useSessionMock.mockReturnValue({
       data: { user: { id: 'u1', email: 't@e.c', name: 'Donray Williams', image: 'https://google/photo.jpg' } },
