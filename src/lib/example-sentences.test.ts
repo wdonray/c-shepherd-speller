@@ -174,6 +174,27 @@ describe('fetchExampleSentences', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('aborts the API fetch when it times out', async () => {
+    vi.useFakeTimers()
+    try {
+      const fetchMock = vi.fn(
+        (_url: string, opts: { signal: AbortSignal }) =>
+          new Promise<never>((_resolve, reject) => {
+            opts.signal.addEventListener('abort', () => reject(new DOMException('Fetch aborted', 'AbortError')))
+          })
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      const { fetchExampleSentences } = await load()
+      const promise = fetchExampleSentences('cake')
+      await vi.advanceTimersByTimeAsync(5000)
+      const sentences = await promise
+      expect(sentences.length).toBeGreaterThan(0)
+      expect(sentences[0]).toContain('cake')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('returns [] when the API returns non-array JSON', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
