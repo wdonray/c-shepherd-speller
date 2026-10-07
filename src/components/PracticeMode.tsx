@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Volume2Icon, CheckIcon, StarIcon, ChevronLeftIcon } from 'lucide-react'
+import { Volume2Icon, VolumeXIcon, CheckIcon, StarIcon, ChevronLeftIcon } from 'lucide-react'
+import { playCorrectSound, playIncorrectSound, isSoundEnabled, setSoundEnabled } from '@/lib/sound-effects'
 import type { WordList } from '@/models/WordList'
 import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
@@ -63,6 +64,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   const [streak, setStreak] = useState(0)
   const [bestStreak, setBestStreak] = useState(0)
   const [lastCleared, setLastCleared] = useState(false)
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled())
 
   const reviewWords = Array.from(reviewQueue.keys())
 
@@ -100,6 +102,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       setReviewQueue(nextQueue)
       setLastCleared(cleared)
       setPhase('correct')
+      playCorrectSound()
     } else {
       setStreak(0)
       setLastAnswer(input.trim())
@@ -110,6 +113,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       setReviewQueue(nextQueue)
       setLastCleared(false)
       setPhase('incorrect')
+      playIncorrectSound()
     }
   }
 
@@ -175,16 +179,38 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
 
   const progress = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
 
+  const toggleSound = () => {
+    const next = !soundOn
+    setSoundOn(next)
+    setSoundEnabled(next)
+  }
+
   const header = (title: string, sub: string) => (
     <div>
-      <button
-        type="button"
-        onClick={onExit}
-        className="cursor-pointer text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
-      >
-        <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
-        Exit practice
-      </button>
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={onExit}
+          className="cursor-pointer text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        >
+          <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
+          Exit practice
+        </button>
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? 'Mute sound effects' : 'Unmute sound effects'}
+          title={soundOn ? 'Mute sound effects' : 'Unmute sound effects'}
+          className="cursor-pointer rounded-full p-2 text-muted-foreground outline-none hover:bg-card hover:text-foreground focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        >
+          {soundOn ? (
+            <Volume2Icon className="size-5" aria-hidden="true" />
+          ) : (
+            <VolumeXIcon className="size-5" aria-hidden="true" />
+          )}
+        </button>
+      </div>
       <h1 className="mt-3 text-[30px] leading-tight font-bold">{title}</h1>
       {sub && <p className="mt-1 text-[15px] text-muted-foreground">{sub}</p>}
     </div>

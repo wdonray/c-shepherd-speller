@@ -11,6 +11,16 @@ const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
 const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }))
 vi.mock('@/lib/track-event', () => ({ trackEvent }))
+const { playCorrectSound, playIncorrectSound } = vi.hoisted(() => ({
+  playCorrectSound: vi.fn(),
+  playIncorrectSound: vi.fn(),
+}))
+vi.mock('@/lib/sound-effects', () => ({
+  playCorrectSound,
+  playIncorrectSound,
+  isSoundEnabled: () => true,
+  setSoundEnabled: vi.fn(),
+}))
 
 beforeEach(() => {
   trackEvent.mockClear()
@@ -107,6 +117,7 @@ describe('PracticeMode', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Correct! Nice work.')
     expect(screen.getByText('1 of 1 correct (100%)')).toBeInTheDocument()
     expect(answerInput()).toHaveClass('bg-leaf-soft')
+    expect(playCorrectSound).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: 'Next word' }))
     expect(screen.getByRole('button', { name: 'Hear the word' })).toBeInTheDocument()
   })
@@ -138,6 +149,15 @@ describe('PracticeMode', () => {
     expect(answerInput()).toHaveClass('bg-coral-soft')
     expect(screen.getByText('Review: 1 word')).toBeInTheDocument()
     expect(screen.getByText(/"kake" joined your review list/)).toBeInTheDocument()
+    expect(playIncorrectSound).toHaveBeenCalledTimes(1)
+  })
+
+  it('toggles the sound effects mute from the header', () => {
+    render(<PracticeMode list={list} onExit={vi.fn()} />)
+    const muteButton = screen.getByRole('button', { name: 'Mute sound effects' })
+    expect(muteButton).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(muteButton)
+    expect(screen.getByRole('button', { name: 'Unmute sound effects' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('omits the pattern hint when the pattern is blank', () => {
