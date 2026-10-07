@@ -64,7 +64,7 @@ describe('PracticePage', () => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
     expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start practice' })).toBeInTheDocument()
   })
 
   it('opens practice for the chosen list', async () => {
@@ -75,7 +75,7 @@ describe('PracticePage', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start practice' }))
     expect(mockPush).toHaveBeenCalledWith('/practice?list=l1')
   })
 

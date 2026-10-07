@@ -204,7 +204,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {lists.map((list, i) => (
-                  <WordListCard key={list.id} list={list} index={i} onOpen={onEditList} />
+                  <WordListCard key={list.id} list={list} index={i} onOpen={onEditList} primaryLabel="Edit list" />
                 ))}
               </div>
             )}

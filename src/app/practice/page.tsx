@@ -114,6 +114,7 @@ function PracticeInner() {
                   list={l}
                   index={i}
                   onOpen={(opened) => router.push(`/practice?list=${encodeURIComponent(opened.id)}`)}
+                  primaryLabel="Start practice"
                   showPresent={false}
                 />
               ))}

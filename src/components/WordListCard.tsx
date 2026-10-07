@@ -16,8 +16,8 @@ interface WordListCardProps {
   onDelete?: (list: WordList) => void
   /** Show the Present link button. Defaults to true; the practice and display pickers hide it. */
   showPresent?: boolean
-  /** Label for the primary action button. Defaults to "Open" (issue 19 will make this required). */
-  primaryLabel?: string
+  /** Label for the primary action button. Required; each surface names its own action. */
+  primaryLabel: string
 }
 
 const ACCENTS = [
@@ -39,7 +39,7 @@ export default function WordListCard({
   onOpen,
   onDelete,
   showPresent = true,
-  primaryLabel = 'Open',
+  primaryLabel,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
