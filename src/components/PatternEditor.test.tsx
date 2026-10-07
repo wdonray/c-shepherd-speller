@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
+
+vi.mock('@/lib/example-sentences', () => ({
+  fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
+}))
 
 const basePattern: SpellingPattern = {
   id: 'p1',
@@ -270,6 +274,22 @@ describe('PatternEditor', () => {
       ...basePattern,
       words: ['bake'],
       sentences: undefined,
+    })
+  })
+
+  it('saves the picked sentence on the pattern', async () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'We baked a cake.' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Use this sentence' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      sentences: { cake: 'We baked a cake.' },
     })
   })
 })
