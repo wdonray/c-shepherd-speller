@@ -34,7 +34,7 @@ describe('SentencePicker', () => {
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: 'Example sentences for cake' })).toBeInTheDocument()
+      expect(screen.getByRole('dialog', { name: 'Example sentences for \u201ccake\u201d' })).toBeInTheDocument()
     })
     await waitFor(() => {
       expect(screen.getByRole('radio', { name: 'We baked a cake.' })).toBeInTheDocument()
