@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { XIcon } from 'lucide-react'
 import { OddDuck } from './OddDuck'
+import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import type { SpellingPattern, PatternFrequency } from '@/models/WordList'
 
 interface PatternEditorProps {
@@ -75,6 +76,19 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   const removeWord = (word: string) => {
     update({ words: pattern.words.filter((w) => w !== word) })
   }
+
+  const addSuggestedWord = (word: string) => {
+    if (!word || pattern.words.includes(word)) return
+    update({ words: [...pattern.words, word] })
+  }
+
+  // Suggest words only on exact sound+pattern match (case-insensitive, trimmed).
+  // Words already in the list are filtered out.
+  const suggestions = (
+    WORD_SUGGESTIONS[pattern.sound.trim().toLowerCase()]?.[pattern.pattern.trim().toLowerCase()] ?? []
+  )
+    .filter((word) => !pattern.words.includes(word))
+    .slice(0, 3)
 
   return (
     <section
@@ -181,6 +195,27 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
 
       <div className="mt-5">
         <h4 className="text-[15px] font-bold">Words ({pattern.words.length})</h4>
+        {suggestions.length > 0 && (
+          <div
+            role="group"
+            aria-labelledby={`suggestions-${pattern.id}`}
+            className="mt-2 flex flex-wrap items-center gap-2"
+          >
+            <span id={`suggestions-${pattern.id}`} className="text-[13px] font-semibold text-muted-foreground">
+              Try:
+            </span>
+            {suggestions.map((word) => (
+              <button
+                key={word}
+                type="button"
+                onClick={() => addSuggestedWord(word)}
+                className="min-h-[44px] cursor-pointer rounded-full border-2 border-sky bg-sky-soft px-4 py-2 text-[15px] font-bold text-sky-ink outline-none transition hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+              >
+                {word}
+              </button>
+            ))}
+          </div>
+        )}
         {pattern.words.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {pattern.words.map((word) => (
