@@ -52,6 +52,28 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, sound: 'long o' })
   })
 
+  it('gives the pattern and sound inputs visible boundaries and focus treatment', () => {
+    renderEditor()
+    const spelling = screen.getByLabelText('Pattern spelling')
+    expect(spelling).toHaveClass(
+      'border-2',
+      'border-line',
+      'bg-card',
+      'focus-visible:border-sky-deep',
+      'focus-visible:ring-[3px]'
+    )
+    expect(spelling).not.toHaveClass('border-transparent', 'bg-transparent')
+    const sound = screen.getByLabelText('Target sound')
+    expect(sound).toHaveClass(
+      'border-2',
+      'border-line',
+      'bg-card',
+      'focus-visible:border-sky-deep',
+      'focus-visible:ring-[3px]'
+    )
+    expect(sound).not.toHaveClass('border-transparent', 'bg-transparent')
+  })
+
   it('changes frequency through the radio buttons', () => {
     const { onChange } = renderEditor()
     const lessCommon = screen.getByRole('radio', { name: 'Less common' })
