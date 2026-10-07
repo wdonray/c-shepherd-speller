@@ -9,6 +9,12 @@ import { cn } from '@/lib/utils'
  * bottom edge (box-shadow) that compresses on press. Colored variants use the
  * fixed contrast-verified fill/shadow pairs; only secondary and ghost adapt
  * to the theme.
+ *
+ * Hover standard (issue 01): hover complements the active:translate-y press
+ * and never uses transforms. All colored chunky variants use
+ * hover:brightness-110; secondary uses a border-darkening plus background
+ * tint. Every variant mirrors its hover treatment on focus-visible, on top of
+ * the base focus-visible ring (WCAG 2.2 AA 2.4.7).
  */
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-base font-bold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 cursor-pointer select-none active:translate-y-[3px]",
@@ -16,24 +22,25 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-chunk-leaf text-white shadow-[0_4px_0_var(--color-chunk-leaf-deep)] hover:brightness-105 active:shadow-[0_1px_0_var(--color-chunk-leaf-deep)]',
+          'bg-chunk-leaf text-white shadow-[0_4px_0_var(--color-chunk-leaf-deep)] hover:brightness-110 focus-visible:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-leaf-deep)]',
         secondary:
-          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:brightness-[0.98] active:shadow-[0_1px_0_var(--line)]',
+          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:border-line-deep hover:bg-accent focus-visible:border-line-deep focus-visible:bg-accent active:shadow-[0_1px_0_var(--line)]',
         sunny:
-          'bg-chunk-sun text-chunk-sun-ink shadow-[0_4px_0_var(--color-chunk-sun-deep)] hover:brightness-105 active:shadow-[0_1px_0_var(--color-chunk-sun-deep)]',
-        sky: 'bg-chunk-sky text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-sky-deep)]',
+          'bg-chunk-sun text-chunk-sun-ink shadow-[0_4px_0_var(--color-chunk-sun-deep)] hover:brightness-110 focus-visible:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-sun-deep)]',
+        sky: 'bg-chunk-sky text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] hover:brightness-110 focus-visible:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-sky-deep)]',
         destructive:
-          'bg-chunk-coral text-white shadow-[0_4px_0_var(--color-chunk-coral-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-coral-deep)]',
-        plum: 'bg-chunk-plum text-white shadow-[0_4px_0_var(--color-chunk-plum-deep)] hover:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-plum-deep)]',
-        ghost: 'text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl active:translate-y-0',
-        link: 'text-sky-deep underline-offset-4 hover:underline rounded-none shadow-none active:translate-y-0',
+          'bg-chunk-coral text-white shadow-[0_4px_0_var(--color-chunk-coral-deep)] hover:brightness-110 focus-visible:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-coral-deep)]',
+        plum: 'bg-chunk-plum text-white shadow-[0_4px_0_var(--color-chunk-plum-deep)] hover:brightness-110 focus-visible:brightness-110 active:shadow-[0_1px_0_var(--color-chunk-plum-deep)]',
+        ghost:
+          'text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:text-foreground focus-visible:bg-accent rounded-xl active:translate-y-0',
+        link: 'text-sky-deep underline-offset-4 hover:underline focus-visible:underline rounded-none shadow-none active:translate-y-0',
         /**
          * Deprecated alias for secondary. The old shadcn `outline` variant was
          * removed from the design system; each screen migrates to `secondary`
          * in its redesign PR. New code must not use `outline`.
          */
         outline:
-          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:brightness-[0.98] active:shadow-[0_1px_0_var(--line)]',
+          'bg-card text-foreground border-2 border-line shadow-[0_4px_0_var(--line)] hover:border-line-deep hover:bg-accent focus-visible:border-line-deep focus-visible:bg-accent active:shadow-[0_1px_0_var(--line)]',
       },
       size: {
         default: 'h-11 px-5 py-2 has-[>svg]:px-4',

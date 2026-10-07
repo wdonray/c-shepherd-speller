@@ -90,10 +90,10 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             onClick={() => update({ isOddDuck: !isOddDuck })}
             title={isOddDuck ? 'Remove the odd-duck mark' : 'Mark as an odd duck (irregular spelling)'}
             className={cn(
-              'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition-all',
+              'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
               isOddDuck
-                ? 'border-plum bg-plum-soft text-plum-ink'
-                : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink'
+                ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
+                : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
             )}
           >
             <OddDuck className="size-5 text-plum" />
@@ -118,10 +118,10 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                   title={f.label}
                   onClick={() => update({ frequency: f.value })}
                   className={cn(
-                    'cursor-pointer rounded-xl border-2 p-2 transition-all',
+                    'cursor-pointer rounded-xl border-2 p-2 transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
                     selected
-                      ? cn('border-current', accent.text, accent.soft)
-                      : 'border-line opacity-50 hover:opacity-100'
+                      ? cn('border-current hover:brightness-95 focus-visible:brightness-95', accent.text, accent.soft)
+                      : 'border-line opacity-50 hover:opacity-100 focus-visible:opacity-100'
                   )}
                 >
                   <PowerBar level={f.level} filledClassName={accent.fill} />
@@ -137,7 +137,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           variant="ghost"
           onClick={onRemove}
           aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
-          className="shrink-0 text-muted-foreground hover:text-destructive"
+          className="shrink-0 text-muted-foreground hover:text-destructive focus-visible:text-destructive"
         >
           <XIcon className="size-4" />
         </Button>
@@ -157,7 +157,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                   type="button"
                   onClick={() => removeWord(word)}
                   aria-label={`Remove ${word}`}
-                  className="cursor-pointer rounded-full p-1 font-bold text-muted-foreground hover:bg-card hover:text-destructive"
+                  className="cursor-pointer rounded-full p-1 font-bold text-muted-foreground outline-none hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
                 >
                   <XIcon className="size-3.5" />
                 </button>

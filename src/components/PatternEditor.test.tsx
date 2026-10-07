@@ -66,6 +66,33 @@ describe('PatternEditor', () => {
     expect(screen.getByText('Rare')).toBeInTheDocument()
   })
 
+  it('gives the odd-duck toggle hover and focus-visible treatments in both states', () => {
+    const onChange = vi.fn()
+    const onRemove = vi.fn()
+    const { rerender } = render(<PatternEditor pattern={basePattern} onChange={onChange} onRemove={onRemove} />)
+    const off = screen.getByRole('button', { name: /mark as odd duck/i })
+    expect(off).toHaveClass(
+      'hover:border-plum',
+      'hover:text-plum-ink',
+      'focus-visible:border-plum',
+      'focus-visible:text-plum-ink',
+      'focus-visible:ring-[3px]'
+    )
+
+    rerender(<PatternEditor pattern={{ ...basePattern, isOddDuck: true }} onChange={onChange} onRemove={onRemove} />)
+    const on = screen.getByRole('button', { name: 'Odd duck' })
+    // The selected state must still respond to hover: no dead zone.
+    expect(on).toHaveClass('hover:brightness-95', 'focus-visible:brightness-95', 'focus-visible:ring-[3px]')
+  })
+
+  it('gives frequency radios hover and focus-visible treatments in both states', () => {
+    renderEditor()
+    const selected = screen.getByRole('radio', { name: 'Common' })
+    expect(selected).toHaveClass('hover:brightness-95', 'focus-visible:brightness-95', 'focus-visible:ring-[3px]')
+    const unselected = screen.getByRole('radio', { name: 'Rare' })
+    expect(unselected).toHaveClass('hover:opacity-100', 'focus-visible:opacity-100', 'focus-visible:ring-[3px]')
+  })
+
   it('toggles the odd-duck mark on', () => {
     const { onChange } = renderEditor()
     const toggle = screen.getByRole('button', { name: /mark as odd duck/i })

@@ -180,7 +180,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       <button
         type="button"
         onClick={onExit}
-        className="cursor-pointer text-[15px] font-semibold text-sky-ink hover:underline"
+        className="cursor-pointer text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
         Exit practice
@@ -196,7 +196,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
         type="button"
         onClick={speakWord}
         aria-label="Hear the word"
-        className="flex size-50 cursor-pointer items-center justify-center rounded-full border-4 border-sky-deep bg-sky text-white shadow-[0_6px_0_var(--color-sky-dark)] transition-all hover:brightness-105 active:translate-y-1 active:shadow-none"
+        className="flex size-50 cursor-pointer items-center justify-center rounded-full border-4 border-sky-deep bg-sky text-white shadow-[0_6px_0_var(--color-sky-dark)] outline-none transition-all hover:brightness-110 focus-visible:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60 active:translate-y-1 active:shadow-none"
       >
         <Volume2Icon className="size-20" aria-hidden="true" />
       </button>

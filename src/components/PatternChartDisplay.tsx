@@ -74,7 +74,7 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
         type="button"
         onClick={() => openAnalysis(word, pattern)}
         aria-label={`Hear and analyze the word ${word}`}
-        className="flex min-h-[58px] w-full cursor-pointer items-center justify-center rounded-[14px] border-2 border-line bg-card px-4 py-3 text-[22px] font-bold text-ink transition-colors hover:border-sky"
+        className="flex min-h-[58px] w-full cursor-pointer items-center justify-center rounded-[14px] border-2 border-line bg-card px-4 py-3 text-[22px] font-bold text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:border-sky-deep focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         {word}
       </button>
