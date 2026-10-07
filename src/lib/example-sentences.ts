@@ -46,7 +46,6 @@ function writeStorageCache(cache: Record<string, string[]>): void {
 function getCached(word: string): string[] | undefined {
   const key = word.toLowerCase()
   if (memoryCache.has(key)) return memoryCache.get(key)
-  if (typeof window === 'undefined') return undefined
   const stored = readStorageCache()[key]
   if (stored) {
     memoryCache.set(key, stored)
@@ -58,7 +57,6 @@ function getCached(word: string): string[] | undefined {
 function setCached(word: string, sentences: string[]): void {
   const key = word.toLowerCase()
   memoryCache.set(key, sentences)
-  if (typeof window === 'undefined') return
   const cache = readStorageCache()
   cache[key] = sentences
   writeStorageCache(cache)
