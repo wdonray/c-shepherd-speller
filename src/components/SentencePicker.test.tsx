@@ -93,6 +93,10 @@ describe('SentencePicker', () => {
     await waitFor(() => {
       expect(screen.getByText('No example sentences found for this word yet.')).toBeInTheDocument()
     })
+    // Focus moves to the close button when there are no radios.
+    await waitFor(() => {
+      expect(document.activeElement).toHaveAttribute('aria-label', 'Close sentence picker')
+    })
   })
 
   it('clears the sentence when Clear is clicked', async () => {

@@ -46,8 +46,11 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
     if (!open) return
     // Move focus into the dialog on open.
     const firstRadio = dialogRef.current?.querySelector<HTMLInputElement>('input[type="radio"]')
-    const confirmButton = dialogRef.current?.querySelector<HTMLButtonElement>('button[data-confirm]')
-    ;(firstRadio ?? confirmButton)?.focus()
+    if (firstRadio) {
+      firstRadio.focus()
+    } else {
+      dialogRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Close sentence picker"]')?.focus()
+    }
   }, [open, loading])
 
   useEffect(() => {
