@@ -20,11 +20,10 @@ const list: WordList = {
 }
 
 describe('PatternChartDisplay', () => {
-  it('shows the target sound with a hear button', () => {
+  it('shows the target sound header without a hear sound button', () => {
     render(<PatternChartDisplay list={list} />)
     expect(screen.getByText('long a')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Hear the sound long a' }))
-    expect(speak).toHaveBeenCalledWith('long a')
+    expect(screen.queryByRole('button', { name: /hear the sound/i })).not.toBeInTheDocument()
   })
 
   it('falls back to the list name when patterns have no shared sound', () => {
