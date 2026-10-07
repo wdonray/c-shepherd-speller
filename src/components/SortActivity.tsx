@@ -233,7 +233,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                   key={entry.id}
                   entry={entry}
                   checked={checked}
-                  correct={checked ? (results[entry.id] ?? null) : null}
+                  correct={checked ? results[entry.id]! : null}
                 />
               ))}
             </ul>

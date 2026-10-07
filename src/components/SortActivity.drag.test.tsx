@@ -187,4 +187,16 @@ describe('SortActivity drag flow', () => {
     const column = screen.getByRole('region', { name: 'Pattern a_e drop column' })
     expect(column.className).toMatch(/bg-sky-soft/)
   })
+
+  it('clears the highlight when drag leaves all columns', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      handlers.onDragOver?.({ over: { id: 'p1' } })
+    })
+    expect(screen.getByRole('region', { name: 'Pattern a_e drop column' }).className).toMatch(/bg-sky-soft/)
+    act(() => {
+      handlers.onDragOver?.({ over: null })
+    })
+    expect(screen.getByRole('region', { name: 'Pattern a_e drop column' }).className).not.toMatch(/bg-sky-soft/)
+  })
 })
