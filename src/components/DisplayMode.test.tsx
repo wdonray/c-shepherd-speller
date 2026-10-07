@@ -59,6 +59,18 @@ describe('DisplayMode', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
+  it('shows a single Present chart action per card on the picker', async () => {
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Present chart' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
+  })
+
   it('navigates to the chart when a list card is opened', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
@@ -66,7 +78,7 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Present chart' }))
     expect(mockPush).toHaveBeenCalledWith('/display?list=l1')
   })
 

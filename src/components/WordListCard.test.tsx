@@ -68,6 +68,16 @@ describe('WordListCard', () => {
     expect(screen.getByRole('button', { name: 'Open' })).toBeInTheDocument()
   })
 
+  it('uses a custom primary label when provided', () => {
+    const onOpen = vi.fn()
+    render(<WordListCard list={list} onOpen={onOpen} primaryLabel="Present chart" showPresent={false} />)
+    const button = screen.getByRole('button', { name: 'Present chart' })
+    expect(button).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument()
+    fireEvent.click(button)
+    expect(onOpen).toHaveBeenCalledWith(list)
+  })
+
   it('renders a Delete button when onDelete is provided', () => {
     const onDelete = vi.fn()
     render(<WordListCard list={list} onOpen={vi.fn()} onDelete={onDelete} />)
