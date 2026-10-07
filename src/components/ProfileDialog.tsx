@@ -182,7 +182,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
               )}
               <span
                 aria-hidden="true"
-                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
               >
                 <Camera className="size-6 text-white" />
               </span>
