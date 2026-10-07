@@ -75,13 +75,11 @@ function DropColumn({
   accentIndex,
   children,
   isOver,
-  isCandidate,
 }: {
   pattern: SpellingPattern
   accentIndex: number
   children: React.ReactNode
   isOver: boolean
-  isCandidate: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const accent = COLUMN_ACCENTS[accentIndex % COLUMN_ACCENTS.length]
@@ -93,8 +91,7 @@ function DropColumn({
       className={cn(
         'min-h-[200px] rounded-2xl border-[3px] border-dashed bg-card p-5 outline-none transition-colors',
         accent.border,
-        (isOver || isCandidate) && 'bg-sky-soft',
-        isCandidate && 'focus-visible:ring-[3px] focus-visible:ring-ring/60'
+        isOver && 'bg-sky-soft'
       )}
     >
       <div className="mb-4 text-center">
@@ -253,7 +250,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                 className="flex"
               >
                 <div className="w-full">
-                  <DropColumn pattern={pattern} accentIndex={i} isOver={overId === pattern.id} isCandidate={false}>
+                  <DropColumn pattern={pattern} accentIndex={i} isOver={overId === pattern.id}>
                     {columnWords.map((entry) => (
                       <SortableWordCard
                         key={entry.id}

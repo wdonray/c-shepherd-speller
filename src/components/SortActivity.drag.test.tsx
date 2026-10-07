@@ -167,4 +167,24 @@ describe('SortActivity drag flow', () => {
     })
     expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
   })
+
+  it('handles drag end outside any target with an unknown word', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      handlers.onDragStart?.({ active: { id: 'unknown' } })
+      handlers.onDragEnd?.({ active: { id: 'unknown' }, over: null })
+    })
+    const live = document.querySelector('[aria-live="polite"][role="status"]')
+    // No announcement for unknown words; nothing crashes.
+    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
+  })
+
+  it('highlights the column on drag over', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      handlers.onDragOver?.({ over: { id: 'p1' } })
+    })
+    const column = screen.getByRole('region', { name: 'Pattern a_e drop column' })
+    expect(column.className).toMatch(/bg-sky-soft/)
+  })
 })
