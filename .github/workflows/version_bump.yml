@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # PAT belonging to a ruleset bypass actor, so the version push
+          # to main is not blocked by required status checks.
+          token: ${{ secrets.VERSION_BUMP_TOKEN }}
           fetch-depth: 2
 
       - name: Use Node.js
