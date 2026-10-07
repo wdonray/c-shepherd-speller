@@ -68,7 +68,12 @@ describe('PracticeMode', () => {
     expect(screen.getByRole('heading', { name: 'Practice: Week 5' })).toBeInTheDocument()
     expect(screen.getByText('Listen, then type the spelling.')).toBeInTheDocument()
     expect(screen.getByText('0 of 0 correct (0%)')).toBeInTheDocument()
-    expect(screen.getByRole('progressbar', { name: 'Practice progress' })).toHaveAttribute('aria-valuenow', '0')
+    const progressbar = screen.getByRole('progressbar', { name: 'Practice progress' })
+    expect(progressbar).toHaveAttribute('aria-valuenow', '0')
+    // Progress block spans the full row width (no 600px cap).
+    const progressBlock = progressbar.closest('div.min-w-64')
+    expect(progressBlock).toHaveClass('w-full', 'flex-1')
+    expect(progressBlock?.className).not.toMatch(/max-w-\[600px\]/)
     expect(screen.getByRole('button', { name: 'Hear the word' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Hear it in a sentence' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Check' })).toBeDisabled()
