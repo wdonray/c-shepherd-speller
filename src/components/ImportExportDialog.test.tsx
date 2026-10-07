@@ -64,6 +64,33 @@ describe('ImportExportDialog', () => {
     clickSpy.mockRestore()
   })
 
+  it('names the downloaded file patternspell-lists-YYYY-MM-DD.json', async () => {
+    getLists.mockResolvedValue([list])
+    const anchors: HTMLAnchorElement[] = []
+    const createElement = document.createElement.bind(document)
+    const createSpy = vi.spyOn(document, 'createElement').mockImplementation(((
+      tagName: string,
+      options?: ElementCreationOptions
+    ) => {
+      const el = createElement(tagName as 'a', options)
+      if (tagName === 'a') anchors.push(el as unknown as HTMLAnchorElement)
+      return el
+    }) as typeof document.createElement)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Exported 1 list.')
+    })
+    expect(anchors).toHaveLength(1)
+    expect(anchors[0].download).toMatch(/^patternspell-lists-\d{4}-\d{2}-\d{2}\.json$/)
+    expect(anchors[0].download).not.toContain('shepherd')
+    expect(anchors[0].download).not.toContain('shepard')
+    createSpy.mockRestore()
+  })
+
   it('uses the plural when exporting multiple lists', async () => {
     getLists.mockResolvedValue([list, { ...list, id: 'l2', name: 'Week 6' }])
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
