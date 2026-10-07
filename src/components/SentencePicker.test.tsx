@@ -123,4 +123,16 @@ describe('SentencePicker', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
+
+  it('ignores non-Escape keys', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(document, { key: 'Enter' })
+    // Dialog stays open.
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
 })
