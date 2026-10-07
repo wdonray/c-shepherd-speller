@@ -14,8 +14,10 @@ interface WordListCardProps {
   onOpen: (list: WordList) => void
   /** When provided, renders a Delete button (used by the list manager). */
   onDelete?: (list: WordList) => void
-  /** Show the Present link button. Defaults to true; the practice picker hides it. */
+  /** Show the Present link button. Defaults to true; the practice and display pickers hide it. */
   showPresent?: boolean
+  /** Label for the primary action button. Defaults to "Open" (issue 19 will make this required). */
+  primaryLabel?: string
 }
 
 const ACCENTS = [
@@ -31,7 +33,14 @@ const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
 }
 
 /** Summary card for a pattern-based word list. */
-export default function WordListCard({ list, index = 0, onOpen, onDelete, showPresent = true }: WordListCardProps) {
+export default function WordListCard({
+  list,
+  index = 0,
+  onOpen,
+  onDelete,
+  showPresent = true,
+  primaryLabel = 'Open',
+}: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
   const accent = ACCENTS[index % ACCENTS.length]
@@ -61,7 +70,7 @@ export default function WordListCard({ list, index = 0, onOpen, onDelete, showPr
         </ul>
         <div className="mt-auto flex flex-wrap gap-2 pt-2">
           <Button size="sm" onClick={() => onOpen(list)}>
-            Open
+            {primaryLabel}
           </Button>
           {showPresent && (
             <Button size="sm" variant="secondary" asChild>

@@ -107,6 +107,8 @@ function DisplayModeInner() {
                 list={l}
                 index={i}
                 onOpen={(selected) => router.push(`/display?list=${encodeURIComponent(selected.id)}`)}
+                primaryLabel="Present chart"
+                showPresent={false}
               />
             ))}
           </div>
