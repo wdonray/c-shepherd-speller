@@ -122,6 +122,59 @@ describe('PUT /api/users/[id]', () => {
     expect(updateUser).toHaveBeenCalledWith(ID, payload)
   })
 
+  it('accepts a valid image data URL', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const image = 'data:image/jpeg;base64,/9j/4AAQ'
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith(ID, { image })
+  })
+
+  it('accepts an empty image to clear the photo', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image: '' }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith(ID, { image: '' })
+  })
+
+  it('returns 400 for an image with a non-image data URL prefix', async () => {
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image: 'data:text/plain;base64,aGVsbG8=' }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(400)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for an image that is not a string', async () => {
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image: 42 }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(400)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for an image over the length limit', async () => {
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ image: 'data:image/jpeg;base64,' + 'a'.repeat(140_000) }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(400)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
   it('sends an empty update object when no fields are provided', async () => {
     updateUser.mockResolvedValue({ id: ID })
     const req = new NextRequest(`http://localhost/api/users/${ID}`, {

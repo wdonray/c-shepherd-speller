@@ -12,13 +12,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LogOutIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
-import ProfileDialog from './ProfileDialog'
+import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
 import ImportExportDialog from './ImportExportDialog'
 import { PatternMark } from './PatternMark'
 import { notifyListsChanged } from '@/lib/lists-api'
+import { getUserByEmail } from '@/lib/spelling-api'
 
 function initialsFor(name?: string | null, email?: string | null): string {
   if (name) {
@@ -38,10 +39,34 @@ export function Header() {
   const [migrateError, setMigrateError] = useState<string | null>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
+  const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchProfileImage() {
+      if (!session?.user?.email) return
+      try {
+        const user = await getUserByEmail(session.user.email)
+        if (!cancelled) setProfileImage(user.image || undefined)
+      } catch {
+        // Header still works with the Google image or initials fallback.
+      }
+    }
+    fetchProfileImage()
+    const refresh = () => fetchProfileImage()
+    window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
+    return () => {
+      cancelled = true
+      window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
+    }
+  }, [session?.user?.email])
 
   if (session?.user?.id == null) {
     return null
   }
+
+  // An uploaded photo overrides the Google-provided image; initials are the last resort.
+  const avatarImage = profileImage ?? session.user.image ?? undefined
 
   const handleMigrate = async (e: Event) => {
     // Keep the menu open so the error (if any) is visible in place.
@@ -82,9 +107,13 @@ export function Header() {
               <button
                 type="button"
                 aria-label="Open account menu"
-                className="flex size-10 items-center justify-center rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
               >
-                {initialsFor(session.user.name, session.user.email)}
+                {avatarImage ? (
+                  <img src={avatarImage} alt="" aria-hidden="true" className="size-full object-cover" />
+                ) : (
+                  initialsFor(session.user.name, session.user.email)
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">

@@ -50,6 +50,7 @@ export async function updateUser(
     schoolName?: string
     classroomSize?: number
     preferredName?: string
+    image?: string
   }
 ) {
   const user = await getUserById(userId)

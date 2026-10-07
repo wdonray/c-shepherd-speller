@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { version as currentVersion } from '../../../package.json'
 import VersionPage from './page'
 
 const RELEASES = [
   {
-    tag_name: 'v0.1.4',
-    html_url: 'https://github.com/wdonray/c-shepherd-speller/releases/tag/v0.1.4',
+    tag_name: `v${currentVersion}`,
+    html_url: `https://github.com/wdonray/c-shepherd-speller/releases/tag/v${currentVersion}`,
     published_at: '2026-10-05T10:00:00Z',
     body: '  - Fix display mode user ID (abc1234)',
   },
@@ -29,10 +30,12 @@ describe('VersionPage', () => {
   it('renders the current build version and server-fetched releases', async () => {
     render(await VersionPage())
     expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
-    // "This build" appears as the row label and as a badge on the matching release.
-    expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
     await waitFor(() => {
       expect(screen.getByText('Fix display mode user ID')).toBeInTheDocument()
+    })
+    // "This build" appears as the row label and as a badge on the matching release.
+    await waitFor(() => {
+      expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -40,7 +43,9 @@ describe('VersionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     render(await VersionPage())
     expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
-    expect(screen.getByText('v0.1.4')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(`v${currentVersion}`)).toBeInTheDocument()
+    })
   })
 
   it('renders gracefully when GitHub returns an error status', async () => {
