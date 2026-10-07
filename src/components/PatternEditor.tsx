@@ -69,6 +69,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             aria-label="Pattern spelling"
             className={cn(
               'h-auto border-2 border-line bg-card px-2 text-[22px] font-bold',
+              'placeholder:text-muted-foreground',
               'focus-visible:border-sky-deep focus-visible:ring-[3px]',
               accent.text
             )}
@@ -81,7 +82,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
               placeholder="e.g. long a"
               maxLength={50}
               aria-label="Target sound"
-              className="h-9 border-2 border-line bg-card px-2 text-[15px] text-muted-foreground focus-visible:border-sky-deep focus-visible:ring-[3px]"
+              className="h-9 border-2 border-line bg-card px-2 text-[15px] text-muted-foreground placeholder:text-muted-foreground focus-visible:border-sky-deep focus-visible:ring-[3px]"
             />
           </div>
           <button
