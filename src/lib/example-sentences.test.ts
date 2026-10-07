@@ -149,6 +149,31 @@ describe('fetchExampleSentences', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('serves valid cached sentences from localStorage without fetching', async () => {
+    window.localStorage.setItem('patternspell-sentences', JSON.stringify({ cake: ['We baked a cake.'] }))
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('cake')).toEqual(['We baked a cake.'])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['null', 'null JSON'],
+    ['42', 'non-object JSON'],
+    ['[1,2,3]', 'array JSON'],
+  ])('ignores localStorage containing %s (%s)', async (stored) => {
+    window.localStorage.setItem('patternspell-sentences', stored)
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('cake')).toEqual(['We baked a cake.'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('handles corrupt localStorage gracefully', async () => {
     window.localStorage.setItem('patternspell-sentences', 'not-json{')
     const fetchMock = vi.fn().mockResolvedValue({
