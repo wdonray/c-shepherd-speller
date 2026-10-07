@@ -33,7 +33,9 @@ describe('VersionPage', () => {
       expect(screen.getByText('Fix display mode user ID')).toBeInTheDocument()
     })
     // "This build" appears as the row label and as a badge on the matching release.
-    expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
+    await waitFor(() => {
+      expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
+    })
   })
 
   it('renders gracefully when the GitHub API is unreachable', async () => {
