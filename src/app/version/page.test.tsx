@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { version as currentVersion } from '../../../package.json'
 import VersionPage from './page'
 
 const RELEASES = [
   {
-    tag_name: 'v0.1.4',
-    html_url: 'https://github.com/wdonray/c-shepherd-speller/releases/tag/v0.1.4',
+    tag_name: `v${currentVersion}`,
+    html_url: `https://github.com/wdonray/c-shepherd-speller/releases/tag/v${currentVersion}`,
     published_at: '2026-10-05T10:00:00Z',
     body: '  - Fix display mode user ID (abc1234)',
   },
@@ -43,7 +44,7 @@ describe('VersionPage', () => {
     render(await VersionPage())
     expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
     await waitFor(() => {
-      expect(screen.getByText('v0.1.4')).toBeInTheDocument()
+      expect(screen.getByText(`v${currentVersion}`)).toBeInTheDocument()
     })
   })
 
