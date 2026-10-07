@@ -281,13 +281,15 @@ export default function PatternListsManager() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={addPattern}
-          className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition-all hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          + Add a pattern
-        </button>
+        {editingList.patterns.length > 0 && (
+          <button
+            type="button"
+            onClick={addPattern}
+            className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition-all hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            + Add a pattern
+          </button>
+        )}
 
         <div className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-[20px] border-2 border-line bg-card p-4">
           <p className={cn('flex-1 text-[15px] font-semibold', !dirty && 'text-muted-foreground')}>
@@ -347,10 +349,12 @@ export default function PatternListsManager() {
         <>
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold">My word lists ({lists.length})</h3>
-            <Button onClick={() => setIsCreating(true)}>
-              <PlusIcon className="size-4" />
-              New list
-            </Button>
+            {lists.length > 0 && (
+              <Button onClick={() => setIsCreating(true)}>
+                <PlusIcon className="size-4" />
+                New list
+              </Button>
+            )}
           </div>
 
           {lists.length === 0 ? (

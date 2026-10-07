@@ -113,6 +113,23 @@ describe('PatternListsManager', () => {
     })
   })
 
+  it('renders exactly one New list control in each overview state', async () => {
+    getLists.mockResolvedValue([])
+    const { unmount } = render(<PatternListsManager />)
+
+    await screen.findByText('No word lists yet')
+    // Only the empty-state CTA renders; the header-row button is hidden.
+    expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
+    unmount()
+
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+
+    await screen.findByText('My word lists (2)')
+    // Only the header-row button renders; there is no second CTA.
+    expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
+  })
+
   it('opens the create dialog from the overview', async () => {
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
@@ -167,8 +184,9 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('No word lists yet')
-    // The empty state has its own New list button after the header one.
-    fireEvent.click(screen.getAllByRole('button', { name: 'New list' })[1])
+    // The empty state renders the only New list control; the header-row button is hidden.
+    expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
     expect(screen.getByRole('heading', { name: 'New word list' })).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
@@ -272,6 +290,8 @@ describe('PatternListsManager', () => {
     expect(
       screen.getByText('Add your first pattern: the target sound, one spelling, and how common it is.')
     ).toBeInTheDocument()
+    // Only the empty-state card CTA renders; the full-width button is hidden.
+    expect(screen.getAllByRole('button', { name: /add a pattern/i })).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
     expect(screen.getByLabelText('Pattern spelling')).toBeInTheDocument()
@@ -283,6 +303,8 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await openFirstListEditor()
+    // Only the full-width button renders; the empty-state card is hidden.
+    expect(screen.getAllByRole('button', { name: /add a pattern/i })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
     const inputs = screen.getAllByLabelText('Pattern spelling')
     expect(inputs).toHaveLength(2)
