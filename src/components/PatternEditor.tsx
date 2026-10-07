@@ -78,7 +78,8 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   }
 
   const addSuggestedWord = (word: string) => {
-    if (!word || pattern.words.includes(word)) return
+    // The suggestion list already filters out words in the pattern, so this
+    // always adds. Uses the same dedupe-safe update shape as addWord.
     update({ words: [...pattern.words, word] })
   }
 
