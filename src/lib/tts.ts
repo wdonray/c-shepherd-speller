@@ -52,12 +52,14 @@ function loadVoices(): SpeechSynthesisVoice[] {
   if (!isTtsSupported()) return []
   if (cachedVoices !== null) return cachedVoices
   const synth = globalThis.speechSynthesis
-  cachedVoices = typeof synth.getVoices === 'function' ? synth.getVoices() : []
+  // getVoices may be missing on partial implementations; fall back to empty.
+  const readVoices = typeof synth.getVoices === 'function' ? () => synth.getVoices() : () => []
+  cachedVoices = readVoices()
   // Chrome loads voices asynchronously; refresh the cache when they arrive.
   if (!voicesListenerAttached && typeof synth.addEventListener === 'function') {
     voicesListenerAttached = true
     synth.addEventListener('voiceschanged', () => {
-      cachedVoices = typeof synth.getVoices === 'function' ? synth.getVoices() : []
+      cachedVoices = readVoices()
     })
   }
   return cachedVoices
