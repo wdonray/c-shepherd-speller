@@ -174,6 +174,27 @@ describe('fetchExampleSentences', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('returns [] when the API returns non-array JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ title: 'No Definitions Found' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('xyzzy')).toEqual([])
+  })
+
+  it('handles API entries missing meanings or definitions', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve([{}, { meanings: [{ definitions: [{ example: 'We baked a cake.' }] }] }, { meanings: [{}] }]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('cake')).toEqual(['We baked a cake.'])
+  })
+
   it('handles corrupt localStorage gracefully', async () => {
     window.localStorage.setItem('patternspell-sentences', 'not-json{')
     const fetchMock = vi.fn().mockResolvedValue({
