@@ -29,18 +29,20 @@ describe('VersionPage', () => {
   it('renders the current build version and server-fetched releases', async () => {
     render(await VersionPage())
     expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
-    // "This build" appears as the row label and as a badge on the matching release.
-    expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
     await waitFor(() => {
       expect(screen.getByText('Fix display mode user ID')).toBeInTheDocument()
     })
+    // "This build" appears as the row label and as a badge on the matching release.
+    expect(screen.getAllByText('This build').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders gracefully when the GitHub API is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     render(await VersionPage())
     expect(screen.getByText(/every deploy to patternspell/i)).toBeInTheDocument()
-    expect(screen.getByText('v0.1.4')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('v0.1.4')).toBeInTheDocument()
+    })
   })
 
   it('renders gracefully when GitHub returns an error status', async () => {
