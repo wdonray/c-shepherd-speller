@@ -82,7 +82,7 @@ describe('ProfileDialog', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
     })
-    expect(document.querySelector('div.rounded-full[aria-hidden="true"]')?.textContent).toBe('?')
+    expect(document.querySelector('button.rounded-full')?.textContent).toBe('?')
   })
 
   it('uses the email initial when there is no name', async () => {
@@ -97,7 +97,7 @@ describe('ProfileDialog', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
     })
-    expect(document.querySelector('div.rounded-full[aria-hidden="true"]')?.textContent).toBe('T')
+    expect(document.querySelector('button.rounded-full')?.textContent).toBe('T')
   })
 
   it('signs out when the Sign out button is clicked', async () => {
@@ -363,7 +363,7 @@ describe('ProfileDialog', () => {
 
     async function selectPhoto() {
       processProfileImageMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
-      const input = screen.getByLabelText(/upload profile photo/i) as HTMLInputElement
+      const input = screen.getByLabelText(/profile photo file input/i) as HTMLInputElement
       const file = new File(['bytes'], 'photo.png', { type: 'image/png' })
       fireEvent.change(input, { target: { files: [file] } })
       await waitFor(() => expect(processProfileImageMock).toHaveBeenCalledWith(file))
@@ -420,7 +420,7 @@ describe('ProfileDialog', () => {
       renderDialog()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
-      const input = screen.getByLabelText(/upload profile photo/i)
+      const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.txt', { type: 'text/plain' })] } })
       expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, or WebP image.')
     })
@@ -451,7 +451,7 @@ describe('ProfileDialog', () => {
       renderDialog()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
-      const input = screen.getByLabelText(/upload profile photo/i) as HTMLInputElement
+      const input = screen.getByLabelText(/profile photo file input/i) as HTMLInputElement
       fireEvent.change(input, { target: { files: [] } })
       expect(processProfileImageMock).not.toHaveBeenCalled()
     })
@@ -462,7 +462,7 @@ describe('ProfileDialog', () => {
       renderDialog()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
-      const input = screen.getByLabelText(/upload profile photo/i)
+      const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } })
       expect(await screen.findByRole('alert')).toHaveTextContent('Could not read the image file.')
     })

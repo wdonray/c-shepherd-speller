@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
 import { Label } from '@/components/ui/label'
 import { Separator } from './ui/separator'
-import { CheckCircle } from 'lucide-react'
+import { Camera, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
 import { processProfileImage } from '@/lib/profile-image'
@@ -169,22 +169,40 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-4">
-            <div
-              className="flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-deep text-[22px] font-bold text-white"
-              aria-hidden="true"
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Upload profile photo"
+              className="group relative flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-sky-deep text-[22px] font-bold text-white outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60"
             >
               {photo ? (
                 <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
               ) : (
                 initialsFor(displayName, displayEmail)
               )}
-            </div>
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                <Camera className="size-6 text-white" />
+              </span>
+            </button>
             <div>
               <DialogTitle className="text-xl font-bold text-ink">{displayName || 'Your profile'}</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">{displayEmail}</DialogDescription>
               <p className="mt-1 text-sm text-muted-foreground">Signed in with Google</p>
             </div>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={handlePhotoSelect}
+            disabled={isProcessingPhoto}
+            aria-label="Profile photo file input"
+            tabIndex={-1}
+          />
         </DialogHeader>
 
         <Button variant="secondary" className="w-full" onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
@@ -195,43 +213,19 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
 
         <form onSubmit={handleSave} className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-ink">Profile photo</h3>
-            <div className="flex items-center gap-4">
-              <div
-                className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-deep text-lg font-bold text-white"
-                aria-hidden="true"
-              >
-                {photo ? (
-                  <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
-                ) : (
-                  initialsFor(displayName, displayEmail)
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex h-11 cursor-pointer items-center justify-center rounded-2xl bg-chunk-leaf px-5 text-[15px] font-bold text-white shadow-[0_4px_0_var(--color-chunk-leaf-deep)] transition outline-none hover:brightness-110 focus-within:ring-[3px] focus-within:ring-ring/60 active:translate-y-[3px] active:shadow-none">
-                  {isProcessingPhoto ? 'Loading...' : 'Upload photo'}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={handlePhotoSelect}
-                    disabled={isProcessingPhoto}
-                    aria-label="Upload profile photo"
-                  />
-                </label>
-                {photo && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={handlePhotoRemove}
-                    disabled={isProcessingPhoto}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-ink">Profile photo</h3>
+              {photo && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handlePhotoRemove}
+                  disabled={isProcessingPhoto}
+                >
+                  Remove
+                </Button>
+              )}
             </div>
             {photoError && (
               <p role="alert" className="text-sm font-semibold text-coral-ink">
@@ -239,7 +233,8 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              JPEG, PNG, or WebP under 5MB. The photo is resized to fit and shows in the header.
+              Click your photo above to upload. JPEG, PNG, or WebP under 5MB. The photo is resized to fit and shows in
+              the header.
             </p>
           </div>
 
