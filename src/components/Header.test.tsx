@@ -30,6 +30,7 @@ vi.mock('./ProfileDialog', () => ({
       {isOpen && <button onClick={onClose}>close profile</button>}
     </div>
   ),
+  PROFILE_PHOTO_UPDATED_EVENT: 'patternspell:profile-photo-updated',
 }))
 vi.mock('./ImportExportDialog', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
@@ -38,6 +39,11 @@ vi.mock('./ImportExportDialog', () => ({
     </div>
   ),
 }))
+vi.mock('@/lib/spelling-api', () => ({ getUserByEmail: vi.fn() }))
+
+import { getUserByEmail } from '@/lib/spelling-api'
+import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
+const getUserByEmailMock = vi.mocked(getUserByEmail)
 
 const useSessionMock = vi.mocked(useSession)
 const signOutMock = vi.mocked(signOut)
@@ -61,6 +67,15 @@ describe('Header', () => {
     useSessionMock.mockReset()
     signOutMock.mockReset()
     useThemeMock.mockReset()
+    getUserByEmailMock.mockReset()
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
   })
 
   afterEach(() => {
@@ -104,6 +119,95 @@ describe('Header', () => {
     useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
     render(<Header />)
     expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('?')
+  })
+
+  it('renders nothing when the session has no user object', () => {
+    useSessionMock.mockReturnValue({
+      data: { user: null },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
+    const { container } = render(<Header />)
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('ignores the profile image fetch when unmounted before it resolves', async () => {
+    let resolveFetch!: (value: unknown) => void
+    getUserByEmailMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve
+      })
+    )
+    mockSignedIn()
+    const { unmount } = render(<Header />)
+    unmount()
+    resolveFetch({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,x',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    await new Promise((r) => setTimeout(r, 0))
+  })
+
+  it('shows the uploaded profile photo in the avatar', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,uploaded',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledWith('t@e.c'))
+    const avatar = screen.getByRole('button', { name: /open account menu/i })
+    const img = avatar.querySelector('img')
+    expect(img).toHaveAttribute('src', 'data:image/jpeg;base64,uploaded')
+    expect(img).toHaveAttribute('alt', '')
+    expect(avatar).not.toHaveTextContent('DW')
+  })
+
+  it('falls back to the Google session image when no photo was uploaded', async () => {
+    useSessionMock.mockReturnValue({
+      data: { user: { id: 'u1', email: 't@e.c', name: 'Donray Williams', image: 'https://google/photo.jpg' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalled())
+    const img = screen.getByRole('button', { name: /open account menu/i }).querySelector('img')
+    expect(img).toHaveAttribute('src', 'https://google/photo.jpg')
+  })
+
+  it('refreshes the avatar when the profile photo is updated', async () => {
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
+
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,new',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).toHaveAttribute(
+      'src',
+      'data:image/jpeg;base64,new'
+    )
   })
 
   it('opens the spelling sheet from My Spelling Lists', () => {

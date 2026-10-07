@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
-import ProfileDialog from './ProfileDialog'
+import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
+import { processProfileImage } from '@/lib/profile-image'
 
 const { signOutMock } = vi.hoisted(() => ({ signOutMock: vi.fn() }))
 vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: signOutMock }))
+vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
+
+const processProfileImageMock = vi.mocked(processProfileImage)
 
 const useSessionMock = vi.mocked(useSession)
 
@@ -344,5 +348,101 @@ describe('ProfileDialog', () => {
     } finally {
       setTimeoutSpy.mockRestore()
     }
+  })
+
+  describe('profile photo', () => {
+    function renderWithUser(userOverrides = {}) {
+      stubFetch(async (url: string, init?: RequestInit) =>
+        init?.method === 'PUT'
+          ? { ok: true, json: async () => ({}) }
+          : { ok: true, json: async () => ({ user: { ...user, ...userOverrides } }) }
+      )
+      renderDialog()
+    }
+
+    async function selectPhoto() {
+      processProfileImageMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+      const input = screen.getByLabelText(/upload profile photo/i) as HTMLInputElement
+      const file = new File(['bytes'], 'photo.png', { type: 'image/png' })
+      fireEvent.change(input, { target: { files: [file] } })
+      await waitFor(() => expect(processProfileImageMock).toHaveBeenCalledWith(file))
+    }
+
+    it('shows the saved photo instead of initials', async () => {
+      renderWithUser({ image: 'data:image/jpeg;base64,saved' })
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+      const img = document.body.querySelector('img')
+      expect(img).toHaveAttribute('src', 'data:image/jpeg;base64,saved')
+    })
+
+    it('uploads a photo and includes it in the save payload', async () => {
+      const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+        init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+      )
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      await selectPhoto()
+      await waitFor(() =>
+        expect(document.body.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,newphoto')
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
+      })
+      const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+      expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('data:image/jpeg;base64,newphoto')
+    })
+
+    it('dispatches a photo-updated event when the photo changes on save', async () => {
+      stubFetch(async (url: string, init?: RequestInit) =>
+        init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+      )
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      const listener = vi.fn()
+      window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+      try {
+        await selectPhoto()
+        fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+        await waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
+      } finally {
+        window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+      }
+    })
+
+    it('shows an error when photo processing fails', async () => {
+      processProfileImageMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, or WebP image.'))
+      stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      const input = screen.getByLabelText(/upload profile photo/i)
+      fireEvent.change(input, { target: { files: [new File(['x'], 'photo.txt', { type: 'text/plain' })] } })
+      expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, or WebP image.')
+    })
+
+    it('removes the photo and clears it on save', async () => {
+      const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+        init?.method === 'PUT'
+          ? { ok: true, json: async () => ({}) }
+          : { ok: true, json: async () => ({ user: { ...user, image: 'data:image/jpeg;base64,saved' } }) }
+      )
+      renderDialog()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+      expect(document.body.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,saved')
+
+      fireEvent.click(screen.getByRole('button', { name: /remove/i }))
+      expect(document.body.querySelector('img')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
+      })
+      const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+      expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('')
+    })
   })
 })

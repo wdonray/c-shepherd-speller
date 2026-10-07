@@ -3,6 +3,9 @@ import { updateUser, getUserById } from '@/lib/db-utils'
 import { UpdateUserBody } from '@/types/User'
 import { requireOwnership } from '@/lib/require-auth'
 
+const IMAGE_DATA_URL_PATTERN = /^data:image\/(jpeg|png|webp);base64,/
+const IMAGE_MAX_LENGTH = 140_000
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
@@ -11,7 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.response) return auth.response
 
     const body = await request.json()
-    const { name, gradeLevel, subject, schoolName, classroomSize, preferredName } = body
+    const { name, gradeLevel, subject, schoolName, classroomSize, preferredName, image } = body
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -24,6 +27,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (schoolName !== undefined) updateData.schoolName = schoolName
     if (classroomSize !== undefined) updateData.classroomSize = classroomSize
     if (preferredName !== undefined) updateData.preferredName = preferredName
+    if (image !== undefined) {
+      if (
+        typeof image !== 'string' ||
+        image.length > IMAGE_MAX_LENGTH ||
+        (image !== '' && !IMAGE_DATA_URL_PATTERN.test(image))
+      ) {
+        return NextResponse.json({ error: 'Invalid profile image' }, { status: 400 })
+      }
+      updateData.image = image
+    }
 
     const updatedUser = await updateUser(id, updateData)
     return NextResponse.json({ message: 'User updated successfully', user: updatedUser }, { status: 200 })

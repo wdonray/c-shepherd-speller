@@ -11,13 +11,16 @@ import {
 import { signOut, useSession } from 'next-auth/react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
 import { Label } from '@/components/ui/label'
 import { Separator } from './ui/separator'
 import { CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
+import { processProfileImage } from '@/lib/profile-image'
+
+export const PROFILE_PHOTO_UPDATED_EVENT = 'patternspell:profile-photo-updated'
 
 interface ProfileDialogProps {
   isOpen: boolean
@@ -46,6 +49,11 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [photo, setPhoto] = useState<string | undefined>(undefined)
+  const [photoDirty, setPhotoDirty] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     async function fetchUser() {
@@ -57,6 +65,8 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
           const user = await getUserByEmail(email)
           if (!user) return
           setUser(user)
+          setPhoto(user.image || undefined)
+          setPhotoDirty(false)
           setFormData({
             name: user.name || '',
             preferredName: user.preferredName || '',
@@ -100,12 +110,17 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
         if (formData.subject) updateData.subject = formData.subject
         if (formData.schoolName) updateData.schoolName = formData.schoolName
         if (formData.classroomSize) updateData.classroomSize = parseInt(formData.classroomSize)
+        if (photoDirty) updateData.image = photo ?? ''
 
         await updateUser(user.id, updateData)
         setSaveSuccess(true)
 
         // Update local user state
         setUser({ ...user, ...updateData })
+        if (photoDirty) {
+          setPhotoDirty(false)
+          window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
+        }
 
         // Hide success message after 2 seconds
         setTimeout(() => setSaveSuccess(false), 2000)
@@ -121,6 +136,31 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    // Reset the input so the same file can be picked again.
+    e.target.value = ''
+    if (!file) return
+    setIsProcessingPhoto(true)
+    setPhotoError(null)
+    try {
+      const dataUrl = await processProfileImage(file)
+      setPhoto(dataUrl)
+      setPhotoDirty(true)
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : 'Could not read the image file.')
+    } finally {
+      setIsProcessingPhoto(false)
+    }
+  }
+
+  function handlePhotoRemove() {
+    setPhoto(undefined)
+    setPhotoDirty(true)
+    setPhotoError(null)
+    fileInputRef.current?.focus()
+  }
+
   const displayName = user?.name || session?.user?.name || ''
   const displayEmail = session?.user?.email || ''
 
@@ -130,10 +170,14 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
         <DialogHeader>
           <div className="flex items-center gap-4">
             <div
-              className="flex size-[72px] shrink-0 items-center justify-center rounded-full bg-sky-deep text-[22px] font-bold text-white"
+              className="flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-deep text-[22px] font-bold text-white"
               aria-hidden="true"
             >
-              {initialsFor(displayName, displayEmail)}
+              {photo ? (
+                <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
+              ) : (
+                initialsFor(displayName, displayEmail)
+              )}
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-ink">{displayName || 'Your profile'}</DialogTitle>
@@ -150,6 +194,57 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
         <Separator />
 
         <form onSubmit={handleSave} className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-ink">Profile photo</h3>
+            <div className="flex items-center gap-4">
+              <div
+                className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-deep text-lg font-bold text-white"
+                aria-hidden="true"
+              >
+                {photo ? (
+                  <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
+                ) : (
+                  initialsFor(displayName, displayEmail)
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex h-11 cursor-pointer items-center justify-center rounded-2xl bg-chunk-leaf px-5 text-[15px] font-bold text-white shadow-[0_4px_0_var(--color-chunk-leaf-deep)] transition outline-none hover:brightness-110 focus-within:ring-[3px] focus-within:ring-ring/60 active:translate-y-[3px] active:shadow-none">
+                  {isProcessingPhoto ? 'Loading...' : 'Upload photo'}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={handlePhotoSelect}
+                    disabled={isProcessingPhoto}
+                    aria-label="Upload profile photo"
+                  />
+                </label>
+                {photo && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={handlePhotoRemove}
+                    disabled={isProcessingPhoto}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+            {photoError && (
+              <p role="alert" className="text-sm font-semibold text-coral-ink">
+                {photoError}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              JPEG, PNG, or WebP under 5MB. The photo is resized to fit and shows in the header.
+            </p>
+          </div>
+
+          <Separator />
+
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-ink">Basic information</h3>
 

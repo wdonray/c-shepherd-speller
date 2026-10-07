@@ -5,4 +5,5 @@ export interface UpdateUserBody {
   schoolName?: string
   classroomSize?: number
   preferredName?: string
+  image?: string
 }
