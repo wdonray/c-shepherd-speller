@@ -143,7 +143,7 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
     expect(onEditList).toHaveBeenCalledWith(list)
   })
 

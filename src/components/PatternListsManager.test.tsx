@@ -65,7 +65,7 @@ const list2: WordList = {
 }
 
 async function openFirstListEditor() {
-  fireEvent.click((await screen.findAllByRole('button', { name: 'Open' }))[0])
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
   await screen.findByText('Spelling patterns (1)')
 }
 
@@ -284,7 +284,7 @@ describe('PatternListsManager', () => {
     getLists.mockResolvedValue([empty])
     render(<PatternListsManager />)
 
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Open' }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
     await screen.findByText('Spelling patterns (0)')
     expect(screen.getByText('No patterns yet')).toBeInTheDocument()
     expect(
@@ -379,7 +379,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
     await act(async () => {})
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Open' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit list' })[0])
     await act(async () => {})
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
@@ -450,7 +450,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (1)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Open' }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
     await screen.findByText('Spelling patterns (2)')
 
     fireEvent.change(screen.getAllByLabelText('Pattern spelling')[0], { target: { value: 'ai' } })
@@ -489,7 +489,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (1)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Open' }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
     await screen.findByText('Spelling patterns (1)')
     fireEvent.click(screen.getByRole('button', { name: 'Delete pattern ay' }))
 
@@ -572,7 +572,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (2)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Open' }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
     await screen.findByText('Spelling patterns (1)')
 
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })

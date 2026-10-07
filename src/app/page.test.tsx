@@ -127,7 +127,7 @@ describe('Home page', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
     await waitFor(() => {
       expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
     })
