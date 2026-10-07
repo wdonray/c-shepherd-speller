@@ -98,6 +98,15 @@ describe('Header', () => {
     expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
   })
 
+  it('links the brand block to the home page', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    const homeLink = screen.getByRole('link', { name: 'PatternSpell home' })
+    expect(homeLink).toHaveAttribute('href', '/')
+    expect(homeLink).toHaveTextContent('PatternSpell')
+  })
+
   it('shows a single initial for a one-word name', () => {
     mockSignedIn('light', 'Donray')
     render(<Header />)
