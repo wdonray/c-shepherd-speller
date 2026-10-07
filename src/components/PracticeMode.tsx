@@ -330,7 +330,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-64 max-w-[600px] flex-1">
+          <div className="min-w-64 w-full flex-1">
             <p className="text-sm font-semibold">{`${correctCount} of ${totalCount} correct (${progress}%)`}</p>
             <div
               className="mt-2 h-[14px] overflow-hidden rounded-full bg-line"
