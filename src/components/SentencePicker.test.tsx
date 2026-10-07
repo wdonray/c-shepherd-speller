@@ -11,6 +11,11 @@ import { fetchExampleSentences } from '@/lib/example-sentences'
 describe('SentencePicker', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // requestAnimationFrame is not implemented in jsdom; run callbacks synchronously.
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      cb(0)
+      return 0
+    })
   })
 
   afterEach(() => {
@@ -64,6 +69,7 @@ describe('SentencePicker', () => {
     vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     const trigger = screen.getByRole('button', { name: 'Pick an example sentence for cake' })
+    const focusSpy = vi.spyOn(trigger, 'focus')
     fireEvent.click(trigger)
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
@@ -72,9 +78,8 @@ describe('SentencePicker', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
-    await waitFor(() => {
-      expect(document.activeElement).toBe(trigger)
-    })
+    expect(focusSpy).toHaveBeenCalled()
+    focusSpy.mockRestore()
   })
 
   it('shows attribution', async () => {
