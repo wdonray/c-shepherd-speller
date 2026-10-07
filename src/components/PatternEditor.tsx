@@ -16,10 +16,25 @@ interface PatternEditorProps {
   onRemove: () => void
 }
 
-const FREQUENCIES: { value: PatternFrequency; label: string; level: PowerBarLevel }[] = [
-  { value: 'common', label: 'Common', level: 3 },
-  { value: 'less-common', label: 'Less common', level: 2 },
-  { value: 'rare', label: 'Rare', level: 1 },
+const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; level: PowerBarLevel }[] = [
+  {
+    value: 'common',
+    label: 'Common',
+    meaning: 'Shows up in most words with this sound. Teach this spelling first.',
+    level: 3,
+  },
+  {
+    value: 'less-common',
+    label: 'Less common',
+    meaning: 'Shows up sometimes. Teach it after the common spelling.',
+    level: 2,
+  },
+  {
+    value: 'rare',
+    label: 'Rare',
+    meaning: 'Shows up in just a few words. Teach it last, or skip it for now.',
+    level: 1,
+  },
 ]
 
 const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
@@ -27,6 +42,15 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
   'less-common': 'Less common',
   rare: 'Rare',
 }
+
+const FREQUENCY_MEANINGS: Record<PatternFrequency, string> = {
+  common: 'Shows up in most words with this sound. Teach this spelling first.',
+  'less-common': 'Shows up sometimes. Teach it after the common spelling.',
+  rare: 'Shows up in just a few words. Teach it last, or skip it for now.',
+}
+
+const FREQUENCY_HELPER =
+  'How often this spelling shows up for the sound. Common spellings get the widest column on the chart.'
 
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({ pattern, onChange, onRemove }: PatternEditorProps) {
@@ -106,7 +130,15 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           <span id={`frequency-${pattern.id}`} className="text-[13px] font-medium text-muted-foreground">
             Frequency
           </span>
-          <div role="radiogroup" aria-labelledby={`frequency-${pattern.id}`} className="flex gap-1.5">
+          <p id={`frequency-help-${pattern.id}`} className="max-w-[220px] text-right text-[13px] text-muted-foreground">
+            {FREQUENCY_HELPER}
+          </p>
+          <div
+            role="radiogroup"
+            aria-labelledby={`frequency-${pattern.id}`}
+            aria-describedby={`frequency-help-${pattern.id}`}
+            className="flex gap-1.5"
+          >
             {FREQUENCIES.map((f) => {
               const selected = pattern.frequency === f.value
               return (
@@ -116,7 +148,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                   role="radio"
                   aria-checked={selected}
                   aria-label={f.label}
-                  title={f.label}
+                  title={f.meaning}
                   onClick={() => update({ frequency: f.value })}
                   className={cn(
                     'cursor-pointer rounded-xl border-2 p-2 transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
@@ -131,6 +163,9 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             })}
           </div>
           <span className="text-[13px] font-semibold">{FREQUENCY_LABELS[pattern.frequency]}</span>
+          <p className="max-w-[220px] text-right text-[13px] text-muted-foreground">
+            {FREQUENCY_MEANINGS[pattern.frequency]}
+          </p>
         </div>
 
         <Button

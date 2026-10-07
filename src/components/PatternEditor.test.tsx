@@ -86,6 +86,45 @@ describe('PatternEditor', () => {
     renderEditor({ frequency: 'rare' })
     expect(screen.getByRole('radio', { name: 'Rare' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('Rare')).toBeInTheDocument()
+    expect(screen.getByText('Shows up in just a few words. Teach it last, or skip it for now.')).toBeInTheDocument()
+  })
+
+  it('explains what frequency means with helper text linked to the radiogroup', () => {
+    renderEditor()
+    const helper = screen.getByText(
+      'How often this spelling shows up for the sound. Common spellings get the widest column on the chart.'
+    )
+    expect(helper).toBeInTheDocument()
+    expect(helper).toHaveAttribute('id', 'frequency-help-p1')
+    const radiogroup = screen.getByRole('radiogroup', { name: 'Frequency' })
+    expect(radiogroup).toHaveAttribute('aria-describedby', 'frequency-help-p1')
+  })
+
+  it('gives each frequency option a teacher-language meaning in its title', () => {
+    renderEditor()
+    expect(screen.getByRole('radio', { name: 'Common' })).toHaveAttribute(
+      'title',
+      'Shows up in most words with this sound. Teach this spelling first.'
+    )
+    expect(screen.getByRole('radio', { name: 'Less common' })).toHaveAttribute(
+      'title',
+      'Shows up sometimes. Teach it after the common spelling.'
+    )
+    expect(screen.getByRole('radio', { name: 'Rare' })).toHaveAttribute(
+      'title',
+      'Shows up in just a few words. Teach it last, or skip it for now.'
+    )
+  })
+
+  it('shows the meaning of the selected frequency beneath the readout', () => {
+    const onChange = vi.fn()
+    const onRemove = vi.fn()
+    const { rerender } = render(<PatternEditor pattern={basePattern} onChange={onChange} onRemove={onRemove} />)
+    expect(screen.getByText('Shows up in most words with this sound. Teach this spelling first.')).toBeInTheDocument()
+    rerender(
+      <PatternEditor pattern={{ ...basePattern, frequency: 'less-common' }} onChange={onChange} onRemove={onRemove} />
+    )
+    expect(screen.getByText('Shows up sometimes. Teach it after the common spelling.')).toBeInTheDocument()
   })
 
   it('gives the odd-duck toggle hover and focus-visible treatments in both states', () => {
