@@ -283,6 +283,32 @@ describe('PatternEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('closes the delete confirmation when dismissed', async () => {
+    renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(screen.getByText('Remove this word?')).toBeInTheDocument()
+    // Dismiss via the dialog's close button (X)
+    const closeButton = screen.getByRole('button', { name: /close/i })
+    fireEvent.click(closeButton)
+    await waitFor(() => {
+      expect(screen.queryByText('Remove this word?')).not.toBeInTheDocument()
+    })
+  })
+
+  it('closes the frequency help dialog', async () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'About frequency' }))
+    await waitFor(() => {
+      expect(screen.getByText('About frequency')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    await waitFor(() => {
+      expect(screen.queryByText('About frequency')).not.toBeInTheDocument()
+    })
+  })
+
   it('removes a word without confirmation when it has no sentence', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
