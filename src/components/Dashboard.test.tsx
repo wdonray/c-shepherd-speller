@@ -73,7 +73,7 @@ describe('Dashboard', () => {
   it('shows a loading state', () => {
     getLists.mockImplementation(() => new Promise(() => {}))
     render(<Dashboard {...defaultProps} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Loading your dashboard...')
+    expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
   })
 
   it('shows quick action buttons', async () => {

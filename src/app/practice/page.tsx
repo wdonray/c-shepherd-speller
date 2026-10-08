@@ -50,15 +50,27 @@ function PracticeInner() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background" role="status" aria-label="Loading">
-        <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-          <div className="h-10 w-72 animate-pulse rounded-xl bg-line/60" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="min-h-screen bg-background" role="status" aria-label="Loading practice" aria-busy="true">
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+          {/* Header: matches loaded (back link + h1 + description) */}
+          <div aria-hidden="true">
+            <div className="h-5 w-16 animate-pulse rounded-lg bg-line/60" />
+            <div className="mt-3 h-10 w-72 animate-pulse rounded-xl bg-line/60" />
+            <div className="mt-1 h-5 w-96 max-w-full animate-pulse rounded-lg bg-line/40" />
+          </div>
+          {/* List cards: match WordListCard structure */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-48 animate-pulse rounded-[20px] border-2 border-line bg-card" />
+              <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
+                <div className="h-2 w-full animate-pulse bg-line/60" />
+                <div className="flex flex-col gap-3 p-6">
+                  <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
+                  <div className="h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                  <div className="h-20 animate-pulse rounded-xl bg-line/40" />
+                </div>
+              </div>
             ))}
           </div>
-          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -136,10 +148,25 @@ export default function PracticePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background" role="status" aria-label="Loading">
-          <div className="mx-auto max-w-6xl px-4 py-8">
-            <div className="h-10 w-72 animate-pulse rounded-xl bg-line/60" />
-            <p className="mt-6 text-muted-foreground">Loading...</p>
+        <div className="min-h-screen bg-background" role="status" aria-label="Loading practice" aria-busy="true">
+          <div className="mx-auto max-w-6xl space-y-8 px-4 py-8" aria-hidden="true">
+            <div>
+              <div className="h-5 w-16 animate-pulse rounded-lg bg-line/60" />
+              <div className="mt-3 h-10 w-72 animate-pulse rounded-xl bg-line/60" />
+              <div className="mt-1 h-5 w-96 max-w-full animate-pulse rounded-lg bg-line/40" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
+                  <div className="h-2 w-full animate-pulse bg-line/60" />
+                  <div className="flex flex-col gap-3 p-6">
+                    <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
+                    <div className="h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                    <div className="h-20 animate-pulse rounded-xl bg-line/40" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       }

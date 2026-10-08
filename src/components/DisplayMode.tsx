@@ -53,12 +53,33 @@ function DisplayModeInner() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" role="status">
-        <div className="w-full max-w-6xl space-y-4 px-4">
-          <div className="h-10 w-2/3 animate-pulse rounded-[20px] bg-line" />
-          <div className="flex flex-col gap-6 lg:flex-row" aria-hidden="true">
+      <div
+        className="flex min-h-screen flex-col bg-background"
+        role="status"
+        aria-label="Loading chart"
+        aria-busy="true"
+      >
+        {/* Header: matches loaded sticky header */}
+        <div className="border-b-2 border-line bg-card" aria-hidden="true">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
+            <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
+            <div className="ml-auto h-9 w-24 animate-pulse rounded-xl bg-line/60" />
+          </div>
+        </div>
+        {/* Chart: matches PatternChartDisplay column layout */}
+        <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
+          <div className="flex flex-col gap-6 lg:flex-row">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-64 flex-1 animate-pulse rounded-2xl bg-line" />
+              <div key={i} className="flex-1 rounded-2xl border-2 border-line bg-card p-6">
+                <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
+                <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                <div className="mt-4 space-y-2">
+                  {[0, 1, 2, 3].map((j) => (
+                    <div key={j} className="h-10 animate-pulse rounded-xl bg-line/40" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -155,12 +176,31 @@ export default function DisplayMode() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center" role="status">
-          <div className="w-full max-w-6xl space-y-4 px-4">
-            <div className="h-10 w-2/3 animate-pulse rounded-[20px] bg-line" />
-            <div className="flex flex-col gap-6 lg:flex-row" aria-hidden="true">
+        <div
+          className="flex min-h-screen flex-col bg-background"
+          role="status"
+          aria-label="Loading chart"
+          aria-busy="true"
+        >
+          <div className="border-b-2 border-line bg-card" aria-hidden="true">
+            <div className="flex items-center gap-2 px-4 py-3">
+              <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
+              <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
+              <div className="ml-auto h-9 w-24 animate-pulse rounded-xl bg-line/60" />
+            </div>
+          </div>
+          <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
+            <div className="flex flex-col gap-6 lg:flex-row">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-64 flex-1 animate-pulse rounded-2xl bg-line" />
+                <div key={i} className="flex-1 rounded-2xl border-2 border-line bg-card p-6">
+                  <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
+                  <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                  <div className="mt-4 space-y-2">
+                    {[0, 1, 2, 3].map((j) => (
+                      <div key={j} className="h-10 animate-pulse rounded-xl bg-line/40" />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
