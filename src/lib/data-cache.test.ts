@@ -155,6 +155,14 @@ describe('fetchIntoCache', () => {
     expect(readCache('dk')).toBe('v')
   })
 
+  it('turns a synchronously-throwing fetcher into a rejection', async () => {
+    const failed = fetchIntoCache('sync-err', () => {
+      throw new Error('sync boom')
+    })
+    await expect(failed).rejects.toThrow('sync boom')
+    expect(readCache('sync-err')).toBeUndefined()
+  })
+
   it('rethrows failures, caches nothing, and allows a retry', async () => {
     const d = deferred<string>()
     const failed = fetchIntoCache('ek', () => d.promise)

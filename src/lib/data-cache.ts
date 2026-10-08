@@ -99,12 +99,22 @@ export function subscribeCache(key: string, notify: () => void): () => void {
 /**
  * Fetches through the cache, de-duplicating concurrent requests for the same
  * key. On success the cache is written (notifying subscribers); on failure the
- * error is rethrown and nothing is cached.
+ * error is rethrown and nothing is cached. The fetcher is invoked inside a
+ * promise chain so a synchronously-throwing fetcher becomes a rejection
+ * instead of crashing the caller.
  */
 export function fetchIntoCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const existing = inFlight.get(key)
   if (existing) return existing as Promise<T>
-  const promise = fetcher().then(
+  // A synchronously-throwing fetcher becomes a rejection instead of crashing
+  // the caller.
+  let promise: Promise<T>
+  try {
+    promise = Promise.resolve(fetcher())
+  } catch (error) {
+    promise = Promise.reject(error)
+  }
+  const tracked = promise.then(
     (data) => {
       inFlight.delete(key)
       writeCache(key, data)
@@ -115,8 +125,8 @@ export function fetchIntoCache<T>(key: string, fetcher: () => Promise<T>): Promi
       throw error
     }
   )
-  inFlight.set(key, promise)
-  return promise
+  inFlight.set(key, tracked)
+  return tracked
 }
 
 export interface CachedData<T> {
