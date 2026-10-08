@@ -116,7 +116,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
     }
     window.addEventListener(LISTS_CHANGED_EVENT, reload)
     return () => window.removeEventListener(LISTS_CHANGED_EVENT, reload)
-  }, [loadLists])
+  }, [refreshLists])
 
   const firstName = session?.user?.name?.trim().split(/\s+/)[0]
   const greeting = `${greetingForHour(new Date().getHours())}${firstName ? `, ${firstName}` : ''}`
@@ -171,7 +171,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
         <Card className="mx-auto max-w-xl border-coral bg-coral-soft p-8 text-center" role="alert">
           <h2 className="mb-2 text-2xl font-bold text-coral-ink">Could not load your lists</h2>
           <p className="mb-6">Check your connection and try again. Your lists are safe.</p>
-          <Button variant="destructive" onClick={loadLists} className="self-center">
+          <Button variant="destructive" onClick={refreshLists} className="self-center">
             Try again
           </Button>
         </Card>
