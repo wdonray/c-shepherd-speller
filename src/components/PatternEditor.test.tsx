@@ -210,6 +210,24 @@ describe('PatternEditor', () => {
     expect(onRemove).toHaveBeenCalledTimes(1)
   })
 
+  it('labels the pattern delete button with visible text instead of an icon alone', () => {
+    renderEditor()
+    const deleteButton = screen.getByRole('button', { name: 'Delete pattern a_e' })
+    expect(deleteButton).toHaveTextContent('Delete pattern')
+  })
+
+  it('separates the pattern delete button from the editing controls', () => {
+    renderEditor()
+    const deleteButton = screen.getByRole('button', { name: 'Delete pattern a_e' })
+    expect(deleteButton.parentElement?.className).toMatch(/border-t-2/)
+  })
+
+  it('gives the pattern delete button a 44px minimum touch target', () => {
+    renderEditor()
+    const deleteButton = screen.getByRole('button', { name: 'Delete pattern a_e' })
+    expect(deleteButton.className).toMatch(/min-h-\[44px\]/)
+  })
+
   it('shows up to 3 suggestion chips on exact sound+pattern match', () => {
     renderEditor()
     const group = screen.getByRole('group', { name: 'Try:' })
