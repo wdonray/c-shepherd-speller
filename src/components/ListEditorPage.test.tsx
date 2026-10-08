@@ -254,6 +254,200 @@ describe('ListEditorPage', () => {
     expect(updateList).not.toHaveBeenCalled()
   })
 
+  it('auto-saves the grade level', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('Grade level'), { target: { value: '2' } })
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: '2' }))
+  })
+
+  it('hides the Saved indicator after two seconds', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitForSave()
+    expect(screen.getByText('Saved')).toBeInTheDocument()
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Saved')).not.toBeInTheDocument()
+      },
+      { timeout: 4000 }
+    )
+  })
+
+  it('clears a pending Saved timer when a new save starts', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitForSave()
+    expect(screen.getByText('Saved')).toBeInTheDocument()
+
+    // A second edit before the 2s Saved timer elapses must clear it.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed again' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledTimes(2), { timeout: 3000 })
+    await waitFor(() => expect(screen.queryByText('Saving...')).not.toBeInTheDocument(), { timeout: 3000 })
+    expect(screen.getByText('Saved')).toBeInTheDocument()
+  })
+
+  it('dismisses the delete dialog with the close button', async () => {
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
+    expect(screen.getByRole('heading', { name: 'Delete this pattern?' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /close/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Delete this pattern?' })).not.toBeInTheDocument()
+    })
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('shows untitled and singular word count in the delete dialog', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({
+      patterns: [{ ...patternA, pattern: '', words: ['cake'] }],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete this pattern' }))
+    expect(screen.getByRole('heading', { name: 'Delete this pattern?' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Delete "untitled" with its 1 word? This cannot be undone. The rest of the list is untouched.')
+    ).toBeInTheDocument()
+  })
+
+  it('swallows a failed flush when leaving the page', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    getList.mockResolvedValue(list)
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // Unmount before the debounce fires; the flush rejects but must not throw.
+    unmount()
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
+    })
+  })
+
+  it('shows Saving... while a save is in flight', async () => {
+    let resolveSave!: (v: unknown) => void
+    updateList.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolveSave = r
+        })
+    )
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Saving...')).toBeInTheDocument()
+      },
+      { timeout: 3000 }
+    )
+    resolveSave({ ...list, name: 'Renamed' })
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Saving...')).not.toBeInTheDocument()
+      },
+      { timeout: 3000 }
+    )
+  })
+
+  it('does not update state if unmounted during load', async () => {
+    let resolveLoad!: (v: WordList) => void
+    getList.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolveLoad = r
+        })
+    )
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    expect(screen.getByRole('status', { name: 'Loading list editor' })).toBeInTheDocument()
+
+    unmount()
+    resolveLoad(list)
+    await new Promise((r) => setTimeout(r, 100))
+    // No crash, no state update after unmount.
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('does not update state if unmounted during a failing load', async () => {
+    let rejectLoad!: (e: Error) => void
+    getList.mockImplementation(
+      () =>
+        new Promise((_, rej) => {
+          rejectLoad = rej
+        })
+    )
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+
+    unmount()
+    rejectLoad(new Error('network down'))
+    await new Promise((r) => setTimeout(r, 100))
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('stays on the error card when a retry also fails generically', async () => {
+    getList.mockRejectedValue(new Error('network down'))
+    render(<ListEditorPage listId="l1" />)
+
+    await screen.findByRole('heading', { name: 'Could not load this list' })
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => {
+      expect(getList).toHaveBeenCalledTimes(2)
+    })
+    expect(screen.getByRole('heading', { name: 'Could not load this list' })).toBeInTheDocument()
+  })
+
+  it('only updates the edited pattern when several exist', async () => {
+    const patternB: SpellingPattern = { ...patternA, id: 'p2', pattern: 'ai' }
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [patternA, patternB] })
+
+    const selects = screen.getAllByLabelText('Pattern spelling')
+    fireEvent.change(selects[0], { target: { value: 'ay' } })
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith(
+      'l1',
+      expect.objectContaining({
+        patterns: [
+          expect.objectContaining({ id: 'p1', pattern: 'ay' }),
+          expect.objectContaining({ id: 'p2', pattern: 'ai' }),
+        ],
+      })
+    )
+  })
+
+  it('renders an empty grade input when the list has no grade level', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ gradeLevel: undefined })
+
+    expect(screen.getByLabelText('Grade level')).toHaveValue('')
+    expect(screen.queryByText('Grade 1')).not.toBeInTheDocument()
+  })
+
+  it('clears the grade level when the input is emptied', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('Grade level'), { target: { value: '' } })
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: undefined }))
+  })
+
   it('links back to the lists overview', async () => {
     await renderReady()
     expect(screen.getByRole('link', { name: 'My lists' })).toHaveAttribute('href', '/')
