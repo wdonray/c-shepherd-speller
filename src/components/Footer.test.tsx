@@ -29,4 +29,12 @@ describe('Footer', () => {
     render(<Footer />)
     expect(screen.getByText('PatternSpell. Made for K-3 classrooms.')).toBeInTheDocument()
   })
+
+  it('renders the Buy me a coffee button opening in a new tab', () => {
+    render(<Footer />)
+    const link = screen.getByRole('link', { name: 'Buy me a coffee' })
+    expect(link).toHaveAttribute('href', 'https://buymeacoffee.com/donrayxwils')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
 })

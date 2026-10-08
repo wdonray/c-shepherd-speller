@@ -1,3 +1,5 @@
+import { BuyMeACoffeeButton } from './BuyMeACoffeeButton'
+
 export function Footer() {
   return (
     <footer className="w-full border-t-2 border-line bg-card pb-[env(safe-area-inset-bottom)]">
@@ -20,6 +22,7 @@ export function Footer() {
           >
             LinkedIn
           </a>
+          <BuyMeACoffeeButton />
         </div>
       </div>
     </footer>
