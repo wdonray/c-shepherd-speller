@@ -126,6 +126,31 @@ describe('ProfileForm', () => {
     expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument()
   })
 
+  it('groups fields into personal and teaching sections', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderForm()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
+    })
+    expect(screen.getByRole('heading', { name: 'Personal information' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Teaching information' })).toBeInTheDocument()
+  })
+
+  it('opens the file picker from the Change photo button', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderForm()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
+    })
+    const input = screen.getByLabelText(/profile photo file input/i) as HTMLInputElement
+    const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Change photo' }))
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
+
   it('populates the form fields from the fetched user', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
     renderForm()
@@ -136,7 +161,7 @@ describe('ProfileForm', () => {
     expect(screen.getByLabelText(/full name/i)).toHaveValue('Donray Williams')
     expect(screen.getByLabelText(/preferred name/i)).toHaveValue('Donray')
     expect(screen.getByLabelText(/grade level/i)).toHaveValue('3rd Grade')
-    expect(screen.getByLabelText(/subject\/area/i)).toHaveValue('ELA')
+    expect(screen.getByLabelText(/subject or area/i)).toHaveValue('ELA')
     expect(screen.getByLabelText(/school name/i)).toHaveValue('Main Street School')
     expect(screen.getByLabelText(/typical class size/i)).toHaveValue(25)
     expect(screen.getByLabelText(/email address/i)).toHaveValue('t@e.c')
@@ -191,7 +216,7 @@ describe('ProfileForm', () => {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
     fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: 'Don' } })
     fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '4th Grade' } })
-    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: 'Math' } })
+    fireEvent.change(screen.getByLabelText(/subject or area/i), { target: { value: 'Math' } })
     fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: 'Elm School' } })
     fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '30' } })
 
@@ -216,7 +241,7 @@ describe('ProfileForm', () => {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/subject or area/i), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '' } })
 
@@ -381,7 +406,7 @@ describe('ProfileForm', () => {
     expect(screen.getByLabelText(/full name/i)).toHaveValue('')
     expect(screen.getByLabelText(/preferred name/i)).toHaveValue('')
     expect(screen.getByLabelText(/grade level/i)).toHaveValue('')
-    expect(screen.getByLabelText(/subject\/area/i)).toHaveValue('')
+    expect(screen.getByLabelText(/subject or area/i)).toHaveValue('')
     expect(screen.getByLabelText(/school name/i)).toHaveValue('')
     expect(screen.getByLabelText(/typical class size/i)).toHaveValue(null)
   })
