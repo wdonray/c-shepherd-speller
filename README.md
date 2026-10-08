@@ -1,9 +1,13 @@
-# C-Shepherd Speller
+<img src="src/app/icon.svg" alt="PatternSpell logo" width="64" height="64" />
+
+# PatternSpell
 
 [![Tests](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml/badge.svg)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
 
 A login-gated web app for teachers to manage classroom spelling lists (words, sounds, spelling patterns) and store them in DynamoDB. Google OAuth handles sign-in.
+
+> **Renamed:** this project was formerly called "Shepherd Speller". The repository name (`c-shepherd-speller`) and infrastructure names (DynamoDB tables, etc.) are intentionally unchanged; only the product name and branding are now PatternSpell.
 
 ## Status
 
