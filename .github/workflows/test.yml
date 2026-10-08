@@ -15,6 +15,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect code changes
+        id: diff
+        run: |
+          # Docs/CI-only means every changed file matches **.md, LICENSE*,
+          # or .github/**. Anything else counts as a code change.
+          # Default to running everything when the base ref is unavailable
+          # (e.g. workflow_dispatch).
+          code="true"
+          if [ -n "${{ github.base_ref }}" ]; then
+            code="false"
+            while IFS= read -r f; do
+              case "$f" in
+                *.md|LICENSE*|.github/*) ;;
+                *)
+                  code="true"
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -72,6 +105,8 @@ jobs:
 
   unit:
     name: Unit tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     services:
       dynamodb:
@@ -121,6 +156,8 @@ jobs:
 
   e2e:
     name: E2E tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     services:
       dynamodb:
