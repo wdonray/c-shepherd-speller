@@ -165,7 +165,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             </button>
           </div>
 
-          <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:shrink-0 sm:items-end">
             <span className="flex items-center gap-1.5">
               <span id={`frequency-${pattern.id}`} className="text-[13px] font-medium text-muted-foreground">
                 Frequency
@@ -184,7 +184,11 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                 <TooltipContent>What does frequency mean?</TooltipContent>
               </Tooltip>
             </span>
-            <div role="radiogroup" aria-labelledby={`frequency-${pattern.id}`} className="flex gap-1.5">
+            <div
+              role="radiogroup"
+              aria-labelledby={`frequency-${pattern.id}`}
+              className="flex flex-wrap gap-1.5 sm:justify-end"
+            >
               {FREQUENCIES.map((f) => {
                 const selected = pattern.frequency === f.value
                 return (
