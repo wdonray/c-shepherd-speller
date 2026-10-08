@@ -8,6 +8,8 @@ import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { XIcon } from 'lucide-react'
 import { OddDuck } from './OddDuck'
 import SentencePicker from './SentencePicker'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import type { SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -57,6 +59,7 @@ const FREQUENCY_HELPER =
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({ pattern, onChange, onRemove }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
+  const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const isOddDuck = pattern.isOddDuck ?? false
 
   const accent = isOddDuck
@@ -81,6 +84,17 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
       words: pattern.words.filter((w) => w !== word),
       sentences: Object.keys(sentences).length > 0 ? sentences : undefined,
     })
+    setWordPendingDelete(null)
+  }
+
+  const handleRemoveClick = (word: string) => {
+    // Confirm when the word has a sentence attached, so teachers do not
+    // lose a custom sentence by accident.
+    if (pattern.sentences?.[word]) {
+      setWordPendingDelete(word)
+    } else {
+      removeWord(word)
+    }
   }
 
   const setWordSentence = (word: string, sentence: string | undefined) => {
@@ -234,31 +248,63 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           </div>
         )}
         {pattern.words.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {pattern.words.map((word) => (
-              <span
-                key={word}
-                className="inline-flex items-center gap-1 rounded-full bg-leaf-soft py-1 pr-1 pl-4 text-[15px] font-semibold"
-              >
-                {word}
-                <SentencePicker
-                  word={word}
-                  patternId={pattern.id}
-                  currentSentence={pattern.sentences?.[word]}
-                  onSelect={(sentence) => setWordSentence(word, sentence)}
-                />
-                <span className="w-1" aria-hidden="true" />
-                <button
-                  type="button"
-                  onClick={() => removeWord(word)}
-                  aria-label={`Remove ${word}`}
-                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 font-bold text-muted-foreground outline-none transition hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                >
-                  <XIcon className="size-4" aria-hidden="true" />
-                </button>
-              </span>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="mt-2 overflow-x-auto rounded-2xl border-2 border-line">
+              <table className="w-full text-left text-[15px]">
+                <thead>
+                  <tr className="border-b-2 border-line bg-muted/50">
+                    <th scope="col" className="px-4 py-3 font-bold text-ink">
+                      Word
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-bold text-ink">
+                      Example sentence
+                    </th>
+                    <th scope="col" className="w-[120px] px-4 py-3 text-right font-bold text-ink">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pattern.words.map((word) => {
+                    const sentence = pattern.sentences?.[word]
+                    return (
+                      <tr key={word} className="border-b border-line last:border-0">
+                        <td className="px-4 py-2 font-semibold text-ink">{word}</td>
+                        <td className="max-w-[300px] truncate px-4 py-2 text-muted-foreground">
+                          {sentence ?? <span aria-hidden="true">—</span>}
+                          {!sentence && <span className="sr-only">No example sentence</span>}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center justify-end gap-3">
+                            <SentencePicker
+                              word={word}
+                              patternId={pattern.id}
+                              currentSentence={sentence}
+                              onSelect={(s) => setWordSentence(word, s)}
+                              variant="pencil"
+                            />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveClick(word)}
+                                  aria-label={`Remove ${word}`}
+                                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-coral-ink outline-none transition hover:bg-coral-soft focus-visible:bg-coral-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                                >
+                                  <XIcon className="size-5" aria-hidden="true" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove word</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </TooltipProvider>
         )}
         <div className="mt-3 flex max-w-md gap-2">
           <Input
@@ -279,6 +325,30 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           </Button>
         </div>
       </div>
+
+      <Dialog open={wordPendingDelete !== null} onOpenChange={(open) => !open && setWordPendingDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-ink">Remove this word?</DialogTitle>
+            <DialogDescription className="text-[14px] text-muted-foreground">
+              {wordPendingDelete && (
+                <>
+                  &ldquo;{wordPendingDelete}&rdquo; has an example sentence attached. Removing the word will also delete
+                  its sentence.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setWordPendingDelete(null)}>
+              Keep word
+            </Button>
+            <Button variant="destructive" onClick={() => wordPendingDelete && removeWord(wordPendingDelete)}>
+              Remove word
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

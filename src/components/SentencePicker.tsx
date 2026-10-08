@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircleIcon, XIcon } from 'lucide-react'
+import { MessageCircleIcon, PencilIcon, XIcon } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { fetchExampleSentences } from '@/lib/example-sentences'
@@ -12,6 +13,11 @@ interface SentencePickerProps {
   patternId: string
   currentSentence?: string
   onSelect: (sentence: string | undefined) => void
+  /**
+   * Render a pencil edit button with tooltip instead of the default chat
+   * bubble. Used in the word table where space is tight.
+   */
+  variant?: 'default' | 'pencil'
 }
 
 /**
@@ -19,14 +25,68 @@ interface SentencePickerProps {
  * Dictionary API (with local fallback), lets the teacher pick one.
  * Rendered as a modal dialog so it always appears above surrounding content.
  */
-export default function SentencePicker({ word, patternId, currentSentence, onSelect }: SentencePickerProps) {
+export default function SentencePicker({
+  word,
+  patternId,
+  currentSentence,
+  onSelect,
+  variant = 'default',
+}: SentencePickerProps) {
+  const buttonId = `sentence-btn-${patternId}-${word}`
+  const label = currentSentence ? `Edit example sentence for ${word}` : `Add example sentence for ${word}`
+
+  const triggerButton =
+    variant === 'pencil' ? (
+      <button
+        id={buttonId}
+        type="button"
+        aria-label={label}
+        className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-sky-ink outline-none transition hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+      >
+        <PencilIcon className="size-5" aria-hidden="true" />
+      </button>
+    ) : (
+      <button
+        id={buttonId}
+        type="button"
+        aria-label={currentSentence ? `Change example sentence for ${word}` : `Pick an example sentence for ${word}`}
+        title={currentSentence ?? `Pick an example sentence for ${word}`}
+        className={cn(
+          'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 font-bold outline-none transition',
+          'text-muted-foreground hover:bg-card hover:text-sky-ink',
+          'focus-visible:bg-card focus-visible:text-sky-ink focus-visible:ring-[3px] focus-visible:ring-ring/60',
+          currentSentence && 'text-sky-ink'
+        )}
+      >
+        <MessageCircleIcon className="size-5" aria-hidden="true" />
+      </button>
+    )
+
+  const trigger =
+    variant === 'pencil' ? (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            id={buttonId}
+            type="button"
+            aria-label={label}
+            onClick={() => setOpen(true)}
+            className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-sky-ink outline-none transition hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            <PencilIcon className="size-5" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>{currentSentence ? 'Edit example sentence' : 'Add example sentence'}</TooltipContent>
+      </Tooltip>
+    ) : (
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+    )
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sentences, setSentences] = useState<string[]>([])
   const [selected, setSelected] = useState<string | undefined>(currentSentence)
   const [customSentence, setCustomSentence] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
-  const buttonId = `sentence-btn-${patternId}-${word}`
 
   useEffect(() => {
     if (!open) return
@@ -75,22 +135,7 @@ export default function SentencePicker({ word, patternId, currentSentence, onSel
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button
-          id={buttonId}
-          type="button"
-          aria-label={currentSentence ? `Change example sentence for ${word}` : `Pick an example sentence for ${word}`}
-          title={currentSentence ?? `Pick an example sentence for ${word}`}
-          className={cn(
-            'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 font-bold outline-none transition',
-            'text-muted-foreground hover:bg-card hover:text-sky-ink',
-            'focus-visible:bg-card focus-visible:text-sky-ink focus-visible:ring-[3px] focus-visible:ring-ring/60',
-            currentSentence && 'text-sky-ink'
-          )}
-        >
-          <MessageCircleIcon className="size-5" aria-hidden="true" />
-        </button>
-      </DialogTrigger>
+      {trigger}
       <DialogContent
         ref={dialogRef}
         showCloseButton={false}
