@@ -61,4 +61,19 @@ describe('proxy config', () => {
     expect(Array.isArray(config.matcher)).toBe(true)
     expect(config.matcher.length).toBeGreaterThan(0)
   })
+
+  it('excludes /api/version so the reload prompt can poll it unauthenticated', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/api/version')).toBe(false)
+    expect(pattern.test('/api/users')).toBe(true)
+    expect(pattern.test('/')).toBe(true)
+  })
+
+  it('excludes icon files so browsers can fetch them unauthenticated', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/favicon.ico')).toBe(false)
+    expect(pattern.test('/apple-icon.png')).toBe(false)
+    expect(pattern.test('/icon.png')).toBe(false)
+    expect(pattern.test('/icon.svg')).toBe(false)
+  })
 })
