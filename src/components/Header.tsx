@@ -20,7 +20,8 @@ import ImportExportDialog from './ImportExportDialog'
 import { PatternMark } from './PatternMark'
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { notifyListsChanged } from '@/lib/lists-api'
-import { getUserByEmail } from '@/lib/spelling-api'
+import { getUserByEmail, type User } from '@/lib/spelling-api'
+import { userCacheKey, useCachedData } from '@/lib/data-cache'
 import { processProfileImage } from '@/lib/profile-image'
 
 function initialsFor(name?: string | null, email?: string | null): string {
@@ -45,25 +46,25 @@ export function Header() {
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
   const [avatarBroken, setAvatarBroken] = useState(false)
 
+  // The profile is cached: revisits show the avatar instantly while a
+  // background revalidation keeps it fresh.
+  const email = session?.user?.email
+  const { data: cachedUser, refresh: refreshUser } = useCachedData<User>(
+    email ? userCacheKey(email) : null,
+    () => getUserByEmail(email as string)
+  )
+
+  // Seed the avatar from the cache; background revalidations flow through here.
+  // Header still works with the Google image or initials fallback on failure.
   useEffect(() => {
-    let cancelled = false
-    async function fetchProfileImage() {
-      if (!session?.user?.email) return
-      try {
-        const user = await getUserByEmail(session.user.email)
-        if (!cancelled) setProfileImage(user.image || undefined)
-      } catch {
-        // Header still works with the Google image or initials fallback.
-      }
-    }
-    fetchProfileImage()
-    const refresh = () => fetchProfileImage()
+    if (cachedUser?.image !== undefined) setProfileImage(cachedUser.image)
+  }, [cachedUser?.image])
+
+  useEffect(() => {
+    const refresh = () => refreshUser()
     window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
-    return () => {
-      cancelled = true
-      window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
-    }
-  }, [session?.user?.email])
+    return () => window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
+  }, [refreshUser])
 
   if (session?.user?.id == null) {
     return null
