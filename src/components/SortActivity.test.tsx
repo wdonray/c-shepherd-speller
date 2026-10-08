@@ -5,6 +5,7 @@ import type { WordList } from '@/models/WordList'
 
 const dndHandlers: {
   onDragStart?: (e: { active: { id: string } }) => void
+  onDragOver?: (e: { over: { id: string } | null }) => void
   onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
 } = {}
 vi.mock('@dnd-kit/core', async (importOriginal) => {
@@ -14,13 +15,16 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
     DndContext: ({
       children,
       onDragStart,
+      onDragOver,
       onDragEnd,
     }: {
       children: React.ReactNode
       onDragStart?: (e: { active: { id: string } }) => void
+      onDragOver?: (e: { over: { id: string } | null }) => void
       onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
     }) => {
       dndHandlers.onDragStart = onDragStart
+      dndHandlers.onDragOver = onDragOver
       dndHandlers.onDragEnd = onDragEnd
       return <>{children}</>
     },
@@ -97,6 +101,26 @@ describe('SortActivity', () => {
     await waitFor(() => {
       expect(screen.getByText('cake')).toBeInTheDocument()
     })
+  })
+
+  it('highlights the word bank when dragging over it', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    dndHandlers.onDragOver?.({ over: { id: 'word-bank' } })
+    await waitFor(() => {
+      const bank = screen.getByLabelText('Word bank drop area')
+      expect(bank.className).toContain('border-sky-deep')
+    })
+  })
+
+  it('does nothing when an unplaced word is dropped in the word bank', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const live = document.querySelector('[aria-live="polite"][role="status"]')
+    dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'word-bank' } })
+    await waitFor(() => {
+      expect(live?.textContent).toContain('back in the word bank')
+    })
+    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
   })
 
   it('removes placement when a word is dropped back in the word bank', async () => {
