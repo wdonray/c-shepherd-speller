@@ -5,6 +5,10 @@ import Home from './page'
 import type { WordList } from '@/models/WordList'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
+const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
 const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
 
@@ -117,7 +121,7 @@ describe('Home page', () => {
     })
   })
 
-  it('opens the sheet when Open is clicked on a list card', async () => {
+  it('navigates to the list page when Edit list is clicked on a card', async () => {
     getLists.mockResolvedValue([list])
     mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
@@ -128,9 +132,7 @@ describe('Home page', () => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
-    await waitFor(() => {
-      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
-    })
+    expect(mockPush).toHaveBeenCalledWith('/lists/l1')
   })
 
   it('uses empty name when the session has no name', async () => {

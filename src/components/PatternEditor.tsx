@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { XIcon, InfoIcon, Trash2Icon } from 'lucide-react'
 import FrequencyHelpDialog from './FrequencyHelpDialog'
@@ -46,6 +47,34 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
   common: 'Common',
   'less-common': 'Less common',
   rare: 'Rare',
+}
+
+/**
+ * Spelling options for the pattern select. When the target sound matches a
+ * sound in the curated word bank, only that sound's spellings are offered
+ * (so suggestions always work). Otherwise every known spelling is offered.
+ * A pattern already on the card is always included, so lists created with a
+ * custom spelling keep working.
+ */
+function patternOptions(sound: string, current: string): string[] {
+  const key = sound.trim().toLowerCase()
+  const forSound = WORD_SUGGESTIONS[key]
+  let options: string[]
+  if (forSound) {
+    options = Object.keys(forSound)
+  } else {
+    const all = new Set<string>()
+    for (const byPattern of Object.values(WORD_SUGGESTIONS)) {
+      for (const p of Object.keys(byPattern)) all.add(p)
+    }
+    options = [...all]
+  }
+  options.sort()
+  const currentTrimmed = current.trim()
+  if (currentTrimmed && !options.some((o) => o.toLowerCase() === currentTrimmed.toLowerCase())) {
+    options = [currentTrimmed, ...options]
+  }
+  return options
 }
 
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
@@ -124,20 +153,28 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <Input
-              value={pattern.pattern}
-              onChange={(e) => update({ pattern: e.target.value })}
-              placeholder="e.g. a_e"
-              maxLength={20}
-              aria-label="Pattern spelling"
-              className={cn(
-                'h-auto border-2 border-line bg-card px-2 text-[22px] font-bold',
-                'placeholder:text-muted-foreground',
-                'focus-visible:border-sky-deep focus-visible:ring-[3px]',
-                accent.text
-              )}
-            />
-            <div className="mt-1 flex items-center gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
+              <select
+                id={`pattern-spelling-${pattern.id}`}
+                value={pattern.pattern}
+                onChange={(e) => update({ pattern: e.target.value })}
+                aria-label="Pattern spelling"
+                className={cn(
+                  'h-12 w-full cursor-pointer rounded-xl border-2 border-line bg-card px-2 text-[22px] font-bold',
+                  'outline-none focus-visible:border-sky-deep focus-visible:ring-[3px]',
+                  accent.text
+                )}
+              >
+                {pattern.pattern === '' && <option value="">Choose a spelling...</option>}
+                {patternOptions(pattern.sound, pattern.pattern).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
               <span className="shrink-0 text-[15px] text-muted-foreground">Sound:</span>
               <Input
                 value={pattern.sound}
@@ -148,21 +185,6 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                 className="h-9 border-2 border-line bg-card px-2 text-[15px] text-muted-foreground placeholder:text-muted-foreground focus-visible:border-sky-deep focus-visible:ring-[3px]"
               />
             </div>
-            <button
-              type="button"
-              aria-pressed={isOddDuck}
-              onClick={() => update({ isOddDuck: !isOddDuck })}
-              title={isOddDuck ? 'Remove the odd-duck mark' : 'Mark as an odd duck (irregular spelling)'}
-              className={cn(
-                'mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                isOddDuck
-                  ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
-                  : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
-              )}
-            >
-              <OddDuck className="size-5 text-plum" />
-              {isOddDuck ? 'Odd duck' : 'Mark as odd duck'}
-            </button>
           </div>
 
           <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:shrink-0 sm:items-end">
@@ -315,16 +337,38 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           </div>
         </div>
 
-        <div className="mt-6 border-t-2 border-line pt-4">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-4">
           <button
             type="button"
             onClick={onRemove}
             aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
-            className="flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60 sm:w-auto sm:justify-start"
+            className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
           >
             <Trash2Icon className="size-5" aria-hidden="true" />
             Delete pattern
           </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-pressed={isOddDuck}
+                onClick={() => update({ isOddDuck: !isOddDuck })}
+                className={cn(
+                  'inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                  isOddDuck
+                    ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
+                    : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
+                )}
+              >
+                <OddDuck className="size-5 text-plum" />
+                {isOddDuck ? 'Odd duck' : 'Mark as odd duck'}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-60">
+              Odd ducks are irregular spellings that do not follow the usual pattern. Mark them so students know these
+              words just have to be memorized.
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <Dialog open={wordPendingDelete !== null} onOpenChange={(open) => !open && setWordPendingDelete(null)}>

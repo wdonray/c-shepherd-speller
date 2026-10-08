@@ -24,7 +24,7 @@ export default function SpellingManagerSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 py-4">
-          <PatternListsManager />
+          <PatternListsManager onNavigate={() => setIsOpen(false)} />
         </div>
       </SheetContent>
     </Sheet>
