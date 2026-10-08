@@ -144,5 +144,5 @@ export function useCachedData<T>(key: string | null, fetcher: () => Promise<T>):
   }, [key])
 
   const data = key === null ? undefined : readCache<T>(key)
-  return { data, loading: data === undefined && !error, error, refresh }
+  return { data, loading: key !== null && data === undefined && !error, error, refresh }
 }
