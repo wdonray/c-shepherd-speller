@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { signOut, useSession } from 'next-auth/react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
@@ -22,10 +15,26 @@ import { processProfileImage } from '@/lib/profile-image'
 
 export const PROFILE_PHOTO_UPDATED_EVENT = 'patternspell:profile-photo-updated'
 
+/** How long to wait after the last keystroke before auto-saving. */
+const SAVE_DEBOUNCE_MS = 500
+/** How long the "Saved" confirmation stays visible. */
+const SAVED_MESSAGE_MS = 2000
+
 interface ProfileDialogProps {
   isOpen: boolean
   onClose: () => void
 }
+
+interface ProfileFormState {
+  name: string
+  preferredName: string
+  gradeLevel: string
+  subject: string
+  schoolName: string
+  classroomSize: string
+}
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
   if (name) {
@@ -35,9 +44,20 @@ function initialsFor(name: string | null | undefined, email: string | null | und
   return (email?.[0] ?? '?').toUpperCase()
 }
 
+function buildTextPayload(form: ProfileFormState): UpdateUserBody {
+  const updateData: UpdateUserBody = {}
+  if (form.name) updateData.name = form.name
+  if (form.preferredName) updateData.preferredName = form.preferredName
+  if (form.gradeLevel) updateData.gradeLevel = form.gradeLevel
+  if (form.subject) updateData.subject = form.subject
+  if (form.schoolName) updateData.schoolName = form.schoolName
+  if (form.classroomSize) updateData.classroomSize = parseInt(form.classroomSize)
+  return updateData
+}
+
 export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
   const { data: session } = useSession()
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormState>({
     name: '',
     preferredName: '',
     gradeLevel: '',
@@ -46,14 +66,23 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     classroomSize: '',
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
   const [user, setUser] = useState<User | null>(null)
-  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
-  const [photoDirty, setPhotoDirty] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear pending timers if the dialog unmounts so a stray save never fires.
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     async function fetchUser() {
@@ -66,7 +95,6 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
           if (!user) return
           setUser(user)
           setPhoto(user.image || undefined)
-          setPhotoDirty(false)
           setFormData({
             name: user.name || '',
             preferredName: user.preferredName || '',
@@ -96,44 +124,43 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     }
   }
 
-  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setIsSaving(true)
-    setSaveSuccess(false)
-
+  async function doSave(payload: UpdateUserBody, isPhotoChange: boolean): Promise<void> {
+    if (!user?.id) return
+    if (savedTimerRef.current) {
+      clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = null
+    }
+    setSaveStatus('saving')
+    setSaveError(null)
     try {
-      if (user?.id) {
-        const updateData: UpdateUserBody = {}
-        if (formData.name) updateData.name = formData.name
-        if (formData.preferredName) updateData.preferredName = formData.preferredName
-        if (formData.gradeLevel) updateData.gradeLevel = formData.gradeLevel
-        if (formData.subject) updateData.subject = formData.subject
-        if (formData.schoolName) updateData.schoolName = formData.schoolName
-        if (formData.classroomSize) updateData.classroomSize = parseInt(formData.classroomSize)
-        if (photoDirty) updateData.image = photo ?? ''
-
-        await updateUser(user.id, updateData)
-        setSaveSuccess(true)
-
-        // Update local user state
-        setUser({ ...user, ...updateData })
-        if (photoDirty) {
-          setPhotoDirty(false)
-          window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
-        }
-
-        // Hide success message after 2 seconds
-        setTimeout(() => setSaveSuccess(false), 2000)
+      await updateUser(user.id, payload)
+      setUser({ ...user, ...payload })
+      if (isPhotoChange) {
+        window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
       }
+      setSaveStatus('saved')
+      savedTimerRef.current = setTimeout(() => {
+        setSaveStatus('idle')
+      }, SAVED_MESSAGE_MS)
     } catch (error) {
       console.error('Error updating user:', error)
-    } finally {
-      setIsSaving(false)
+      setSaveStatus('error')
+      setSaveError('Could not save your changes. Check your connection and try again.')
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  function scheduleAutosave(next: ProfileFormState): void {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null
+      void doSave(buildTextPayload(next), false)
+    }, SAVE_DEBOUNCE_MS)
+  }
+
+  const handleInputChange = (field: keyof ProfileFormState, value: string) => {
+    const next = { ...formData, [field]: value }
+    setFormData(next)
+    scheduleAutosave(next)
   }
 
   async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -146,7 +173,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     try {
       const dataUrl = await processProfileImage(file)
       setPhoto(dataUrl)
-      setPhotoDirty(true)
+      await doSave({ ...buildTextPayload(formData), image: dataUrl }, true)
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : 'Could not read the image file.')
     } finally {
@@ -154,18 +181,29 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
     }
   }
 
-  function handlePhotoRemove() {
+  async function handlePhotoRemove() {
     setPhoto(undefined)
-    setPhotoDirty(true)
     setPhotoError(null)
     fileInputRef.current?.focus()
+    await doSave({ ...buildTextPayload(formData), image: '' }, true)
+  }
+
+  function handleDialogOpenChange() {
+    // Flush any pending debounced save so edits are not lost when the
+    // dialog closes. The save runs in the background; closing is not blocked.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+      void doSave(buildTextPayload(formData), false)
+    }
+    onClose()
   }
 
   const displayName = user?.name || session?.user?.name || ''
   const displayEmail = session?.user?.email || ''
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-4">
@@ -205,13 +243,30 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
           />
         </DialogHeader>
 
+        <div aria-live="polite">
+          {saveStatus === 'saving' && <p className="text-sm text-muted-foreground">Saving...</p>}
+          {saveStatus === 'saved' && (
+            <div className="rounded-[20px] border-2 border-leaf bg-leaf-soft p-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-leaf-deep" />
+                <p className="text-sm font-medium text-leaf-deep">Saved</p>
+              </div>
+            </div>
+          )}
+          {saveStatus === 'error' && (
+            <p role="alert" className="text-sm font-semibold text-coral-ink">
+              {saveError}
+            </p>
+          )}
+        </div>
+
         <Button variant="secondary" className="w-full" onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
           Sign out
         </Button>
 
         <Separator />
 
-        <form onSubmit={handleSave} className="space-y-6">
+        <div className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-ink">Profile photo</h3>
@@ -253,7 +308,6 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
                   disabled={isLoading}
                   placeholder="Enter your full name"
                   className="h-10"
@@ -381,26 +435,7 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
               </div>
             </div>
           </div>
-
-          {/* Success Message */}
-          {saveSuccess && (
-            <div className="rounded-[20px] border-2 border-leaf bg-leaf-soft p-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-leaf-deep" />
-                <p className="text-sm font-medium text-leaf-deep">Profile updated successfully!</p>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="pt-4">
-            <Button variant="secondary" type="button" onClick={onClose} className="w-full md:w-auto">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving || isLoading} className="w-full md:w-auto">
-              {isSaving ? 'Saving...' : 'Save Profile'}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
