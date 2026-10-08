@@ -479,6 +479,8 @@ describe('Header', () => {
     expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
     expect(clickSpy).toHaveBeenCalled()
     clickSpy.mockRestore()
+    // The account menu stays open behind the native file picker.
+    expect(screen.getByRole('button', { name: 'Change profile photo' })).toBeInTheDocument()
   })
 
   it('returns focus to the avatar trigger after closing the profile dialog', () => {
@@ -524,6 +526,7 @@ describe('Header', () => {
     mockSignedIn()
     render(<Header />)
 
+    openMenu()
     const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
@@ -534,6 +537,10 @@ describe('Header', () => {
         expect.stringContaining('/api/users/'),
         expect.objectContaining({ method: 'PUT' })
       )
+    })
+    // The menu stays open showing the updated photo, with focus back on the photo button.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Change profile photo' })).toHaveFocus()
     })
     fetchMock.mockRestore()
   })
