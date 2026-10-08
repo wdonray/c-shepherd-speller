@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { PlusIcon, ChevronLeftIcon, XIcon } from 'lucide-react'
 import { getLists, createList, updateList, deleteList, notifyListsChanged } from '@/lib/lists-api'
+import { LISTS_CACHE_KEY, useCachedData } from '@/lib/data-cache'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
@@ -43,9 +44,12 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
 
 /** Main manager for pattern-based word lists: overview, editor, create and delete flows. */
 export default function PatternListsManager() {
-  const [lists, setLists] = useState<WordList[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
+  // Cached lists render instantly on revisit; mutations write through to the
+  // cache, so no local list state is needed.
+  const { data: lists = [], loading, error: loadError, refresh: refreshLists } = useCachedData<WordList[]>(
+    LISTS_CACHE_KEY,
+    getLists
+  )
   const [editingList, setEditingList] = useState<WordList | null>(null)
   const [savedList, setSavedList] = useState<WordList | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -76,23 +80,6 @@ export default function PatternListsManager() {
     }
   }, [isCreating])
 
-  const loadLists = useCallback(async () => {
-    setLoading(true)
-    setLoadError(false)
-    try {
-      const data = await getLists()
-      setLists(data)
-    } catch {
-      setLoadError(true)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadLists()
-  }, [loadLists])
-
   const openEditor = (list: WordList) => {
     setEditingList(list)
     setSavedList(list)
@@ -108,7 +95,6 @@ export default function PatternListsManager() {
         gradeLevel: newGrade.trim() || undefined,
         patterns: [],
       })
-      setLists((prev) => [list, ...prev])
       logActivity('created', list.name)
       trackEvent('list-created')
       notifyListsChanged()
@@ -127,7 +113,6 @@ export default function PatternListsManager() {
     setDeletingList(true)
     try {
       await deleteList(target.id)
-      setLists((prev) => prev.filter((l) => l.id !== target.id))
       notifyListsChanged()
     } catch {
       showToast('Could not delete the list. Check your connection and try again.')
@@ -207,7 +192,6 @@ export default function PatternListsManager() {
           gradeLevel: editingList.gradeLevel,
           patterns: editingList.patterns,
         })
-        setLists((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
         notifyListsChanged()
         setEditingList(updated)
         setSavedList(updated)
@@ -356,7 +340,7 @@ export default function PatternListsManager() {
         <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
           <p className="text-xl font-bold">Could not load your lists</p>
           <p className="mt-2 text-[15px] text-muted-foreground">Check your connection and try again.</p>
-          <Button onClick={loadLists} className="mt-6">
+          <Button onClick={refreshLists} className="mt-6">
             Try again
           </Button>
         </div>
