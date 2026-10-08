@@ -63,6 +63,16 @@ export default function SignIn() {
     return null
   }
 
+  // While the session is resolving, show a centered spinner instead of the
+  // sign-in form so logged-in users never see a login flash.
+  if (status === 'loading') {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Checking sign-in status">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex justify-center px-8 pt-32 pb-8">
       <Card className="mx-4 w-full max-w-[400px] sm:mx-0">

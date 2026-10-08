@@ -109,6 +109,14 @@ describe('SignIn page', () => {
     render(<SignIn />)
 
     expect(replaceMock).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument()
+  })
+
+  it('shows a centered loading indicator while the session is loading, not the sign-in form', () => {
+    useSessionMock.mockReturnValue({ data: null, status: 'loading' } as never)
+    render(<SignIn />)
+
+    expect(screen.getByRole('status', { name: 'Checking sign-in status' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'PatternSpell' })).not.toBeInTheDocument()
   })
 })
