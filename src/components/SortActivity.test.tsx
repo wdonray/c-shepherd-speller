@@ -3,6 +3,31 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SortActivity from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
+const dndHandlers: {
+  onDragStart?: (e: { active: { id: string } }) => void
+  onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
+} = {}
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragStart,
+      onDragEnd,
+    }: {
+      children: React.ReactNode
+      onDragStart?: (e: { active: { id: string } }) => void
+      onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
+    }) => {
+      dndHandlers.onDragStart = onDragStart
+      dndHandlers.onDragEnd = onDragEnd
+      return <>{children}</>
+    },
+    DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  }
+})
+
 const list: WordList = {
   id: 'l1',
   userId: 'u1',
@@ -64,5 +89,24 @@ describe('SortActivity', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     const card = screen.getByRole('button', { name: 'Drag the word cake' })
     expect(card).toHaveStyle({ touchAction: 'none' })
+  })
+
+  it('shows a floating card in the drag overlay while dragging', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    expect(screen.getByText('cake')).toBeInTheDocument()
+  })
+
+  it('removes placement when a word is dropped back in the word bank', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    const live = document.querySelector('[aria-live="polite"][role="status"]')
+    await waitFor(() => {
+      expect(live?.textContent).toContain("Dropped 'cake' in column a_e")
+    })
+    dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'word-bank' } })
+    await waitFor(() => {
+      expect(live?.textContent).toContain('back in the word bank')
+    })
   })
 })
