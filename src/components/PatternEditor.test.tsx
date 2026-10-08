@@ -309,6 +309,18 @@ describe('PatternEditor', () => {
     })
   })
 
+  it('closes the frequency help dialog via the X button', async () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'About frequency' }))
+    await waitFor(() => {
+      expect(screen.getByText('About frequency')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /close/i }))
+    await waitFor(() => {
+      expect(screen.queryByText('About frequency')).not.toBeInTheDocument()
+    })
+  })
+
   it('removes a word without confirmation when it has no sentence', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))

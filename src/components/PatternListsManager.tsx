@@ -306,7 +306,7 @@ export default function PatternListsManager() {
           </button>
         )}
 
-        <div className="sticky bottom-0 flex flex-wrap items-center gap-3 rounded-[20px] border-2 border-line bg-card p-4">
+        <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-wrap items-center gap-3 rounded-t-[20px] border-2 border-b-0 border-line bg-card p-4">
           <p className={cn('flex-1 text-[15px] font-semibold', !dirty && 'text-muted-foreground')}>
             {dirty ? 'Unsaved changes' : 'No unsaved changes'}
           </p>
