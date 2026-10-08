@@ -26,12 +26,7 @@ vi.mock('./HelpDialog', () => ({
     </div>
   ),
 }))
-vi.mock('./ProfileDialog', () => ({
-  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
-    <div data-testid="profile-dialog" data-open={String(isOpen)}>
-      {isOpen && <button onClick={onClose}>close profile</button>}
-    </div>
-  ),
+vi.mock('./ProfileForm', () => ({
   PROFILE_PHOTO_UPDATED_EVENT: 'patternspell:profile-photo-updated',
 }))
 vi.mock('./ImportExportDialog', () => ({
@@ -44,7 +39,7 @@ vi.mock('./ImportExportDialog', () => ({
 vi.mock('@/lib/spelling-api', () => ({ getUserByEmail: vi.fn() }))
 
 import { getUserByEmail } from '@/lib/spelling-api'
-import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
+import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 const getUserByEmailMock = vi.mocked(getUserByEmail)
 
 const useSessionMock = vi.mocked(useSession)
@@ -317,13 +312,12 @@ describe('Header', () => {
     expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'true')
   })
 
-  it('opens the profile dialog from the menu', () => {
+  it('links to the profile page from the menu', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveAttribute('href', '/profile')
   })
 
   it('links to version and analytics from the menu', () => {
@@ -345,18 +339,6 @@ describe('Header', () => {
 
     fireEvent.click(screen.getByText('close help'))
     expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'false')
-  })
-
-  it('opens and closes the profile dialog from the menu', () => {
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
-
-    fireEvent.click(screen.getByText('close profile'))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
   })
 
   it('signs out from the menu', () => {
@@ -475,24 +457,11 @@ describe('Header', () => {
     const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click')
     fireEvent.click(photoButton)
-    // The profile dialog should NOT open; the file picker is triggered instead.
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
+    // The file picker is triggered directly; no profile UI opens.
     expect(clickSpy).toHaveBeenCalled()
     clickSpy.mockRestore()
     // The account menu stays open behind the native file picker.
     expect(screen.getByRole('button', { name: 'Change profile photo' })).toBeInTheDocument()
-  })
-
-  it('returns focus to the avatar trigger after closing the profile dialog', () => {
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
-
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
-    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveFocus()
   })
 
   it('falls back to initials in the menu photo when its image fails to load', async () => {
