@@ -141,16 +141,31 @@ export default function PatternListsManager() {
 
   if (loading) {
     return (
-      <div className="space-y-6" role="status" aria-label="Loading word lists">
-        <div className="h-9 w-64 animate-pulse rounded-xl bg-line/60" />
-        {[0, 1].map((i) => (
-          <div key={i} className="rounded-[20px] border-2 border-line bg-card p-6">
-            <div className="h-7 w-40 animate-pulse rounded-lg bg-line/60" />
-            <div className="mt-3 h-5 w-72 animate-pulse rounded-lg bg-line/60" />
-            <div className="mt-6 h-20 animate-pulse rounded-xl bg-line/40" />
-          </div>
-        ))}
-        <p className="text-muted-foreground">Loading your word lists...</p>
+      <div className="space-y-4" role="status" aria-label="Loading word lists" aria-busy="true">
+        {/* Header: matches loaded (h3 + New list button) */}
+        <div className="flex items-center justify-between gap-3" aria-hidden="true">
+          <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
+          <div className="h-10 w-28 animate-pulse rounded-2xl bg-line/60" />
+        </div>
+        {/* List cards: match WordListCard structure */}
+        <div className="grid gap-4" aria-hidden="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
+              <div className="h-2 w-full animate-pulse bg-line/60" />
+              <div className="flex flex-col gap-3 p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="h-7 w-40 animate-pulse rounded-lg bg-line/60" />
+                  <div className="h-6 w-20 animate-pulse rounded-full bg-line/40" />
+                </div>
+                <div className="h-5 w-64 animate-pulse rounded-lg bg-line/40" />
+                <div className="space-y-2">
+                  <div className="h-5 w-full animate-pulse rounded-lg bg-line/40" />
+                  <div className="h-5 w-5/6 animate-pulse rounded-lg bg-line/40" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

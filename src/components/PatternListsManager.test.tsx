@@ -83,7 +83,7 @@ describe('PatternListsManager', () => {
     getLists.mockResolvedValue([list, list2])
     render(<PatternListsManager />)
 
-    expect(screen.getByRole('status', { name: 'Loading word lists' })).toHaveTextContent('Loading your word lists...')
+    expect(screen.getByRole('status', { name: 'Loading word lists' })).toBeInTheDocument()
     await waitFor(() => {
       expect(screen.getByText('My word lists (2)')).toBeInTheDocument()
     })
