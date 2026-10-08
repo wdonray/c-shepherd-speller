@@ -5,6 +5,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { useEffect, useRef, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
+import { userCacheKey, writeCache, useCachedData } from '@/lib/data-cache'
 import { Label } from '@/components/ui/label'
 import { Separator } from './ui/separator'
 import { Camera, CheckCircle } from 'lucide-react'
@@ -59,7 +60,6 @@ export default function ProfileForm() {
     schoolName: '',
     classroomSize: '',
   })
-  const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -77,34 +77,29 @@ export default function ProfileForm() {
   const doSaveRef = useRef(doSave)
   doSaveRef.current = doSave
 
+  // The profile is cached: revisits show the last data instantly while a
+  // background revalidation keeps it fresh.
+  const profileEmail = session?.user?.email ?? null
+  const { data: cachedUser, error: userLoadError } = useCachedData<User>(
+    profileEmail ? userCacheKey(profileEmail) : null,
+    () => getUserByEmail(profileEmail as string)
+  )
+
   useEffect(() => {
-    async function fetchUser() {
-      if (user) return
-      setIsLoading(true)
-      try {
-        if (session?.user?.email) {
-          const email = session.user.email
-          const user = await getUserByEmail(email)
-          if (!user) return
-          setUser(user)
-          setPhoto(user.image || undefined)
-          setFormData({
-            name: user.name || '',
-            preferredName: user.preferredName || '',
-            gradeLevel: user.gradeLevel || '',
-            subject: user.subject || '',
-            schoolName: user.schoolName || '',
-            classroomSize: user.classroomSize?.toString() || '',
-          })
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchUser()
-  }, [session?.user?.email, user])
+    if (user || !cachedUser) return
+    setUser(cachedUser)
+    setPhoto(cachedUser.image || undefined)
+    setFormData({
+      name: cachedUser.name || '',
+      preferredName: cachedUser.preferredName || '',
+      gradeLevel: cachedUser.gradeLevel || '',
+      subject: cachedUser.subject || '',
+      schoolName: cachedUser.schoolName || '',
+      classroomSize: cachedUser.classroomSize?.toString() || '',
+    })
+  }, [cachedUser, user])
+
+  const isLoading = profileEmail !== null && !user && cachedUser === undefined && !userLoadError
 
   async function updateUser(userId: string, data: UpdateUserBody): Promise<void> {
     const response = await fetch(`/api/users/${userId}`, {
@@ -127,7 +122,9 @@ export default function ProfileForm() {
     setSaveError(null)
     try {
       await updateUser(user.id, payload)
-      setUser({ ...user, ...payload })
+      const merged = { ...user, ...payload }
+      setUser(merged)
+      if (profileEmail) writeCache(userCacheKey(profileEmail), merged)
       if (isPhotoChange) {
         window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
       }
