@@ -40,6 +40,7 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const avatarTriggerRef = useRef<HTMLButtonElement>(null)
+  const menuPhotoButtonRef = useRef<HTMLButtonElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
@@ -74,18 +75,18 @@ export function Header() {
   // If the image URL fails to load, fall back to initials instead of a broken image.
   const avatarImage = avatarBroken ? undefined : (profileImage ?? session.user.image ?? undefined)
 
-  // The photo at the top of the account menu opens the file picker directly.
-  // The Profile menu item below opens the full profile dialog.
+  // The photo at the top of the account menu opens the file picker directly,
+  // and the menu stays open behind the native dialog. The Profile menu item
+  // below opens the full profile dialog.
   function handleMenuPhotoClick() {
-    setIsAccountMenuOpen(false)
     photoInputRef.current?.click()
   }
 
   async function handleMenuPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file || !session?.user?.id) return
     try {
+      if (!file || !session?.user?.id) return
       const dataUrl = await processProfileImage(file)
       const response = await fetch(`/api/users/${session.user.id}`, {
         method: 'PUT',
@@ -97,7 +98,12 @@ export function Header() {
       setAvatarBroken(false)
       window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
     } catch {
-      // Photo upload is a nicety; the menu already closed.
+      // Photo upload is a nicety; leave the menu as it was.
+    } finally {
+      // The native picker is an OS dialog; reassert the menu in case Radix
+      // closed it on focus loss, and return focus to the photo button.
+      setIsAccountMenuOpen(true)
+      menuPhotoButtonRef.current?.focus()
     }
   }
 
@@ -150,6 +156,7 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">
               <div className="flex items-center gap-3 px-2 py-2">
                 <button
+                  ref={menuPhotoButtonRef}
                   type="button"
                   onClick={handleMenuPhotoClick}
                   aria-label="Change profile photo"
