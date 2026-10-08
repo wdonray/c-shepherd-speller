@@ -6,11 +6,11 @@ import { Button } from './ui/button'
 import { useEffect, useRef, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
 import { Label } from '@/components/ui/label'
-import { Separator } from './ui/separator'
 import { Camera, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
 import { processProfileImage } from '@/lib/profile-image'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 
 export const PROFILE_PHOTO_UPDATED_EVENT = 'patternspell:profile-photo-updated'
 
@@ -47,6 +47,33 @@ function buildTextPayload(form: ProfileFormState): UpdateUserBody {
   if (form.schoolName) updateData.schoolName = form.schoolName
   if (form.classroomSize) updateData.classroomSize = parseInt(form.classroomSize)
   return updateData
+}
+
+function SaveStatusPill({ status, error }: { status: SaveStatus; error: string | null }) {
+  return (
+    <div aria-live="polite">
+      {status === 'saving' && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
+          <span
+            className="size-3.5 animate-spin rounded-full border-2 border-line border-t-sky-deep"
+            aria-hidden="true"
+          />
+          Saving...
+        </span>
+      )}
+      {status === 'saved' && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-leaf-soft px-3 py-1.5 text-sm font-semibold text-leaf-deep">
+          <CheckCircle className="size-4" aria-hidden="true" />
+          Saved
+        </span>
+      )}
+      {status === 'error' && (
+        <p role="alert" className="text-sm font-semibold text-coral-ink">
+          {error}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default function ProfileForm() {
@@ -201,34 +228,72 @@ export default function ProfileForm() {
 
   const displayName = user?.name || session?.user?.name || ''
   const displayEmail = session?.user?.email || ''
+  const openFilePicker = () => fileInputRef.current?.click()
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="Upload profile photo"
-          className="group relative flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-sky-deep text-[22px] font-bold text-white outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          {photo ? (
-            <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
-          ) : (
-            initialsFor(displayName, displayEmail)
+      <Card>
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            <button
+              type="button"
+              onClick={openFilePicker}
+              aria-label="Upload profile photo"
+              className="group relative flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-sky-deep text-3xl font-bold text-white outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            >
+              {photo ? (
+                <img src={photo} alt="" aria-hidden="true" className="size-full object-cover" />
+              ) : (
+                initialsFor(displayName, displayEmail)
+              )}
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              >
+                <Camera className="size-7 text-white" />
+              </span>
+            </button>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-2xl font-bold tracking-tight text-ink">{displayName || 'Your profile'}</h2>
+              <p className="mt-1 text-[15px] text-muted-foreground">{displayEmail}</p>
+              <p className="text-sm text-muted-foreground">Signed in with Google</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={openFilePicker}
+                  disabled={isProcessingPhoto}
+                >
+                  Change photo
+                </Button>
+                {photo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handlePhotoRemove}
+                    disabled={isProcessingPhoto}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0 sm:pt-1">
+              <SaveStatusPill status={saveStatus} error={saveError} />
+            </div>
+          </div>
+          {photoError && (
+            <p role="alert" className="mt-4 text-sm font-semibold text-coral-ink">
+              {photoError}
+            </p>
           )}
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-          >
-            <Camera className="size-6 text-white" />
-          </span>
-        </button>
-        <div>
-          <h2 className="text-xl font-bold text-ink">{displayName || 'Your profile'}</h2>
-          <p className="text-sm text-muted-foreground">{displayEmail}</p>
-          <p className="mt-1 text-sm text-muted-foreground">Signed in with Google</p>
-        </div>
-      </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            JPEG, PNG, or WebP under 5MB. Your photo is resized to fit and shows in the header.
+          </p>
+        </CardContent>
+      </Card>
       <input
         ref={fileInputRef}
         type="file"
@@ -240,61 +305,16 @@ export default function ProfileForm() {
         tabIndex={-1}
       />
 
-      <div aria-live="polite">
-        {saveStatus === 'saving' && <p className="text-sm text-muted-foreground">Saving...</p>}
-        {saveStatus === 'saved' && (
-          <div className="rounded-[20px] border-2 border-leaf bg-leaf-soft p-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-leaf-deep" />
-              <p className="text-sm font-medium text-leaf-deep">Saved</p>
-            </div>
-          </div>
-        )}
-        {saveStatus === 'error' && (
-          <p role="alert" className="text-sm font-semibold text-coral-ink">
-            {saveError}
-          </p>
-        )}
-      </div>
-
-      <Separator />
-
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-ink">Profile photo</h3>
-            {photo && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handlePhotoRemove}
-                disabled={isProcessingPhoto}
-              >
-                Remove
-              </Button>
-            )}
-          </div>
-          {photoError && (
-            <p role="alert" className="text-sm font-semibold text-coral-ink">
-              {photoError}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Click your photo above to upload. JPEG, PNG, or WebP under 5MB. The photo is resized to fit and shows in the
-            header.
-          </p>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-ink">Basic information</h3>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col justify-between gap-2">
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-bold text-ink">Personal information</h3>
+          <CardDescription>How your name appears across PatternSpell.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">
-                Full Name
+                Full name
               </Label>
               <Input
                 id="name"
@@ -303,14 +323,13 @@ export default function ProfileForm() {
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 disabled={isLoading}
                 placeholder="Enter your full name"
-                className="h-10"
+                className="h-11 text-[15px]"
               />
             </div>
-
-            <div className="flex flex-col justify-between gap-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="preferredName" className="text-sm font-medium">
-                  Preferred Name
+                  Preferred name
                 </Label>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   Optional
@@ -323,30 +342,31 @@ export default function ProfileForm() {
                 onChange={(e) => handleInputChange('preferredName', e.target.value)}
                 disabled={isLoading}
                 placeholder="What students call you"
-                className="h-10"
+                className="h-11 text-[15px]"
               />
             </div>
           </div>
-
-          <div className="flex flex-col justify-between gap-2">
+          <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">
-              Email Address
+              Email address
             </Label>
-            <Input id="email" type="email" value={displayEmail} disabled className="h-10 bg-muted" />
-            <p className="text-xs text-muted-foreground">Email is managed through your Google account</p>
+            <Input id="email" type="email" value={displayEmail} disabled className="h-11 bg-muted text-[15px]" />
+            <p className="text-sm text-muted-foreground">Email is managed through your Google account.</p>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <Separator />
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-ink">Teaching information</h3>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col justify-between gap-2">
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-bold text-ink">Teaching information</h3>
+          <CardDescription>Used to personalize your lists and suggestions.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="gradeLevel" className="text-sm font-medium">
-                  Grade Level
+                  Grade level
                 </Label>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   Optional
@@ -358,15 +378,14 @@ export default function ProfileForm() {
                 value={formData.gradeLevel}
                 onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
                 disabled={isLoading}
-                placeholder="e.g., 3rd Grade, K-2"
-                className="h-10"
+                placeholder="e.g. 3rd Grade, K-2"
+                className="h-11 text-[15px]"
               />
             </div>
-
-            <div className="flex flex-col justify-between gap-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="subject" className="text-sm font-medium">
-                  Subject/Area
+                  Subject or area
                 </Label>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   Optional
@@ -378,17 +397,16 @@ export default function ProfileForm() {
                 value={formData.subject}
                 onChange={(e) => handleInputChange('subject', e.target.value)}
                 disabled={isLoading}
-                placeholder="e.g., ELA, Reading, Special Ed"
-                className="h-10"
+                placeholder="e.g. ELA, Reading, Special Ed"
+                className="h-11 text-[15px]"
               />
             </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col justify-between gap-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="schoolName" className="text-sm font-medium">
-                  School Name
+                  School name
                 </Label>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   Optional
@@ -401,14 +419,13 @@ export default function ProfileForm() {
                 onChange={(e) => handleInputChange('schoolName', e.target.value)}
                 disabled={isLoading}
                 placeholder="Your school name"
-                className="h-10"
+                className="h-11 text-[15px]"
               />
             </div>
-
-            <div className="flex flex-col justify-between gap-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="classroomSize" className="text-sm font-medium">
-                  Typical Class Size
+                  Typical class size
                 </Label>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   Optional
@@ -423,12 +440,12 @@ export default function ProfileForm() {
                 onChange={(e) => handleInputChange('classroomSize', e.target.value)}
                 disabled={isLoading}
                 placeholder="Number of students"
-                className="h-10"
+                className="h-11 text-[15px]"
               />
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
