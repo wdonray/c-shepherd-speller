@@ -26,7 +26,7 @@ describe('SiteChrome', () => {
     expect(screen.getByTestId('site-footer')).toBeInTheDocument()
     const main = screen.getByRole('main')
     expect(main).toHaveTextContent('page content')
-    expect(main.className).toContain('min-h-screen')
+    expect(main.className).toContain('min-h-dvh')
   })
 
   it('renders a chrome-free full-bleed main on /display', () => {

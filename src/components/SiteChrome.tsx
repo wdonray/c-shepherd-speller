@@ -12,13 +12,13 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   if (pathname === '/display') {
-    return <main className="min-h-screen">{children}</main>
+    return <main className="min-h-dvh">{children}</main>
   }
 
   return (
     <>
       <Header />
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-dvh">{children}</main>
       <Footer />
     </>
   )

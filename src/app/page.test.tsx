@@ -150,15 +150,44 @@ describe('Home page', () => {
     expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: '' })
   })
 
-  it('scrolls to the top on mount', () => {
+  it('scrolls to the top on mount and re-pins via rAF', () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    // Run rAF callbacks synchronously so the re-pin loop is covered.
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0)
+      return 1
+    })
     mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
 
     render(<Home />)
 
+    // 1 immediate + 2 rAF re-pins
+    expect(scrollToSpy).toHaveBeenCalledTimes(3)
     expect(scrollToSpy).toHaveBeenCalledWith(0, 0)
     scrollToSpy.mockRestore()
+    rafSpy.mockRestore()
+  })
+
+  it('cancels the pending rAF pin on unmount', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    let rafCallback: FrameRequestCallback | null = null
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafCallback = cb
+      return 42
+    })
+    const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
+    mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    const { unmount } = render(<Home />)
+    expect(rafCallback).not.toBeNull()
+    unmount()
+
+    expect(cancelSpy).toHaveBeenCalledWith(42)
+    scrollToSpy.mockRestore()
+    rafSpy.mockRestore()
+    cancelSpy.mockRestore()
   })
 
   it('sets manual scroll restoration when supported', () => {
