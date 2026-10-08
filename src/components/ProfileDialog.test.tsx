@@ -45,6 +45,19 @@ function renderDialog() {
   return render(<ProfileDialog isOpen onClose={vi.fn()} />)
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function renderReadyDialog() {
+  renderDialog()
+  await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+}
+
+function getPutCalls(fetchMock: ReturnType<typeof vi.fn>) {
+  return fetchMock.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === 'PUT')
+}
+
 describe('ProfileDialog', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
@@ -100,6 +113,17 @@ describe('ProfileDialog', () => {
     expect(document.querySelector('button.rounded-full')?.textContent).toBe('T')
   })
 
+  it('has no Save or Cancel buttons', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderDialog()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
+    })
+    expect(screen.queryByRole('button', { name: /save profile/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
+  })
+
   it('signs out when the Sign out button is clicked', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
     renderDialog()
@@ -127,45 +151,212 @@ describe('ProfileDialog', () => {
     expect(screen.getByLabelText(/email address/i)).toHaveValue('t@e.c')
   })
 
-  it('saves changed fields with a PUT and shows a success message', async () => {
+  it('auto-saves changed fields with a PUT after the debounce', async () => {
     const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
     )
-    renderDialog()
+    await renderReadyDialog()
 
-    const nameInput = await screen.findByLabelText(/full name/i)
-    await waitFor(() => expect(nameInput).not.toBeDisabled())
-    fireEvent.change(nameInput, { target: { value: 'Donray W.' } })
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
-    })
-    const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
-    const body = JSON.parse(putCall?.[1]?.body as string)
+    // No synchronous save: the debounce has not fired yet.
+    expect(getPutCalls(fetchMock)).toHaveLength(0)
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    const body = JSON.parse(getPutCalls(fetchMock)[0]?.[1]?.body as string)
     expect(body.name).toBe('Donray W.')
     expect(body.preferredName).toBe('Donray')
     expect(body.gradeLevel).toBe('3rd Grade')
     expect(body.classroomSize).toBe(25)
-    expect(await screen.findByText('Profile updated successfully!')).toBeInTheDocument()
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
   })
 
-  it('logs an error when saving fails', async () => {
+  it('debounces rapid changes into a single save', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray Wi.' } })
+    fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: 'Don' } })
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    const body = JSON.parse(getPutCalls(fetchMock)[0]?.[1]?.body as string)
+    expect(body.name).toBe('Donray Wi.')
+    expect(body.preferredName).toBe('Don')
+
+    // No second save fires for the earlier keystrokes.
+    await sleep(700)
+    expect(getPutCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('auto-saves every editable field when all are changed', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: 'Don' } })
+    fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '4th Grade' } })
+    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: 'Math' } })
+    fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: 'Elm School' } })
+    fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '30' } })
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    const body = JSON.parse(getPutCalls(fetchMock)[0]?.[1]?.body as string)
+    expect(body).toEqual({
+      name: 'Donray W.',
+      preferredName: 'Don',
+      gradeLevel: '4th Grade',
+      subject: 'Math',
+      schoolName: 'Elm School',
+      classroomSize: 30,
+    })
+  })
+
+  it('omits empty fields from the auto-save payload', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '' } })
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    const body = JSON.parse(getPutCalls(fetchMock)[0]?.[1]?.body as string)
+    expect(body).toEqual({})
+  })
+
+  it('does not auto-save when there is no user record', async () => {
+    const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
+    mockSession()
+    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    await sleep(800)
+
+    expect(getPutCalls(fetchMock)).toHaveLength(0)
+    // Only the initial GET happened.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows a Saving indicator while the save is in flight', async () => {
+    let resolvePut: (value: unknown) => void = () => {}
+    stubFetch(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        return new Promise((resolve) => {
+          resolvePut = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ user }) }
+    })
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+
+    expect(await screen.findByText('Saving...', undefined, { timeout: 3000 })).toBeInTheDocument()
+    act(() => {
+      resolvePut({ ok: true, json: async () => ({}) })
+    })
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+  })
+
+  it('shows an error message when auto-save fails and keeps the input', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'PUT' ? { ok: false } : { ok: true, json: async () => ({ user }) }
     )
-    renderDialog()
+    await renderReadyDialog()
 
-    const nameInput = await screen.findByLabelText(/full name/i)
-    await waitFor(() => expect(nameInput).not.toBeDisabled())
-    fireEvent.change(nameInput, { target: { value: 'Donray W.' } })
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Error updating user:', expect.any(Error))
-    })
-    expect(screen.queryByText('Profile updated successfully!')).not.toBeInTheDocument()
+    expect(await screen.findByRole('alert', undefined, { timeout: 3000 })).toHaveTextContent(
+      'Could not save your changes. Check your connection and try again.'
+    )
+    expect(consoleSpy).toHaveBeenCalledWith('Error updating user:', expect.any(Error))
+    // The user's input is not lost.
+    expect(screen.getByLabelText(/full name/i)).toHaveValue('Donray W.')
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument()
+  })
+
+  it('hides the Saved message after two seconds', async () => {
+    stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+
+    expect(await screen.findByText('Saved', undefined, { timeout: 3000 })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Saved')).not.toBeInTheDocument(), { timeout: 4000 })
+  })
+
+  it('clears the previous Saved timer when a new save starts', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    await renderReadyDialog()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    expect(await screen.findByText('Saved', undefined, { timeout: 3000 })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray Wi.' } })
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(2), { timeout: 3000 })
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+  })
+
+  it('flushes a pending save when the dialog closes', async () => {
+    const onClose = vi.fn()
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    mockSession()
+    render(<ProfileDialog isOpen onClose={onClose} />)
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    expect(getPutCalls(fetchMock)).toHaveLength(0)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes without saving when nothing is pending', async () => {
+    const onClose = vi.fn()
+    const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    mockSession()
+    render(<ProfileDialog isOpen onClose={onClose} />)
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    await sleep(800)
+    expect(getPutCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('does not fire a pending save after unmount', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    mockSession()
+    const { unmount } = render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    unmount()
+    await sleep(800)
+    expect(getPutCalls(fetchMock)).toHaveLength(0)
   })
 
   it('logs an error when fetching the user fails', async () => {
@@ -177,46 +368,6 @@ describe('ProfileDialog', () => {
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith('Error fetching user:', expect.any(Error))
-    })
-  })
-
-  it('calls onClose when Cancel is clicked', async () => {
-    const onClose = vi.fn()
-    mockSession()
-    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    render(<ProfileDialog isOpen onClose={onClose} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(onClose).toHaveBeenCalledTimes(1)
-  })
-
-  it('saves every editable field when all are changed', async () => {
-    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
-      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
-    )
-    renderDialog()
-
-    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
-    fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: 'Don' } })
-    fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '4th Grade' } })
-    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: 'Math' } })
-    fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: 'Elm School' } })
-    fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '30' } })
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
-    })
-    const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
-    const body = JSON.parse(putCall?.[1]?.body as string)
-    expect(body).toEqual({
-      name: 'Donray W.',
-      preferredName: 'Don',
-      gradeLevel: '4th Grade',
-      subject: 'Math',
-      schoolName: 'Elm School',
-      classroomSize: 30,
     })
   })
 
@@ -261,96 +412,6 @@ describe('ProfileDialog', () => {
     expect(screen.getByLabelText(/typical class size/i)).toHaveValue(null)
   })
 
-  it('omits empty fields from the save payload', async () => {
-    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
-      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
-    )
-    renderDialog()
-
-    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/preferred name/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/grade level/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/subject\/area/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/school name/i), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/typical class size/i), { target: { value: '' } })
-    // Submit the form directly to bypass HTML5 required-field validation.
-    // The dialog renders in a portal, so query the document.
-    fireEvent.submit(document.querySelector('form') as HTMLFormElement)
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
-    })
-    const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
-    const body = JSON.parse(putCall?.[1]?.body as string)
-    expect(body).toEqual({})
-  })
-
-  it('does not save when there is no user record', async () => {
-    const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
-    renderDialog()
-
-    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-    // Submit directly to bypass HTML5 required-field validation.
-    fireEvent.submit(document.querySelector('form') as HTMLFormElement)
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
-    })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('shows a saving indicator while the save is in flight', async () => {
-    let resolvePut: (value: unknown) => void = () => {}
-    stubFetch(async (url: string, init?: RequestInit) => {
-      if (init?.method === 'PUT') {
-        return new Promise((resolve) => {
-          resolvePut = resolve
-        })
-      }
-      return { ok: true, json: async () => ({ user }) }
-    })
-    renderDialog()
-
-    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
-
-    expect(await screen.findByRole('button', { name: /saving/i })).toBeInTheDocument()
-    resolvePut({ ok: true, json: async () => ({}) })
-    expect(await screen.findByText('Profile updated successfully!')).toBeInTheDocument()
-  })
-
-  it('schedules hiding the success message after two seconds', async () => {
-    const realSetTimeout = global.setTimeout
-    const callbacks: (() => void)[] = []
-    const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) => {
-      if (ms === 2000) {
-        callbacks.push(fn)
-        return 0 as unknown as NodeJS.Timeout
-      }
-      return realSetTimeout(fn, ms)
-    }) as typeof setTimeout)
-    try {
-      stubFetch(async (url: string, init?: RequestInit) =>
-        init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
-      )
-      renderDialog()
-
-      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-      fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
-
-      expect(await screen.findByText('Profile updated successfully!')).toBeInTheDocument()
-      expect(callbacks).toHaveLength(1)
-
-      act(() => {
-        callbacks[0]()
-      })
-      expect(screen.queryByText('Profile updated successfully!')).not.toBeInTheDocument()
-    } finally {
-      setTimeoutSpy.mockRestore()
-    }
-  })
-
   describe('profile photo', () => {
     function renderWithUser(userOverrides = {}) {
       stubFetch(async (url: string, init?: RequestInit) =>
@@ -387,7 +448,7 @@ describe('ProfileDialog', () => {
       expect(img).toHaveAttribute('src', 'data:image/jpeg;base64,saved')
     })
 
-    it('uploads a photo and includes it in the save payload', async () => {
+    it('saves the photo immediately on selection', async () => {
       const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
       )
@@ -395,19 +456,18 @@ describe('ProfileDialog', () => {
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       await selectPhoto()
-      await waitFor(() =>
-        expect(document.body.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,newphoto')
-      )
 
-      fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
       })
-      const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
-      expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('data:image/jpeg;base64,newphoto')
+      const putCall = getPutCalls(fetchMock)[0]
+      const body = JSON.parse(putCall?.[1]?.body as string)
+      expect(body.image).toBe('data:image/jpeg;base64,newphoto')
+      expect(body.name).toBe('Donray Williams')
+      expect(await screen.findByText('Saved')).toBeInTheDocument()
     })
 
-    it('dispatches a photo-updated event when the photo changes on save', async () => {
+    it('dispatches a photo-updated event when the photo saves', async () => {
       stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
       )
@@ -418,7 +478,6 @@ describe('ProfileDialog', () => {
       window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
       try {
         await selectPhoto()
-        fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
         await waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
       } finally {
         window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
@@ -436,7 +495,7 @@ describe('ProfileDialog', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, or WebP image.')
     })
 
-    it('removes the photo and clears it on save', async () => {
+    it('removes the photo and saves immediately', async () => {
       const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT'
           ? { ok: true, json: async () => ({}) }
@@ -449,11 +508,10 @@ describe('ProfileDialog', () => {
       fireEvent.click(screen.getByRole('button', { name: /remove/i }))
       expect(document.body.querySelector('img')).not.toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: /save profile/i }))
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
       })
-      const putCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+      const putCall = getPutCalls(fetchMock)[0]
       expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('')
     })
 

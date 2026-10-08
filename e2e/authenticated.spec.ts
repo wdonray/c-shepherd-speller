@@ -63,7 +63,7 @@ test.describe('authenticated flows', () => {
     await expect(nameInput).toHaveValue(E2E_USER_NAME)
 
     await nameInput.fill('E2E Teacher Updated')
-    await page.getByRole('button', { name: /save profile/i }).click()
-    await expect(page.getByText('Profile updated successfully!')).toBeVisible()
+    // The profile auto-saves after a short debounce.
+    await expect(page.getByText('Saved')).toBeVisible({ timeout: 10000 })
   })
 })
