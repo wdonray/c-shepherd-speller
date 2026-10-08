@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
-import { XIcon, InfoIcon } from 'lucide-react'
+import { XIcon, InfoIcon, Trash2Icon } from 'lucide-react'
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import { OddDuck } from './OddDuck'
 import SentencePicker from './SentencePicker'
@@ -213,16 +213,6 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             </div>
             <span className="text-[13px] font-semibold">{FREQUENCY_LABELS[pattern.frequency]}</span>
           </div>
-
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onRemove}
-            aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
-            className="shrink-0 text-muted-foreground hover:text-destructive focus-visible:text-destructive"
-          >
-            <XIcon className="size-4" />
-          </Button>
         </div>
 
         <div className="mt-5">
@@ -323,6 +313,18 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
               Add
             </Button>
           </div>
+        </div>
+
+        <div className="mt-6 border-t-2 border-line pt-4">
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
+            className="flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60 sm:w-auto sm:justify-start"
+          >
+            <Trash2Icon className="size-5" aria-hidden="true" />
+            Delete pattern
+          </button>
         </div>
 
         <Dialog open={wordPendingDelete !== null} onOpenChange={(open) => !open && setWordPendingDelete(null)}>
