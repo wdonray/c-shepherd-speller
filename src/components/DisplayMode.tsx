@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChevronLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getList, getLists } from '@/lib/lists-api'
+import { LISTS_CACHE_KEY, listCacheKey, useCachedData } from '@/lib/data-cache'
 import type { WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import SortActivity from './SortActivity'
@@ -23,10 +24,17 @@ function DisplayModeInner() {
   const router = useRouter()
   const listId = searchParams.get('list')
 
-  const [list, setList] = useState<WordList | null>(null)
-  const [allLists, setAllLists] = useState<WordList[]>([])
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Cached data renders instantly on revisit; the loading state only shows
+  // on a cold load while a background revalidation keeps data fresh.
+  const cacheKey = listId ? listCacheKey(listId) : LISTS_CACHE_KEY
+  const {
+    data: cached,
+    loading,
+    error: loadFailed,
+  } = useCachedData<WordList | WordList[]>(cacheKey, () => (listId ? getList(listId) : getLists()))
+  const list = listId ? ((cached as WordList | undefined) ?? null) : null
+  const allLists = listId ? [] : ((cached as WordList[] | undefined) ?? [])
+  const loadError = loadFailed ? LOAD_ERROR : null
   const [sortMode, setSortMode] = useState(false)
 
   // Back to the app, preferring real history when there is any.
@@ -57,27 +65,6 @@ function DisplayModeInner() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [listId, list, backToApp, backToPicker])
 
-  useEffect(() => {
-    setLoading(true)
-    setLoadError(null)
-
-    const load = async () => {
-      try {
-        if (listId) {
-          const data = await getList(listId)
-          setList(data)
-        } else {
-          const data = await getLists()
-          setAllLists(data)
-        }
-      } catch {
-        setLoadError(LOAD_ERROR)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [listId])
 
   if (loading) {
     return (
