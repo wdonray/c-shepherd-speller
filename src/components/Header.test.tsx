@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Header } from './Header'
@@ -365,5 +365,63 @@ describe('Header', () => {
     fireEvent.click(screen.getByText('Sign out'))
     expect(signOutMock).toHaveBeenCalledTimes(1)
     expect(signOutMock).toHaveBeenCalledWith({ callbackUrl: '/auth/signin' })
+  })
+
+  it('shows a collapsed mobile menu trigger by default', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    const trigger = screen.getByRole('button', { name: /open menu/i })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens the mobile menu with the header actions', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    const trigger = screen.getByRole('button', { name: /open menu/i })
+    fireEvent.click(trigger)
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    const menu = within(screen.getByRole('dialog'))
+    expect(menu.getByRole('button', { name: /my spelling lists/i })).toBeInTheDocument()
+    expect(menu.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
+  })
+
+  it('closes the mobile menu with Escape', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /open menu/i })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('opens the spelling sheet from the mobile menu and closes the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: /my spelling lists/i }))
+
+    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'true')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('closes the mobile menu when following the Present link', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('link', { name: /present/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

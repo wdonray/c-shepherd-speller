@@ -11,13 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogOutIcon } from 'lucide-react'
+import { LogOutIcon, MenuIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
 import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
 import ImportExportDialog from './ImportExportDialog'
 import { PatternMark } from './PatternMark'
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { notifyListsChanged } from '@/lib/lists-api'
 import { getUserByEmail } from '@/lib/spelling-api'
 
@@ -35,6 +36,7 @@ export function Header() {
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
@@ -80,12 +82,14 @@ export function Header() {
           <span className="text-[22px] font-bold tracking-tight">PatternSpell</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
-            My Spelling Lists
-          </Button>
-          <Button size="sm" variant="secondary" asChild>
-            <Link href="/display">Present</Link>
-          </Button>
+          <div className="hidden items-center gap-2 md:flex">
+            <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
+              My Spelling Lists
+            </Button>
+            <Button size="sm" variant="secondary" asChild>
+              <Link href="/display">Present</Link>
+            </Button>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -154,6 +158,34 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="secondary" size="icon" className="md:hidden" aria-label="Open menu">
+                <MenuIcon className="size-5" aria-hidden="true" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="rounded-t-3xl border-t-2 border-line bg-card pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            >
+              <SheetHeader>
+                <SheetTitle>PatternSpell</SheetTitle>
+              </SheetHeader>
+              <nav aria-label="Mobile navigation" className="flex flex-col gap-3 px-4">
+                <SheetClose asChild>
+                  <Button size="lg" onClick={() => setIsSpellingManagerOpen(true)}>
+                    My Spelling Lists
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button size="lg" variant="secondary" asChild>
+                    <Link href="/display">Present</Link>
+                  </Button>
+                </SheetClose>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
       <div className="h-[2px] w-full bg-line" aria-hidden="true" />
