@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useCallback, useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon } from 'lucide-react'
@@ -28,6 +28,34 @@ function DisplayModeInner() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
+
+  // Back to the app, preferring real history when there is any.
+  const backToApp = useCallback(() => {
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/')
+    }
+  }, [router])
+
+  // Back from the chart to the list picker.
+  const backToPicker = useCallback(() => {
+    router.push('/display')
+  }, [router])
+
+  // Escape exits the presentation: chart to picker, picker to the app.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (listId && list) {
+        backToPicker()
+      } else {
+        backToApp()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [listId, list, backToApp, backToPicker])
 
   useEffect(() => {
     setLoading(true)
@@ -107,35 +135,43 @@ function DisplayModeInner() {
   // No list selected: show the picker.
   if (!listId || !list) {
     return (
-      <div className="mx-auto min-h-screen w-full max-w-6xl space-y-8 px-4 py-8 sm:px-8">
-        <div className="space-y-2">
-          <h1 className="text-[32px] font-bold text-ink">Present a list</h1>
+      <div className="flex min-h-screen flex-col bg-background">
+        <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Button variant="ghost" size="sm" onClick={backToApp} aria-label="Back">
+              <ChevronLeftIcon className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline-block">Back</span>
+            </Button>
+            <h1 className="text-xl font-bold text-ink">Present a list</h1>
+          </div>
+        </div>
+        <div className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-8 sm:px-8">
           <p className="text-[15px] text-muted-foreground">
             Choose a list to show its pattern chart on the big screen.
           </p>
+          {allLists.length === 0 ? (
+            <div className="rounded-[20px] border-2 border-line bg-card p-12 text-center">
+              <p className="text-xl font-bold text-ink">No word lists yet</p>
+              <p className="mt-2 text-[15px] text-muted-foreground">Create one from My Spelling Lists first.</p>
+              <Button className="mt-6" asChild>
+                <Link href="/">Back to home</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {allLists.map((l, i) => (
+                <WordListCard
+                  key={l.id}
+                  list={l}
+                  index={i}
+                  onOpen={(selected) => router.push(`/display?list=${encodeURIComponent(selected.id)}`)}
+                  primaryLabel="Present chart"
+                  showPresent={false}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        {allLists.length === 0 ? (
-          <div className="rounded-[20px] border-2 border-line bg-card p-12 text-center">
-            <p className="text-xl font-bold text-ink">No word lists yet</p>
-            <p className="mt-2 text-[15px] text-muted-foreground">Create one from My Spelling Lists first.</p>
-            <Button className="mt-6" asChild>
-              <Link href="/">Back to home</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {allLists.map((l, i) => (
-              <WordListCard
-                key={l.id}
-                list={l}
-                index={i}
-                onOpen={(selected) => router.push(`/display?list=${encodeURIComponent(selected.id)}`)}
-                primaryLabel="Present chart"
-                showPresent={false}
-              />
-            ))}
-          </div>
-        )}
       </div>
     )
   }

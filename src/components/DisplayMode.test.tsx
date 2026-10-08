@@ -11,9 +11,10 @@ vi.mock('@/lib/lists-api', () => ({ getList, getLists }))
 
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
 const mockPush = vi.hoisted(() => vi.fn())
+const mockBack = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, back: mockBack }),
 }))
 
 vi.mock('next/link', () => ({
@@ -138,5 +139,78 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
     })
+  })
+
+  it('shows a Back button on the list picker', async () => {
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Present a list' })).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+  })
+
+  it('uses history back from the picker Back button when history exists', async () => {
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2)
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(mockBack).toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalledWith('/')
+  })
+
+  it('falls back to home from the picker Back button without history', async () => {
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(1)
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(mockBack).not.toHaveBeenCalled()
+    expect(mockPush).toHaveBeenCalledWith('/')
+  })
+
+  it('goes back on Escape from the list picker', async () => {
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2)
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+    })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(mockBack).toHaveBeenCalled()
+  })
+
+  it('goes back to the picker on Escape from the chart', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(mockPush).toHaveBeenCalledWith('/display')
+    expect(mockBack).not.toHaveBeenCalled()
+  })
+
+  it('ignores non-Escape keys', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(window, { key: 'Enter' })
+    expect(mockPush).not.toHaveBeenCalledWith('/display')
   })
 })
