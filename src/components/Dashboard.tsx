@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
+import { LISTS_CACHE_KEY, useCachedData } from '@/lib/data-cache'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
 import type { WordList } from '@/models/WordList'
 import WordListCard from './WordListCard'
@@ -97,25 +98,20 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
  */
 export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
   const { data: session } = useSession()
-  const [lists, setLists] = useState<WordList[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
+  // Cached lists render instantly on revisit; a background revalidation keeps
+  // them fresh. The loading skeleton only shows on a cold load.
+  const {
+    data: lists = [],
+    loading,
+    error: loadError,
+    refresh: refreshLists,
+  } = useCachedData<WordList[]>(LISTS_CACHE_KEY, getLists)
   const [activity, setActivity] = useState<ActivityEvent[]>([])
 
-  const loadLists = useCallback(() => {
-    setLoading(true)
-    setLoadError(false)
-    getLists()
-      .then(setLists)
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false))
-  }, [])
-
   useEffect(() => {
-    loadLists()
     setActivity(getActivity())
     const reload = () => {
-      loadLists()
+      refreshLists()
       setActivity(getActivity())
     }
     window.addEventListener(LISTS_CHANGED_EVENT, reload)
