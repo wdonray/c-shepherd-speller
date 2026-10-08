@@ -25,11 +25,13 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - api/auth (next-auth's own routes handle their own auth and must stay
      *   reachable unauthenticated: signin, callback, session, etc.)
+     * - api/version (the public version endpoint; the new-version reload
+     *   prompt polls it from every page, including signed-out sessions)
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - favicon.ico, apple-icon.png, icon.png, icon.svg (icon files for browsers and home-screen shortcuts)
      * - auth (authentication pages)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|auth).*)',
+    '/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth).*)',
   ],
 }
