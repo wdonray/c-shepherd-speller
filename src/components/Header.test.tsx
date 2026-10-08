@@ -4,8 +4,10 @@ import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Header } from './Header'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
+import { processProfileImage } from '@/lib/profile-image'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: vi.fn() }))
+vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
 vi.mock('next-themes', () => ({ useTheme: vi.fn() }))
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -514,5 +516,52 @@ describe('Header', () => {
       expect(photoButton.querySelector('img')).not.toBeInTheDocument()
     })
     expect(photoButton).toHaveTextContent('DW')
+  })
+  it('uploads the photo directly when a file is selected from the menu', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalledWith(file)
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/users/'),
+        expect.objectContaining({ method: 'PUT' })
+      )
+    })
+    fetchMock.mockRestore()
+  })
+
+  it('handles photo upload failure gracefully', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockRejectedValue(new Error('bad image'))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalled()
+    })
+    // Should not throw; the menu already closed.
+  })
+
+  it('does nothing when no file is selected', () => {
+    const processMock = vi.mocked(processProfileImage)
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [] } })
+
+    expect(processMock).not.toHaveBeenCalled()
   })
 })
