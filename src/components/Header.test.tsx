@@ -554,6 +554,24 @@ describe('Header', () => {
     // Should not throw; the menu already closed.
   })
 
+  it('handles a non-ok upload response gracefully', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled()
+    })
+    // Should not throw; the error is caught and ignored.
+    fetchMock.mockRestore()
+  })
+
   it('does nothing when no file is selected', () => {
     const processMock = vi.mocked(processProfileImage)
     mockSignedIn()
