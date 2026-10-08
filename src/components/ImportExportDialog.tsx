@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { DownloadIcon, UploadIcon } from 'lucide-react'
 import { createList, getLists } from '@/lib/lists-api'
+import { cacheCreatedList } from '@/lib/data-cache'
 import { buildExportFilename } from '@/lib/export-filename'
 import { CreateWordListSchema } from '@/models/WordList'
 
@@ -77,7 +78,8 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       }
       let imported = 0
       for (const input of result.data) {
-        await createList(input)
+        const created = await createList(input)
+        cacheCreatedList(created)
         imported += 1
       }
       setMessage({ kind: 'success', text: `Imported ${imported} ${imported === 1 ? 'list' : 'lists'}.` })

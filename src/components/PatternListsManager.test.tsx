@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
 import type { WordList, SpellingPattern } from '@/models/WordList'
+import { clearDataCache } from '@/lib/data-cache'
 
 const { getLists, createList, updateList, deleteList, notifyListsChanged, logActivity } = vi.hoisted(() => ({
   getLists: vi.fn(),
@@ -71,6 +72,7 @@ async function openFirstListEditor() {
 
 describe('PatternListsManager', () => {
   beforeEach(() => {
+    clearDataCache()
     vi.clearAllMocks()
     vi.useRealTimers()
   })

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import DisplayMode from './DisplayMode'
 import type { WordList } from '@/models/WordList'
+import { clearDataCache } from '@/lib/data-cache'
 
 const { getList, getLists } = vi.hoisted(() => ({
   getList: vi.fn(),
@@ -40,6 +41,7 @@ const list: WordList = {
 
 describe('DisplayMode', () => {
   beforeEach(() => {
+    clearDataCache()
     vi.clearAllMocks()
     mockSearchParams.get.mockReturnValue(null)
   })

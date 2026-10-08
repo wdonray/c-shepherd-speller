@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import PracticePage from './page'
 import type { WordList } from '@/models/WordList'
+import { clearDataCache } from '@/lib/data-cache'
 
 const { getList, getLists } = vi.hoisted(() => ({
   getList: vi.fn(),
@@ -42,6 +43,7 @@ const list: WordList = {
 
 describe('PracticePage', () => {
   beforeEach(() => {
+    clearDataCache()
     vi.clearAllMocks()
     mockSearchParams.get.mockReturnValue(null)
   })

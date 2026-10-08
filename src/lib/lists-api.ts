@@ -4,7 +4,6 @@
  */
 
 import type { WordList, CreateWordListInput, UpdateWordListInput } from '@/models/WordList'
-import { LISTS_CACHE_KEY, listCacheKey, readCache, writeCache, deleteCacheKey } from './data-cache'
 
 /**
  * Browser event fired whenever the list collection changes outside the
@@ -44,9 +43,6 @@ export async function createList(input: CreateWordListInput): Promise<WordList> 
     body: JSON.stringify(input),
   })
   const data = await handleResponse<{ list: WordList }>(res)
-  // Write-through: keep the cached collection fresh so views update without a refetch.
-  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
-  if (lists) writeCache(LISTS_CACHE_KEY, [data.list, ...lists])
   return data.list
 }
 
@@ -57,18 +53,10 @@ export async function updateList(id: string, input: UpdateWordListInput): Promis
     body: JSON.stringify(input),
   })
   const data = await handleResponse<{ list: WordList }>(res)
-  // Write-through: update both the single-list and collection cache entries.
-  writeCache(listCacheKey(id), data.list)
-  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
-  if (lists) writeCache(LISTS_CACHE_KEY, lists.map((l) => (l.id === id ? data.list : l)))
   return data.list
 }
 
 export async function deleteList(id: string): Promise<void> {
   const res = await fetch(`/api/lists/${encodeURIComponent(id)}`, { method: 'DELETE' })
   await handleResponse<{ ok: boolean }>(res)
-  // Write-through: drop the deleted list from the cache.
-  deleteCacheKey(listCacheKey(id))
-  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
-  if (lists) writeCache(LISTS_CACHE_KEY, lists.filter((l) => l.id !== id))
 }

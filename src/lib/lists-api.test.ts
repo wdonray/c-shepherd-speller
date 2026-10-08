@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
+import { clearDataCache } from '@/lib/data-cache'
   getLists,
   getList,
   createList,
@@ -11,6 +12,7 @@ import {
 
 describe('lists-api', () => {
   beforeEach(() => {
+    clearDataCache()
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({

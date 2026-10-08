@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { PlusIcon, ChevronLeftIcon, XIcon } from 'lucide-react'
 import { getLists, createList, updateList, deleteList, notifyListsChanged } from '@/lib/lists-api'
-import { LISTS_CACHE_KEY, useCachedData } from '@/lib/data-cache'
+import { LISTS_CACHE_KEY, useCachedData, cacheCreatedList, cacheUpdatedList, cacheDeletedList } from '@/lib/data-cache'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
@@ -95,6 +95,7 @@ export default function PatternListsManager() {
         gradeLevel: newGrade.trim() || undefined,
         patterns: [],
       })
+      cacheCreatedList(list)
       logActivity('created', list.name)
       trackEvent('list-created')
       notifyListsChanged()
@@ -113,6 +114,7 @@ export default function PatternListsManager() {
     setDeletingList(true)
     try {
       await deleteList(target.id)
+      cacheDeletedList(target.id)
       notifyListsChanged()
     } catch {
       showToast('Could not delete the list. Check your connection and try again.')
@@ -192,6 +194,7 @@ export default function PatternListsManager() {
           gradeLevel: editingList.gradeLevel,
           patterns: editingList.patterns,
         })
+        cacheUpdatedList(updated)
         notifyListsChanged()
         setEditingList(updated)
         setSavedList(updated)

@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import type { WordList } from '@/models/WordList'
 
 /** Cache key for the full word-list collection. */
 export const LISTS_CACHE_KEY = 'lists'
@@ -44,6 +45,35 @@ export function writeCache<T>(key: string, data: T): void {
 export function deleteCacheKey(key: string): void {
   cache.delete(key)
   inFlight.delete(key)
+}
+
+/**
+ * Cache write-through for a created list. Call after a successful create so
+ * cached views update without a refetch.
+ */
+export function cacheCreatedList(list: WordList): void {
+  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
+  if (lists) writeCache(LISTS_CACHE_KEY, [list, ...lists])
+}
+
+/**
+ * Cache write-through for an updated list. Updates both the single-list entry
+ * and the cached collection.
+ */
+export function cacheUpdatedList(list: WordList): void {
+  writeCache(listCacheKey(list.id), list)
+  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
+  if (lists) writeCache(LISTS_CACHE_KEY, lists.map((l) => (l.id === list.id ? list : l)))
+}
+
+/**
+ * Cache write-through for a deleted list. Drops the single-list entry and
+ * removes the list from the cached collection.
+ */
+export function cacheDeletedList(id: string): void {
+  deleteCacheKey(listCacheKey(id))
+  const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
+  if (lists) writeCache(LISTS_CACHE_KEY, lists.filter((l) => l.id !== id))
 }
 
 /** Clears every entry, in-flight request, and subscriber. Primarily for tests. */

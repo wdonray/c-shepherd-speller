@@ -5,6 +5,7 @@ import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
+import { clearDataCache } from '@/lib/data-cache'
 
 const { getLists } = vi.hoisted(() => ({
   getLists: vi.fn(),
@@ -45,6 +46,7 @@ describe('Dashboard', () => {
   }
 
   beforeEach(() => {
+    clearDataCache()
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')

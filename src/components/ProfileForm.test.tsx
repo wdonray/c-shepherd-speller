@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import ProfileForm, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import { processProfileImage } from '@/lib/profile-image'
+import { clearDataCache } from '@/lib/data-cache'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
@@ -59,6 +60,7 @@ function getPutCalls(fetchMock: ReturnType<typeof vi.fn>) {
 
 describe('ProfileForm', () => {
   beforeEach(() => {
+    clearDataCache()
     useSessionMock.mockReset()
     processProfileImageMock.mockReset()
   })

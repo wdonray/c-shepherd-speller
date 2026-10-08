@@ -40,6 +40,7 @@ vi.mock('@/lib/spelling-api', () => ({ getUserByEmail: vi.fn() }))
 
 import { getUserByEmail } from '@/lib/spelling-api'
 import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
+import { clearDataCache } from '@/lib/data-cache'
 const getUserByEmailMock = vi.mocked(getUserByEmail)
 
 const useSessionMock = vi.mocked(useSession)
@@ -61,6 +62,7 @@ function openMenu() {
 
 describe('Header', () => {
   beforeEach(() => {
+    clearDataCache()
     useSessionMock.mockReset()
     signOutMock.mockReset()
     useThemeMock.mockReset()
