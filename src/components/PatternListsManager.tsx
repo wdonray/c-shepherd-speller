@@ -46,10 +46,12 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
 export default function PatternListsManager() {
   // Cached lists render instantly on revisit; mutations write through to the
   // cache, so no local list state is needed.
-  const { data: lists = [], loading, error: loadError, refresh: refreshLists } = useCachedData<WordList[]>(
-    LISTS_CACHE_KEY,
-    getLists
-  )
+  const {
+    data: lists = [],
+    loading,
+    error: loadError,
+    refresh: refreshLists,
+  } = useCachedData<WordList[]>(LISTS_CACHE_KEY, getLists)
   const [editingList, setEditingList] = useState<WordList | null>(null)
   const [savedList, setSavedList] = useState<WordList | null>(null)
   const [isCreating, setIsCreating] = useState(false)

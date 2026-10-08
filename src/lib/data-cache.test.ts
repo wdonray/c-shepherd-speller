@@ -88,8 +88,8 @@ describe('subscribeCache', () => {
 })
 
 describe('list cache write-through helpers', () => {
-  const listA = { id: 'a', name: 'A', patterns: [] } as WordList
-  const listB = { id: 'b', name: 'B', patterns: [] } as WordList
+  const listA = { id: 'a', name: 'A', patterns: [] } as unknown as WordList
+  const listB = { id: 'b', name: 'B', patterns: [] } as unknown as WordList
 
   it('prepends a created list to the cached collection', () => {
     writeCache<WordList[]>(LISTS_CACHE_KEY, [listA])

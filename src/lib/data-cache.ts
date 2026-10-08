@@ -63,7 +63,11 @@ export function cacheCreatedList(list: WordList): void {
 export function cacheUpdatedList(list: WordList): void {
   writeCache(listCacheKey(list.id), list)
   const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
-  if (lists) writeCache(LISTS_CACHE_KEY, lists.map((l) => (l.id === list.id ? list : l)))
+  if (lists)
+    writeCache(
+      LISTS_CACHE_KEY,
+      lists.map((l) => (l.id === list.id ? list : l))
+    )
 }
 
 /**
@@ -73,7 +77,11 @@ export function cacheUpdatedList(list: WordList): void {
 export function cacheDeletedList(id: string): void {
   deleteCacheKey(listCacheKey(id))
   const lists = readCache<WordList[]>(LISTS_CACHE_KEY)
-  if (lists) writeCache(LISTS_CACHE_KEY, lists.filter((l) => l.id !== id))
+  if (lists)
+    writeCache(
+      LISTS_CACHE_KEY,
+      lists.filter((l) => l.id !== id)
+    )
 }
 
 /** Clears every entry, in-flight request, and subscriber. Primarily for tests. */

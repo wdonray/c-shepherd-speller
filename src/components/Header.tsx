@@ -49,9 +49,8 @@ export function Header() {
   // The profile is cached: revisits show the avatar instantly while a
   // background revalidation keeps it fresh.
   const email = session?.user?.email
-  const { data: cachedUser, refresh: refreshUser } = useCachedData<User>(
-    email ? userCacheKey(email) : null,
-    () => getUserByEmail(email as string)
+  const { data: cachedUser, refresh: refreshUser } = useCachedData<User>(email ? userCacheKey(email) : null, () =>
+    getUserByEmail(email as string)
   )
 
   // Seed the avatar from the cache; background revalidations flow through here.

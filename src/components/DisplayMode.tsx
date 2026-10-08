@@ -65,7 +65,6 @@ function DisplayModeInner() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [listId, list, backToApp, backToPicker])
 
-
   if (loading) {
     return (
       <div
