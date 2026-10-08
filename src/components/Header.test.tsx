@@ -465,21 +465,26 @@ describe('Header', () => {
     expect(img).toHaveAttribute('alt', '')
   })
 
-  it('opens the profile dialog directly from the menu photo button', () => {
+  it('opens the file picker directly from the menu photo button', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click')
+    fireEvent.click(photoButton)
+    // The profile dialog should NOT open; the file picker is triggered instead.
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
   })
 
-  it('returns focus to the avatar trigger after closing the photo-opened dialog', () => {
+  it('returns focus to the avatar trigger after closing the profile dialog', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
+    fireEvent.click(screen.getByText('Profile'))
     fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
 
     expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
@@ -509,17 +514,5 @@ describe('Header', () => {
       expect(photoButton.querySelector('img')).not.toBeInTheDocument()
     })
     expect(photoButton).toHaveTextContent('DW')
-  })
-
-  it('does not move focus when the dialog was opened from the Profile row', () => {
-    mockSignedIn()
-    render(<Header />)
-
-    openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
-
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
-    expect(screen.getByRole('button', { name: /open account menu/i })).not.toHaveFocus()
   })
 })

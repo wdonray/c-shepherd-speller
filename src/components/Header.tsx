@@ -21,6 +21,7 @@ import { PatternMark } from './PatternMark'
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { notifyListsChanged } from '@/lib/lists-api'
 import { getUserByEmail } from '@/lib/spelling-api'
+import { processProfileImage } from '@/lib/profile-image'
 
 function initialsFor(name?: string | null, email?: string | null): string {
   if (name) {
@@ -38,8 +39,8 @@ export function Header() {
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const [profileDialogFromPhoto, setProfileDialogFromPhoto] = useState(false)
   const avatarTriggerRef = useRef<HTMLButtonElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
@@ -73,20 +74,36 @@ export function Header() {
   // If the image URL fails to load, fall back to initials instead of a broken image.
   const avatarImage = avatarBroken ? undefined : (profileImage ?? session.user.image ?? undefined)
 
-  // The photo at the top of the account menu jumps straight to the photo
-  // upload in the profile dialog. The menu closes first so the dialog opens clean.
+  // The photo at the top of the account menu opens the file picker directly.
+  // The Profile menu item below opens the full profile dialog.
   function handleMenuPhotoClick() {
     setIsAccountMenuOpen(false)
-    setProfileDialogFromPhoto(true)
-    setIsProfileDialogOpen(true)
+    photoInputRef.current?.click()
+  }
+
+  async function handleMenuPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !session?.user?.id) return
+    try {
+      const dataUrl = await processProfileImage(file)
+      const response = await fetch(`/api/users/${session.user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: dataUrl }),
+      })
+      if (!response.ok) throw new Error('Failed to update photo')
+      setProfileImage(dataUrl)
+      setAvatarBroken(false)
+      window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
+    } catch {
+      // Photo upload is a nicety; the menu already closed.
+    }
   }
 
   function handleProfileDialogClose() {
     setIsProfileDialogOpen(false)
-    if (profileDialogFromPhoto) {
-      setProfileDialogFromPhoto(false)
-      avatarTriggerRef.current?.focus()
-    }
+    avatarTriggerRef.current?.focus()
   }
 
   return (
@@ -243,6 +260,15 @@ export function Header() {
       <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
       <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
       <ProfileDialog isOpen={isProfileDialogOpen} onClose={handleProfileDialogClose} />
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={handleMenuPhotoSelect}
+        aria-label="Upload profile photo"
+        tabIndex={-1}
+      />
       <ImportExportDialog
         isOpen={isImportExportOpen}
         onClose={() => setIsImportExportOpen(false)}
