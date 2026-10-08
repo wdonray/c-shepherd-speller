@@ -80,7 +80,7 @@ describe('PatternEditor', () => {
 
   it('changes frequency through the radio buttons', () => {
     const { onChange } = renderEditor()
-    const lessCommon = screen.getByRole('radio', { name: 'Less common' })
+    const lessCommon = screen.getByRole('radio', { name: /^Less common\./ })
     expect(lessCommon).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(lessCommon)
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, frequency: 'less-common' })
@@ -88,47 +88,40 @@ describe('PatternEditor', () => {
 
   it('marks the selected frequency', () => {
     renderEditor({ frequency: 'rare' })
-    expect(screen.getByRole('radio', { name: 'Rare' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: /^Rare\./ })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('Rare')).toBeInTheDocument()
-    expect(screen.getByText('Shows up in just a few words. Teach it last, or skip it for now.')).toBeInTheDocument()
   })
 
-  it('explains what frequency means with helper text linked to the radiogroup', () => {
+  it('explains frequency in a help modal behind the info button', async () => {
     renderEditor()
-    const helper = screen.getByText(
-      'How often this spelling shows up for the sound. Common spellings get the widest column on the chart.'
-    )
-    expect(helper).toBeInTheDocument()
-    expect(helper).toHaveAttribute('id', 'frequency-help-p1')
-    const radiogroup = screen.getByRole('radiogroup', { name: 'Frequency' })
-    expect(radiogroup).toHaveAttribute('aria-describedby', 'frequency-help-p1')
+    fireEvent.click(screen.getByRole('button', { name: 'About frequency' }))
+    await waitFor(() => {
+      expect(screen.getByText('About frequency')).toBeInTheDocument()
+    })
+    expect(
+      screen.getByText(
+        'How often this spelling shows up for the sound. Common spellings get the widest column on the chart.'
+      )
+    ).toBeInTheDocument()
+    expect(screen.getByText('Shows up in most words with this sound. Teach this spelling first.')).toBeInTheDocument()
   })
 
-  it('gives each frequency option a teacher-language meaning in its title', () => {
+  it('gives each frequency option a teacher-language meaning in its accessible name', () => {
     renderEditor()
-    expect(screen.getByRole('radio', { name: 'Common' })).toHaveAttribute(
-      'title',
-      'Shows up in most words with this sound. Teach this spelling first.'
-    )
-    expect(screen.getByRole('radio', { name: 'Less common' })).toHaveAttribute(
-      'title',
-      'Shows up sometimes. Teach it after the common spelling.'
-    )
-    expect(screen.getByRole('radio', { name: 'Rare' })).toHaveAttribute(
-      'title',
-      'Shows up in just a few words. Teach it last, or skip it for now.'
-    )
+    expect(screen.getByRole('radio', { name: /Common.*Teach this spelling first/ })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Less common.*Teach it after the common spelling/ })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Rare.*Teach it last/ })).toBeInTheDocument()
   })
 
-  it('shows the meaning of the selected frequency beneath the readout', () => {
+  it('shows the selected frequency label beneath the radios', () => {
     const onChange = vi.fn()
     const onRemove = vi.fn()
     const { rerender } = render(<PatternEditor pattern={basePattern} onChange={onChange} onRemove={onRemove} />)
-    expect(screen.getByText('Shows up in most words with this sound. Teach this spelling first.')).toBeInTheDocument()
+    expect(screen.getByText('Common')).toBeInTheDocument()
     rerender(
       <PatternEditor pattern={{ ...basePattern, frequency: 'less-common' }} onChange={onChange} onRemove={onRemove} />
     )
-    expect(screen.getByText('Shows up sometimes. Teach it after the common spelling.')).toBeInTheDocument()
+    expect(screen.getByText('Less common')).toBeInTheDocument()
   })
 
   it('gives the odd-duck toggle hover and focus-visible treatments in both states', () => {
@@ -152,9 +145,9 @@ describe('PatternEditor', () => {
 
   it('gives frequency radios hover and focus-visible treatments in both states', () => {
     renderEditor()
-    const selected = screen.getByRole('radio', { name: 'Common' })
+    const selected = screen.getByRole('radio', { name: /^Common\./ })
     expect(selected).toHaveClass('hover:brightness-95', 'focus-visible:brightness-95', 'focus-visible:ring-[3px]')
-    const unselected = screen.getByRole('radio', { name: 'Rare' })
+    const unselected = screen.getByRole('radio', { name: /^Rare\./ })
     expect(unselected).toHaveClass('hover:opacity-100', 'focus-visible:opacity-100', 'focus-visible:ring-[3px]')
   })
 
