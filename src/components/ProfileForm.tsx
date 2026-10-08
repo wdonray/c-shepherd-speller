@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { getUserByEmail, User } from '@/lib/spelling-api'
 import { userCacheKey, writeCache, useCachedData } from '@/lib/data-cache'
 import { Label } from '@/components/ui/label'
@@ -85,7 +85,9 @@ export default function ProfileForm() {
     () => getUserByEmail(profileEmail as string)
   )
 
-  useEffect(() => {
+  // Layout effect: populate the form before paint so there is no window
+  // where the form is enabled but empty.
+  useLayoutEffect(() => {
     if (user || !cachedUser) return
     setUser(cachedUser)
     setPhoto(cachedUser.image || undefined)
@@ -113,7 +115,10 @@ export default function ProfileForm() {
   }
 
   async function doSave(payload: UpdateUserBody, isPhotoChange: boolean): Promise<void> {
-    if (!user?.id) return
+    // Prefer the cached user: it is available as soon as the fetch resolves,
+    // while the local user state syncs on the next render.
+    const currentUser = cachedUser ?? user
+    if (!currentUser?.id) return
     if (savedTimerRef.current) {
       clearTimeout(savedTimerRef.current)
       savedTimerRef.current = null
@@ -121,8 +126,8 @@ export default function ProfileForm() {
     setSaveStatus('saving')
     setSaveError(null)
     try {
-      await updateUser(user.id, payload)
-      const merged = { ...user, ...payload }
+      await updateUser(currentUser.id, payload)
+      const merged = { ...currentUser, ...payload }
       setUser(merged)
       if (profileEmail) writeCache(userCacheKey(profileEmail), merged)
       if (isPhotoChange) {
