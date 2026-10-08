@@ -4,8 +4,10 @@ import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Header } from './Header'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
+import { processProfileImage } from '@/lib/profile-image'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: vi.fn() }))
+vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
 vi.mock('next-themes', () => ({ useTheme: vi.fn() }))
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -465,21 +467,26 @@ describe('Header', () => {
     expect(img).toHaveAttribute('alt', '')
   })
 
-  it('opens the profile dialog directly from the menu photo button', () => {
+  it('opens the file picker directly from the menu photo button', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click')
+    fireEvent.click(photoButton)
+    // The profile dialog should NOT open; the file picker is triggered instead.
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
   })
 
-  it('returns focus to the avatar trigger after closing the photo-opened dialog', () => {
+  it('returns focus to the avatar trigger after closing the profile dialog', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
+    fireEvent.click(screen.getByText('Profile'))
     fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
 
     expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
@@ -510,16 +517,69 @@ describe('Header', () => {
     })
     expect(photoButton).toHaveTextContent('DW')
   })
-
-  it('does not move focus when the dialog was opened from the Profile row', () => {
+  it('uploads the photo directly when a file is selected from the menu', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
     mockSignedIn()
     render(<Header />)
 
-    openMenu()
-    fireEvent.click(screen.getByText('Profile'))
-    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
 
-    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
-    expect(screen.getByRole('button', { name: /open account menu/i })).not.toHaveFocus()
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalledWith(file)
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/users/'),
+        expect.objectContaining({ method: 'PUT' })
+      )
+    })
+    fetchMock.mockRestore()
+  })
+
+  it('handles photo upload failure gracefully', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockRejectedValue(new Error('bad image'))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalled()
+    })
+    // Should not throw; the menu already closed.
+  })
+
+  it('handles a non-ok upload response gracefully', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled()
+    })
+    // Should not throw; the error is caught and ignored.
+    fetchMock.mockRestore()
+  })
+
+  it('does nothing when no file is selected', () => {
+    const processMock = vi.mocked(processProfileImage)
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    fireEvent.change(fileInput, { target: { files: [] } })
+
+    expect(processMock).not.toHaveBeenCalled()
   })
 })
