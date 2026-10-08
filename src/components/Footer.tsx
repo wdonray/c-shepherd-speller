@@ -1,7 +1,7 @@
 export function Footer() {
   return (
-    <footer className="w-full border-t-2 border-line bg-card">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
+    <footer className="w-full border-t-2 border-line bg-card pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 pt-6 pb-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <p className="text-sm text-muted-foreground">PatternSpell. Made for K-3 classrooms.</p>
         <div className="flex items-center gap-4">
           <a
