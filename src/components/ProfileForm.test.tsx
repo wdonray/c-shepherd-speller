@@ -512,4 +512,26 @@ describe('ProfileForm', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('Could not read the image file.')
     })
   })
+  it('saves without updating the cache when the session email is gone', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    mockSession()
+    const { rerender } = render(<ProfileForm />)
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    // The session loses its email (e.g. edge case mid-session); the loaded
+    // user state persists, so a save still goes through without a cache write.
+    useSessionMock.mockReturnValue({
+      data: { user: { name: 'Donray' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    rerender(<ProfileForm />)
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+  })
 })
