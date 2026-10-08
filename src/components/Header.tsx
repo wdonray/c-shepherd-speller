@@ -11,8 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LogOutIcon, MenuIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Camera, LogOutIcon, MenuIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
 import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
@@ -37,6 +37,9 @@ export function Header() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const [profileDialogFromPhoto, setProfileDialogFromPhoto] = useState(false)
+  const avatarTriggerRef = useRef<HTMLButtonElement>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
@@ -70,6 +73,22 @@ export function Header() {
   // If the image URL fails to load, fall back to initials instead of a broken image.
   const avatarImage = avatarBroken ? undefined : (profileImage ?? session.user.image ?? undefined)
 
+  // The photo at the top of the account menu jumps straight to the photo
+  // upload in the profile dialog. The menu closes first so the dialog opens clean.
+  function handleMenuPhotoClick() {
+    setIsAccountMenuOpen(false)
+    setProfileDialogFromPhoto(true)
+    setIsProfileDialogOpen(true)
+  }
+
+  function handleProfileDialogClose() {
+    setIsProfileDialogOpen(false)
+    if (profileDialogFromPhoto) {
+      setProfileDialogFromPhoto(false)
+      avatarTriggerRef.current?.focus()
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
@@ -90,9 +109,10 @@ export function Header() {
               <Link href="/display">Present</Link>
             </Button>
           </div>
-          <DropdownMenu>
+          <DropdownMenu open={isAccountMenuOpen} onOpenChange={setIsAccountMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button
+                ref={avatarTriggerRef}
                 type="button"
                 aria-label="Open account menu"
                 className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
@@ -111,6 +131,37 @@ export function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">
+              <div className="flex items-center gap-3 px-2 py-2">
+                <button
+                  type="button"
+                  onClick={handleMenuPhotoClick}
+                  aria-label="Change profile photo"
+                  className="relative flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-chunk-sky text-base font-bold text-white outline-none transition hover:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                >
+                  {avatarImage ? (
+                    <img
+                      src={avatarImage}
+                      alt=""
+                      aria-hidden="true"
+                      className="size-full rounded-full object-cover"
+                      onError={() => setAvatarBroken(true)}
+                    />
+                  ) : (
+                    initialsFor(session.user.name, session.user.email)
+                  )}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-leaf text-white ring-2 ring-card"
+                  >
+                    <Camera className="size-3" />
+                  </span>
+                </button>
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-bold text-ink">{session.user.name || 'Your profile'}</p>
+                  <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator className="bg-line" />
               <DropdownMenuItem
                 className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
                 onSelect={() => setIsImportExportOpen(true)}
@@ -191,7 +242,7 @@ export function Header() {
       <div className="h-[2px] w-full bg-line" aria-hidden="true" />
       <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
       <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
-      <ProfileDialog isOpen={isProfileDialogOpen} onClose={() => setIsProfileDialogOpen(false)} />
+      <ProfileDialog isOpen={isProfileDialogOpen} onClose={handleProfileDialogClose} />
       <ImportExportDialog
         isOpen={isImportExportOpen}
         onClose={() => setIsImportExportOpen(false)}

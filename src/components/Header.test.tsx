@@ -424,4 +424,102 @@ describe('Header', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('shows the profile photo with a camera badge and identity at the top of the menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    expect(photoButton).toBeInTheDocument()
+    expect(photoButton).toHaveTextContent('DW')
+    expect(screen.getByText('Donray Williams')).toBeInTheDocument()
+    expect(screen.getByText('t@e.c')).toBeInTheDocument()
+  })
+
+  it('shows a fallback name in the menu when the user has no name', () => {
+    mockSignedIn('light', null)
+    render(<Header />)
+
+    openMenu()
+    expect(screen.getByText('Your profile')).toBeInTheDocument()
+  })
+
+  it('shows the uploaded photo in the menu photo button', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,uploaded',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalled())
+    openMenu()
+    const img = screen.getByRole('button', { name: 'Change profile photo' }).querySelector('img')
+    expect(img).toHaveAttribute('src', 'data:image/jpeg;base64,uploaded')
+    expect(img).toHaveAttribute('alt', '')
+  })
+
+  it('opens the profile dialog directly from the menu photo button', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('returns focus to the avatar trigger after closing the photo-opened dialog', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Change profile photo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
+
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveFocus()
+  })
+
+  it('falls back to initials in the menu photo when its image fails to load', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,broken',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalled())
+    openMenu()
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    const img = photoButton.querySelector('img')
+    expect(img).toBeInTheDocument()
+    fireEvent.error(img!)
+    await waitFor(() => {
+      expect(photoButton.querySelector('img')).not.toBeInTheDocument()
+    })
+    expect(photoButton).toHaveTextContent('DW')
+  })
+
+  it('does not move focus when the dialog was opened from the Profile row', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    fireEvent.click(screen.getByText('Profile'))
+    fireEvent.click(screen.getByRole('button', { name: 'close profile' }))
+
+    expect(screen.getByTestId('profile-dialog')).toHaveAttribute('data-open', 'false')
+    expect(screen.getByRole('button', { name: /open account menu/i })).not.toHaveFocus()
+  })
 })
