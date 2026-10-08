@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useLayoutEffect, useState } from 'react'
 import Dashboard from '@/components/Dashboard'
 import SpellingManagerSheet from '@/components/SpellingManagerSheet'
 import type { WordList } from '@/models/WordList'
@@ -11,13 +11,26 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-  // Start at the top of the page on load; don't let the browser restore a
-  // stale scroll position (notably on mobile Safari).
-  useEffect(() => {
+  // Start at the top of the page on load. useLayoutEffect runs before paint
+  // so there is no flash of a scrolled position, and the rAF re-pin catches
+  // iOS Safari nudging scroll while its toolbar settles after load.
+  // (history.scrollRestoration only covers history navigation, not fresh loads.)
+  useLayoutEffect(() => {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual'
     }
     window.scrollTo(0, 0)
+    let frames = 2
+    let raf = 0
+    const pinToTop = () => {
+      window.scrollTo(0, 0)
+      frames -= 1
+      if (frames > 0) {
+        raf = requestAnimationFrame(pinToTop)
+      }
+    }
+    raf = requestAnimationFrame(pinToTop)
+    return () => cancelAnimationFrame(raf)
   }, [])
 
   useEffect(() => {
