@@ -11,6 +11,15 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
+  // Start at the top of the page on load; don't let the browser restore a
+  // stale scroll position (notably on mobile Safari).
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+    window.scrollTo(0, 0)
+  }, [])
+
   useEffect(() => {
     async function syncUser() {
       setIsSyncing(true)
@@ -51,9 +60,10 @@ export default function Home() {
         aria-label="Loading dashboard"
         aria-busy="true"
       >
-        {/* Greeting: matches Dashboard h1 text-3xl */}
+        {/* Greeting: matches Dashboard h1 text-3xl + subtitle */}
         <div className="space-y-2" aria-hidden="true">
           <div className="h-9 w-56 animate-pulse rounded-xl bg-line/60" />
+          <div className="h-5 w-80 animate-pulse rounded-lg bg-line/60" />
         </div>
         {/* Quick actions: matches Dashboard (3x size="lg" buttons) */}
         <div className="flex flex-wrap gap-3" aria-hidden="true">

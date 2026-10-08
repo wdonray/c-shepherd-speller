@@ -149,4 +149,32 @@ describe('Home page', () => {
     const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
     expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: '' })
   })
+
+  it('scrolls to the top on mount', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 0)
+    scrollToSpy.mockRestore()
+  })
+
+  it('sets manual scroll restoration when supported', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    // jsdom lacks scrollRestoration; define it so the manual branch is covered.
+    Object.defineProperty(window.history, 'scrollRestoration', {
+      value: 'auto',
+      writable: true,
+      configurable: true,
+    })
+    mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<Home />)
+
+    expect(window.history.scrollRestoration).toBe('manual')
+    scrollToSpy.mockRestore()
+  })
 })
