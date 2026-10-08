@@ -91,10 +91,12 @@ describe('SortActivity', () => {
     expect(card).toHaveStyle({ touchAction: 'none' })
   })
 
-  it('shows a floating card in the drag overlay while dragging', () => {
+  it('shows a floating card in the drag overlay while dragging', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
-    expect(screen.getByText('cake')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('cake')).toBeInTheDocument()
+    })
   })
 
   it('removes placement when a word is dropped back in the word bank', async () => {
