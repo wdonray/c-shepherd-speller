@@ -10,8 +10,12 @@ import {
   clearDataCache,
   subscribeCache,
   fetchIntoCache,
+  cacheCreatedList,
+  cacheUpdatedList,
+  cacheDeletedList,
   useCachedData,
 } from './data-cache'
+import type { WordList } from '@/models/WordList'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -80,6 +84,49 @@ describe('subscribeCache', () => {
     subscribeCache('other', notify)
     writeCache('sk', 1)
     expect(notify).not.toHaveBeenCalled()
+  })
+})
+
+describe('list cache write-through helpers', () => {
+  const listA = { id: 'a', name: 'A', patterns: [] } as WordList
+  const listB = { id: 'b', name: 'B', patterns: [] } as WordList
+
+  it('prepends a created list to the cached collection', () => {
+    writeCache<WordList[]>(LISTS_CACHE_KEY, [listA])
+    cacheCreatedList(listB)
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toEqual([listB, listA])
+  })
+
+  it('does nothing when the collection is not cached', () => {
+    cacheCreatedList(listB)
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toBeUndefined()
+  })
+
+  it('updates a list in the collection and the single-list entry', () => {
+    writeCache<WordList[]>(LISTS_CACHE_KEY, [listA, listB])
+    const updated = { ...listA, name: 'A2' }
+    cacheUpdatedList(updated)
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toEqual([updated, listB])
+    expect(readCache<WordList>(listCacheKey('a'))).toEqual(updated)
+  })
+
+  it('updates only the single-list entry when the collection is not cached', () => {
+    cacheUpdatedList(listA)
+    expect(readCache<WordList>(listCacheKey('a'))).toEqual(listA)
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toBeUndefined()
+  })
+
+  it('removes a deleted list from the collection and the single-list entry', () => {
+    writeCache<WordList[]>(LISTS_CACHE_KEY, [listA, listB])
+    writeCache(listCacheKey('a'), listA)
+    cacheDeletedList('a')
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toEqual([listB])
+    expect(readCache<WordList>(listCacheKey('a'))).toBeUndefined()
+  })
+
+  it('is a safe no-op when nothing is cached', () => {
+    cacheDeletedList('nope')
+    expect(readCache<WordList[]>(LISTS_CACHE_KEY)).toBeUndefined()
   })
 })
 

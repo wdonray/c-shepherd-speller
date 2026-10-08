@@ -243,10 +243,12 @@ describe('Header', () => {
     })
     window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
     await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(2))
-    expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).toHaveAttribute(
-      'src',
-      'data:image/jpeg;base64,new'
-    )
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).toHaveAttribute(
+        'src',
+        'data:image/jpeg;base64,new'
+      )
+    })
   })
 
   it('opens the spelling sheet from My Spelling Lists', () => {

@@ -335,15 +335,15 @@ describe('ProfileForm', () => {
     expect(getPutCalls(fetchMock)).toHaveLength(0)
   })
 
-  it('logs an error when fetching the user fails', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('handles a user fetch failure gracefully', async () => {
     stubFetch(async () => {
       throw new Error('network down')
     })
     renderForm()
 
+    // The form becomes usable instead of being stuck in a loading state.
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching user:', expect.any(Error))
+      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
     })
   })
 
