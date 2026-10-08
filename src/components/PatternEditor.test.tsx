@@ -261,8 +261,8 @@ describe('PatternEditor', () => {
 
   it('renders a sentence picker for each word', () => {
     renderEditor()
-    expect(screen.getByRole('button', { name: 'Pick an example sentence for cake' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Pick an example sentence for bake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add example sentence for cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add example sentence for bake' })).toBeInTheDocument()
   })
 
   it('removes the word sentence when the word is removed', () => {
@@ -270,6 +270,8 @@ describe('PatternEditor', () => {
       sentences: { cake: 'We baked a cake.' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    // Confirmation modal appears because the word has a sentence.
+    fireEvent.click(screen.getByRole('button', { name: 'Remove word' }))
     expect(onChange).toHaveBeenCalledWith({
       ...basePattern,
       words: ['bake'],
@@ -277,9 +279,30 @@ describe('PatternEditor', () => {
     })
   })
 
+  it('asks for confirmation before removing a word with a sentence', () => {
+    const { onChange } = renderEditor({
+      sentences: { cake: 'We baked a cake.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(screen.getByText('Remove this word?')).toBeInTheDocument()
+    // Cancelling keeps the word.
+    fireEvent.click(screen.getByRole('button', { name: 'Keep word' }))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('removes a word without confirmation when it has no sentence', () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(screen.queryByText('Remove this word?')).not.toBeInTheDocument()
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake'],
+    })
+  })
+
   it('saves the picked sentence on the pattern', async () => {
     const { onChange } = renderEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add example sentence for cake' }))
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
@@ -298,6 +321,7 @@ describe('PatternEditor', () => {
       sentences: { cake: 'We baked a cake.', bake: 'We bake bread.' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove word' }))
     expect(onChange).toHaveBeenCalledWith({
       ...basePattern,
       words: ['bake'],
@@ -309,7 +333,7 @@ describe('PatternEditor', () => {
     const { onChange } = renderEditor({
       sentences: { cake: 'We baked a cake.' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Change example sentence for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit example sentence for cake' }))
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
