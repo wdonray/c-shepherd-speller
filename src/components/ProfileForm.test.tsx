@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
-import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
+import ProfileForm, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import { processProfileImage } from '@/lib/profile-image'
 
-const { signOutMock } = vi.hoisted(() => ({ signOutMock: vi.fn() }))
-vi.mock('next-auth/react', () => ({ useSession: vi.fn(), signOut: signOutMock }))
+vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
 
 const processProfileImageMock = vi.mocked(processProfileImage)
@@ -40,9 +39,9 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Promise<unknown
   return fetchMock
 }
 
-function renderDialog() {
+function renderForm() {
   mockSession()
-  return render(<ProfileDialog isOpen onClose={vi.fn()} />)
+  return render(<ProfileForm />)
 }
 
 function sleep(ms: number) {
@@ -50,7 +49,7 @@ function sleep(ms: number) {
 }
 
 async function renderReadyDialog() {
-  renderDialog()
+  renderForm()
   await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 }
 
@@ -58,7 +57,7 @@ function getPutCalls(fetchMock: ReturnType<typeof vi.fn>) {
   return fetchMock.mock.calls.filter((call) => (call[1] as RequestInit | undefined)?.method === 'PUT')
 }
 
-describe('ProfileDialog', () => {
+describe('ProfileForm', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
     processProfileImageMock.mockReset()
@@ -69,16 +68,9 @@ describe('ProfileDialog', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders nothing when closed', () => {
-    mockSession()
-    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    render(<ProfileDialog isOpen={false} onClose={vi.fn()} />)
-    expect(screen.queryByText('Teacher Profile')).not.toBeInTheDocument()
-  })
-
   it('shows the identity header with name, email, and sign-in method', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Donray Williams' })).toBeInTheDocument()
@@ -90,7 +82,7 @@ describe('ProfileDialog', () => {
   it('falls back to a question mark when there is no name or email', async () => {
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated', update: async () => null } as never)
     stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
-    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    render(<ProfileForm />)
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
@@ -105,7 +97,7 @@ describe('ProfileDialog', () => {
       update: async () => null,
     } as never)
     stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
-    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    render(<ProfileForm />)
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Your profile' })).toBeInTheDocument()
@@ -115,7 +107,7 @@ describe('ProfileDialog', () => {
 
   it('has no Save or Cancel buttons', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
@@ -124,20 +116,19 @@ describe('ProfileDialog', () => {
     expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
   })
 
-  it('signs out when the Sign out button is clicked', async () => {
+  it('has no Sign out button', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+      expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(signOutMock).toHaveBeenCalledWith({ callbackUrl: '/auth/signin' })
+    expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument()
   })
 
   it('populates the form fields from the fetched user', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
@@ -237,7 +228,7 @@ describe('ProfileDialog', () => {
   it('does not auto-save when there is no user record', async () => {
     const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
     mockSession()
-    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    render(<ProfileForm />)
     await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
@@ -313,47 +304,30 @@ describe('ProfileDialog', () => {
     expect(await screen.findByText('Saved')).toBeInTheDocument()
   })
 
-  it('flushes a pending save when the dialog closes', async () => {
-    const onClose = vi.fn()
+  it('flushes a pending save on unmount', async () => {
     const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
     )
     mockSession()
-    render(<ProfileDialog isOpen onClose={onClose} />)
+    const { unmount } = render(<ProfileForm />)
     await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
     expect(getPutCalls(fetchMock)).toHaveLength(0)
 
-    fireEvent.keyDown(document, { key: 'Escape' })
+    unmount()
 
     await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
-    expect(onClose).toHaveBeenCalledTimes(1)
+    const body = JSON.parse(getPutCalls(fetchMock)[0]?.[1]?.body as string)
+    expect(body.name).toBe('Donray W.')
   })
 
-  it('closes without saving when nothing is pending', async () => {
-    const onClose = vi.fn()
+  it('does not save on unmount when nothing is pending', async () => {
     const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
     mockSession()
-    render(<ProfileDialog isOpen onClose={onClose} />)
+    const { unmount } = render(<ProfileForm />)
     await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
-    fireEvent.keyDown(document, { key: 'Escape' })
-
-    expect(onClose).toHaveBeenCalledTimes(1)
-    await sleep(800)
-    expect(getPutCalls(fetchMock)).toHaveLength(0)
-  })
-
-  it('does not fire a pending save after unmount', async () => {
-    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
-      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
-    )
-    mockSession()
-    const { unmount } = render(<ProfileDialog isOpen onClose={vi.fn()} />)
-    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
-
-    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
     unmount()
     await sleep(800)
     expect(getPutCalls(fetchMock)).toHaveLength(0)
@@ -364,7 +338,7 @@ describe('ProfileDialog', () => {
     stubFetch(async () => {
       throw new Error('network down')
     })
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith('Error fetching user:', expect.any(Error))
@@ -378,7 +352,7 @@ describe('ProfileDialog', () => {
       update: async () => null,
     } as never)
     const fetchMock = stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-    render(<ProfileDialog isOpen onClose={vi.fn()} />)
+    render(<ProfileForm />)
 
     await waitFor(() => {
       expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
@@ -388,7 +362,7 @@ describe('ProfileDialog', () => {
 
   it('handles a missing user record gracefully', async () => {
     stubFetch(async () => ({ ok: true, json: async () => ({ user: null }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
@@ -399,7 +373,7 @@ describe('ProfileDialog', () => {
   it('defaults missing optional fields to empty strings', async () => {
     const sparseUser = { id: 'u1', email: 't@e.c' }
     stubFetch(async () => ({ ok: true, json: async () => ({ user: sparseUser }) }))
-    renderDialog()
+    renderForm()
 
     await waitFor(() => {
       expect(screen.getByLabelText(/full name/i)).not.toBeDisabled()
@@ -419,7 +393,7 @@ describe('ProfileDialog', () => {
           ? { ok: true, json: async () => ({}) }
           : { ok: true, json: async () => ({ user: { ...user, ...userOverrides } }) }
       )
-      renderDialog()
+      renderForm()
     }
 
     async function selectPhoto() {
@@ -452,7 +426,7 @@ describe('ProfileDialog', () => {
       const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
       )
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       await selectPhoto()
@@ -471,7 +445,7 @@ describe('ProfileDialog', () => {
       stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
       )
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       const listener = vi.fn()
@@ -487,7 +461,7 @@ describe('ProfileDialog', () => {
     it('shows an error when photo processing fails', async () => {
       processProfileImageMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, or WebP image.'))
       stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       const input = screen.getByLabelText(/profile photo file input/i)
@@ -501,7 +475,7 @@ describe('ProfileDialog', () => {
           ? { ok: true, json: async () => ({}) }
           : { ok: true, json: async () => ({ user: { ...user, image: 'data:image/jpeg;base64,saved' } }) }
       )
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
       expect(document.body.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,saved')
 
@@ -517,7 +491,7 @@ describe('ProfileDialog', () => {
 
     it('ignores photo selection when no file is chosen', async () => {
       stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       const input = screen.getByLabelText(/profile photo file input/i) as HTMLInputElement
@@ -528,7 +502,7 @@ describe('ProfileDialog', () => {
     it('shows a generic error when photo processing rejects with a non-Error', async () => {
       processProfileImageMock.mockRejectedValue('string failure')
       stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
-      renderDialog()
+      renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       const input = screen.getByLabelText(/profile photo file input/i)

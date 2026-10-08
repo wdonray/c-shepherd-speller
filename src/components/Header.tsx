@@ -15,7 +15,7 @@ import { Camera, LogOutIcon, MenuIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import HelpDialog from './HelpDialog'
-import ProfileDialog, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileDialog'
+import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import ImportExportDialog from './ImportExportDialog'
 import { PatternMark } from './PatternMark'
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -35,11 +35,9 @@ export function Header() {
   const { data: session } = useSession()
   const [isSpellingManagerOpen, setIsSpellingManagerOpen] = useState(false)
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
-  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const avatarTriggerRef = useRef<HTMLButtonElement>(null)
   const menuPhotoButtonRef = useRef<HTMLButtonElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const { setTheme, theme } = useTheme()
@@ -107,11 +105,6 @@ export function Header() {
     }
   }
 
-  function handleProfileDialogClose() {
-    setIsProfileDialogOpen(false)
-    avatarTriggerRef.current?.focus()
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
       <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4">
@@ -135,7 +128,6 @@ export function Header() {
           <DropdownMenu open={isAccountMenuOpen} onOpenChange={setIsAccountMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button
-                ref={avatarTriggerRef}
                 type="button"
                 aria-label="Open account menu"
                 className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
@@ -205,10 +197,10 @@ export function Header() {
                 Get help
               </DropdownMenuItem>
               <DropdownMenuItem
+                asChild
                 className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-                onSelect={() => setIsProfileDialogOpen(true)}
               >
-                Profile
+                <Link href="/profile">Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-line" />
               <DropdownMenuItem
@@ -266,7 +258,6 @@ export function Header() {
       <div className="h-[2px] w-full bg-line" aria-hidden="true" />
       <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
       <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
-      <ProfileDialog isOpen={isProfileDialogOpen} onClose={handleProfileDialogClose} />
       <input
         ref={photoInputRef}
         type="file"

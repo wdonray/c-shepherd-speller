@@ -51,12 +51,14 @@ test.describe('authenticated flows', () => {
     await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
 
-  test('profile dialog opens and saves', async ({ page }) => {
+  test('profile page opens and saves', async ({ page }) => {
     await page.goto('/')
 
     await page.getByRole('button', { name: /menu/i }).click()
     await page.getByText('Profile').click()
 
+    await expect(page).toHaveURL(/\/profile$/)
+    await expect(page.getByRole('heading', { name: 'Profile', level: 1 })).toBeVisible()
     await expect(page.getByText('Signed in with Google')).toBeVisible()
     await expect(page.getByRole('heading', { name: E2E_USER_NAME })).toBeVisible()
     const nameInput = page.getByLabel(/full name/i)
