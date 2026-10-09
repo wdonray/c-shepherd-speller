@@ -119,8 +119,6 @@ describe('ImportExportDialog', () => {
     })
   })
 
-  it('shows an error when the file is not valid JSON', async () => {
-
   it('imports lists from a valid file', async () => {
     const onImported = vi.fn()
     createList.mockResolvedValue(list)
