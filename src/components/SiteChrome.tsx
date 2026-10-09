@@ -5,13 +5,14 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 
 /**
- * Site chrome wrapper. The display route is chrome-free for projector use:
- * no site header or footer, just the page content full-bleed.
+ * Site chrome wrapper. The display route is chrome-free for projector use,
+ * and list print routes are chrome-free for a clean poster with no site
+ * header or footer; the page content goes full-bleed.
  */
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  if (pathname === '/display') {
+  if (pathname === '/display' || pathname?.endsWith('/print')) {
     return <main className="min-h-dvh">{children}</main>
   }
 

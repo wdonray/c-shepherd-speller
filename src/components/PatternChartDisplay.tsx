@@ -12,6 +12,12 @@ interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
+  /**
+   * 'present' is the interactive projector chart. 'print' renders a
+   * non-interactive poster: locked patterns are excluded entirely, words are
+   * plain text, and all buttons and the caption are hidden.
+   */
+  variant?: 'present' | 'print'
 }
 
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
@@ -37,14 +43,22 @@ const COLUMN_ACCENTS = [
  *
  * Designed for projectors: large text, high contrast, keyboard accessible,
  * every word visible at once.
+ *
+ * variant="print" renders the same chart as a non-interactive poster for
+ * printing: locked patterns are excluded entirely, words are plain text,
+ * and all buttons and the caption are hidden.
  */
-export default function PatternChartDisplay({ list, onToggleLock }: PatternChartDisplayProps) {
+export default function PatternChartDisplay({ list, onToggleLock, variant = 'present' }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
+  const isPrint = variant === 'print'
 
   const { columns, targetSound, allLocked } = useMemo(() => {
+    // The printed poster matches what is currently taught: locked patterns
+    // are excluded entirely.
+    const teachable = isPrint ? list.patterns.filter((p) => !p.isLocked) : list.patterns
     // Target sound: most common sound among patterns, fallback to list name.
     const soundCounts = new Map<string, number>()
-    for (const p of list.patterns) {
+    for (const p of teachable) {
       soundCounts.set(p.sound, (soundCounts.get(p.sound) ?? 0) + 1)
     }
     let targetSound = list.name
@@ -57,10 +71,10 @@ export default function PatternChartDisplay({ list, onToggleLock }: PatternChart
     }
 
     // Most common spelling first.
-    const columns = [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    const columns = [...teachable].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
     const allLocked = columns.length > 0 && columns.every((p) => p.isLocked)
     return { columns, targetSound, allLocked }
-  }, [list])
+  }, [list, isPrint])
 
   const openAnalysis = (word: string, pattern: SpellingPattern) => {
     setSelected({ word, pattern })
@@ -68,7 +82,7 @@ export default function PatternChartDisplay({ list, onToggleLock }: PatternChart
 
   /** Lock toggle for an unlocked column header (locked columns render a placeholder instead). */
   const renderLockToggle = (pattern: SpellingPattern) => {
-    if (!onToggleLock) return null
+    if (!onToggleLock || isPrint) return null
     return (
       <button
         type="button"
@@ -148,40 +162,60 @@ export default function PatternChartDisplay({ list, onToggleLock }: PatternChart
     )
   }
 
-  const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => (
-    <li
-      key={key}
-      className="flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 border-line bg-card p-1.5 transition-colors hover:border-sky-deep focus-within:border-sky-deep"
-    >
-      <button
-        type="button"
-        onClick={() => openAnalysis(word, pattern)}
-        aria-label={`Analyze the word ${word}`}
-        className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+  const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => {
+    // The printed poster is not interactive: words are plain text, no analysis
+    // tap target and no speaker button.
+    if (isPrint) {
+      return (
+        <li
+          key={key}
+          className="flex min-h-[58px] items-center justify-center rounded-[14px] border-2 border-line bg-card px-4 py-2 text-center text-[22px] font-bold text-ink"
+        >
+          {word}
+        </li>
+      )
+    }
+    return (
+      <li
+        key={key}
+        className="flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 border-line bg-card p-1.5 transition-colors hover:border-sky-deep focus-within:border-sky-deep"
       >
-        {word}
-      </button>
-      <button
-        type="button"
-        onClick={() => speak(word)}
-        aria-label={`Hear the word ${word}`}
-        className="flex min-h-[44px] min-w-[52px] cursor-pointer items-center justify-center rounded-[10px] text-sky-deep outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-      >
-        <Volume2Icon className="size-7" aria-hidden="true" />
-      </button>
-    </li>
-  )
+        <button
+          type="button"
+          onClick={() => openAnalysis(word, pattern)}
+          aria-label={`Analyze the word ${word}`}
+          className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        >
+          {word}
+        </button>
+        <button
+          type="button"
+          onClick={() => speak(word)}
+          aria-label={`Hear the word ${word}`}
+          className="flex min-h-[44px] min-w-[52px] cursor-pointer items-center justify-center rounded-[10px] text-sky-deep outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        >
+          <Volume2Icon className="size-7" aria-hidden="true" />
+        </button>
+      </li>
+    )
+  }
 
   return (
-    <div className="force-light w-full rounded-[20px] bg-background p-6 sm:p-10">
+    <div className={cn('force-light w-full rounded-[20px] bg-background p-6 sm:p-10', isPrint && 'print-chart')}>
       <div className="mb-8 text-center">
         <p className="text-[30px] font-extrabold text-ink">{targetSound}</p>
       </div>
 
       {columns.length === 0 ? (
-        <p className="py-12 text-center text-xl text-muted-foreground">
-          No patterns in this list yet. Add patterns from My Spelling Lists first.
-        </p>
+        isPrint && list.patterns.length > 0 ? (
+          <p className="py-12 text-center text-xl text-muted-foreground">
+            All patterns are locked, so there is nothing to print. Unlock a pattern in present mode first.
+          </p>
+        ) : (
+          <p className="py-12 text-center text-xl text-muted-foreground">
+            No patterns in this list yet. Add patterns from My Spelling Lists first.
+          </p>
+        )
       ) : (
         <>
           {allLocked && (
@@ -189,18 +223,20 @@ export default function PatternChartDisplay({ list, onToggleLock }: PatternChart
               All patterns are locked. Unlock a pattern to begin.
             </p>
           )}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch" data-chart-columns>
             {columns.map((pattern, i) => renderColumn(pattern, i))}
           </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Tap a word to see its analysis, or press the speaker icon to hear it. Patterns are ordered by how common the
-            spelling is; longer bars mean more common.
-          </p>
+          {!isPrint && (
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Tap a word to see its analysis, or press the speaker icon to hear it. Patterns are ordered by how common
+              the spelling is; longer bars mean more common.
+            </p>
+          )}
         </>
       )}
 
-      {selected && (
+      {!isPrint && selected && (
         <WordAnalysis
           word={selected.word}
           pattern={selected.pattern}

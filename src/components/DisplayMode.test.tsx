@@ -125,6 +125,18 @@ describe('DisplayMode', () => {
     expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
   })
 
+  it('links to the print view from the display header', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('long a')).toBeInTheDocument()
+    })
+    const printLink = screen.getByRole('link', { name: 'Print chart' })
+    expect(printLink).toHaveAttribute('href', '/lists/l1/print')
+  })
+
   it('enters sort mode from the Sort words button and exits back', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)

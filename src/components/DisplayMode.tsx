@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeftIcon } from 'lucide-react'
+import { ChevronLeftIcon, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getList, getLists, updateList } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
@@ -204,7 +204,13 @@ function DisplayModeInner() {
             </Link>
           </Button>
           <h1 className="text-xl font-bold text-ink">{list.name}</h1>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/lists/${list.id}/print`}>
+                <PrinterIcon className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline-block">Print chart</span>
+              </Link>
+            </Button>
             {!sortMode && (
               <Button size="sm" onClick={() => setSortMode(true)}>
                 Sort words
