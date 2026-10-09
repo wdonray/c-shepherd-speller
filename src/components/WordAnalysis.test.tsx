@@ -58,41 +58,14 @@ describe('WordAnalysis', () => {
     expect(within(screen.getByRole('heading', { level: 2 })).getByText('ai').className).toContain('text-sun-ink')
   })
 
-  it('shows the mapping note for a multi-letter pattern', () => {
+  it('shows the teacher sentence in a quote card when one exists', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, sentences: { rain: 'We danced in the rain.' } }} />)
+    expect(screen.getByText(/We danced in the rain\./)).toBeInTheDocument()
+  })
+
+  it('omits the sentence card and Say sentence button when the teacher added none', () => {
     render(<WordAnalysis {...defaultProps} />)
-    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
-  })
-
-  it('shows the mapping note for a single-letter pattern', () => {
-    render(<WordAnalysis {...defaultProps} word="cat" pattern={{ ...pattern, pattern: 'a', sound: 'short a' }} />)
-    expect(screen.getByText('The letter a spells short a here.')).toBeInTheDocument()
-  })
-
-  it('shows the odd-duck mapping note for irregular patterns', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.getByText('This word does not follow the usual pattern. It is an odd duck.')).toBeInTheDocument()
-  })
-
-  it('shows word parts for a clean suffix split', () => {
-    render(<WordAnalysis {...defaultProps} word="playing" />)
-    const line = screen.getByText(/base word/)
-    expect(line.textContent).toBe('Word parts: base word \u2018play\u2019 plus the suffix \u2018ing\u2019.')
-  })
-
-  it('shows word parts for a clean prefix split', () => {
-    render(<WordAnalysis {...defaultProps} word="redo" />)
-    const line = screen.getByText(/base word/)
-    expect(line.textContent).toBe('Word parts: base word \u2018do\u2019 plus the prefix \u2018re\u2019.')
-  })
-
-  it('omits the word parts line when no clean split applies', () => {
-    render(<WordAnalysis {...defaultProps} />)
-    expect(screen.queryByText(/base word/)).not.toBeInTheDocument()
-  })
-
-  it('shows the sentence in a quote card', () => {
-    render(<WordAnalysis {...defaultProps} />)
-    expect(screen.getByText(/The word is rain\./)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Say sentence' })).not.toBeInTheDocument()
   })
 
   it('speaks the word when Say it is clicked', () => {
@@ -102,11 +75,17 @@ describe('WordAnalysis', () => {
     expect(onSpeak).toHaveBeenCalledWith('rain')
   })
 
-  it('speaks the sentence when Say sentence is clicked', () => {
+  it('speaks the teacher sentence when Say sentence is clicked', () => {
     const onSpeak = vi.fn()
-    render(<WordAnalysis {...defaultProps} onSpeak={onSpeak} />)
+    render(
+      <WordAnalysis
+        {...defaultProps}
+        onSpeak={onSpeak}
+        pattern={{ ...pattern, sentences: { rain: 'We danced in the rain.' } }}
+      />
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Say sentence' }))
-    expect(onSpeak).toHaveBeenCalledWith('The word is rain.')
+    expect(onSpeak).toHaveBeenCalledWith('We danced in the rain.')
   })
 
   it('closes when the X button is clicked', () => {

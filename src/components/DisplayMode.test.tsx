@@ -110,7 +110,8 @@ describe('DisplayMode', () => {
       expect(screen.getByText('long a')).toBeInTheDocument()
     })
     expect(screen.getByRole('region', { name: 'Pattern a_e' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Hear and analyze the word cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
   })
 
   it('enters sort mode from the Sort words button and exits back', async () => {
@@ -151,8 +152,7 @@ describe('DisplayMode', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
   })
 
-  it('uses history back from the picker Back button when history exists', async () => {
-    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2)
+  it('always goes home from the picker Back button', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
@@ -160,25 +160,11 @@ describe('DisplayMode', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(mockBack).toHaveBeenCalled()
-    expect(mockPush).not.toHaveBeenCalledWith('/')
-  })
-
-  it('falls back to home from the picker Back button without history', async () => {
-    vi.spyOn(window.history, 'length', 'get').mockReturnValue(1)
-    getLists.mockResolvedValue([list])
-    render(<DisplayMode />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(mockBack).not.toHaveBeenCalled()
     expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockBack).not.toHaveBeenCalled()
   })
 
-  it('goes back on Escape from the list picker', async () => {
-    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2)
+  it('goes home on Escape from the list picker', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
@@ -186,7 +172,8 @@ describe('DisplayMode', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     })
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(mockBack).toHaveBeenCalled()
+    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockBack).not.toHaveBeenCalled()
   })
 
   it('goes back to the picker on Escape from the chart', async () => {
