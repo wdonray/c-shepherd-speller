@@ -43,8 +43,7 @@ export function findPatternInWord(word: string, pattern: string): [number, numbe
  * A multi-letter pattern works together to spell one sound; a single letter
  * spells the target sound in that position. Odd ducks follow no pattern.
  */
-export function buildMappingNote(pattern: string, sound: string, isOddDuck: boolean): string {
-  if (isOddDuck) return 'This word does not follow the usual pattern. It is an odd duck.'
+export function buildMappingNote(pattern: string, sound: string): string {
   const letterCount = pattern.replace(/_/g, '').length
   if (letterCount > 1) return `The letters ${pattern} work together to make one sound.`
   return `The letter ${pattern} spells ${sound} here.`
@@ -89,8 +88,7 @@ export function splitWordParts(word: string): WordParts | null {
  */
 export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAnalysisProps) {
   const match = findPatternInWord(word, pattern.pattern)
-  const odd = false
-  const mappingNote = buildMappingNote(pattern.pattern, pattern.sound, odd)
+  const mappingNote = buildMappingNote(pattern.pattern, pattern.sound)
   const wordParts = splitWordParts(word)
 
   const renderWord = () => {
@@ -102,7 +100,7 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
         <span
           className={cn(
             'font-extrabold underline decoration-[8px] underline-offset-8',
-            odd ? 'text-plum-ink decoration-plum' : 'text-sun-ink decoration-sun'
+            'text-sun-ink decoration-sun'
           )}
         >
           {word.slice(start, end)}
@@ -145,17 +143,6 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
             <span className="font-semibold text-ink">{pattern.pattern}</span>
           </p>
         </div>
-
-        {odd && (
-          <div className="space-y-2">
-            <span className="inline-block rounded-full bg-plum-soft px-4 py-1.5 text-sm font-bold text-plum-ink">
-              Odd duck
-            </span>
-            <p className="text-[15px] text-ink">
-              This spelling is irregular. It does not follow the pattern, so memorize the whole word.
-            </p>
-          </div>
-        )}
 
         <p className="text-[15px] text-ink">{mappingNote}</p>
 
