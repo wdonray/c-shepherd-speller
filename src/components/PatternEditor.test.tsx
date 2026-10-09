@@ -192,6 +192,39 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, isOddDuck: false })
   })
 
+  it('renders a lock toggle pill next to the odd-duck toggle', () => {
+    renderEditor()
+    const toggle = screen.getByRole('button', { name: 'Lock pattern' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    // Same pill treatment as the odd-duck toggle.
+    expect(toggle).toHaveClass('rounded-full', 'border-2', 'min-h-[44px]')
+  })
+
+  it('toggles the lock on', () => {
+    const { onChange } = renderEditor()
+    const toggle = screen.getByRole('button', { name: 'Lock pattern' })
+    fireEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isLocked: true })
+  })
+
+  it('shows the locked state when set and toggles it off', () => {
+    const { onChange } = renderEditor({ isLocked: true })
+    const toggle = screen.getByRole('button', { name: 'Locked' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(toggle).toHaveTextContent('Locked')
+    fireEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isLocked: false })
+  })
+
+  it('explains the lock in a tooltip', async () => {
+    renderEditor()
+    const toggle = screen.getByRole('button', { name: 'Lock pattern' })
+    fireEvent.focus(toggle)
+    await waitFor(() => {
+      expect(screen.getByText('Locked patterns are hidden in present mode until you unlock them.')).toBeInTheDocument()
+    })
+  })
+
   it('adds a word with the Add button', () => {
     const { onChange } = renderEditor()
     fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'Game' } })

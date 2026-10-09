@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getList, getLists } from '@/lib/lists-api'
+import { getList, getLists, updateList } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import SortActivity from './SortActivity'
@@ -27,6 +27,7 @@ function DisplayModeInner() {
   const [list, setList] = useState<WordList | null>(null)
   const [allLists, setAllLists] = useState<WordList[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
 
@@ -39,6 +40,23 @@ function DisplayModeInner() {
   const backToPicker = useCallback(() => {
     router.push('/display')
   }, [router])
+
+  // Lock/unlock a pattern in present mode: optimistic update, then persist.
+  // On failure the optimistic change is reverted and the load error is shown.
+  // Takes the current list as an argument so there is no nullable-list branch:
+  // the toggle only renders once a list is loaded.
+  const handleToggleLock = useCallback(async (patternId: string, current: WordList) => {
+    const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, isLocked: !p.isLocked } : p))
+    setList({ ...current, patterns: nextPatterns })
+    setToggleError(null)
+    try {
+      const saved = await updateList(current.id, { patterns: nextPatterns })
+      setList(saved)
+    } catch {
+      setList(current)
+      setToggleError(LOAD_ERROR)
+    }
+  }, [])
 
   // Escape exits the presentation: chart to picker, picker to the app.
   useEffect(() => {
@@ -196,10 +214,21 @@ function DisplayModeInner() {
         </div>
       </div>
       <main className="flex-1 px-4 py-6 sm:px-8">
+        {toggleError && (
+          <div
+            role="alert"
+            className="mx-auto mb-6 flex w-full max-w-2xl items-center justify-between gap-4 rounded-[20px] border-2 border-coral bg-coral-soft p-4"
+          >
+            <p className="text-[15px] font-bold text-coral-ink">{toggleError}</p>
+            <Button size="sm" variant="secondary" onClick={() => setToggleError(null)}>
+              Dismiss
+            </Button>
+          </div>
+        )}
         {sortMode ? (
           <SortActivity list={list} onExit={() => setSortMode(false)} />
         ) : (
-          <PatternChartDisplay list={list} />
+          <PatternChartDisplay list={list} onToggleLock={(patternId) => handleToggleLock(patternId, list)} />
         )}
       </main>
     </div>

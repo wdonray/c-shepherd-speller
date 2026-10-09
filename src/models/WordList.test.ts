@@ -40,6 +40,23 @@ describe('WordList model', () => {
       expect(result.success).toBe(true)
     })
 
+    it('accepts a locked pattern', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, isLocked: true })
+      expect(result.success).toBe(true)
+      // The flag must survive parsing, not just be stripped as an unknown key.
+      if (result.success) {
+        expect(result.data.isLocked).toBe(true)
+      }
+    })
+
+    it('treats a missing isLocked as unlocked (backwards compatible)', () => {
+      const result = SpellingPatternSchema.safeParse(validPattern)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.isLocked).toBeUndefined()
+      }
+    })
+
     it('accepts a pattern with example sentences', () => {
       const result = SpellingPatternSchema.safeParse({
         ...validPattern,
@@ -122,6 +139,17 @@ describe('WordList model', () => {
     it('accepts a partial update', () => {
       const result = UpdateWordListSchema.safeParse({ name: 'Renamed' })
       expect(result.success).toBe(true)
+    })
+
+    it('accepts patterns carrying the lock flag', () => {
+      const result = UpdateWordListSchema.safeParse({
+        patterns: [{ ...validPattern, isLocked: true }],
+      })
+      expect(result.success).toBe(true)
+      // The flag must survive parsing, not just be stripped as an unknown key.
+      if (result.success) {
+        expect(result.data.patterns?.[0]?.isLocked).toBe(true)
+      }
     })
 
     it('rejects an empty name', () => {
