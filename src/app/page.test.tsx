@@ -105,7 +105,7 @@ describe('Home page', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('opens the sheet when New list is clicked', async () => {
+  it('navigates to the new-list page when New list is clicked', async () => {
     mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
 
@@ -115,10 +115,7 @@ describe('Home page', () => {
       expect(screen.getByRole('button', { name: 'New list' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    // The sheet should open (SpellingManagerSheet renders)
-    await waitFor(() => {
-      expect(screen.getByText('My Spelling Lists')).toBeInTheDocument()
-    })
+    expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
 
   it('navigates to the list page when Edit list is clicked on a card', async () => {
