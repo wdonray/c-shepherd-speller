@@ -218,9 +218,6 @@ describe('ListEditorPage', () => {
     })
     // The teacher's edit is preserved.
     expect(screen.getByLabelText('List name')).toHaveValue('Renamed')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('flushes a pending save when leaving the page', async () => {

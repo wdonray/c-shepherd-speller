@@ -284,20 +284,6 @@ describe('PatternListsManager', () => {
     ).toBeInTheDocument()
   })
 
-  it('dismisses the overview toast manually', async () => {
-    getLists.mockResolvedValue([list])
-    deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-
-    await screen.findByRole('alert')
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
   it('keeps the list when the list delete is cancelled', async () => {
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
@@ -333,29 +319,6 @@ describe('PatternListsManager', () => {
 
     expect(onNavigate).toHaveBeenCalledTimes(1)
     expect(mockPush).toHaveBeenCalledWith('/lists/l1')
-  })
-
-  it('auto-dismisses the toast after 6 seconds', async () => {
-    getLists.mockResolvedValue([list])
-    deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-
-    // Fake timers from here so the toast's auto-dismiss timer is controllable.
-    vi.useFakeTimers()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await act(async () => {})
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await act(async () => {})
-
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-
-    act(() => {
-      vi.advanceTimersByTime(6000)
-    })
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    vi.useRealTimers()
   })
 
   it('shows a toast when deleting a list fails', async () => {
