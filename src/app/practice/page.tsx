@@ -9,6 +9,7 @@ import { getList, getLists } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 import PracticeMode from '@/components/PracticeMode'
 import WordListCard from '@/components/WordListCard'
+import { reportError } from '@/lib/report-error'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
 
@@ -39,7 +40,8 @@ function PracticeInner() {
           const data = await getLists()
           setAllLists(data)
         }
-      } catch {
+      } catch (error) {
+        reportError(error, { location: 'PracticePage.load' })
         setLoadError(LOAD_ERROR)
       } finally {
         setLoading(false)

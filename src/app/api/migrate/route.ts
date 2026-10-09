@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/require-auth'
 import { getUserSpellingData } from '@/lib/db-utils'
 import { createList } from '@/lib/lists-db'
 import { migrateFlatToPatternList } from '@/lib/migrate'
+import { reportError } from '@/lib/report-error'
 
 /**
  * POST /api/migrate
@@ -35,6 +36,7 @@ export async function POST(_request: NextRequest) {
 
     return NextResponse.json({ list }, { status: 201 })
   } catch (error: unknown) {
+    reportError(error, { location: 'POST /api/migrate', extra: { status: 500 } })
     console.error('Error migrating data:', error)
     return NextResponse.json({ error: 'Failed to migrate data' }, { status: 500 })
   }

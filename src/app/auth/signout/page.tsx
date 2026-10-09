@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogOutIcon, Loader2, AlertTriangle } from 'lucide-react'
+import { reportError } from '@/lib/report-error'
 
 export default function SignOut() {
   const router = useRouter()
@@ -24,6 +25,7 @@ export default function SignOut() {
       await signOut({ redirect: false })
       router.push('/')
     } catch (error) {
+      reportError(error, { location: 'SignOutPage.handleSignOut' })
       setIsSigningOut(false)
       console.error(error)
     }

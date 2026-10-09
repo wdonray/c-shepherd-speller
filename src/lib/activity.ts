@@ -1,5 +1,7 @@
 'use client'
 
+import { reportError } from './report-error'
+
 /**
  * Recent activity for the teacher dashboard: a small localStorage-backed log
  * of what the teacher did (created a list, practiced, presented). Powers the
@@ -35,7 +37,8 @@ function readRaw(): ActivityEvent[] {
         typeof (e as ActivityEvent).text === 'string' &&
         typeof (e as ActivityEvent).at === 'number'
     )
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'activity.readRaw' })
     return []
   }
 }
@@ -55,8 +58,9 @@ export function logActivity(kind: ActivityKind, text: string): void {
       at: Date.now(),
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify(events.slice(0, MAX_EVENTS)))
-  } catch {
+  } catch (error) {
     // Activity is a nicety; never break the app over it.
+    reportError(error, { location: 'activity.logActivity' })
   }
 }
 
@@ -64,8 +68,8 @@ export function logActivity(kind: ActivityKind, text: string): void {
 export function clearActivity(): void {
   try {
     localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // ignore
+  } catch (error) {
+    reportError(error, { location: 'activity.clearActivity' })
   }
 }
 

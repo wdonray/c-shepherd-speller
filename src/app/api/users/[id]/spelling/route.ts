@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserSpellingData, updateUserSpellingData } from '@/lib/db-utils'
 import { requireOwnership } from '@/lib/require-auth'
+import { reportError } from '@/lib/report-error'
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,6 +22,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ spellingData })
   } catch (error: unknown) {
+    reportError(error, { location: 'GET /api/users/[id]/spelling', extra: { status: 500 } })
     console.error('Error getting user spelling data:', error)
     return NextResponse.json({ error: 'Failed to get user spelling data' }, { status: 500 })
   }
@@ -65,6 +67,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       user: updatedUser,
     })
   } catch (error: unknown) {
+    reportError(error, { location: 'PUT /api/users/[id]/spelling', extra: { status: 500 } })
     console.error('Error updating user spelling data:', error)
     return NextResponse.json({ error: 'Failed to update user spelling data' }, { status: 500 })
   }

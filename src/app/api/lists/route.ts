@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/require-auth'
 import { createList, getListsByUser } from '@/lib/lists-db'
 import { CreateWordListSchema } from '@/models/WordList'
+import { reportError } from '@/lib/report-error'
 
 /** GET /api/lists — list all of the caller's word lists. */
 export async function GET() {
@@ -12,6 +13,7 @@ export async function GET() {
     const lists = await getListsByUser(auth.user.id)
     return NextResponse.json({ lists })
   } catch (error) {
+    reportError(error, { location: 'GET /api/lists', extra: { status: 500 } })
     console.error('Error listing word lists:', error)
     return NextResponse.json({ error: 'Failed to list word lists' }, { status: 500 })
   }
@@ -25,7 +27,8 @@ export async function POST(request: NextRequest) {
   let body: unknown
   try {
     body = await request.json()
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'POST /api/lists', extra: { status: 400 } })
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
     const list = await createList(auth.user.id, parsed.data)
     return NextResponse.json({ list }, { status: 201 })
   } catch (error) {
+    reportError(error, { location: 'POST /api/lists', extra: { status: 500 } })
     console.error('Error creating word list:', error)
     return NextResponse.json({ error: 'Failed to create word list' }, { status: 500 })
   }

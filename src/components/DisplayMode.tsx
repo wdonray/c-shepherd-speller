@@ -10,6 +10,7 @@ import type { WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
+import { reportError } from '@/lib/report-error'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
 
@@ -66,7 +67,8 @@ function DisplayModeInner() {
           const data = await getLists()
           setAllLists(data)
         }
-      } catch {
+      } catch (error) {
+        reportError(error, { location: 'DisplayMode.load' })
         setLoadError(LOAD_ERROR)
       } finally {
         setLoading(false)

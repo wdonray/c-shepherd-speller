@@ -10,6 +10,7 @@ import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib
 import type { WordList } from '@/models/WordList'
 import WordListCard from './WordListCard'
 import { PatternMark } from './PatternMark'
+import { reportError } from '@/lib/report-error'
 
 interface DashboardProps {
   onNewList: () => void
@@ -107,7 +108,10 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
     setLoadError(false)
     getLists()
       .then(setLists)
-      .catch(() => setLoadError(true))
+      .catch((error: unknown) => {
+        reportError(error, { location: 'Dashboard.loadLists' })
+        setLoadError(true)
+      })
       .finally(() => setLoading(false))
   }, [])
 

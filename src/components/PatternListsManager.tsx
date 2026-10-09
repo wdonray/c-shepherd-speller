@@ -18,6 +18,7 @@ import { getLists, createList, deleteList, notifyListsChanged } from '@/lib/list
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { type WordList } from '@/models/WordList'
+import { reportError } from '@/lib/report-error'
 import WordListCard from './WordListCard'
 import { OddDuck } from './OddDuck'
 
@@ -81,7 +82,8 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
     try {
       const data = await getLists()
       setLists(data)
-    } catch {
+    } catch (error) {
+      reportError(error, { location: 'PatternListsManager.loadLists' })
       setLoadError(true)
     } finally {
       setLoading(false)
@@ -117,7 +119,8 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
       notifyListsChanged()
       setIsCreating(false)
       openList(list)
-    } catch {
+    } catch (error) {
+      reportError(error, { location: 'PatternListsManager.handleCreate' })
       setIsCreating(false)
       showToast('Could not create the list. Check your connection and try again.')
     } finally {
@@ -132,7 +135,8 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
       await deleteList(target.id)
       setLists((prev) => prev.filter((l) => l.id !== target.id))
       notifyListsChanged()
-    } catch {
+    } catch (error) {
+      reportError(error, { location: 'PatternListsManager.confirmDeleteList' })
       showToast('Could not delete the list. Check your connection and try again.')
     } finally {
       setDeletingList(false)

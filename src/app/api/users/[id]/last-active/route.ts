@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateUserLastActive } from '@/lib/db-utils'
 import { requireOwnership } from '@/lib/require-auth'
+import { reportError } from '@/lib/report-error'
 
 export async function PUT(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,6 +25,7 @@ export async function PUT(_request: NextRequest, { params }: { params: Promise<{
       user: updatedUser,
     })
   } catch (error: unknown) {
+    reportError(error, { location: 'PUT /api/users/[id]/last-active', extra: { status: 500 } })
     console.error('Error updating user last active:', error)
     return NextResponse.json({ error: 'Failed to update user last active' }, { status: 500 })
   }

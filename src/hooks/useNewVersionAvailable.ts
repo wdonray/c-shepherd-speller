@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { reportError } from '@/lib/report-error'
 
 /** How often the deployed version is re-checked while the page is open. */
 export const POLL_INTERVAL_MS = 15 * 60 * 1000
@@ -25,7 +26,8 @@ async function fetchDeployedVersion(): Promise<string | null> {
     if (typeof data !== 'object' || data === null) return null
     const version = (data as { version?: unknown }).version
     return typeof version === 'string' ? version : null
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'useNewVersionAvailable.fetchDeployedVersion' })
     return null
   }
 }

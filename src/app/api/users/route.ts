@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUser, getUserByEmail } from '@/lib/db-utils'
 import { requireSession, isSelfEmail } from '@/lib/require-auth'
+import { reportError } from '@/lib/report-error'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: 'User created successfully', user }, { status: 201 })
   } catch (error: unknown) {
+    reportError(error, { location: 'POST /api/users', extra: { status: 500 } })
     console.error('Error creating user:', error)
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
@@ -59,6 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ user })
   } catch (error: unknown) {
+    reportError(error, { location: 'GET /api/users', extra: { status: 500 } })
     console.error('Error getting user:', error)
     return NextResponse.json({ error: 'Failed to get user' }, { status: 500 })
   }

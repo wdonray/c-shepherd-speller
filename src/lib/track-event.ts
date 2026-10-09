@@ -1,8 +1,11 @@
 'use client'
 
+import { reportError } from './report-error'
+
 /**
  * Fire one app-usage event (list-created, practice-session, words-practiced).
- * Best effort: analytics must never break the app, so failures are silent.
+ * Best effort: analytics must never break the app, so failures stay silent
+ * for the user, but they are reported to Sentry.
  */
 export function trackEvent(event: string, count = 1): void {
   const payload = JSON.stringify({ event, count })
@@ -16,8 +19,10 @@ export function trackEvent(event: string, count = 1): void {
       headers: { 'content-type': 'application/json' },
       body: payload,
       keepalive: true,
-    }).catch(() => {})
-  } catch {
-    // Ignore: analytics must never break the app.
+    }).catch((error: unknown) => {
+      reportError(error, { location: 'track-event.fetch' })
+    })
+  } catch (error) {
+    reportError(error, { location: 'track-event' })
   }
 }

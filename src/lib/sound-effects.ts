@@ -11,6 +11,8 @@ const STORAGE_KEY = 'patternspell-sound-enabled'
 /** Master gain: well below full scale so effects are never loud. */
 const MASTER_GAIN = 0.2
 
+import { reportError } from './report-error'
+
 let audioContext: AudioContext | null = null
 
 function getContext(): AudioContext | null {
@@ -26,7 +28,8 @@ export function isSoundEnabled(): boolean {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     return stored === null ? true : stored === 'true'
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'sound-effects.isSoundEnabled' })
     return true
   }
 }
@@ -34,8 +37,9 @@ export function isSoundEnabled(): boolean {
 export function setSoundEnabled(enabled: boolean): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, String(enabled))
-  } catch {
+  } catch (error) {
     // Storage unavailable; the in-memory default stands.
+    reportError(error, { location: 'sound-effects.setSoundEnabled' })
   }
 }
 

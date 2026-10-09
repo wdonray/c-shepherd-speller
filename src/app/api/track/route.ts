@@ -8,6 +8,7 @@ import {
   recordEvent,
   recordPageView,
 } from '@/lib/analytics'
+import { reportError } from '@/lib/report-error'
 
 /**
  * POST /api/track { path: "/some/page" }
@@ -48,8 +49,9 @@ export async function POST(request: Request) {
 
     await recordPageView(path, ip, userAgent)
     return NextResponse.json({ ok: true })
-  } catch {
-    // Analytics must never break the site.
+  } catch (error) {
+    // Analytics must never break the site, but the failure is still reported.
+    reportError(error, { location: 'POST /api/track', extra: { status: 200 } })
     return NextResponse.json({ ok: true })
   }
 }
