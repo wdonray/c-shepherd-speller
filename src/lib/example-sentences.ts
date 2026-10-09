@@ -98,18 +98,26 @@ function parseApiResponse(word: string, data: unknown): string[] {
 async function fetchFromApi(word: string): Promise<string[]> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  let res: Response
   try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
+    res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
       signal: controller.signal,
     })
+  } catch {
+    // The third-party dictionary API is unreachable (network failure,
+    // timeout, abort). This is not an application error: the local fallback
+    // bank covers it, so there is nothing to report to Sentry.
+    return []
+  } finally {
+    clearTimeout(timeout)
+  }
+  try {
     if (!res.ok) return []
     const data: unknown = await res.json()
     return parseApiResponse(word, data)
   } catch (error) {
     reportError(error, { location: 'example-sentences.fetchFromApi', extra: { word } })
     return []
-  } finally {
-    clearTimeout(timeout)
   }
 }
 

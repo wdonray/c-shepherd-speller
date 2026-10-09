@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as Sentry from '@sentry/nextjs'
 import { FALLBACK_SENTENCES } from '@/data/example-sentences'
+
+vi.mock('@sentry/nextjs', () => ({
+  withScope: vi.fn((cb: (scope: unknown) => void) => cb({ setTag: vi.fn(), setExtras: vi.fn() })),
+  captureException: vi.fn(),
+}))
+
+beforeEach(() => {
+  vi.mocked(Sentry.captureException).mockClear()
+})
 
 describe('FALLBACK_SENTENCES bank', () => {
   it('covers at least 50 common words', () => {
@@ -121,6 +131,26 @@ describe('fetchExampleSentences', () => {
     const { fetchExampleSentences } = await load()
     const sentences = await fetchExampleSentences('rain')
     expect(sentences.length).toBeGreaterThan(0)
+  })
+
+  it('does not report network failures to Sentry', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
+    const { fetchExampleSentences } = await load()
+    const sentences = await fetchExampleSentences('rain')
+    expect(sentences.length).toBeGreaterThan(0)
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+  })
+
+  it('reports response processing errors to Sentry', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const sentences = await fetchExampleSentences('rain')
+    expect(sentences.length).toBeGreaterThan(0)
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1)
   })
 
   it('returns [] for unknown words with no fallback', async () => {
