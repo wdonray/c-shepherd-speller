@@ -61,12 +61,19 @@ describe('PatternChartDisplay', () => {
     expect(within(ai).getByText('Less common')).toBeInTheDocument()
   })
 
-  it('speaks the word and opens its analysis when a word card is tapped', () => {
+  it('opens the word analysis without speaking when a word card is tapped', () => {
     render(<PatternChartDisplay list={list} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Hear and analyze the word cake' }))
-    expect(speak).toHaveBeenCalledWith('cake')
+    fireEvent.click(screen.getByRole('button', { name: 'Analyze the word cake' }))
+    expect(speak).not.toHaveBeenCalled()
     expect(screen.getByRole('dialog', { name: 'Word analysis for cake' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close word analysis' }))
+    expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
+  })
+
+  it('speaks the word when the sound button is pressed', () => {
+    render(<PatternChartDisplay list={list} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word cake' }))
+    expect(speak).toHaveBeenCalledWith('cake')
     expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
   })
 
@@ -74,7 +81,8 @@ describe('PatternChartDisplay', () => {
     render(<PatternChartDisplay list={list} />)
     const band = screen.getByRole('region', { name: 'Odd ducks' })
     expect(band).toBeInTheDocument()
-    expect(within(band).getByRole('button', { name: 'Hear and analyze the word eight' })).toBeInTheDocument()
+    expect(within(band).getByRole('button', { name: 'Analyze the word eight' })).toBeInTheDocument()
+    expect(within(band).getByRole('button', { name: 'Hear the word eight' })).toBeInTheDocument()
     // Odd duck patterns do not get columns
     expect(screen.queryByRole('region', { name: 'Pattern eigh' })).not.toBeInTheDocument()
   })
@@ -96,11 +104,9 @@ describe('PatternChartDisplay', () => {
 
   it('gives word cards a visible hover and matching focus-visible treatment, motion-free', () => {
     render(<PatternChartDisplay list={list} />)
-    const card = screen.getByRole('button', { name: 'Hear and analyze the word cake' })
+    const card = screen.getByRole('button', { name: 'Analyze the word cake' })
     expect(card).toHaveClass(
-      'hover:border-sky-deep',
       'hover:bg-sky-soft',
-      'focus-visible:border-sky-deep',
       'focus-visible:bg-sky-soft',
       'focus-visible:ring-[3px]',
       'focus-visible:ring-ring/60'
@@ -108,5 +114,8 @@ describe('PatternChartDisplay', () => {
     // No hover translate/lift: it would fight the press effect and break the
     // flat-card convention on projectors.
     expect(card.className).not.toMatch(/hover:translate-/)
+    // The sound button is large and clearly clickable.
+    const soundButton = screen.getByRole('button', { name: 'Hear the word cake' })
+    expect(soundButton).toHaveClass('min-h-[44px]', 'min-w-[52px]')
   })
 })

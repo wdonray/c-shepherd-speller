@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
 import { OddDuck } from './OddDuck'
+import { Volume2Icon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
 
@@ -62,19 +63,29 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
   }, [list])
 
   const openAnalysis = (word: string, pattern: SpellingPattern) => {
-    speak(word)
     setSelected({ word, pattern })
   }
 
   const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => (
-    <li key={key}>
+    <li
+      key={key}
+      className="flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 border-line bg-card p-1.5 transition-colors hover:border-sky-deep focus-within:border-sky-deep"
+    >
       <button
         type="button"
         onClick={() => openAnalysis(word, pattern)}
-        aria-label={`Hear and analyze the word ${word}`}
-        className="flex min-h-[58px] w-full cursor-pointer items-center justify-center rounded-[14px] border-2 border-line bg-card px-4 py-3 text-[22px] font-bold text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:border-sky-deep focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        aria-label={`Analyze the word ${word}`}
+        className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         {word}
+      </button>
+      <button
+        type="button"
+        onClick={() => speak(word)}
+        aria-label={`Hear the word ${word}`}
+        className="flex min-h-[44px] min-w-[52px] cursor-pointer items-center justify-center rounded-[10px] text-sky-deep outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+      >
+        <Volume2Icon className="size-7" aria-hidden="true" />
       </button>
     </li>
   )

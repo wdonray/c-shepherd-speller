@@ -39,49 +39,6 @@ export function findPatternInWord(word: string, pattern: string): [number, numbe
 }
 
 /**
- * Build the auto-generated mapping note for a word, from its pattern data.
- * A multi-letter pattern works together to spell one sound; a single letter
- * spells the target sound in that position. Odd ducks follow no pattern.
- */
-export function buildMappingNote(pattern: string, sound: string, isOddDuck: boolean): string {
-  if (isOddDuck) return 'This word does not follow the usual pattern. It is an odd duck.'
-  const letterCount = pattern.replace(/_/g, '').length
-  if (letterCount > 1) return `The letters ${pattern} work together to make one sound.`
-  return `The letter ${pattern} spells ${sound} here.`
-}
-
-interface WordParts {
-  base: string
-  affix: string
-  kind: 'prefix' | 'suffix'
-}
-
-/**
- * Conservative affix detection: strip exactly ONE common affix, and only
- * when the remaining base is at least 2 characters. Suffixes are checked
- * first (longest first), then prefixes. Returns null when no clean split
- * applies, in which case the "Word parts" line is omitted rather than
- * guessed. Mechanical split only: spelling changes (doubled letters, y to
- * i) are not undone, so such words simply yield no split.
- */
-export function splitWordParts(word: string): WordParts | null {
-  const lower = word.toLowerCase()
-  const suffixes = ['ing', 'est', 'ed', 'es', 'ly', 'er', 's']
-  for (const affix of suffixes) {
-    if (lower.endsWith(affix) && lower.length - affix.length >= 2) {
-      return { base: word.slice(0, word.length - affix.length), affix, kind: 'suffix' }
-    }
-  }
-  const prefixes = ['pre', 'dis', 'un', 're']
-  for (const affix of prefixes) {
-    if (lower.startsWith(affix) && lower.length - affix.length >= 2) {
-      return { base: word.slice(affix.length), affix, kind: 'prefix' }
-    }
-  }
-  return null
-}
-
-/**
  * Word analysis card: shows the word with its spelling pattern highlighted,
  * the target sound, and speak buttons. Display-only; generated from the
  * list's pattern data. (Phoneme chips deferred to v2: require a
@@ -90,8 +47,7 @@ export function splitWordParts(word: string): WordParts | null {
 export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAnalysisProps) {
   const match = findPatternInWord(word, pattern.pattern)
   const odd = pattern.isOddDuck === true
-  const mappingNote = buildMappingNote(pattern.pattern, pattern.sound, odd)
-  const wordParts = splitWordParts(word)
+  const sentence = pattern.sentences?.[word]
 
   const renderWord = () => {
     if (!match) return <span>{word}</span>
@@ -111,10 +67,6 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
       </span>
     )
   }
-
-  // Simple sentence template. Teachers can read their own sentence aloud;
-  // this gives students a starting point for meaning.
-  const sentence = `The word is ${word}.`
 
   return (
     <div
@@ -157,28 +109,23 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
           </div>
         )}
 
-        <p className="text-[15px] text-ink">{mappingNote}</p>
-
-        {wordParts && (
-          <p className="text-[15px] text-ink">
-            <span className="font-semibold">Word parts: </span>
-            base word &lsquo;{wordParts.base}&rsquo; plus the {wordParts.kind} &lsquo;{wordParts.affix}&rsquo;.
-          </p>
+        {sentence && (
+          <figure className="rounded-[14px] border-2 border-line bg-card p-5">
+            <blockquote className="text-lg text-ink">&ldquo;{sentence}&rdquo;</blockquote>
+          </figure>
         )}
-
-        <figure className="rounded-[14px] border-2 border-line bg-card p-5">
-          <blockquote className="text-lg text-ink">&ldquo;{sentence}&rdquo;</blockquote>
-        </figure>
 
         <div className="flex flex-wrap gap-3">
           <Button variant="sky" onClick={() => onSpeak(word)}>
             <Volume2Icon className="size-4" aria-hidden="true" />
             Say it
           </Button>
-          <Button variant="secondary" onClick={() => onSpeak(sentence)}>
-            <Volume2Icon className="size-4" aria-hidden="true" />
-            Say sentence
-          </Button>
+          {sentence && (
+            <Button variant="secondary" onClick={() => onSpeak(sentence)}>
+              <Volume2Icon className="size-4" aria-hidden="true" />
+              Say sentence
+            </Button>
+          )}
         </div>
       </div>
     </div>

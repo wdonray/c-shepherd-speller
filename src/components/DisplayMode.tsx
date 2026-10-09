@@ -29,13 +29,9 @@ function DisplayModeInner() {
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
 
-  // Back to the app, preferring real history when there is any.
+  // Back to the app always goes home.
   const backToApp = useCallback(() => {
-    if (window.history.length > 1) {
-      router.back()
-    } else {
-      router.push('/')
-    }
+    router.push('/')
   }, [router])
 
   // Back from the chart to the list picker.
