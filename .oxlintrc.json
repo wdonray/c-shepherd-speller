@@ -5,7 +5,6 @@
     "es2022": true,
     "node": true
   },
-  "extends": ["next/core-web-vitals", "next/typescript"],
   "ignorePatterns": ["node_modules/", ".next/", "out/", "dist/", "build/", "*.config.js", "*.config.ts"],
   "overrides": [
     {
@@ -15,8 +14,17 @@
       }
     }
   ],
-  "plugins": ["typescript", "react", "jsx-a11y"],
-  "rules": {
+  "plugins": ["typescript", "react", "jsx-a11y", "nextjs"],
+  "rules": {},
+  "settings": {
+    "next": {
+      "rootDir": "./"
+    },
+    "react": {
+      "version": "19.3.0"
+    }
+  },
+  "categories": {
     "correctness": "warn",
     "nursery": "off",
     "pedantic": "off",
@@ -24,13 +32,5 @@
     "restriction": "off",
     "style": "warn",
     "suspicious": "warn"
-  },
-  "settings": {
-    "next": {
-      "rootDir": "./"
-    },
-    "react": {
-      "version": "detect"
-    }
   }
 }
