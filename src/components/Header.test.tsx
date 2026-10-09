@@ -17,9 +17,6 @@ vi.mock('next/link', () => ({
     </a>
   ),
 }))
-vi.mock('./SpellingManagerSheet', () => ({
-  default: ({ isOpen }: { isOpen: boolean }) => <div data-testid="spelling-sheet" data-open={String(isOpen)} />,
-}))
 vi.mock('./HelpDialog', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
     <div data-testid="help-dialog" data-open={String(isOpen)}>
@@ -297,13 +294,11 @@ describe('Header', () => {
     )
   })
 
-  it('opens the spelling sheet from My Spelling Lists', () => {
+  it('links to the lists page from My Spelling Lists', () => {
     mockSignedIn()
     render(<Header />)
 
-    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'false')
-    fireEvent.click(screen.getByRole('button', { name: /my spelling lists/i }))
-    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'true')
+    expect(screen.getByRole('link', { name: /my spelling lists/i })).toHaveAttribute('href', '/lists')
   })
 
   it('links to the display mode from the Present button', () => {
@@ -419,7 +414,7 @@ describe('Header', () => {
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
     const menu = within(screen.getByRole('dialog'))
-    expect(menu.getByRole('button', { name: /my spelling lists/i })).toBeInTheDocument()
+    expect(menu.getByRole('link', { name: /my spelling lists/i })).toHaveAttribute('href', '/lists')
     expect(menu.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
   })
 
@@ -436,15 +431,16 @@ describe('Header', () => {
     expect(screen.getByRole('button', { name: /open menu/i })).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('opens the spelling sheet from the mobile menu and closes the menu', () => {
+  it('closes the mobile menu when following the My Spelling Lists link', () => {
     mockSignedIn()
     render(<Header />)
 
     fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
     const menu = within(screen.getByRole('dialog'))
-    fireEvent.click(menu.getByRole('button', { name: /my spelling lists/i }))
+    const link = menu.getByRole('link', { name: /my spelling lists/i })
+    expect(link).toHaveAttribute('href', '/lists')
+    fireEvent.click(link)
 
-    expect(screen.getByTestId('spelling-sheet')).toHaveAttribute('data-open', 'true')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 

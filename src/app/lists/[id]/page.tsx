@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     'Edit a pattern-based spelling list: the target sound, spelling patterns, words, and example sentences. Changes save automatically.',
 }
 
-/** Full-page editor for one word list. The drawer keeps the list overview. */
+/** Full-page editor for one word list. The list overview lives at /lists. */
 export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   return <ListEditorPage listId={id} />

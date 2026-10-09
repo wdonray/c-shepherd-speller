@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -14,9 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlusIcon } from 'lucide-react'
-import { getLists, createList, deleteList, notifyListsChanged } from '@/lib/lists-api'
-import { logActivity } from '@/lib/activity'
-import { trackEvent } from '@/lib/track-event'
+import { getLists, deleteList, notifyListsChanged } from '@/lib/lists-api'
 import { type WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
@@ -24,28 +20,16 @@ import WordListCard from './WordListCard'
 import { OddDuck } from './OddDuck'
 
 /**
- * List-of-lists overview for the spelling manager drawer. Editing a single
- * list happens on its own page (/lists/[id]); this component navigates there.
+ * List-of-lists overview, rendered as the full /lists page. Creating a list
+ * happens on /lists/new; editing a single list on /lists/[id].
  */
-export default function PatternListsManager({ onNavigate }: { onNavigate?: () => void } = {}) {
+export default function PatternListsManager() {
   const router = useRouter()
   const [lists, setLists] = useState<WordList[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newGrade, setNewGrade] = useState('')
-  const [creating, setCreating] = useState(false)
   const [deleteListTarget, setDeleteListTarget] = useState<WordList | null>(null)
   const [deletingList, setDeletingList] = useState(false)
-
-  // Clear the create form whenever its dialog closes.
-  useEffect(() => {
-    if (!isCreating) {
-      setNewName('')
-      setNewGrade('')
-    }
-  }, [isCreating])
 
   const loadLists = useCallback(async () => {
     setLoading(true)
@@ -67,37 +51,10 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
 
   const openList = useCallback(
     (list: WordList) => {
-      // The drawer closes first so the full-page editor opens clean.
-      onNavigate?.()
       router.push(`/lists/${encodeURIComponent(list.id)}`)
     },
-    [onNavigate, router]
+    [router]
   )
-
-  const handleCreate = async () => {
-    // The Create button is disabled while the name is empty or a create is
-    // in flight, so this only runs for a valid submission.
-    setCreating(true)
-    try {
-      const list = await createList({
-        name: newName.trim(),
-        gradeLevel: newGrade.trim() || undefined,
-        patterns: [],
-      })
-      setLists((prev) => [list, ...prev])
-      logActivity('created', list.name)
-      trackEvent('list-created')
-      notifyListsChanged()
-      setIsCreating(false)
-      openList(list)
-    } catch (error) {
-      reportError(error, { location: 'PatternListsManager.handleCreate' })
-      setIsCreating(false)
-      toastError(getErrorMessage(error))
-    } finally {
-      setCreating(false)
-    }
-  }
 
   const confirmDeleteList = async (target: WordList) => {
     // The Delete button is disabled while a delete is in flight.
@@ -164,7 +121,7 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold">My word lists ({lists.length})</h3>
             {lists.length > 0 && (
-              <Button onClick={() => setIsCreating(true)}>
+              <Button onClick={() => router.push('/lists/new')}>
                 <PlusIcon className="size-4" />
                 New list
               </Button>
@@ -177,7 +134,7 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
               <p className="mt-2 text-[15px] text-muted-foreground">
                 Create your first list to organize words by spelling pattern.
               </p>
-              <Button onClick={() => setIsCreating(true)} className="mt-6">
+              <Button onClick={() => router.push('/lists/new')} className="mt-6">
                 <PlusIcon className="size-4" />
                 New list
               </Button>
@@ -197,45 +154,6 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
           )}
         </>
       )}
-
-      <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New word list</DialogTitle>
-            <DialogDescription>Name it for the sound and week you are teaching.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="new-list-name">List name</Label>
-              <Input
-                id="new-list-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Week 7: Long O"
-                maxLength={100}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="new-list-grade">Grade level (optional)</Label>
-              <Input
-                id="new-list-grade"
-                value={newGrade}
-                onChange={(e) => setNewGrade(e.target.value)}
-                placeholder="e.g. 1"
-                maxLength={20}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsCreating(false)} disabled={creating}>
-              Cancel
-            </Button>
-            <Button onClick={() => handleCreate()} disabled={!newName.trim() || creating}>
-              {creating ? 'Creating...' : 'Create list'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={deleteListTarget !== null} onOpenChange={() => setDeleteListTarget(null)}>
         {deleteListTarget && (

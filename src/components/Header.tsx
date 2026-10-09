@@ -2,7 +2,6 @@
 
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
-import SpellingManagerSheet from './SpellingManagerSheet'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -35,7 +34,6 @@ function initialsFor(name?: string | null, email?: string | null): string {
 
 export function Header() {
   const { data: session } = useSession()
-  const [isSpellingManagerOpen, setIsSpellingManagerOpen] = useState(false)
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -133,8 +131,8 @@ export function Header() {
         </Link>
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
-            <Button size="sm" onClick={() => setIsSpellingManagerOpen(true)}>
-              My Spelling Lists
+            <Button size="sm" asChild>
+              <Link href="/lists">My Spelling Lists</Link>
             </Button>
             <Button size="sm" variant="secondary" asChild>
               <Link href="/display">Present</Link>
@@ -256,8 +254,8 @@ export function Header() {
               </SheetHeader>
               <nav aria-label="Mobile navigation" className="flex flex-col gap-3 px-4">
                 <SheetClose asChild>
-                  <Button size="lg" onClick={() => setIsSpellingManagerOpen(true)}>
-                    My Spelling Lists
+                  <Button size="lg" asChild>
+                    <Link href="/lists">My Spelling Lists</Link>
                   </Button>
                 </SheetClose>
                 <SheetClose asChild>
@@ -271,7 +269,6 @@ export function Header() {
         </div>
       </div>
       <div className="h-[2px] w-full bg-line" aria-hidden="true" />
-      <SpellingManagerSheet isOpen={isSpellingManagerOpen} setIsOpen={setIsSpellingManagerOpen} />
       <HelpDialog isOpen={isHelpDialogOpen} onClose={() => setIsHelpDialogOpen(false)} />
       <input
         ref={photoInputRef}

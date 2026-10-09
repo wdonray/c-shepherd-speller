@@ -4,25 +4,17 @@ import PatternListsManager from './PatternListsManager'
 import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
 
-const { getLists, createList, updateList, deleteList, notifyListsChanged, logActivity } = vi.hoisted(() => ({
+const { getLists, deleteList, notifyListsChanged } = vi.hoisted(() => ({
   getLists: vi.fn(),
-  createList: vi.fn(),
-  updateList: vi.fn(),
   deleteList: vi.fn(),
   notifyListsChanged: vi.fn(),
-  logActivity: vi.fn(),
 }))
 vi.mock('@/lib/lists-api', () => ({
   getLists,
-  createList,
-  updateList,
   deleteList,
   notifyListsChanged,
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
-vi.mock('@/lib/activity', () => ({ logActivity }))
-const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }))
-vi.mock('@/lib/track-event', () => ({ trackEvent }))
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -131,92 +123,24 @@ describe('PatternListsManager', () => {
     expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
   })
 
-  it('opens the create dialog from the overview', async () => {
+  it('navigates to the new-list page from the overview', async () => {
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (1)')
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
 
-    expect(screen.getByRole('heading', { name: 'New word list' })).toBeInTheDocument()
-    expect(screen.getByText('Name it for the sound and week you are teaching.')).toBeInTheDocument()
+    expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
 
-  it('cancelling the create dialog clears the form', async () => {
-    getLists.mockResolvedValue([list])
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Draft' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-
-    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    expect(screen.getByLabelText('List name')).toHaveValue('')
-  })
-
-  it('creates a list with a grade and navigates to its page', async () => {
-    getLists.mockResolvedValue([list])
-    const created: WordList = { ...list, id: 'l9', name: 'Week 7: Long O', gradeLevel: '2', patterns: [] }
-    createList.mockResolvedValue(created)
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7: Long O' } })
-    fireEvent.change(screen.getByLabelText('Grade level (optional)'), { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
-
-    await waitFor(() => {
-      expect(createList).toHaveBeenCalledWith({ name: 'Week 7: Long O', gradeLevel: '2', patterns: [] })
-    })
-    expect(logActivity).toHaveBeenCalledWith('created', 'Week 7: Long O')
-    expect(trackEvent).toHaveBeenCalledWith('list-created')
-    expect(notifyListsChanged).toHaveBeenCalled()
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/lists/l9')
-    })
-  })
-
-  it('creates a list without a grade', async () => {
+  it('navigates to the new-list page from the empty state', async () => {
     getLists.mockResolvedValue([])
-    const created: WordList = { ...list, id: 'l9', name: 'Week 7', patterns: [] }
-    delete created.gradeLevel
-    createList.mockResolvedValue(created)
     render(<PatternListsManager />)
 
     await screen.findByText('No word lists yet')
-    // The empty state renders the only New list control; the header-row button is hidden.
-    expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    expect(screen.getByRole('heading', { name: 'New word list' })).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
 
-    await waitFor(() => {
-      expect(createList).toHaveBeenCalledWith({ name: 'Week 7', gradeLevel: undefined, patterns: [] })
-    })
-  })
-
-  it('shows a toast when creating fails', async () => {
-    getLists.mockResolvedValue([list])
-    createList.mockRejectedValue(new Error('network down'))
-    render(
-      <>
-        <PatternListsManager />
-        <ErrorToaster />
-      </>
-    )
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
-    })
-    expect(screen.queryByRole('heading', { name: 'New word list' })).not.toBeInTheDocument()
+    expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
 
   it('confirms and deletes a list', async () => {
@@ -306,18 +230,6 @@ describe('PatternListsManager', () => {
     await screen.findByText('My word lists (2)')
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit list' })[0])
 
-    expect(mockPush).toHaveBeenCalledWith('/lists/l1')
-  })
-
-  it('calls onNavigate when opening a list so the drawer closes', async () => {
-    getLists.mockResolvedValue([list])
-    const onNavigate = vi.fn()
-    render(<PatternListsManager onNavigate={onNavigate} />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
-
-    expect(onNavigate).toHaveBeenCalledTimes(1)
     expect(mockPush).toHaveBeenCalledWith('/lists/l1')
   })
 
