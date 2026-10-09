@@ -49,34 +49,6 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
   rare: 'Rare',
 }
 
-/**
- * Spelling options for the pattern select. When the target sound matches a
- * sound in the curated word bank, only that sound's spellings are offered
- * (so suggestions always work). Otherwise every known spelling is offered.
- * A pattern already on the card is always included, so lists created with a
- * custom spelling keep working.
- */
-function patternOptions(sound: string, current: string): string[] {
-  const key = sound.trim().toLowerCase()
-  const forSound = WORD_SUGGESTIONS[key]
-  let options: string[]
-  if (forSound) {
-    options = Object.keys(forSound)
-  } else {
-    const all = new Set<string>()
-    for (const byPattern of Object.values(WORD_SUGGESTIONS)) {
-      for (const p of Object.keys(byPattern)) all.add(p)
-    }
-    options = [...all]
-  }
-  options.sort()
-  const currentTrimmed = current.trim()
-  if (currentTrimmed && !options.some((o) => o.toLowerCase() === currentTrimmed.toLowerCase())) {
-    options = [currentTrimmed, ...options]
-  }
-  return options
-}
-
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({ pattern, onChange, onRemove }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
@@ -155,24 +127,20 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
           <div className="min-w-0 flex-1">
             <div className="space-y-1.5">
               <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
-              <select
+              <Input
                 id={`pattern-spelling-${pattern.id}`}
                 value={pattern.pattern}
                 onChange={(e) => update({ pattern: e.target.value })}
+                placeholder="e.g. a_e"
+                maxLength={20}
                 aria-label="Pattern spelling"
                 className={cn(
-                  'h-12 w-full cursor-pointer rounded-xl border-2 border-line bg-card px-2 text-[22px] font-bold',
-                  'outline-none focus-visible:border-sky-deep focus-visible:ring-[3px]',
+                  'h-auto border-2 border-line bg-card px-2 text-[22px] font-bold',
+                  'placeholder:text-muted-foreground',
+                  'focus-visible:border-sky-deep focus-visible:ring-[3px]',
                   accent.text
                 )}
-              >
-                {pattern.pattern === '' && <option value="">Choose a spelling...</option>}
-                {patternOptions(pattern.sound, pattern.pattern).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="shrink-0 text-[15px] text-muted-foreground">Sound:</span>
