@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, Suspense } from 'react'
+import { useCallback, useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon } from 'lucide-react'
@@ -52,10 +52,16 @@ function DisplayModeInner() {
   }, [router])
 
   // Escape exits the presentation: chart to picker, picker to the app.
+  // Refs ensure the handler always sees the latest values, avoiding a race
+  // where the handler closes over stale state.
+  const listRef = useRef(list)
+  listRef.current = list
+  const listIdRef = useRef(listId)
+  listIdRef.current = listId
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      if (listId && list) {
+      if (listIdRef.current && listRef.current) {
         backToPicker()
       } else {
         backToApp()
@@ -63,7 +69,7 @@ function DisplayModeInner() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [listId, list, backToApp, backToPicker])
+  }, [backToApp, backToPicker])
 
   if (loading) {
     return (
