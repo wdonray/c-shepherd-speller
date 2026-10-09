@@ -50,35 +50,17 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, pattern: 'ai' })
   })
 
-  it('offers only the sound\u2019s spellings in the pattern select', () => {
+  it('renders the pattern as a text input teachers can type into', () => {
     renderEditor()
-    const select = screen.getByLabelText('Pattern spelling')
-    const options = Array.from(select.querySelectorAll('option')).map((o) => o.textContent)
-    // 'long a' has exactly these spellings in the word bank.
-    expect(options).toEqual(['a_e', 'ai', 'ay'])
+    const input = screen.getByLabelText('Pattern spelling')
+    expect(input.tagName).toBe('INPUT')
+    expect(input).toHaveAttribute('placeholder', 'e.g. a_e')
   })
 
-  it('offers every known spelling when the sound is not in the word bank', () => {
-    renderEditor({ sound: 'made up sound', pattern: '' })
-    const select = screen.getByLabelText('Pattern spelling')
-    const options = Array.from(select.querySelectorAll('option')).map((o) => o.getAttribute('value'))
-    expect(options).toContain('a_e')
-    expect(options).toContain('kn')
-    expect(options).toContain('dge')
-    // Placeholder plus all 61 known spellings.
-    expect(options).toHaveLength(62)
-  })
-
-  it('keeps a custom spelling selected even when it is not in the word bank', () => {
-    renderEditor({ pattern: 'xyz' })
-    const select = screen.getByLabelText('Pattern spelling') as HTMLSelectElement
-    expect(select.value).toBe('xyz')
-    expect(screen.getByRole('option', { name: 'xyz' })).toBeInTheDocument()
-  })
-
-  it('shows a placeholder option for a new pattern', () => {
-    renderEditor({ pattern: '' })
-    expect(screen.getByRole('option', { name: 'Choose a spelling...' })).toBeInTheDocument()
+  it('accepts any custom spelling via the text input', () => {
+    const { onChange } = renderEditor({ pattern: '' })
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'xyz' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'xyz' }))
   })
 
   it('explains the odd-duck mark in a tooltip', async () => {
