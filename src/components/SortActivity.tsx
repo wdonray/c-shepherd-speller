@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { OddDuck } from './OddDuck'
+import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -211,21 +212,20 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     setChecked(true)
     setScore({ correct, total })
     announce(`${correct} of ${total} in the right column.`)
+    if (correct === total) {
+      playCorrectSound()
+    } else {
+      playIncorrectSound()
+    }
   }, [bank, placements, announce])
 
   const handleTryAgain = useCallback(() => {
-    setPlacements((prev) => {
-      const next: Record<string, string> = {}
-      for (const [wordId, columnId] of Object.entries(prev)) {
-        if (results[wordId]) next[wordId] = columnId
-      }
-      return next
-    })
+    setPlacements({})
     setChecked(false)
     setResults({})
     setScore(null)
-    announce('Incorrect words returned to the word bank. Try again.')
-  }, [results, announce])
+    announce('All words returned to the word bank. Try again.')
+  }, [announce])
 
   const sensors = useMemo(() => {
     const pointer = { sensor: PointerSensor, options: { activationConstraint: { distance: 8 } } }
