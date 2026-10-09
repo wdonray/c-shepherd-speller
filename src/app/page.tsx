@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { useMemo, useEffect, useLayoutEffect, useState } from 'react'
 import Dashboard from '@/components/Dashboard'
 import SpellingManagerSheet from '@/components/SpellingManagerSheet'
@@ -10,6 +11,7 @@ export default function Home() {
   const { data: session, status } = useSession()
   const [isSyncing, setIsSyncing] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const router = useRouter()
 
   // Start at the top of the page on load. useLayoutEffect runs before paint
   // so there is no flash of a scrolled position, and the rAF re-pin catches
@@ -118,7 +120,10 @@ export default function Home() {
 
   return (
     <>
-      <Dashboard onNewList={() => setIsSheetOpen(true)} onEditList={(_list: WordList) => setIsSheetOpen(true)} />
+      <Dashboard
+        onNewList={() => setIsSheetOpen(true)}
+        onEditList={(list: WordList) => router.push(`/lists/${encodeURIComponent(list.id)}`)}
+      />
       <SpellingManagerSheet isOpen={isSheetOpen} setIsOpen={setIsSheetOpen} />
     </>
   )

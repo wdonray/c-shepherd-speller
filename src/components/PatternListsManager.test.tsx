@@ -31,6 +31,11 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
+
 const patternA: SpellingPattern = {
   id: 'p1',
   sound: 'long a',
@@ -62,11 +67,6 @@ const list2: WordList = {
   patterns: [patternB],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',
-}
-
-async function openFirstListEditor() {
-  fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
-  await screen.findByText('Spelling patterns (1)')
 }
 
 describe('PatternListsManager', () => {
@@ -154,7 +154,7 @@ describe('PatternListsManager', () => {
     expect(screen.getByLabelText('List name')).toHaveValue('')
   })
 
-  it('creates a list with a grade and opens its editor', async () => {
+  it('creates a list with a grade and navigates to its page', async () => {
     getLists.mockResolvedValue([list])
     const created: WordList = { ...list, id: 'l9', name: 'Week 7: Long O', gradeLevel: '2', patterns: [] }
     createList.mockResolvedValue(created)
@@ -172,8 +172,9 @@ describe('PatternListsManager', () => {
     expect(logActivity).toHaveBeenCalledWith('created', 'Week 7: Long O')
     expect(trackEvent).toHaveBeenCalledWith('list-created')
     expect(notifyListsChanged).toHaveBeenCalled()
-    expect(await screen.findByText('No patterns yet')).toBeInTheDocument()
-    expect(screen.getByText('Grade 2')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/lists/l9')
+    })
   })
 
   it('creates a list without a grade', async () => {
@@ -210,292 +211,6 @@ describe('PatternListsManager', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not create the list.')
     })
     expect(screen.queryByRole('heading', { name: 'New word list' })).not.toBeInTheDocument()
-  })
-
-  it('returns to the overview from the editor', async () => {
-    getLists.mockResolvedValue([list])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'My lists' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('My word lists (1)')).toBeInTheDocument()
-    })
-  })
-
-  it('shows the editor heading, grade, and explainer', async () => {
-    getLists.mockResolvedValue([list])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    expect(screen.getByRole('heading', { name: 'Week 5: Long A' })).toBeInTheDocument()
-    expect(screen.getByText('Grade 1')).toBeInTheDocument()
-    expect(screen.getByText(/One column per spelling/)).toBeInTheDocument()
-  })
-
-  it('marks the form dirty when the name changes and Cancel reverts it', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    expect(screen.getByText('No unsaved changes')).toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Renamed' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByLabelText('List name')).toHaveValue('Week 5: Long A')
-    expect(screen.getByText('No unsaved changes')).toBeInTheDocument()
-  })
-
-  it('shows Untitled list when the name is cleared', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: '' } })
-    expect(screen.getByRole('heading', { name: 'Untitled list' })).toBeInTheDocument()
-  })
-
-  it('edits and clears the grade level', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    updateList.mockImplementation(async (_id: string, data: Partial<WordList>) => ({ ...list, ...data }))
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    const grade = screen.getByLabelText('Grade level')
-    fireEvent.change(grade, { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: '2' }))
-    })
-
-    fireEvent.change(screen.getByLabelText('Grade level'), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: undefined }))
-    })
-  })
-
-  it('adds the first pattern from the empty state', async () => {
-    const empty: WordList = { ...list, patterns: [] }
-    getLists.mockResolvedValue([empty])
-    render(<PatternListsManager />)
-
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
-    await screen.findByText('Spelling patterns (0)')
-    expect(screen.getByText('No patterns yet')).toBeInTheDocument()
-    expect(
-      screen.getByText('Add your first pattern: the target sound, one spelling, and how common it is.')
-    ).toBeInTheDocument()
-    // Only the empty-state card CTA renders; the full-width button is hidden.
-    expect(screen.getAllByRole('button', { name: /add a pattern/i })).toHaveLength(1)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
-    expect(screen.getByLabelText('Pattern spelling')).toBeInTheDocument()
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
-  })
-
-  it('adds a pattern with the full-width button', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    // Only the full-width button renders; the empty-state card is hidden.
-    expect(screen.getAllByRole('button', { name: /add a pattern/i })).toHaveLength(1)
-    fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
-    const inputs = screen.getAllByLabelText('Pattern spelling')
-    expect(inputs).toHaveLength(2)
-  })
-
-  it('edits a pattern through its card and saves', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }] }])
-    updateList.mockImplementation(async (_id: string, data: Partial<WordList>) => ({ ...list, ...data }))
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
-    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'rain' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith(
-        'l1',
-        expect.objectContaining({
-          patterns: [expect.objectContaining({ pattern: 'ai', words: ['cake', 'bake', 'rain'] })],
-        })
-      )
-    })
-    expect(notifyListsChanged).toHaveBeenCalled()
-    expect(screen.getByText('No unsaved changes')).toBeInTheDocument()
-  })
-
-  it('disables Save when clean or the name is empty', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    expect(screen.getByRole('button', { name: 'Save list' })).toBeDisabled()
-
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: '' } })
-    expect(screen.getByRole('button', { name: 'Save list' })).toBeDisabled()
-  })
-
-  it('shows a toast when saving fails', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    updateList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not save.')
-    })
-  })
-
-  it('dismisses the toast manually', async () => {
-    getLists.mockResolvedValue([{ ...list }])
-    updateList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-    await screen.findByRole('alert')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
-  it('auto-dismisses the toast after six seconds', async () => {
-    vi.useFakeTimers()
-    getLists.mockResolvedValue([{ ...list }])
-    updateList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-    await act(async () => {})
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Edit list' })[0])
-    await act(async () => {})
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-    await act(async () => {})
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not save.')
-
-    act(() => {
-      vi.advanceTimersByTime(6000)
-    })
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    vi.useRealTimers()
-  })
-
-  it('confirms and deletes a pattern', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }] }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
-
-    expect(screen.getByRole('heading', { name: 'Delete this pattern?' })).toBeInTheDocument()
-    expect(
-      screen.getByText('Delete "a_e" with its 2 words? This cannot be undone. The rest of the list is untouched.')
-    ).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await waitFor(() => {
-      expect(screen.getByText('No patterns yet')).toBeInTheDocument()
-    })
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
-  })
-
-  it('closes the pattern delete dialog with Escape', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }] }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
-    await screen.findByRole('heading', { name: 'Delete this pattern?' })
-
-    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
-    await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'Delete this pattern?' })).not.toBeInTheDocument()
-    })
-    expect(screen.getByLabelText('Pattern spelling')).toHaveValue('a_e')
-  })
-
-  it('deletes an untitled pattern', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }] }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete this pattern' }))
-
-    expect(
-      screen.getByText('Delete "untitled" with its 0 words? This cannot be undone. The rest of the list is untouched.')
-    ).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await waitFor(() => {
-      expect(screen.getAllByLabelText('Pattern spelling')).toHaveLength(1)
-    })
-  })
-
-  it('updates only the edited pattern when saving', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }, { ...patternB }] }])
-    updateList.mockImplementation(async (_id: string, data: Partial<WordList>) => ({ ...list, ...data }))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
-    await screen.findByText('Spelling patterns (2)')
-
-    fireEvent.change(screen.getAllByLabelText('Pattern spelling')[0], { target: { value: 'ai' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith(
-        'l1',
-        expect.objectContaining({
-          patterns: [
-            expect.objectContaining({ id: 'p1', pattern: 'ai' }),
-            expect.objectContaining({ id: 'p2', pattern: 'ay' }),
-          ],
-        })
-      )
-    })
-  })
-
-  it('keeps the pattern when the pattern delete is cancelled', async () => {
-    getLists.mockResolvedValue([{ ...list, patterns: [{ ...patternA }] }])
-    render(<PatternListsManager />)
-
-    await openFirstListEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Keep it' }))
-
-    await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'Delete this pattern?' })).not.toBeInTheDocument()
-    })
-    expect(screen.getByLabelText('Pattern spelling')).toHaveValue('a_e')
-    expect(screen.getByText('No unsaved changes')).toBeInTheDocument()
-  })
-
-  it('uses the singular when deleting a one-word pattern', async () => {
-    getLists.mockResolvedValue([{ ...list2 }])
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
-    await screen.findByText('Spelling patterns (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern ay' }))
-
-    expect(
-      screen.getByText('Delete "ay" with its 1 word? This cannot be undone. The rest of the list is untouched.')
-    ).toBeInTheDocument()
   })
 
   it('confirms and deletes a list', async () => {
@@ -563,27 +278,6 @@ describe('PatternListsManager', () => {
     ).toBeInTheDocument()
   })
 
-  it('updates only the saved list when several exist', async () => {
-    getLists.mockResolvedValue([{ ...list }, { ...list2 }])
-    updateList.mockImplementation(async (id: string, data: Partial<WordList>) => ({
-      ...(id === 'l1' ? list : list2),
-      ...data,
-    }))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (2)')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Edit list' }))[0])
-    await screen.findByText('Spelling patterns (1)')
-
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save list' }))
-
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
-    })
-    expect(screen.getByText('No unsaved changes')).toBeInTheDocument()
-  })
-
   it('dismisses the overview toast manually', async () => {
     getLists.mockResolvedValue([list])
     deleteList.mockRejectedValue(new Error('network down'))
@@ -611,6 +305,51 @@ describe('PatternListsManager', () => {
     })
     expect(deleteList).not.toHaveBeenCalled()
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+  })
+
+  it('navigates to the list page when Edit list is clicked', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit list' })[0])
+
+    expect(mockPush).toHaveBeenCalledWith('/lists/l1')
+  })
+
+  it('calls onNavigate when opening a list so the drawer closes', async () => {
+    getLists.mockResolvedValue([list])
+    const onNavigate = vi.fn()
+    render(<PatternListsManager onNavigate={onNavigate} />)
+
+    await screen.findByText('My word lists (1)')
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+
+    expect(onNavigate).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/lists/l1')
+  })
+
+  it('auto-dismisses the toast after 6 seconds', async () => {
+    getLists.mockResolvedValue([list])
+    deleteList.mockRejectedValue(new Error('network down'))
+    render(<PatternListsManager />)
+
+    await screen.findByText('My word lists (1)')
+
+    // Fake timers from here so the toast's auto-dismiss timer is controllable.
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await act(async () => {})
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await act(async () => {})
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+
+    act(() => {
+      vi.advanceTimersByTime(6000)
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    vi.useRealTimers()
   })
 
   it('shows a toast when deleting a list fails', async () => {
