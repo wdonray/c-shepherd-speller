@@ -23,10 +23,12 @@ test.describe('authenticated flows', () => {
 
   test('list manager: creates a new pattern-based list', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /my spelling lists/i }).click()
+    await page.getByRole('link', { name: /my spelling lists/i }).click()
+    await expect(page).toHaveURL('/lists')
 
-    // Create a new list. The full-page editor opens on save.
+    // Create a new list on its own page. The full-page editor opens on save.
     await page.getByRole('button', { name: 'New list' }).first().click()
+    await expect(page).toHaveURL('/lists/new')
     await page.getByLabel('List name').fill('E2E Week 1')
     await page.getByRole('button', { name: 'Create list' }).click()
     await expect(page).toHaveURL(/\/lists\//)
