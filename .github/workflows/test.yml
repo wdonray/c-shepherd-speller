@@ -63,6 +63,8 @@ jobs:
 
       - name: Install
         run: npm ci --ignore-scripts --no-audit --no-fund
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Lint (oxlint)
         run: npm run lint
@@ -99,6 +101,8 @@ jobs:
 
       - name: Install
         run: npm ci --ignore-scripts --no-audit --no-fund
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build
         run: npm run build
@@ -125,6 +129,8 @@ jobs:
 
       - name: Install
         run: npm ci --ignore-scripts --no-audit --no-fund
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Wait for DynamoDB Local
         run: |
@@ -176,6 +182,8 @@ jobs:
 
       - name: Install
         run: npm ci --ignore-scripts --no-audit --no-fund
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Install Playwright chromium
         run: npx playwright install --only-shell chromium

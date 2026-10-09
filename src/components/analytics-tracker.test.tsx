@@ -5,6 +5,14 @@ import AnalyticsTracker from './analytics-tracker'
 
 vi.mock('next/navigation', () => ({ usePathname: vi.fn() }))
 
+const mockIsHeadless = vi.fn().mockReturnValue(false)
+const mockStart = vi.fn()
+const mockStop = vi.fn()
+vi.mock('@wdonray/analytics-core/client', () => ({
+  isHeadlessBrowser: (...args: unknown[]) => mockIsHeadless(...args),
+  createEngagementTracker: vi.fn(() => ({ start: mockStart, stop: mockStop })),
+}))
+
 const usePathnameMock = vi.mocked(usePathname)
 
 describe('AnalyticsTracker', () => {
@@ -13,6 +21,9 @@ describe('AnalyticsTracker', () => {
 
   beforeEach(() => {
     usePathnameMock.mockReturnValue('/display')
+    mockIsHeadless.mockReturnValue(false)
+    mockStart.mockClear()
+    mockStop.mockClear()
     sessionStorage.clear()
     fetchMock = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('fetch', fetchMock)
@@ -29,13 +40,26 @@ describe('AnalyticsTracker', () => {
     vi.restoreAllMocks()
   })
 
-  it('sends one beacon per page per session via sendBeacon', () => {
+  it('sends one page-view beacon per page per session via sendBeacon', () => {
     render(<AnalyticsTracker />)
     expect(sendBeaconMock).toHaveBeenCalledTimes(1)
     const [url, blob] = sendBeaconMock.mock.calls[0]
     expect(url).toBe('/api/track')
     expect(blob).toBeInstanceOf(Blob)
     expect(sessionStorage.getItem('ss:/display')).toBe('1')
+  })
+
+  it('starts the engagement tracker after the page view', () => {
+    render(<AnalyticsTracker />)
+    expect(mockStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends nothing when the browser is headless', () => {
+    mockIsHeadless.mockReturnValue(true)
+    render(<AnalyticsTracker />)
+    expect(sendBeaconMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(mockStart).not.toHaveBeenCalled()
   })
 
   it('does not resend when the page was already tracked this session', () => {
@@ -57,7 +81,7 @@ describe('AnalyticsTracker', () => {
       expect(url).toBe('/api/track')
       expect(init.method).toBe('POST')
       expect(init.keepalive).toBe(true)
-      expect(JSON.parse(init.body)).toEqual({ path: '/display' })
+      expect(JSON.parse(init.body)).toEqual({ path: '/display', engaged: false })
     } finally {
       nav.sendBeacon = original
     }
@@ -67,6 +91,39 @@ describe('AnalyticsTracker', () => {
     sendBeaconMock.mockReturnValue(false)
     render(<AnalyticsTracker />)
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends the engagement hit when the tracker fires', async () => {
+    const { createEngagementTracker } = await import('@wdonray/analytics-core/client')
+    render(<AnalyticsTracker />)
+    const onEngaged = (
+      vi.mocked(createEngagementTracker).mock.calls[0][0] as {
+        onEngaged: () => void
+      }
+    ).onEngaged
+    sendBeaconMock.mockClear()
+    onEngaged()
+    expect(sendBeaconMock).toHaveBeenCalledTimes(1)
+    const [, blob] = sendBeaconMock.mock.calls[0] as [string, Blob]
+    const text = await blob.text()
+    expect(JSON.parse(text)).toEqual({ path: '/display', engaged: true })
+  })
+
+  it('reports fetch failures without crashing', async () => {
+    const nav = window.navigator as unknown as Record<string, unknown>
+    const original = nav.sendBeacon
+    delete nav.sendBeacon
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    try {
+      render(<AnalyticsTracker />)
+      // Wait for the rejected promise's .catch() to run.
+      await vi.waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+      })
+      await new Promise((r) => setTimeout(r, 10))
+    } finally {
+      nav.sendBeacon = original
+    }
   })
 
   it('renders nothing visible', () => {
