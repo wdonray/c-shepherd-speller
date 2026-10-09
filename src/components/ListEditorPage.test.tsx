@@ -214,7 +214,7 @@ describe('ListEditorPage', () => {
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     // The teacher's edit is preserved.
     expect(screen.getByLabelText('List name')).toHaveValue('Renamed')

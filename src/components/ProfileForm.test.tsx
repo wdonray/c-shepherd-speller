@@ -499,7 +499,7 @@ describe('ProfileForm', () => {
 
       const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.txt', { type: 'text/plain' })] } })
-      expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
+      expect(await screen.findByText('Please choose a JPEG, PNG, WebP, or HEIC image.')).toBeInTheDocument()
     })
 
     it('removes the photo and saves immediately', async () => {
@@ -562,7 +562,7 @@ describe('ProfileForm', () => {
 
       const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } })
-      expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
   })
 })

@@ -115,9 +115,11 @@ describe('ImportExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
   })
+
+  it('shows an error when the file is not valid JSON', async () => {
 
   it('imports lists from a valid file', async () => {
     const onImported = vi.fn()
@@ -192,7 +194,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
   })
 

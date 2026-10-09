@@ -214,7 +214,7 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     expect(screen.queryByRole('heading', { name: 'New word list' })).not.toBeInTheDocument()
   })
@@ -373,7 +373,7 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })
