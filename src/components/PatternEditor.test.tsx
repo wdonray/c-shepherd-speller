@@ -7,6 +7,14 @@ vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))
 
+vi.mock('@/lib/profile-image', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/profile-image')>()
+  return {
+    ...original,
+    processKeywordImage: vi.fn(),
+  }
+})
+
 const basePattern: SpellingPattern = {
   id: 'p1',
   sound: 'long a',
@@ -468,10 +476,29 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordEmoji: '🐝' })
   })
 
-  it('clears keywordEmoji when the keyword image is removed', () => {
+  it('clears keywordEmoji when the keyword emoji is removed', () => {
     const { onChange } = renderEditor({ keywordEmoji: '🐝' })
     fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Remove keyword image' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove emoji' }))
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordEmoji: undefined })
+  })
+
+  it('updates keywordImage when a photo is uploaded', async () => {
+    const { processKeywordImage } = await import('@/lib/profile-image')
+    vi.mocked(processKeywordImage).mockResolvedValue('data:image/jpeg;base64,photo')
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
+    const file = new File(['x'], 'bee.jpg', { type: 'image/jpeg' })
+    fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } })
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordImage: 'data:image/jpeg;base64,photo' })
+    })
+  })
+
+  it('clears keywordImage when the photo is removed', () => {
+    const { onChange } = renderEditor({ keywordImage: 'data:image/jpeg;base64,photo' })
+    fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordImage: undefined })
   })
 })

@@ -10,7 +10,7 @@ import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-reac
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import { OddDuck } from './OddDuck'
 import SentencePicker from './SentencePicker'
-import KeywordEmojiPicker from './KeywordEmojiPicker'
+import KeywordImagePicker from './KeywordImagePicker'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
@@ -147,10 +147,12 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
               </div>
               <div className="shrink-0 space-y-1.5">
                 <span className="flex items-center text-sm leading-none font-medium select-none">Keyword image</span>
-                <KeywordEmojiPicker
+                <KeywordImagePicker
                   patternName={pattern.pattern}
-                  value={pattern.keywordEmoji}
-                  onSelect={(keywordEmoji) => update({ keywordEmoji })}
+                  image={pattern.keywordImage}
+                  emoji={pattern.keywordEmoji}
+                  onImageSelect={(keywordImage) => update({ keywordImage })}
+                  onEmojiSelect={(keywordEmoji) => update({ keywordEmoji })}
                 />
               </div>
             </div>

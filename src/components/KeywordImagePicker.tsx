@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ImagePlusIcon, Trash2Icon } from 'lucide-react'
+import { processKeywordImage, PROFILE_IMAGE_MIME_TYPES } from '@/lib/profile-image'
+import { ImagePlusIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 
 /** Curated K-3 keyword emojis: animals, food, objects, weather and nature. */
 export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; name: string }[] }[] = [
@@ -60,23 +61,36 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
   },
 ]
 
-interface KeywordEmojiPickerProps {
-  /** Spelling pattern the emoji anchors; used in accessible labels. */
+interface KeywordImagePickerProps {
+  /** Spelling pattern the image anchors; used in accessible labels. */
   patternName: string
-  value: string | undefined
-  onSelect: (emoji: string | undefined) => void
+  /** Uploaded photo (JPEG data URL). Takes display precedence over emoji. */
+  image: string | undefined
+  /** Keyword anchor emoji; shown when no photo is set. */
+  emoji: string | undefined
+  onImageSelect: (image: string | undefined) => void
+  onEmojiSelect: (emoji: string | undefined) => void
 }
 
 /**
- * Picker for a pattern's keyword anchor image. The button shows the current
- * emoji at large size (or a dashed "Add" placeholder); clicking opens a
- * small popover with a curated grid of K-3-friendly emojis, a freeform
- * custom-emoji input, and a remove option. Selection is lifted to the parent
- * so it flows through the editor's existing onChange auto-save.
+ * Picker for a pattern's keyword anchor image. The button shows the uploaded
+ * photo (or the emoji at large size, or a dashed "Add" placeholder); clicking
+ * opens a popover with a photo upload option, a curated grid of K-3-friendly
+ * emojis, a freeform custom-emoji input, and remove options. Selections are
+ * lifted to the parent so they flow through the editor's existing onChange
+ * auto-save.
  */
-export default function KeywordEmojiPicker({ patternName, value, onSelect }: KeywordEmojiPickerProps) {
+export default function KeywordImagePicker({
+  patternName,
+  image,
+  emoji,
+  onImageSelect,
+  onEmojiSelect,
+}: KeywordImagePickerProps) {
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -91,20 +105,44 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
     ? `Keyword image for pattern ${patternName}`
     : 'Keyword image for this pattern'
 
-  const choose = (emoji: string) => {
-    onSelect(emoji)
+  const chooseEmoji = (next: string) => {
+    onEmojiSelect(next)
     setOpen(false)
   }
 
   const applyCustom = () => {
-    const emoji = custom.trim()
-    if (!emoji) return
+    const next = custom.trim()
+    if (!next) return
     setCustom('')
-    choose(emoji)
+    chooseEmoji(next)
   }
 
-  const remove = () => {
-    onSelect(undefined)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const dataUrl = await processKeywordImage(file)
+      onImageSelect(dataUrl)
+      setOpen(false)
+    } catch (error) {
+      // Surface the real reason (wrong format, too big, unreadable) so the
+      // teacher knows what to do instead of a generic failure message.
+      setUploadError(error instanceof Error ? error.message : 'Could not use that photo. Please try another.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = () => {
+    onImageSelect(undefined)
+    setOpen(false)
+  }
+
+  const removeEmoji = () => {
+    onEmojiSelect(undefined)
     setOpen(false)
   }
 
@@ -118,14 +156,16 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
         aria-haspopup="dialog"
         className={cn(
           'flex size-16 cursor-pointer items-center justify-center rounded-xl border-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
-          value
+          image || emoji
             ? 'border-line bg-card hover:border-sky-deep'
             : 'border-dashed border-line bg-card text-muted-foreground hover:border-sky-deep hover:text-sky-ink'
         )}
       >
-        {value ? (
+        {image ? (
+          <img src={image} alt="" aria-hidden="true" className="size-12 rounded-lg object-cover" />
+        ) : emoji ? (
           <span className="text-4xl leading-none" aria-hidden="true">
-            {value}
+            {emoji}
           </span>
         ) : (
           <span className="flex flex-col items-center gap-0.5">
@@ -139,7 +179,7 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
         <>
           <div
             aria-hidden="true"
-            data-testid="keyword-emoji-scrim"
+            data-testid="keyword-image-scrim"
             onPointerDown={() => setOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
@@ -148,6 +188,32 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
             aria-label="Choose keyword image"
             className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border-2 border-line bg-card p-4 shadow-lg"
           >
+            <div className="mb-3">
+              <input
+                id="keyword-photo-upload"
+                type="file"
+                accept={PROFILE_IMAGE_MIME_TYPES.join(',')}
+                onChange={handleFileSelect}
+                disabled={uploading}
+                className="sr-only"
+              />
+              <label
+                htmlFor="keyword-photo-upload"
+                className={cn(
+                  'flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  uploading && 'pointer-events-none opacity-50'
+                )}
+              >
+                <UploadIcon className="size-4" aria-hidden="true" />
+                {uploading ? 'Uploading photo...' : image ? 'Replace photo' : 'Upload photo'}
+              </label>
+              {uploadError && (
+                <p role="alert" className="mt-2 text-[13px] font-bold text-destructive">
+                  {uploadError}
+                </p>
+              )}
+            </div>
             {KEYWORD_EMOJI_GROUPS.map((group) => (
               <div key={group.label} role="group" aria-label={group.label} className="mb-3">
                 <p className="mb-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
@@ -158,7 +224,7 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
                     <button
                       key={choice.emoji}
                       type="button"
-                      onClick={() => choose(choice.emoji)}
+                      onClick={() => chooseEmoji(choice.emoji)}
                       aria-label={choice.name}
                       title={choice.name}
                       className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg text-2xl outline-none transition hover:bg-line/50 focus-visible:bg-line/50 focus-visible:ring-[3px] focus-visible:ring-ring/60"
@@ -194,14 +260,24 @@ export default function KeywordEmojiPicker({ patternName, value, onSelect }: Key
                 </Button>
               </div>
             </div>
-            {value && (
+            {image && (
               <button
                 type="button"
-                onClick={remove}
+                onClick={removeImage}
                 className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
               >
                 <Trash2Icon className="size-5" aria-hidden="true" />
-                Remove keyword image
+                Remove photo
+              </button>
+            )}
+            {emoji && (
+              <button
+                type="button"
+                onClick={removeEmoji}
+                className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+              >
+                <Trash2Icon className="size-5" aria-hidden="true" />
+                Remove emoji
               </button>
             )}
           </div>

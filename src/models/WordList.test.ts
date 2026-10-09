@@ -84,6 +84,27 @@ describe('WordList model', () => {
       expect(result.success).toBe(false)
     })
 
+    it('accepts a pattern with a keyword photo data URL', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordImage: 'data:image/jpeg;base64,photo' })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.keywordImage).toBe('data:image/jpeg;base64,photo')
+      }
+    })
+
+    it('treats a missing keywordImage as unset (backwards compatible)', () => {
+      const result = SpellingPatternSchema.safeParse(validPattern)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.keywordImage).toBeUndefined()
+      }
+    })
+
+    it('rejects a keywordImage larger than 12KB to protect the DynamoDB item limit', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordImage: 'x'.repeat(12 * 1024 + 1) })
+      expect(result.success).toBe(false)
+    })
+
     it('accepts a pattern with example sentences', () => {
       const result = SpellingPatternSchema.safeParse({
         ...validPattern,
