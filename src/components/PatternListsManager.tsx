@@ -13,33 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { PlusIcon, XIcon } from 'lucide-react'
+import { PlusIcon } from 'lucide-react'
 import { getLists, createList, deleteList, notifyListsChanged } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { type WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
+import { getErrorMessage, toastError } from '@/lib/error-toast'
 import WordListCard from './WordListCard'
 import { OddDuck } from './OddDuck'
-
-function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  return (
-    <div
-      role="alert"
-      className="fixed bottom-6 left-1/2 z-[100] flex w-[calc(100%-3rem)] max-w-xl -translate-x-1/2 items-center gap-3 rounded-2xl border-2 border-coral bg-coral-soft px-5 py-4"
-    >
-      <p className="flex-1 text-[15px] font-semibold text-coral-ink">{message}</p>
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="cursor-pointer rounded-full p-1 text-coral-ink outline-none hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
-      >
-        <XIcon className="size-4" />
-      </button>
-    </div>
-  )
-}
 
 /**
  * List-of-lists overview for the spelling manager drawer. Editing a single
@@ -56,17 +38,6 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
   const [creating, setCreating] = useState(false)
   const [deleteListTarget, setDeleteListTarget] = useState<WordList | null>(null)
   const [deletingList, setDeletingList] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
-
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-  }, [])
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 6000)
-    return () => clearTimeout(timer)
-  }, [toast])
 
   // Clear the create form whenever its dialog closes.
   useEffect(() => {
@@ -122,7 +93,7 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
     } catch (error) {
       reportError(error, { location: 'PatternListsManager.handleCreate' })
       setIsCreating(false)
-      showToast('Could not create the list. Check your connection and try again.')
+      toastError(getErrorMessage(error))
     } finally {
       setCreating(false)
     }
@@ -137,7 +108,7 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
       notifyListsChanged()
     } catch (error) {
       reportError(error, { location: 'PatternListsManager.confirmDeleteList' })
-      showToast('Could not delete the list. Check your connection and try again.')
+      toastError(getErrorMessage(error))
     } finally {
       setDeletingList(false)
       setDeleteListTarget(null)
@@ -289,8 +260,6 @@ export default function PatternListsManager({ onNavigate }: { onNavigate?: () =>
           </DialogContent>
         )}
       </Dialog>
-
-      {toast && <ErrorToast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   )
 }

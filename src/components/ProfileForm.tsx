@@ -12,6 +12,7 @@ import { UpdateUserBody } from '@/types/User'
 import { processProfileImage } from '@/lib/profile-image'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { reportError } from '@/lib/report-error'
+import { getErrorMessage, getToastMessage, toastError, HttpError } from '@/lib/error-toast'
 
 export const PROFILE_PHOTO_UPDATED_EVENT = 'patternspell:profile-photo-updated'
 
@@ -29,7 +30,7 @@ interface ProfileFormState {
   classroomSize: string
 }
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+type SaveStatus = 'idle' | 'saving' | 'saved'
 
 function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
   if (name) {
@@ -50,7 +51,7 @@ function buildTextPayload(form: ProfileFormState): UpdateUserBody {
   return updateData
 }
 
-function SaveStatusPill({ status, error }: { status: SaveStatus; error: string | null }) {
+function SaveStatusPill({ status }: { status: SaveStatus }) {
   return (
     <div aria-live="polite">
       {status === 'saving' && (
@@ -67,11 +68,6 @@ function SaveStatusPill({ status, error }: { status: SaveStatus; error: string |
           <CheckCircle className="size-4" aria-hidden="true" />
           Saved
         </span>
-      )}
-      {status === 'error' && (
-        <p role="alert" className="text-sm font-semibold text-coral-ink">
-          {error}
-        </p>
       )}
     </div>
   )
@@ -90,9 +86,7 @@ export default function ProfileForm() {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
-  const [photoError, setPhotoError] = useState<string | null>(null)
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -142,7 +136,7 @@ export default function ProfileForm() {
       body: JSON.stringify(data),
     })
     if (!response.ok) {
-      throw new Error('Failed to update user')
+      throw new HttpError('Failed to update user', response.status)
     }
   }
 
@@ -153,7 +147,6 @@ export default function ProfileForm() {
       savedTimerRef.current = null
     }
     setSaveStatus('saving')
-    setSaveError(null)
     try {
       await updateUser(user.id, payload)
       setUser({ ...user, ...payload })
@@ -170,8 +163,8 @@ export default function ProfileForm() {
     } catch (error) {
       reportError(error, { location: 'ProfileForm.doSave' })
       console.error('Error updating user:', error)
-      setSaveStatus('error')
-      setSaveError('Could not save your changes. Check your connection and try again.')
+      setSaveStatus('idle')
+      toastError(getErrorMessage(error))
     }
   }
   doSaveRef.current = doSave
@@ -213,14 +206,13 @@ export default function ProfileForm() {
     e.target.value = ''
     if (!file) return
     setIsProcessingPhoto(true)
-    setPhotoError(null)
     try {
       const dataUrl = await processProfileImage(file)
       setPhoto(dataUrl)
       await doSave({ ...buildTextPayload(formData), image: dataUrl }, true)
     } catch (err) {
       reportError(err, { location: 'ProfileForm.handlePhotoSelect' })
-      setPhotoError(err instanceof Error ? err.message : 'Could not read the image file.')
+      toastError(getToastMessage(err))
     } finally {
       setIsProcessingPhoto(false)
     }
@@ -228,7 +220,6 @@ export default function ProfileForm() {
 
   async function handlePhotoRemove() {
     setPhoto(undefined)
-    setPhotoError(null)
     fileInputRef.current?.focus()
     await doSave({ ...buildTextPayload(formData), image: '' }, true)
   }
@@ -288,14 +279,9 @@ export default function ProfileForm() {
               </div>
             </div>
             <div className="shrink-0 sm:pt-1">
-              <SaveStatusPill status={saveStatus} error={saveError} />
+              <SaveStatusPill status={saveStatus} />
             </div>
           </div>
-          {photoError && (
-            <p role="alert" className="mt-4 text-sm font-semibold text-coral-ink">
-              {photoError}
-            </p>
-          )}
           <p className="mt-4 text-sm text-muted-foreground">
             JPEG, PNG, or WebP under 5MB. Your photo is resized to fit and shows in the header.
           </p>

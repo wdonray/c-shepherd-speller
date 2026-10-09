@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ImportExportDialog from './ImportExportDialog'
+import { ErrorToaster } from './error-toaster'
 import type { WordList } from '@/models/WordList'
 
 const { getLists, createList } = vi.hoisted(() => ({
@@ -19,7 +20,12 @@ const list: WordList = {
 }
 
 function renderDialog(props?: Partial<React.ComponentProps<typeof ImportExportDialog>>) {
-  return render(<ImportExportDialog isOpen={true} onClose={vi.fn()} onImported={vi.fn()} {...props} />)
+  return render(
+    <>
+      <ImportExportDialog isOpen={true} onClose={vi.fn()} onImported={vi.fn()} {...props} />
+      <ErrorToaster />
+    </>
+  )
 }
 
 describe('ImportExportDialog', () => {
@@ -103,13 +109,13 @@ describe('ImportExportDialog', () => {
     })
   })
 
-  it('shows an error when export fails', async () => {
+  it('shows a toast when export fails', async () => {
     getLists.mockRejectedValue(new Error('network down'))
     renderDialog()
     fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not export your lists.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
     })
   })
 
@@ -177,7 +183,7 @@ describe('ImportExportDialog', () => {
     expect(createList).not.toHaveBeenCalled()
   })
 
-  it('shows an error when creating an imported list fails', async () => {
+  it('shows a toast when creating an imported list fails', async () => {
     createList.mockRejectedValue(new Error('network down'))
     renderDialog()
     const file = new File([JSON.stringify([{ name: 'Week 7: Long O', patterns: [] }])], 'lists.json', {
@@ -186,7 +192,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not import that file.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
     })
   })
 

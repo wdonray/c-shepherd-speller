@@ -9,6 +9,7 @@ import { createList, getLists } from '@/lib/lists-api'
 import { buildExportFilename } from '@/lib/export-filename'
 import { CreateWordListSchema } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
+import { getErrorMessage, toastError } from '@/lib/error-toast'
 
 const ImportFileSchema = z.array(CreateWordListSchema)
 
@@ -53,7 +54,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       })
     } catch (error) {
       reportError(error, { location: 'ImportExportDialog.handleExport' })
-      setMessage({ kind: 'error', text: 'Could not export your lists. Check your connection and try again.' })
+      toastError(getErrorMessage(error))
     } finally {
       setBusy(false)
     }
@@ -92,7 +93,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       } else {
         // The not-json / not-lists cases are user errors, not app failures.
         reportError(e, { location: 'ImportExportDialog.handleFileChange' })
-        setMessage({ kind: 'error', text: 'Could not import that file. Check your connection and try again.' })
+        toastError(getErrorMessage(e))
       }
     } finally {
       setBusy(false)

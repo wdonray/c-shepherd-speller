@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
+import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
 
 const { getLists, createList, updateList, deleteList, notifyListsChanged, logActivity } = vi.hoisted(() => ({
@@ -200,7 +201,12 @@ describe('PatternListsManager', () => {
   it('shows a toast when creating fails', async () => {
     getLists.mockResolvedValue([list])
     createList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
 
     await screen.findByText('My word lists (1)')
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
@@ -208,7 +214,7 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not create the list.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
     })
     expect(screen.queryByRole('heading', { name: 'New word list' })).not.toBeInTheDocument()
   })
@@ -355,14 +361,19 @@ describe('PatternListsManager', () => {
   it('shows a toast when deleting a list fails', async () => {
     getLists.mockResolvedValue([list])
     deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
 
     await screen.findByText('My word lists (1)')
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not delete the list.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
     })
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })
