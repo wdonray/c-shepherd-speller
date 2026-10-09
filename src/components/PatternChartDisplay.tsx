@@ -27,10 +27,11 @@ const COLUMN_ACCENTS = [
 ] as const
 
 /**
- * Pattern chart display mode: target sound header, one column per spelling
- * pattern (width follows frequency), words as large tappable cards, odd
- * ducks in their own plum band below. The projector-friendly replacement
- * for the old tree view. Stays light in dark mode.
+ * Pattern chart display mode: target sound header, one equal-width column per
+ * spelling pattern ordered by frequency (most common first), a power-bar
+ * gauge in each header showing how common the spelling is, and words as
+ * large tappable cards. The projector-friendly replacement for the old
+ * tree view. Stays light in dark mode.
  *
  * Designed for projectors: large text, high contrast, keyboard accessible,
  * every word visible at once.
@@ -53,7 +54,7 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
       }
     }
 
-    // Widest column first.
+    // Most common spelling first.
     const columns = [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
     return { columns, targetSound }
   }, [list])
@@ -107,7 +108,7 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
                   key={pattern.id}
                   aria-label={`Pattern ${pattern.pattern}`}
                   className={cn('rounded-2xl border-[3px] bg-card p-5', accent.border)}
-                  style={{ flexGrow: level, flexBasis: 0, minWidth: 220 }}
+                  style={{ flex: '1 1 0', minWidth: 220 }}
                 >
                   <div className="mb-4 text-center">
                     <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
@@ -125,7 +126,8 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Tap a word to hear it and see its analysis. Wider columns are more common spellings.
+            Tap a word to see its analysis, or press the speaker icon to hear it. Patterns are ordered by how common the
+            spelling is; longer bars mean more common.
           </p>
         </>
       )}

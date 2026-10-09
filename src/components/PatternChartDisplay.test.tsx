@@ -45,20 +45,32 @@ describe('PatternChartDisplay', () => {
     expect(screen.queryByText('short e')).not.toBeInTheDocument()
   })
 
-  it('renders one column per regular pattern, widest first', () => {
+  it('renders one column per pattern, most common first, all equal width', () => {
     render(<PatternChartDisplay list={list} />)
     const aE = screen.getByRole('region', { name: 'Pattern a_e' })
     const ai = screen.getByRole('region', { name: 'Pattern ai' })
+    const eigh = screen.getByRole('region', { name: 'Pattern eigh' })
     expect(aE).toBeInTheDocument()
     expect(ai).toBeInTheDocument()
-    // Common sorts before less-common; flex-grow follows frequency.
+    // Common sorts before less-common before rare.
     expect(aE.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(aE).toHaveStyle({ flexGrow: '3' })
-    expect(ai).toHaveStyle({ flexGrow: '2' })
-    // Power bars and frequency labels
+    expect(ai.compareDocumentPosition(eigh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Equal widths regardless of frequency.
+    for (const col of [aE, ai, eigh]) {
+      expect(col).toHaveStyle({ flexGrow: '1', flexBasis: '0' })
+    }
+    // Power bars and frequency labels encode commonness.
     expect(within(aE).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
     expect(within(aE).getByText('Common')).toBeInTheDocument()
     expect(within(ai).getByText('Less common')).toBeInTheDocument()
+    expect(within(eigh).getByText('Rare')).toBeInTheDocument()
+  })
+
+  it('explains the frequency encoding in the caption', () => {
+    render(<PatternChartDisplay list={list} />)
+    expect(
+      screen.getByText(/Patterns are ordered by how common the spelling is; longer bars mean more common/)
+    ).toBeInTheDocument()
   })
 
   it('opens the word analysis when a word card is tapped', () => {
