@@ -36,6 +36,13 @@ vi.mock('@dnd-kit/utilities', () => ({
   CSS: { Translate: { toString: () => '' } },
 }))
 
+vi.mock('@/lib/sound-effects', () => ({
+  playCorrectSound: vi.fn(),
+  playIncorrectSound: vi.fn(),
+  isSoundEnabled: () => true,
+  setSoundEnabled: vi.fn(),
+}))
+
 const list: WordList = {
   id: 'l1',
   userId: 'u1',
@@ -125,7 +132,7 @@ describe('SortActivity drag flow', () => {
     expect(screen.getAllByLabelText('Incorrect')).toHaveLength(2)
   })
 
-  it('try again returns only incorrect words to the bank', async () => {
+  it('try again returns all words to the bank', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     dragWord('p1:cake', 'p1')
     dragWord('p1:bake', 'p2')
@@ -136,10 +143,13 @@ describe('SortActivity drag flow', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    // The incorrect word (bake) returns to the bank; the correct one (cake) stays placed.
+    // All words return to the bank, including the correctly placed one.
     await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Drag the word cake' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
     })
+    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
     expect(screen.queryByText('1 of 3 in the right column.')).not.toBeInTheDocument()
   })
 
