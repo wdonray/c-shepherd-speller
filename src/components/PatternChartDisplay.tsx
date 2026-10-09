@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
-import { OddDuck } from './OddDuck'
 import { Volume2Icon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
@@ -39,10 +38,7 @@ const COLUMN_ACCENTS = [
 export default function PatternChartDisplay({ list }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
 
-  const { columns, oddDucks, targetSound } = useMemo(() => {
-    const regular = list.patterns.filter((p) => !p.isOddDuck)
-    const oddDucks = list.patterns.filter((p) => p.isOddDuck)
-
+  const { columns, targetSound } = useMemo(() => {
     // Target sound: most common sound among patterns, fallback to list name.
     const soundCounts = new Map<string, number>()
     for (const p of list.patterns) {
@@ -58,8 +54,8 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
     }
 
     // Widest column first.
-    const columns = [...regular].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
-    return { columns, oddDucks, targetSound }
+    const columns = [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    return { columns, targetSound }
   }, [list])
 
   const openAnalysis = (word: string, pattern: SpellingPattern) => {
@@ -96,7 +92,7 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
         <p className="text-[30px] font-extrabold text-ink">{targetSound}</p>
       </div>
 
-      {columns.length === 0 && oddDucks.length === 0 ? (
+      {columns.length === 0 ? (
         <p className="py-12 text-center text-xl text-muted-foreground">
           No patterns in this list yet. Add patterns from My Spelling Lists first.
         </p>
@@ -127,20 +123,6 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
               )
             })}
           </div>
-
-          {oddDucks.length > 0 && (
-            <section aria-label="Odd ducks" className="mt-6 rounded-2xl border-2 border-plum bg-plum-soft p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <OddDuck className="size-11 text-plum" label="Odd duck" />
-                <h2 className="text-lg font-bold text-plum-ink">Odd ducks</h2>
-              </div>
-              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {oddDucks.flatMap((pattern) =>
-                  pattern.words.map((word) => renderWordCard(word, pattern, `${pattern.id}-${word}`))
-                )}
-              </ul>
-            </section>
-          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Tap a word to hear it and see its analysis. Wider columns are more common spellings.

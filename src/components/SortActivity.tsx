@@ -16,7 +16,6 @@ import { XIcon, CheckIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
-import { OddDuck } from './OddDuck'
 import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
@@ -148,11 +147,8 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const patterns = useMemo(() => {
-    const regular = list.patterns.filter((p) => !p.isOddDuck)
-    return [...regular].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    return [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
   }, [list])
-
-  const oddDucks = useMemo(() => list.patterns.filter((p) => p.isOddDuck), [list])
 
   const placedIds = useMemo(() => new Set(Object.keys(placements)), [placements])
   const bankWords = useMemo(() => bank.filter((w) => !placedIds.has(w.id)), [bank, placedIds])
@@ -302,18 +298,6 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             )
           })}
         </div>
-
-        {oddDucks.length > 0 && (
-          <section aria-label="Odd ducks" className="mt-6 rounded-2xl border-2 border-plum bg-plum-soft p-5">
-            <div className="mb-2 flex items-center gap-3">
-              <OddDuck className="size-11 text-plum" label="Odd duck" />
-              <h2 className="text-lg font-bold text-plum-ink">Odd ducks, already placed</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {oddDucks.flatMap((p) => p.words).join(', ')}: these spellings do not follow the patterns.
-            </p>
-          </section>
-        )}
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {!checked ? (

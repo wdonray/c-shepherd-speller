@@ -70,16 +70,15 @@ describe('SortActivity', () => {
     expect(screen.getByRole('button', { name: 'Drag the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
-    // Odd duck not in the bank.
-    expect(screen.queryByRole('button', { name: 'Drag the word said' })).not.toBeInTheDocument()
+    // Former odd duck words are now in the bank like any other word.
+    expect(screen.getByRole('button', { name: 'Drag the word said' })).toBeInTheDocument()
     // Columns show drop targets.
-    expect(screen.getAllByText('Drop words here')).toHaveLength(2)
+    expect(screen.getAllByText('Drop words here')).toHaveLength(3)
   })
 
-  it('shows odd ducks as already placed', () => {
+  it('does not show an odd ducks section even when a pattern has isOddDuck set', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.getByText('Odd ducks, already placed')).toBeInTheDocument()
-    expect(screen.getByText(/said/)).toBeInTheDocument()
+    expect(screen.queryByText('Odd ducks, already placed')).not.toBeInTheDocument()
   })
 
   it('shows keyboard instructions', () => {
@@ -158,12 +157,13 @@ describe('SortActivity', () => {
       dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
       dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p1' } })
       dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
+      dndHandlers.onDragEnd?.({ active: { id: 'p3:said' }, over: { id: 'p3' } })
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText('3 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
     })
     expect(playCorrectSound).toHaveBeenCalledTimes(1)
     expect(playIncorrectSound).not.toHaveBeenCalled()
@@ -178,7 +178,7 @@ describe('SortActivity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText('0 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('0 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
     })
     expect(playIncorrectSound).toHaveBeenCalledTimes(1)
     expect(playCorrectSound).not.toHaveBeenCalled()

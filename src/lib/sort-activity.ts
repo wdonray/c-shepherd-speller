@@ -22,7 +22,6 @@ export interface PlacementResult {
 export function buildWordBank(list: WordList): BankWord[] {
   const bank: BankWord[] = []
   for (const pattern of list.patterns) {
-    if (pattern.isOddDuck) continue
     for (const word of pattern.words) {
       bank.push({ id: `${pattern.id}:${word}`, word, patternId: pattern.id })
     }
