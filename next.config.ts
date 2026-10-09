@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
 // Modeled on donray.dev's header set. Notes on the CSP for this app:
@@ -34,7 +35,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https://api.github.com",
+      "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -53,4 +54,11 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withSentryConfig(nextConfig, {
+  org: 'donray-williams',
+  project: 'patternspell',
+  // Error tracking only: no sourcemap upload, no release tracking.
+  sourcemaps: { disable: true },
+  release: { create: false },
+  silent: true,
+})
