@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import * as Sentry from '@sentry/nextjs'
-import { reportError } from './report-error'
+import type { ErrorEvent } from '@sentry/nextjs'
+import { isNetworkError, reportError, sentryBeforeSend } from './report-error'
 
 vi.mock('@sentry/nextjs', () => ({
   withScope: vi.fn(),
@@ -68,5 +69,64 @@ describe('reportError', () => {
     reportError(new DOMException('quota exceeded', 'QuotaExceededError'))
 
     expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+  })
+
+  it('ignores network errors', () => {
+    mockScope()
+
+    reportError(new TypeError('Failed to fetch'), { location: 'Somewhere' })
+    reportError(new TypeError('NetworkError: A network error occurred.'))
+    reportError(new DOMException('offline', 'NetworkError'))
+
+    expect(Sentry.withScope).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+  })
+})
+
+describe('isNetworkError', () => {
+  it('detects Failed to fetch', () => {
+    expect(isNetworkError(new TypeError('Failed to fetch'))).toBe(true)
+  })
+
+  it('detects Safari network errors', () => {
+    expect(isNetworkError(new TypeError('NetworkError: A network error occurred.'))).toBe(true)
+  })
+
+  it('detects NetworkError DOMExceptions', () => {
+    expect(isNetworkError(new DOMException('offline', 'NetworkError'))).toBe(true)
+  })
+
+  it('detects network error strings', () => {
+    expect(isNetworkError('network error')).toBe(true)
+    expect(isNetworkError('Failed to fetch')).toBe(true)
+  })
+
+  it('rejects app errors', () => {
+    expect(isNetworkError(new Error('boom'))).toBe(false)
+    expect(isNetworkError(new TypeError('Cannot read properties of null'))).toBe(false)
+    expect(isNetworkError(new DOMException('quota exceeded', 'QuotaExceededError'))).toBe(false)
+    expect(isNetworkError('something broke')).toBe(false)
+    expect(isNetworkError(undefined)).toBe(false)
+    expect(isNetworkError(null)).toBe(false)
+    expect(isNetworkError(42)).toBe(false)
+  })
+})
+
+describe('sentryBeforeSend', () => {
+  const event = { event_id: 'abc' } as ErrorEvent
+
+  it('drops network errors', () => {
+    expect(sentryBeforeSend(event, { originalException: new TypeError('Failed to fetch') })).toBeNull()
+    expect(
+      sentryBeforeSend(event, {
+        originalException: new TypeError('NetworkError: A network error occurred.'),
+      })
+    ).toBeNull()
+    expect(sentryBeforeSend(event, { originalException: new DOMException('offline', 'NetworkError') })).toBeNull()
+  })
+
+  it('keeps other events', () => {
+    expect(sentryBeforeSend(event, { originalException: new Error('boom') })).toBe(event)
+    expect(sentryBeforeSend(event, {})).toBe(event)
   })
 })
