@@ -1,0 +1,85 @@
+name: Sentry issues
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: donray-williams
+      SENTRY_PROJECT: patternspell
+    steps:
+      - name: File new Sentry issues as GitHub issues
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
+            echo "SENTRY_AUTH_TOKEN repo secret is not set; skipping Sentry sync."
+            exit 0
+          fi
+
+          resp="$(curl -sS -w '\n%{http_code}' \
+            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/issues/?query=is:unresolved&limit=25")"
+          code="$(echo "$resp" | tail -n 1)"
+          issues="$(echo "$resp" | sed '$d')"
+          if [ "$code" != "200" ]; then
+            echo "Sentry API returned HTTP $code; skipping."
+            exit 1
+          fi
+
+          count="$(echo "$issues" | jq 'length')"
+          if [ "$count" -eq 0 ]; then
+            echo "No unresolved Sentry issues."
+            exit 0
+          fi
+
+          existing="$(gh issue list --label sentry --state all --json body --jq '[.[].body] | join("\n")')"
+
+          echo "$issues" | jq -c '.[]' | while read -r issue; do
+            id="$(echo "$issue" | jq -r '.id')"
+            title="$(echo "$issue" | jq -r '.title')"
+            if echo "$existing" | grep -qF "sentry-id: $id"; then
+              echo "Already filed, skipping: $id ($title)"
+              continue
+            fi
+            permalink="$(echo "$issue" | jq -r '.permalink')"
+            first_seen="$(echo "$issue" | jq -r '.firstSeen')"
+            last_seen="$(echo "$issue" | jq -r '.lastSeen')"
+            events="$(echo "$issue" | jq -r '.count')"
+            err_type="$(echo "$issue" | jq -r '.metadata.type // ""')"
+            err_value="$(echo "$issue" | jq -r '(.metadata.value // "") | .[0:500]')"
+            culprit="$(echo "$issue" | jq -r '.culprit // ""')"
+
+            tmpfile="$(mktemp)"
+            cat > "$tmpfile" <<EOF
+          ## Sentry issue
+
+          **Project:** $SENTRY_PROJECT
+          **Sentry:** $permalink
+          **First seen:** $first_seen | **Last seen:** $last_seen | **Events:** $events
+
+          ### Error
+
+          $err_type: $err_value
+
+          ### Culprit
+
+          $culprit
+
+          ---
+          Filed automatically from Sentry. This issue will not be filed again.
+
+          <!-- sentry-id: $id -->
+          EOF
+            gh issue create --title "[sentry] $title" --label sentry --body-file "$tmpfile"
+            rm -f "$tmpfile"
+            echo "Filed: $id ($title)"
+          done
