@@ -40,8 +40,8 @@ export default function PatternChartDisplay({ list }: PatternChartDisplayProps) 
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
 
   const { columns, oddDucks, targetSound } = useMemo(() => {
-    const regular = list.patterns.filter((p) => !p.isOddDuck)
-    const oddDucks = list.patterns.filter((p) => p.isOddDuck)
+    const regular = list.patterns
+    const oddDucks: typeof list.patterns = []
 
     // Target sound: most common sound among patterns, fallback to list name.
     const soundCounts = new Map<string, number>()

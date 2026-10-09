@@ -42,30 +42,52 @@ describe('WordAnalysis', () => {
     expect(patternCells.length).toBeGreaterThan(0)
   })
 
-  it('shows the odd duck note for irregular patterns', () => {
+  it('does not show an odd duck note even when the pattern has isOddDuck set', () => {
     render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.getByText('Odd duck')).toBeInTheDocument()
-    expect(
-      screen.getByText('This spelling is irregular. It does not follow the pattern, so memorize the whole word.')
-    ).toBeInTheDocument()
+    expect(screen.queryByText('Odd duck')).not.toBeInTheDocument()
   })
 
-  it('highlights the pattern in plum for odd ducks and sun for regular patterns', () => {
-    const { rerender } = render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
+  it('highlights the pattern in sun even when isOddDuck is set', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
     const heading = screen.getByRole('heading', { level: 2 })
-    expect(within(heading).getByText('ai').className).toContain('text-plum-ink')
-    rerender(<WordAnalysis {...defaultProps} />)
-    expect(within(screen.getByRole('heading', { level: 2 })).getByText('ai').className).toContain('text-sun-ink')
+    expect(within(heading).getByText('ai').className).toContain('text-sun-ink')
   })
 
-  it('shows the teacher sentence in a quote card when one exists', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, sentences: { rain: 'We danced in the rain.' } }} />)
-    expect(screen.getByText(/We danced in the rain\./)).toBeInTheDocument()
-  })
-
-  it('omits the sentence card and Say sentence button when the teacher added none', () => {
+  it('shows the mapping note for a multi-letter pattern', () => {
     render(<WordAnalysis {...defaultProps} />)
-    expect(screen.queryByRole('button', { name: 'Say sentence' })).not.toBeInTheDocument()
+    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
+  })
+
+  it('shows the mapping note for a single-letter pattern', () => {
+    render(<WordAnalysis {...defaultProps} word="cat" pattern={{ ...pattern, pattern: 'a', sound: 'short a' }} />)
+    expect(screen.getByText('The letter a spells short a here.')).toBeInTheDocument()
+  })
+
+  it('shows the regular mapping note even when isOddDuck is set', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
+    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
+  })
+
+  it('shows word parts for a clean suffix split', () => {
+    render(<WordAnalysis {...defaultProps} word="playing" />)
+    const line = screen.getByText(/base word/)
+    expect(line.textContent).toBe('Word parts: base word \u2018play\u2019 plus the suffix \u2018ing\u2019.')
+  })
+
+  it('shows word parts for a clean prefix split', () => {
+    render(<WordAnalysis {...defaultProps} word="redo" />)
+    const line = screen.getByText(/base word/)
+    expect(line.textContent).toBe('Word parts: base word \u2018do\u2019 plus the prefix \u2018re\u2019.')
+  })
+
+  it('omits the word parts line when no clean split applies', () => {
+    render(<WordAnalysis {...defaultProps} />)
+    expect(screen.queryByText(/base word/)).not.toBeInTheDocument()
+  })
+
+  it('shows the sentence in a quote card', () => {
+    render(<WordAnalysis {...defaultProps} />)
+    expect(screen.getByText(/The word is rain\./)).toBeInTheDocument()
   })
 
   it('speaks the word when Say it is clicked', () => {
@@ -75,17 +97,11 @@ describe('WordAnalysis', () => {
     expect(onSpeak).toHaveBeenCalledWith('rain')
   })
 
-  it('speaks the teacher sentence when Say sentence is clicked', () => {
+  it('speaks the sentence when Say sentence is clicked', () => {
     const onSpeak = vi.fn()
-    render(
-      <WordAnalysis
-        {...defaultProps}
-        onSpeak={onSpeak}
-        pattern={{ ...pattern, sentences: { rain: 'We danced in the rain.' } }}
-      />
-    )
+    render(<WordAnalysis {...defaultProps} onSpeak={onSpeak} />)
     fireEvent.click(screen.getByRole('button', { name: 'Say sentence' }))
-    expect(onSpeak).toHaveBeenCalledWith('We danced in the rain.')
+    expect(onSpeak).toHaveBeenCalledWith('The word is rain.')
   })
 
   it('closes when the X button is clicked', () => {

@@ -102,7 +102,7 @@ export default function SignIn() {
               </>
             )}
           </Button>
-          <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for classrooms.</p>
+          <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for everyone.</p>
         </CardContent>
       </Card>
     </div>

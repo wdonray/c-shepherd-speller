@@ -31,7 +31,7 @@ describe('SignIn page', () => {
     expect(screen.getByRole('heading', { name: 'PatternSpell' })).toBeInTheDocument()
     expect(screen.getByText('A pattern-based spelling toolkit for K-3 teachers.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument()
-    expect(screen.getByText('Free for classrooms.')).toBeInTheDocument()
+    expect(screen.getByText('Free for everyone.')).toBeInTheDocument()
   })
 
   it('sets data-auth-page on the body while mounted and removes it on unmount', () => {

@@ -148,11 +148,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const patterns = useMemo(() => {
-    const regular = list.patterns.filter((p) => !p.isOddDuck)
-    return [...regular].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    return [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
   }, [list])
 
-  const oddDucks = useMemo(() => list.patterns.filter((p) => p.isOddDuck), [list])
+  const oddDucks: typeof list.patterns = []
 
   const placedIds = useMemo(() => new Set(Object.keys(placements)), [placements])
   const bankWords = useMemo(() => bank.filter((w) => !placedIds.has(w.id)), [bank, placedIds])

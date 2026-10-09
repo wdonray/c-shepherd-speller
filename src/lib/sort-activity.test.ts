@@ -16,16 +16,11 @@ const list: WordList = {
 }
 
 describe('buildWordBank', () => {
-  it('collects words from non-odd-duck patterns', () => {
+  it('collects words from all patterns including former odd ducks', () => {
     const bank = buildWordBank(list)
-    expect(bank).toHaveLength(4)
+    expect(bank).toHaveLength(5)
     const words = bank.map((b) => b.word).sort()
-    expect(words).toEqual(['bake', 'cake', 'pain', 'rain'])
-  })
-
-  it('excludes odd duck words', () => {
-    const bank = buildWordBank(list)
-    expect(bank.some((b) => b.word === 'said')).toBe(false)
+    expect(words).toEqual(['bake', 'cake', 'pain', 'rain', 'said'])
   })
 
   it('tags each word with its pattern id', () => {
@@ -56,7 +51,7 @@ describe('buildWordBank', () => {
       ...list,
       patterns: [{ id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'], isOddDuck: true }],
     }
-    expect(buildWordBank(onlyOdd)).toEqual([])
+    expect(buildWordBank(onlyOdd)).toHaveLength(1)
   })
 
   it('shuffles the bank (order varies across runs)', () => {
