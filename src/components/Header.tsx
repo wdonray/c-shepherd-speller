@@ -44,6 +44,7 @@ export function Header() {
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
   const [avatarBroken, setAvatarBroken] = useState(false)
+  const [menuPhotoError, setMenuPhotoError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -57,7 +58,18 @@ export function Header() {
       }
     }
     fetchProfileImage()
-    const refresh = () => fetchProfileImage()
+    const refresh = (event?: Event) => {
+      const detailImage = (event as CustomEvent<{ image?: unknown }> | undefined)?.detail?.image
+      if (typeof detailImage === 'string') {
+        // The uploader already knows the new image; apply it directly.
+        // A re-fetch here can return stale data because the email lookup
+        // queries an eventually-consistent index.
+        setAvatarBroken(false)
+        setProfileImage(detailImage || undefined)
+        return
+      }
+      fetchProfileImage()
+    }
     window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, refresh)
     return () => {
       cancelled = true
@@ -83,6 +95,7 @@ export function Header() {
   async function handleMenuPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
+    setMenuPhotoError(null)
     try {
       if (!file || !session?.user?.id) return
       const dataUrl = await processProfileImage(file)
@@ -94,9 +107,9 @@ export function Header() {
       if (!response.ok) throw new Error('Failed to update photo')
       setProfileImage(dataUrl)
       setAvatarBroken(false)
-      window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
+      window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: dataUrl } }))
     } catch {
-      // Photo upload is a nicety; leave the menu as it was.
+      setMenuPhotoError('Could not update your photo. Check your connection and try again.')
     } finally {
       // The native picker is an OS dialog; reassert the menu in case Radix
       // closed it on focus loss, and return focus to the photo button.
@@ -177,6 +190,11 @@ export function Header() {
                   <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
                 </div>
               </div>
+              {menuPhotoError && (
+                <p role="alert" className="px-4 py-2 text-sm font-semibold text-coral-ink">
+                  {menuPhotoError}
+                </p>
+              )}
               <DropdownMenuSeparator className="bg-line" />
               <DropdownMenuItem
                 className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"

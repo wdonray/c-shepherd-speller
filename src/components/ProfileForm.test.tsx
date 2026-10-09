@@ -466,7 +466,7 @@ describe('ProfileForm', () => {
       expect(await screen.findByText('Saved')).toBeInTheDocument()
     })
 
-    it('dispatches a photo-updated event when the photo saves', async () => {
+    it('dispatches a photo-updated event with the new image when the photo saves', async () => {
       stubFetch(async (url: string, init?: RequestInit) =>
         init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
       )
@@ -478,6 +478,8 @@ describe('ProfileForm', () => {
       try {
         await selectPhoto()
         await waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
+        const event = listener.mock.calls[0][0] as CustomEvent
+        expect(event.detail).toEqual({ image: 'data:image/jpeg;base64,newphoto' })
       } finally {
         window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
       }
@@ -512,6 +514,28 @@ describe('ProfileForm', () => {
       })
       const putCall = getPutCalls(fetchMock)[0]
       expect(JSON.parse(putCall?.[1]?.body as string).image).toBe('')
+    })
+
+    it('dispatches a photo-updated event with an empty image when the photo is removed', async () => {
+      const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+        init?.method === 'PUT'
+          ? { ok: true, json: async () => ({}) }
+          : { ok: true, json: async () => ({ user: { ...user, image: 'data:image/jpeg;base64,saved' } }) }
+      )
+      renderForm()
+      await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+      const listener = vi.fn()
+      window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+      try {
+        fireEvent.click(screen.getByRole('button', { name: /remove/i }))
+        await waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
+        const event = listener.mock.calls[0][0] as CustomEvent
+        expect(event.detail).toEqual({ image: '' })
+      } finally {
+        window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+      }
+      expect(fetchMock).toHaveBeenCalled()
     })
 
     it('ignores photo selection when no file is chosen', async () => {
