@@ -157,12 +157,13 @@ describe('SortActivity', () => {
       dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
       dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p1' } })
       dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
+      dndHandlers.onDragEnd?.({ active: { id: 'p3:said' }, over: { id: 'p3' } })
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText('3 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
     })
     expect(playCorrectSound).toHaveBeenCalledTimes(1)
     expect(playIncorrectSound).not.toHaveBeenCalled()

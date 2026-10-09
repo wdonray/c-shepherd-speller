@@ -63,7 +63,7 @@ describe('PatternChartDisplay', () => {
 
   it('speaks the word and opens its analysis when a word card is tapped', () => {
     render(<PatternChartDisplay list={list} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Hear and analyze the word cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word cake' }))
     expect(speak).toHaveBeenCalledWith('cake')
     expect(screen.getByRole('dialog', { name: 'Word analysis for cake' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close word analysis' }))
@@ -89,7 +89,7 @@ describe('PatternChartDisplay', () => {
 
   it('gives word cards a visible hover and matching focus-visible treatment, motion-free', () => {
     render(<PatternChartDisplay list={list} />)
-    const card = screen.getByRole('button', { name: 'Hear and analyze the word cake' })
+    const card = screen.getByRole('button', { name: 'Hear the word cake' })
     expect(card).toHaveClass(
       'hover:border-sky-deep',
       'hover:bg-sky-soft',
