@@ -88,8 +88,20 @@ describe('processProfileImage', () => {
 
   it('rejects non-image files', async () => {
     await expect(processProfileImage(makeFile('text/plain', 100))).rejects.toThrow(
-      'Please choose a JPEG, PNG, or WebP image.'
+      'Please choose a JPEG, PNG, WebP, or HEIC image.'
     )
+  })
+
+  it('accepts HEIC files and converts them to a JPEG data URL', async () => {
+    const dataUrl = await processProfileImage(makeFile('image/heic', 1000))
+    expect(dataUrl).toBe('data:image/jpeg;base64,small')
+    expect(drawImage).toHaveBeenCalledTimes(1)
+  })
+
+  it('accepts HEIF files and converts them to a JPEG data URL', async () => {
+    const dataUrl = await processProfileImage(makeFile('image/heif', 1000))
+    expect(dataUrl).toBe('data:image/jpeg;base64,small')
+    expect(drawImage).toHaveBeenCalledTimes(1)
   })
 
   it('rejects files over 5MB', async () => {
