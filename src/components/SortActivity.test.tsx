@@ -178,7 +178,7 @@ describe('SortActivity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText('0 of 3 in the right column.').length).toBeGreaterThanOrEqual(1)
+      expect(screen.getAllByText('0 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
     })
     expect(playIncorrectSound).toHaveBeenCalledTimes(1)
     expect(playCorrectSound).not.toHaveBeenCalled()

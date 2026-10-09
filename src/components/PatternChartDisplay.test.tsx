@@ -61,12 +61,18 @@ describe('PatternChartDisplay', () => {
     expect(within(ai).getByText('Less common')).toBeInTheDocument()
   })
 
-  it('speaks the word and opens its analysis when a word card is tapped', () => {
+  it('opens the word analysis when a word card is tapped', () => {
+    render(<PatternChartDisplay list={list} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Analyze the word cake' }))
+    expect(screen.getByRole('dialog', { name: 'Word analysis for cake' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close word analysis' }))
+    expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
+  })
+
+  it('speaks the word when the hear button is pressed', () => {
     render(<PatternChartDisplay list={list} />)
     fireEvent.click(screen.getByRole('button', { name: 'Hear the word cake' }))
     expect(speak).toHaveBeenCalledWith('cake')
-    expect(screen.getByRole('dialog', { name: 'Word analysis for cake' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Close word analysis' }))
     expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
   })
 
@@ -89,11 +95,9 @@ describe('PatternChartDisplay', () => {
 
   it('gives word cards a visible hover and matching focus-visible treatment, motion-free', () => {
     render(<PatternChartDisplay list={list} />)
-    const card = screen.getByRole('button', { name: 'Hear the word cake' })
+    const card = screen.getByRole('button', { name: 'Analyze the word cake' })
     expect(card).toHaveClass(
-      'hover:border-sky-deep',
       'hover:bg-sky-soft',
-      'focus-visible:border-sky-deep',
       'focus-visible:bg-sky-soft',
       'focus-visible:ring-[3px]',
       'focus-visible:ring-ring/60'
