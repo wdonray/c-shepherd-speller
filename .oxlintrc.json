@@ -5,34 +5,16 @@
     "es2022": true,
     "node": true
   },
-  "ignorePatterns": [
-    "node_modules/",
-    ".next/",
-    "out/",
-    "dist/",
-    "build/",
-    "*.config.js",
-    "*.config.ts"
-  ],
+  "ignorePatterns": ["node_modules/", ".next/", "out/", "dist/", "build/", "*.config.js", "*.config.ts"],
   "overrides": [
     {
-      "files": [
-        "*.test.ts",
-        "*.test.tsx",
-        "*.spec.ts",
-        "*.spec.tsx"
-      ],
+      "files": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
       "rules": {
         "typescript/no-explicit-any": "off"
       }
     }
   ],
-  "plugins": [
-    "typescript",
-    "react",
-    "jsx-a11y",
-    "nextjs"
-  ],
+  "plugins": ["typescript", "react", "jsx-a11y", "nextjs"],
   "rules": {},
   "settings": {
     "next": {
