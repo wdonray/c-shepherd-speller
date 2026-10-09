@@ -1,17 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './route'
-import { recordEvent, recordPageView, isRateLimited, __resetRateLimitForTests } from '@/lib/analytics'
+import { recordEngagedVisitor, recordEvent, recordPageView, isRateLimited } from '@/lib/analytics'
 
 vi.mock('@/lib/analytics', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/analytics')>()
   return {
     ...actual,
+    recordEngagedVisitor: vi.fn(),
     recordEvent: vi.fn(),
     recordPageView: vi.fn(),
     isRateLimited: vi.fn(),
   }
 })
 
+const recordEngagedVisitorMock = vi.mocked(recordEngagedVisitor)
 const recordEventMock = vi.mocked(recordEvent)
 const recordPageViewMock = vi.mocked(recordPageView)
 const isRateLimitedMock = vi.mocked(isRateLimited)
@@ -31,9 +33,9 @@ function makeRequest(body: unknown, userAgent = 'Mozilla/5.0'): Request {
 describe('POST /api/track', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    __resetRateLimitForTests()
     isRateLimitedMock.mockReturnValue(false)
     recordPageViewMock.mockResolvedValue(true)
+    recordEngagedVisitorMock.mockResolvedValue(true)
     recordEventMock.mockResolvedValue(true)
   })
 
@@ -42,6 +44,22 @@ describe('POST /api/track', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ ok: true })
     expect(recordPageViewMock).toHaveBeenCalledWith('/display', '1.2.3.4', 'Mozilla/5.0')
+    expect(recordEngagedVisitorMock).not.toHaveBeenCalled()
+  })
+
+  it('records an engaged visitor when engaged is true', async () => {
+    const res = await POST(makeRequest({ path: '/display', engaged: true }))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(recordPageViewMock).toHaveBeenCalledWith('/display', '1.2.3.4', 'Mozilla/5.0')
+    expect(recordEngagedVisitorMock).toHaveBeenCalledWith('/display', '1.2.3.4', 'Mozilla/5.0')
+  })
+
+  it('does not record engaged visitor when engaged is false', async () => {
+    const res = await POST(makeRequest({ path: '/display', engaged: false }))
+    expect(res.status).toBe(200)
+    expect(recordPageViewMock).toHaveBeenCalled()
+    expect(recordEngagedVisitorMock).not.toHaveBeenCalled()
   })
 
   it('returns 429 when rate limited', async () => {
