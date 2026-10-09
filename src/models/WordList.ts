@@ -29,6 +29,8 @@ export const SpellingPatternSchema = z.object({
   words: z.array(z.string().min(1).max(50)).max(200),
   /** True for the irregular "odd ducks" section */
   isOddDuck: z.boolean().optional(),
+  /** True when the teacher has locked this pattern; hidden until taught */
+  isLocked: z.boolean().optional(),
   /** Teacher-picked example sentences, keyed by word */
   sentences: z.record(z.string().min(1).max(50), z.string().min(1).max(300)).optional(),
 })

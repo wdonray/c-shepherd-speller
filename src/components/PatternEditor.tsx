@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
-import { XIcon, InfoIcon, Trash2Icon } from 'lucide-react'
+import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import { OddDuck } from './OddDuck'
 import SentencePicker from './SentencePicker'
@@ -55,6 +55,7 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const isOddDuck = pattern.isOddDuck ?? false
+  const isLocked = pattern.isLocked ?? false
 
   const accent = isOddDuck
     ? { bar: 'bg-plum', text: 'text-plum-ink', fill: 'bg-plum', soft: 'bg-plum-soft' }
@@ -315,28 +316,55 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
             <Trash2Icon className="size-5" aria-hidden="true" />
             Delete pattern
           </button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-pressed={isOddDuck}
-                onClick={() => update({ isOddDuck: !isOddDuck })}
-                className={cn(
-                  'inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                  isOddDuck
-                    ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
-                    : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
-                )}
-              >
-                <OddDuck className="size-5 text-plum" />
-                {isOddDuck ? 'Odd duck' : 'Mark as odd duck'}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-60">
-              Odd ducks are irregular spellings that do not follow the usual pattern. Mark them so students know these
-              words just have to be memorized.
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-pressed={isLocked}
+                  onClick={() => update({ isLocked: !isLocked })}
+                  className={cn(
+                    'inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                    isLocked
+                      ? 'border-sky-deep bg-sky-soft text-sky-ink hover:brightness-95 focus-visible:brightness-95'
+                      : 'border-line bg-transparent text-muted-foreground hover:border-sky-deep hover:text-sky-ink focus-visible:border-sky-deep focus-visible:text-sky-ink'
+                  )}
+                >
+                  {isLocked ? (
+                    <LockIcon className="size-5 text-sky-deep" aria-hidden="true" />
+                  ) : (
+                    <LockOpenIcon className="size-5" aria-hidden="true" />
+                  )}
+                  {isLocked ? 'Locked' : 'Lock pattern'}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-60">
+                Locked patterns are hidden in present mode until you unlock them.
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-pressed={isOddDuck}
+                  onClick={() => update({ isOddDuck: !isOddDuck })}
+                  className={cn(
+                    'inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                    isOddDuck
+                      ? 'border-plum bg-plum-soft text-plum-ink hover:brightness-95 focus-visible:brightness-95'
+                      : 'border-line bg-transparent text-muted-foreground hover:border-plum hover:text-plum-ink focus-visible:border-plum focus-visible:text-plum-ink'
+                  )}
+                >
+                  <OddDuck className="size-5 text-plum" />
+                  {isOddDuck ? 'Odd duck' : 'Mark as odd duck'}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-60">
+                Odd ducks are irregular spellings that do not follow the usual pattern. Mark them so students know these
+                words just have to be memorized.
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <Dialog open={wordPendingDelete !== null} onOpenChange={(open) => !open && setWordPendingDelete(null)}>
