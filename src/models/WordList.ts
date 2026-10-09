@@ -33,6 +33,15 @@ export const SpellingPatternSchema = z.object({
   isLocked: z.boolean().optional(),
   /** Teacher-picked keyword anchor emoji, e.g. bee for "ee" */
   keywordEmoji: z.string().min(1).max(20).optional(),
+  /**
+   * Teacher-uploaded keyword anchor photo as a JPEG data URL thumbnail.
+   * Takes display precedence over keywordEmoji. Capped well under the
+   * DynamoDB 400KB item limit: keyword images are small header thumbnails.
+   */
+  keywordImage: z
+    .string()
+    .max(12 * 1024)
+    .optional(),
   /** Teacher-picked example sentences, keyed by word */
   sentences: z.record(z.string().min(1).max(50), z.string().min(1).max(300)).optional(),
 })

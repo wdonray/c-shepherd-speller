@@ -222,6 +222,47 @@ describe('PatternChartDisplay', () => {
     expect(emoji.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('renders the uploaded photo in the header, taking precedence over the emoji', () => {
+    const withPhoto: WordList = {
+      ...list,
+      patterns: [
+        { ...list.patterns[0], keywordImage: 'data:image/jpeg;base64,photo', keywordEmoji: '🐝' },
+        ...list.patterns.slice(1),
+      ],
+    }
+    render(<PatternChartDisplay list={withPhoto} onToggleLock={vi.fn()} />)
+    const column = screen.getByRole('region', { name: 'Pattern a_e' })
+    const photo = within(column).getByRole('img', { name: 'Keyword image for pattern a_e' })
+    expect(photo.tagName).toBe('IMG')
+    expect(photo).toHaveAttribute('src', 'data:image/jpeg;base64,photo')
+    // The emoji is not rendered when a photo is present.
+    expect(within(column).queryByText('🐝')).not.toBeInTheDocument()
+    // It sits above the pattern name inside the same header.
+    const heading = within(column).getByRole('heading', { name: 'a_e' })
+    expect(photo.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('hides the keyword photo behind the locked placeholder when the pattern is locked', () => {
+    const locked: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordImage: 'data:image/jpeg;base64,photo', isLocked: true }],
+    }
+    render(<PatternChartDisplay list={locked} onToggleLock={vi.fn()} />)
+    expect(screen.queryByRole('img', { name: /keyword image/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Locked pattern' })).toBeInTheDocument()
+  })
+
+  it('renders the keyword photo in the print variant', () => {
+    const withPhoto: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordImage: 'data:image/jpeg;base64,photo' }, ...list.patterns.slice(1)],
+    }
+    render(<PatternChartDisplay list={withPhoto} variant="print" onToggleLock={vi.fn()} />)
+    const photo = screen.getByRole('img', { name: 'Keyword image for pattern a_e' })
+    expect(photo.tagName).toBe('IMG')
+    expect(photo).toHaveAttribute('src', 'data:image/jpeg;base64,photo')
+  })
+
   it('renders no keyword image and keeps the header layout when unset', () => {
     render(<PatternChartDisplay list={list} onToggleLock={vi.fn()} />)
     const column = screen.getByRole('region', { name: 'Pattern a_e' })

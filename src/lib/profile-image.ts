@@ -22,11 +22,25 @@ function loadImage(objectUrl: string): Promise<HTMLImageElement> {
   })
 }
 
+export interface ProcessImageOptions {
+  /** Max pixel dimension on the long edge. Defaults to PROFILE_IMAGE_MAX_DIMENSION. */
+  maxDimension?: number
+  /** Max data URL length in chars. Defaults to PROFILE_IMAGE_MAX_DATA_URL_LENGTH. */
+  maxDataUrlLength?: number
+}
+
+/** Smaller caps for keyword thumbnails: they display at ~48px, and a list can hold up to 20 patterns. */
+export const KEYWORD_IMAGE_MAX_DIMENSION = 128
+export const KEYWORD_IMAGE_MAX_DATA_URL_LENGTH = 10 * 1024
+
 /**
- * Validate and resize an image file for use as a profile photo.
- * Resolves to a JPEG data URL, or rejects with a user-facing error message.
+ * Validate and resize an image file for use as a profile photo (or, with
+ * options, a smaller keyword thumbnail). Resolves to a JPEG data URL, or
+ * rejects with a user-facing error message.
  */
-export async function processProfileImage(file: File): Promise<string> {
+export async function processProfileImage(file: File, opts?: ProcessImageOptions): Promise<string> {
+  const maxDimension = opts?.maxDimension ?? PROFILE_IMAGE_MAX_DIMENSION
+  const maxDataUrlLength = opts?.maxDataUrlLength ?? PROFILE_IMAGE_MAX_DATA_URL_LENGTH
   if (!PROFILE_IMAGE_MIME_TYPES.includes(file.type as (typeof PROFILE_IMAGE_MIME_TYPES)[number])) {
     throw new Error('Please choose a JPEG, PNG, WebP, or HEIC image.')
   }
@@ -37,7 +51,7 @@ export async function processProfileImage(file: File): Promise<string> {
   const objectUrl = URL.createObjectURL(file)
   try {
     const img = await loadImage(objectUrl)
-    const scale = Math.min(1, PROFILE_IMAGE_MAX_DIMENSION / Math.max(img.width, img.height))
+    const scale = Math.min(1, maxDimension / Math.max(img.width, img.height))
     const width = Math.max(1, Math.round(img.width * scale))
     const height = Math.max(1, Math.round(img.height * scale))
 
@@ -50,10 +64,22 @@ export async function processProfileImage(file: File): Promise<string> {
 
     for (const quality of QUALITY_STEPS) {
       const dataUrl = canvas.toDataURL('image/jpeg', quality)
-      if (dataUrl.length <= PROFILE_IMAGE_MAX_DATA_URL_LENGTH) return dataUrl
+      if (dataUrl.length <= maxDataUrlLength) return dataUrl
     }
     throw new Error('That image is too detailed to shrink down. Please try a smaller one.')
   } finally {
     URL.revokeObjectURL(objectUrl)
   }
+}
+
+/**
+ * Process an uploaded image into a small JPEG data URL thumbnail for a
+ * spelling pattern's keyword anchor. Thumbnails stay tiny so a list with
+ * many patterns stays well under the DynamoDB 400KB item limit.
+ */
+export function processKeywordImage(file: File): Promise<string> {
+  return processProfileImage(file, {
+    maxDimension: KEYWORD_IMAGE_MAX_DIMENSION,
+    maxDataUrlLength: KEYWORD_IMAGE_MAX_DATA_URL_LENGTH,
+  })
 }

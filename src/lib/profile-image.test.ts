@@ -151,4 +151,108 @@ describe('processProfileImage', () => {
     await expect(processProfileImage(makeFile('image/png', 100))).rejects.toThrow()
     expect(revoke).toHaveBeenCalledWith('blob:fake')
   })
+
+  it('honors a smaller maxDimension override', async () => {
+    const canvases: { width: number; height: number }[] = []
+    const createElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+      if (tagName === 'canvas') {
+        const canvas = { width: 0, height: 0 }
+        canvases.push(canvas)
+        return {
+          ...canvas,
+          get width() {
+            return canvas.width
+          },
+          set width(v: number) {
+            canvas.width = v
+          },
+          get height() {
+            return canvas.height
+          },
+          set height(v: number) {
+            canvas.height = v
+          },
+          getContext: () => ({ drawImage }),
+          toDataURL,
+        } as unknown as HTMLCanvasElement
+      }
+      return createElement(tagName as keyof HTMLElementTagNameMap, options)
+    })
+    await processProfileImage(makeFile('image/png', 1000), { maxDimension: 128 })
+    // 800x600 scaled to 128 on the long edge.
+    expect(canvases[0].width).toBe(128)
+    expect(canvases[0].height).toBe(96)
+  })
+
+  it('honors a smaller maxDataUrlLength override', async () => {
+    toDataURL.mockReturnValue('data:image/jpeg;base64,' + 'a'.repeat(5000))
+    await expect(processProfileImage(makeFile('image/png', 1000), { maxDataUrlLength: 100 })).rejects.toThrow(
+      'That image is too detailed to shrink down. Please try a smaller one.'
+    )
+  })
+})
+
+describe('processKeywordImage', () => {
+  let toDataURL: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    toDataURL = vi.fn().mockReturnValue('data:image/jpeg;base64,small')
+    vi.stubGlobal(
+      'Image',
+      class {
+        onload: (() => void) | null = null
+        src = ''
+        width = 800
+        height = 600
+        constructor() {
+          queueMicrotask(() => this.onload?.())
+        }
+      }
+    )
+    const createElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+      if (tagName === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({ drawImage: vi.fn() }),
+          toDataURL,
+        } as unknown as HTMLCanvasElement
+      }
+      return createElement(tagName as keyof HTMLElementTagNameMap, options)
+    })
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn().mockReturnValue('blob:fake'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('produces a thumbnail data URL well under the per-pattern budget', async () => {
+    const { processKeywordImage, KEYWORD_IMAGE_MAX_DATA_URL_LENGTH } = await import('./profile-image')
+    // Simulate the largest data URL the keyword pipeline will ever return.
+    toDataURL.mockReturnValue('data:image/jpeg;base64,' + 'a'.repeat(KEYWORD_IMAGE_MAX_DATA_URL_LENGTH - 30))
+    const dataUrl = await processKeywordImage(new File([new Uint8Array(100)], 'bee.heic', { type: 'image/heic' }))
+    expect(dataUrl.length).toBeLessThanOrEqual(KEYWORD_IMAGE_MAX_DATA_URL_LENGTH)
+    // 20 patterns (the schema max) at the cap stays under DynamoDB's 400KB item limit.
+    expect(KEYWORD_IMAGE_MAX_DATA_URL_LENGTH * 20).toBeLessThan(400 * 1024)
+  })
+
+  it('accepts HEIC uploads', async () => {
+    const { processKeywordImage } = await import('./profile-image')
+    const dataUrl = await processKeywordImage(new File([new Uint8Array(100)], 'bee.heic', { type: 'image/heic' }))
+    expect(dataUrl).toBe('data:image/jpeg;base64,small')
+  })
+
+  it('rejects unsupported formats with the user-facing message', async () => {
+    const { processKeywordImage } = await import('./profile-image')
+    await expect(
+      processKeywordImage(new File([new Uint8Array(100)], 'bee.tiff', { type: 'image/tiff' }))
+    ).rejects.toThrow('Please choose a JPEG, PNG, WebP, or HEIC image.')
+  })
 })
