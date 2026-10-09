@@ -35,6 +35,29 @@ describe('SpellingManagerSheet', () => {
     })
   })
 
+  it('closes the sheet when navigating to a list', async () => {
+    const { getLists } = await import('@/lib/lists-api')
+    vi.mocked(getLists).mockResolvedValue([
+      {
+        id: 'l1',
+        userId: 'u1',
+        name: 'Week 1',
+        patterns: [],
+        createdAt: '2026-10-06T00:00:00.000Z',
+        updatedAt: '2026-10-06T00:00:00.000Z',
+      },
+    ])
+    const setIsOpen = vi.fn()
+    render(<SpellingManagerSheet isOpen={true} setIsOpen={setIsOpen} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 1')).toBeInTheDocument()
+    })
+    const { fireEvent } = await import('@testing-library/react')
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+    expect(setIsOpen).toHaveBeenCalledWith(false)
+  })
+
   it('does not render content when closed', () => {
     const { container } = render(<SpellingManagerSheet isOpen={false} setIsOpen={vi.fn()} />)
     // Sheet content is hidden when closed
