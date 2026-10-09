@@ -10,6 +10,7 @@ import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-reac
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import { OddDuck } from './OddDuck'
 import SentencePicker from './SentencePicker'
+import KeywordEmojiPicker from './KeywordEmojiPicker'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
@@ -126,22 +127,32 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="space-y-1.5">
-              <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
-              <Input
-                id={`pattern-spelling-${pattern.id}`}
-                value={pattern.pattern}
-                onChange={(e) => update({ pattern: e.target.value })}
-                placeholder="e.g. a_e"
-                maxLength={20}
-                aria-label="Pattern spelling"
-                className={cn(
-                  'h-auto border-2 border-line bg-card px-2 text-[22px] font-bold',
-                  'placeholder:text-muted-foreground',
-                  'focus-visible:border-sky-deep focus-visible:ring-[3px]',
-                  accent.text
-                )}
-              />
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
+                <Input
+                  id={`pattern-spelling-${pattern.id}`}
+                  value={pattern.pattern}
+                  onChange={(e) => update({ pattern: e.target.value })}
+                  placeholder="e.g. a_e"
+                  maxLength={20}
+                  aria-label="Pattern spelling"
+                  className={cn(
+                    'h-auto border-2 border-line bg-card px-2 text-[22px] font-bold',
+                    'placeholder:text-muted-foreground',
+                    'focus-visible:border-sky-deep focus-visible:ring-[3px]',
+                    accent.text
+                  )}
+                />
+              </div>
+              <div className="shrink-0 space-y-1.5">
+                <span className="flex items-center text-sm leading-none font-medium select-none">Keyword image</span>
+                <KeywordEmojiPicker
+                  patternName={pattern.pattern}
+                  value={pattern.keywordEmoji}
+                  onSelect={(keywordEmoji) => update({ keywordEmoji })}
+                />
+              </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="shrink-0 text-[15px] text-muted-foreground">Sound:</span>

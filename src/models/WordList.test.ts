@@ -57,6 +57,33 @@ describe('WordList model', () => {
       }
     })
 
+    it('accepts a pattern with a keyword emoji anchor', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordEmoji: '🐝' })
+      expect(result.success).toBe(true)
+      // The emoji must survive parsing, not just be stripped as an unknown key.
+      if (result.success) {
+        expect(result.data.keywordEmoji).toBe('🐝')
+      }
+    })
+
+    it('treats a missing keywordEmoji as unset (backwards compatible)', () => {
+      const result = SpellingPatternSchema.safeParse(validPattern)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.keywordEmoji).toBeUndefined()
+      }
+    })
+
+    it('rejects an empty keywordEmoji', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordEmoji: '' })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects a keywordEmoji longer than 20 characters', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordEmoji: 'a'.repeat(21) })
+      expect(result.success).toBe(false)
+    })
+
     it('accepts a pattern with example sentences', () => {
       const result = SpellingPatternSchema.safeParse({
         ...validPattern,

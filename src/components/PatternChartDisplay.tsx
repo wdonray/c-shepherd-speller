@@ -123,6 +123,15 @@ export default function PatternChartDisplay({ list, onToggleLock }: PatternChart
         style={{ flex: '1 1 0', minWidth: 220 }}
       >
         <div className="mb-4 text-center">
+          {pattern.keywordEmoji && (
+            <span
+              role="img"
+              aria-label={`Keyword image for pattern ${pattern.pattern}`}
+              className="mb-2 block text-5xl leading-none"
+            >
+              {pattern.keywordEmoji}
+            </span>
+          )}
           <div className="flex items-center justify-center gap-2">
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
             {renderLockToggle(pattern)}

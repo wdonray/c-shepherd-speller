@@ -126,6 +126,45 @@ describe('PUT /api/lists/[id]', () => {
     const res = await PUT(jsonRequest({ name: 'Renamed' }), params)
     expect(res.status).toBe(500)
   })
+
+  it('persists keywordEmoji on a pattern (no route change needed)', async () => {
+    requireUser.mockResolvedValue(authed)
+    const patterns = [
+      {
+        id: 'p1',
+        sound: 'long e',
+        pattern: 'ee',
+        frequency: 'common',
+        words: ['bee'],
+        keywordEmoji: '🐝',
+      },
+    ]
+    updateList.mockResolvedValue({ ...stored, patterns })
+
+    const res = await PUT(jsonRequest({ patterns }), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.list.patterns[0].keywordEmoji).toBe('🐝')
+    expect(updateList).toHaveBeenCalledWith('u1', 'l1', { patterns })
+  })
+
+  it('rejects an invalid keywordEmoji on a pattern', async () => {
+    requireUser.mockResolvedValue(authed)
+    const patterns = [
+      {
+        id: 'p1',
+        sound: 'long e',
+        pattern: 'ee',
+        frequency: 'common',
+        words: ['bee'],
+        keywordEmoji: '',
+      },
+    ]
+
+    const res = await PUT(jsonRequest({ patterns }), params)
+    expect(res.status).toBe(400)
+    expect(updateList).not.toHaveBeenCalled()
+  })
 })
 
 describe('DELETE /api/lists/[id]', () => {

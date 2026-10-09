@@ -206,4 +206,39 @@ describe('PatternChartDisplay', () => {
     // Locked placeholders still render so each pattern can be unlocked.
     expect(screen.getAllByRole('region', { name: 'Locked pattern' })).toHaveLength(3)
   })
+
+  it('renders the keyword emoji large above the pattern name when set', () => {
+    const withEmoji: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordEmoji: '🐝' }, ...list.patterns.slice(1)],
+    }
+    render(<PatternChartDisplay list={withEmoji} onToggleLock={vi.fn()} />)
+    const column = screen.getByRole('region', { name: 'Pattern a_e' })
+    const emoji = within(column).getByRole('img', { name: 'Keyword image for pattern a_e' })
+    expect(emoji).toHaveTextContent('🐝')
+    expect(emoji).toHaveClass('text-5xl')
+    // It sits above the pattern name inside the same header.
+    const heading = within(column).getByRole('heading', { name: 'a_e' })
+    expect(emoji.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('renders no keyword image and keeps the header layout when unset', () => {
+    render(<PatternChartDisplay list={list} onToggleLock={vi.fn()} />)
+    const column = screen.getByRole('region', { name: 'Pattern a_e' })
+    expect(within(column).queryByRole('img', { name: /keyword image/i })).not.toBeInTheDocument()
+    // Header is unchanged: name, lock toggle, and power bar all present.
+    expect(within(column).getByRole('heading', { name: 'a_e' })).toBeInTheDocument()
+    expect(within(column).getByRole('button', { name: 'Lock pattern a_e' })).toBeInTheDocument()
+    expect(within(column).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+  })
+
+  it('hides the keyword emoji behind the locked placeholder when the pattern is locked', () => {
+    const locked: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordEmoji: '🐝', isLocked: true }],
+    }
+    render(<PatternChartDisplay list={locked} onToggleLock={vi.fn()} />)
+    expect(screen.queryByRole('img', { name: /keyword image/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Locked pattern' })).toBeInTheDocument()
+  })
 })
