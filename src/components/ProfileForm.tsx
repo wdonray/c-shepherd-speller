@@ -156,7 +156,10 @@ export default function ProfileForm() {
       await updateUser(user.id, payload)
       setUser({ ...user, ...payload })
       if (isPhotoChange) {
-        window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT))
+        // Carry the new image on the event so listeners can update
+        // immediately; a re-fetch here can return stale data because the
+        // email lookup queries an eventually-consistent index.
+        window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: payload.image } }))
       }
       setSaveStatus('saved')
       savedTimerRef.current = setTimeout(() => {

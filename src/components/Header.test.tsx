@@ -247,6 +247,55 @@ describe('Header', () => {
     )
   })
 
+  it('clears the avatar when the event carries an empty image', async () => {
+    // Photo removed on the profile page: the event carries an empty image
+    // and the avatar falls back to initials.
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,old',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).toHaveAttribute(
+      'src',
+      'data:image/jpeg;base64,old'
+    )
+
+    window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: '' } }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
+  })
+
+  it('updates the avatar from the event payload when the re-fetch returns stale data', async () => {
+    // Reproduces the reported bug: after a profile-page upload, the Header
+    // re-fetches the user, but the email lookup can return stale data (it
+    // queries an eventually-consistent index). The avatar must update from
+    // the event payload instead of depending on the re-fetch.
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: /open account menu/i })).toHaveTextContent('DW')
+
+    // The re-fetch keeps returning the stale record (no image), simulating index lag.
+    window.dispatchEvent(
+      new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: 'data:image/jpeg;base64,newphoto' } })
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /open account menu/i }).querySelector('img')).toHaveAttribute(
+        'src',
+        'data:image/jpeg;base64,newphoto'
+      )
+    )
+  })
+
   it('opens the spelling sheet from My Spelling Lists', () => {
     mockSignedIn()
     render(<Header />)
@@ -514,7 +563,7 @@ describe('Header', () => {
     fetchMock.mockRestore()
   })
 
-  it('handles photo upload failure gracefully', async () => {
+  it('shows an error when the menu photo upload fails', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockRejectedValue(new Error('bad image'))
     mockSignedIn()
@@ -524,13 +573,10 @@ describe('Header', () => {
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    await waitFor(() => {
-      expect(processMock).toHaveBeenCalled()
-    })
-    // Should not throw; the menu already closed.
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update your photo')
   })
 
-  it('handles a non-ok upload response gracefully', async () => {
+  it('shows an error when the menu photo upload response is not ok', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
     const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }))
@@ -541,10 +587,31 @@ describe('Header', () => {
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled()
-    })
-    // Should not throw; the error is caught and ignored.
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update your photo')
+    fetchMock.mockRestore()
+  })
+
+  it('dispatches the photo-updated event with the new image after a menu upload', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    mockSignedIn()
+    render(<Header />)
+
+    const listener = vi.fn()
+    window.addEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+    try {
+      const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+      const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+      fireEvent.change(fileInput, { target: { files: [file] } })
+
+      await waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
+      expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        image: 'data:image/jpeg;base64,newphoto',
+      })
+    } finally {
+      window.removeEventListener(PROFILE_PHOTO_UPDATED_EVENT, listener)
+    }
     fetchMock.mockRestore()
   })
 
