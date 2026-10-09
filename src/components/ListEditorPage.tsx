@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeftIcon, CheckCircle2Icon, XIcon } from 'lucide-react'
+import BackLink from '@/components/BackLink'
+import { CheckCircle2Icon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -225,15 +226,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-8">
+    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="inline-flex cursor-pointer items-center text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
-          My lists
-        </Link>
+        <BackLink href="/">My lists</BackLink>
         <SaveIndicator status={saveStatus} />
       </div>
 
@@ -281,11 +276,16 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h2 className="text-[22px] font-bold">Spelling patterns ({list.patterns.length})</h2>
-        <p className="text-sm text-muted-foreground">
-          One column per spelling. Column width follows frequency: common spellings get the widest column.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h2 className="text-[22px] font-bold">Spelling patterns ({list.patterns.length})</h2>
+          <p className="text-sm text-muted-foreground">
+            One column per spelling. Column width follows frequency: common spellings get the widest column.
+          </p>
+        </div>
+        <Button onClick={addPattern} className="shrink-0">
+          + Add a pattern
+        </Button>
       </div>
 
       {list.patterns.length === 0 ? (
@@ -309,16 +309,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             />
           ))}
         </div>
-      )}
-
-      {list.patterns.length > 0 && (
-        <button
-          type="button"
-          onClick={addPattern}
-          className="w-full cursor-pointer rounded-2xl border-2 border-leaf bg-leaf-soft py-4 text-[17px] font-bold text-leaf-ink outline-none transition hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          + Add a pattern
-        </button>
       )}
 
       <Dialog open={deletePatternTarget !== null} onOpenChange={() => setDeletePatternTarget(null)}>

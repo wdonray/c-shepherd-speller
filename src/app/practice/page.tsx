@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeftIcon } from 'lucide-react'
+import BackLink from '@/components/BackLink'
 import { Button } from '@/components/ui/button'
 import { getList, getLists } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
@@ -97,13 +97,12 @@ function PracticeInner() {
   if (!listId || !list) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-6">
           <div>
-            <Link href="/" className="text-[15px] font-semibold text-sky-ink hover:underline" aria-label="Back to home">
-              <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
+            <BackLink href="/" aria-label="Back to home">
               Back
-            </Link>
-            <h1 className="mt-3 text-[30px] leading-tight font-bold">Choose a list to practice</h1>
+            </BackLink>
+            <h1 className="mt-2 text-[30px] leading-tight font-bold">Choose a list to practice</h1>
             <p className="mt-1 text-[15px] text-muted-foreground">
               Pick a spelling list, listen to each word, and type the spelling.
             </p>
