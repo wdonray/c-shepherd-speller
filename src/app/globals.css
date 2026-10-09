@@ -226,3 +226,70 @@
     }
   }
 }
+/*
+ * Print styles for the pattern chart poster (the /lists/[id]/print route).
+ * Goals: high-contrast ink-on-white, pastel fills dropped to white, borders
+ * kept visible in grayscale. The power bar encodes frequency by segment
+ * LENGTH, never by color: filled segments print solid black and empty
+ * segments print as outlined boxes, using borders so they render even when
+ * the browser is set to skip background graphics.
+ */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .print-chart {
+    color: #000;
+    background: #fff;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .print-chart,
+  .print-chart * {
+    color: #000 !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Keep column and word cards framed in grayscale. */
+  .print-chart section,
+  .print-chart li {
+    border-color: #000 !important;
+  }
+
+  /* The poster matches the chart layout: columns always sit side by side,
+     shrinking equally instead of stacking. */
+  .print-chart [data-chart-columns] {
+    flex-direction: row !important;
+    align-items: stretch !important;
+  }
+
+  .print-chart [data-chart-columns] > section {
+    min-width: 0 !important;
+  }
+
+  /* Never split a pattern column across pages. */
+  .print-chart section {
+    break-inside: avoid;
+  }
+
+  /* Filled segments: solid black bar via a thick border (borders always
+     print, backgrounds may not). */
+  .print-chart [data-power-segment][data-filled='true'] {
+    border: 5px solid #000 !important;
+  }
+
+  /* Empty segments: outlined box so the bar length stays readable. */
+  .print-chart [data-power-segment][data-filled='false'] {
+    border: 1px solid #000 !important;
+  }
+
+  /* Overlay chrome (toasts, fixed banners) never prints on the poster route. */
+  body:has(.print-page) .fixed {
+    display: none !important;
+  }
+}

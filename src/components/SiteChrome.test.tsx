@@ -43,4 +43,18 @@ describe('SiteChrome', () => {
     expect(main).toHaveTextContent('display content')
     expect(main.className).not.toContain('container')
   })
+
+  it('renders a chrome-free full-bleed main on print routes', () => {
+    usePathnameMock.mockReturnValue('/lists/l1/print')
+    render(
+      <SiteChrome>
+        <p>print content</p>
+      </SiteChrome>
+    )
+
+    expect(screen.queryByTestId('site-header')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('site-footer')).not.toBeInTheDocument()
+    const main = screen.getByRole('main')
+    expect(main).toHaveTextContent('print content')
+  })
 })

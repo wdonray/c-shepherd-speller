@@ -241,4 +241,77 @@ describe('PatternChartDisplay', () => {
     expect(screen.queryByRole('img', { name: /keyword image/i })).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Locked pattern' })).toBeInTheDocument()
   })
+
+  describe('print variant', () => {
+    const withEmoji: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordEmoji: '🐝' }, ...list.patterns.slice(1)],
+    }
+
+    it('renders words as plain text with no buttons, speakers, or lock toggles', () => {
+      render(<PatternChartDisplay list={withEmoji} variant="print" onToggleLock={vi.fn()} />)
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
+      const cake = screen.getByText('cake')
+      expect(cake).toBeInTheDocument()
+      expect(cake.closest('li')?.tagName).toBe('LI')
+      expect(cake.closest('button')).toBeNull()
+      // Lock toggles are interactive, so they are hidden even with onToggleLock.
+      expect(screen.queryByRole('button', { name: /lock pattern/i })).not.toBeInTheDocument()
+    })
+
+    it('excludes locked patterns entirely from the printed poster', () => {
+      const locked: WordList = {
+        ...list,
+        patterns: [{ ...list.patterns[0], isLocked: true }, ...list.patterns.slice(1)],
+      }
+      render(<PatternChartDisplay list={locked} variant="print" />)
+      expect(screen.queryByRole('region', { name: 'Pattern a_e' })).not.toBeInTheDocument()
+      expect(screen.queryByText('cake')).not.toBeInTheDocument()
+      // Unlocked patterns still render in frequency order.
+      const ai = screen.getByRole('region', { name: 'Pattern ai' })
+      const eigh = screen.getByRole('region', { name: 'Pattern eigh' })
+      expect(ai.compareDocumentPosition(eigh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // No locked placeholder in print.
+      expect(screen.queryByRole('region', { name: 'Locked pattern' })).not.toBeInTheDocument()
+    })
+
+    it('shows a message instead of an empty chart when every pattern is locked', () => {
+      const allLocked: WordList = {
+        ...list,
+        patterns: list.patterns.map((p) => ({ ...p, isLocked: true })),
+      }
+      render(<PatternChartDisplay list={allLocked} variant="print" />)
+      expect(screen.getByText(/All patterns are locked, so there is nothing to print/)).toBeInTheDocument()
+      expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    })
+
+    it('shows the no-patterns message in print when the list is empty', () => {
+      render(<PatternChartDisplay list={{ ...list, patterns: [] }} variant="print" />)
+      expect(screen.getByText(/No patterns in this list yet/)).toBeInTheDocument()
+    })
+
+    it('shows the target sound, large emoji, power bar, and frequency label per column', () => {
+      render(<PatternChartDisplay list={withEmoji} variant="print" />)
+      expect(screen.getByText('long a')).toBeInTheDocument()
+      const column = screen.getByRole('region', { name: 'Pattern a_e' })
+      const emoji = within(column).getByRole('img', { name: 'Keyword image for pattern a_e' })
+      expect(emoji).toHaveTextContent('🐝')
+      expect(emoji).toHaveClass('text-5xl')
+      expect(within(column).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+      expect(within(column).getByText('Common')).toBeInTheDocument()
+      // Columns stay in frequency order, most common first.
+      const ai = screen.getByRole('region', { name: 'Pattern ai' })
+      expect(column.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('hides the interactive caption in print', () => {
+      render(<PatternChartDisplay list={list} variant="print" />)
+      expect(screen.queryByText(/Tap a word to see its analysis/)).not.toBeInTheDocument()
+    })
+
+    it('adds the print-chart hook class to the root', () => {
+      const { container } = render(<PatternChartDisplay list={list} variant="print" />)
+      expect(container.firstChild).toHaveClass('print-chart', 'force-light')
+    })
+  })
 })

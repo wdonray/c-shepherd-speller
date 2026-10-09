@@ -26,12 +26,15 @@ export function PowerBar({ level, filledClassName = 'bg-leaf', className }: Powe
     <span
       role="img"
       aria-label={`Frequency: ${FREQUENCY_LABELS[level]}`}
+      data-power-bar
       className={cn('inline-flex items-center gap-1.5', className)}
     >
       {[1, 2, 3].map((segment) => (
         <span
           key={segment}
           aria-hidden="true"
+          data-power-segment
+          data-filled={segment <= level}
           className={cn('h-2.5 w-6 rounded-full', segment <= level ? filledClassName : 'bg-line')}
         />
       ))}
