@@ -486,14 +486,14 @@ describe('ProfileForm', () => {
     })
 
     it('shows an error when photo processing fails', async () => {
-      processProfileImageMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, or WebP image.'))
+      processProfileImageMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, WebP, or HEIC image.'))
       stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
       renderForm()
       await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
 
       const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.txt', { type: 'text/plain' })] } })
-      expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, or WebP image.')
+      expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
     })
 
     it('removes the photo and saves immediately', async () => {

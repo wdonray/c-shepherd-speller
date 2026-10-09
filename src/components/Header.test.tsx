@@ -563,9 +563,22 @@ describe('Header', () => {
     fetchMock.mockRestore()
   })
 
-  it('shows an error when the menu photo upload fails', async () => {
+  it('shows the specific error when the menu photo upload fails', async () => {
     const processMock = vi.mocked(processProfileImage)
-    processMock.mockRejectedValue(new Error('bad image'))
+    processMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, WebP, or HEIC image.'))
+    mockSignedIn()
+    render(<Header />)
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.tiff', { type: 'image/tiff' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
+  })
+
+  it('shows a generic error when the menu photo upload throws without a message', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockRejectedValue(new Error(''))
     mockSignedIn()
     render(<Header />)
 
@@ -587,7 +600,7 @@ describe('Header', () => {
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update your photo')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to update photo')
     fetchMock.mockRestore()
   })
 

@@ -108,8 +108,12 @@ export function Header() {
       setProfileImage(dataUrl)
       setAvatarBroken(false)
       window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: dataUrl } }))
-    } catch {
-      setMenuPhotoError('Could not update your photo. Check your connection and try again.')
+    } catch (error) {
+      setMenuPhotoError(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not update your photo. Check your connection and try again.'
+      )
     } finally {
       // The native picker is an OS dialog; reassert the menu in case Radix
       // closed it on focus loss, and return focus to the photo button.
@@ -279,7 +283,7 @@ export function Header() {
       <input
         ref={photoInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
         className="sr-only"
         onChange={handleMenuPhotoSelect}
         aria-label="Upload profile photo"

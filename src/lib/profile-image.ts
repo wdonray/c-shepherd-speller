@@ -9,7 +9,7 @@
 export const PROFILE_IMAGE_MAX_FILE_BYTES = 5 * 1024 * 1024
 export const PROFILE_IMAGE_MAX_DIMENSION = 256
 export const PROFILE_IMAGE_MAX_DATA_URL_LENGTH = 100 * 1024
-export const PROFILE_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+export const PROFILE_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'] as const
 
 const QUALITY_STEPS = [0.82, 0.7, 0.6]
 
@@ -28,7 +28,7 @@ function loadImage(objectUrl: string): Promise<HTMLImageElement> {
  */
 export async function processProfileImage(file: File): Promise<string> {
   if (!PROFILE_IMAGE_MIME_TYPES.includes(file.type as (typeof PROFILE_IMAGE_MIME_TYPES)[number])) {
-    throw new Error('Please choose a JPEG, PNG, or WebP image.')
+    throw new Error('Please choose a JPEG, PNG, WebP, or HEIC image.')
   }
   if (file.size > PROFILE_IMAGE_MAX_FILE_BYTES) {
     throw new Error('Please choose an image smaller than 5MB.')
