@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
 // Modeled on donray.dev's header set. Notes on the CSP for this app:
@@ -54,11 +53,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryConfig(nextConfig, {
-  org: 'donray-williams',
-  project: 'patternspell',
-  // Error tracking only: no sourcemap upload, no release tracking.
-  sourcemaps: { disable: true },
-  release: { create: false },
-  silent: true,
-})
+export default nextConfig
