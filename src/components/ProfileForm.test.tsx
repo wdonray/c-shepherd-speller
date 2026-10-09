@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import ProfileForm, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
+import { ErrorToaster } from './error-toaster'
 import { processProfileImage } from '@/lib/profile-image'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
@@ -41,7 +42,12 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Promise<unknown
 
 function renderForm() {
   mockSession()
-  return render(<ProfileForm />)
+  return render(
+    <>
+      <ProfileForm />
+      <ErrorToaster />
+    </>
+  )
 }
 
 function sleep(ms: number) {
@@ -285,7 +291,7 @@ describe('ProfileForm', () => {
     expect(await screen.findByText('Saved')).toBeInTheDocument()
   })
 
-  it('shows an error message when auto-save fails and keeps the input', async () => {
+  it('shows a toast when auto-save fails and keeps the input', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'PUT' ? { ok: false } : { ok: true, json: async () => ({ user }) }
@@ -295,7 +301,7 @@ describe('ProfileForm', () => {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
 
     expect(await screen.findByRole('alert', undefined, { timeout: 3000 })).toHaveTextContent(
-      'Could not save your changes. Check your connection and try again.'
+      'Something went wrong. Please try again.'
     )
     expect(consoleSpy).toHaveBeenCalledWith('Error updating user:', expect.any(Error))
     // The user's input is not lost.
@@ -493,7 +499,7 @@ describe('ProfileForm', () => {
 
       const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.txt', { type: 'text/plain' })] } })
-      expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
+      expect(await screen.findByText('Please choose a JPEG, PNG, WebP, or HEIC image.')).toBeInTheDocument()
     })
 
     it('removes the photo and saves immediately', async () => {
@@ -548,7 +554,7 @@ describe('ProfileForm', () => {
       expect(processProfileImageMock).not.toHaveBeenCalled()
     })
 
-    it('shows a generic error when photo processing rejects with a non-Error', async () => {
+    it('shows a toast when photo processing rejects with a non-Error', async () => {
       processProfileImageMock.mockRejectedValue('string failure')
       stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
       renderForm()
@@ -556,7 +562,7 @@ describe('ProfileForm', () => {
 
       const input = screen.getByLabelText(/profile photo file input/i)
       fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } })
-      expect(await screen.findByRole('alert')).toHaveTextContent('Could not read the image file.')
+      expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
   })
 })

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import BackLink from '@/components/BackLink'
-import { CheckCircle2Icon, XIcon } from 'lucide-react'
+import { CheckCircle2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,13 +19,14 @@ import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
 import PatternEditor from './PatternEditor'
 import { reportError } from '@/lib/report-error'
+import { getErrorMessage, toastError } from '@/lib/error-toast'
 
 /** How long to wait after the last edit before auto-saving. */
 const SAVE_DEBOUNCE_MS = 500
 /** How long the "Saved" confirmation stays visible. */
 const SAVED_MESSAGE_MS = 2000
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+type SaveStatus = 'idle' | 'saving' | 'saved'
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
@@ -65,7 +66,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [list, setList] = useState<WordList | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [deletePatternTarget, setDeletePatternTarget] = useState<SpellingPattern | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -129,7 +129,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       return
     }
     setSaveStatus('saving')
-    setSaveError(null)
     try {
       await updateList(next.id, {
         name: next.name,
@@ -143,8 +142,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       }, SAVED_MESSAGE_MS)
     } catch (error) {
       reportError(error, { location: 'ListEditorPage.doSave' })
-      setSaveStatus('error')
-      setSaveError('Could not save your changes. Check your connection and try again.')
+      setSaveStatus('idle')
+      toastError(getErrorMessage(error))
     }
   }
 
@@ -237,23 +236,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         <BackLink href="/">My lists</BackLink>
         <SaveIndicator status={saveStatus} />
       </div>
-
-      {saveStatus === 'error' && saveError && (
-        <div role="alert" className="flex items-center gap-3 rounded-2xl border-2 border-coral bg-coral-soft px-5 py-4">
-          <p className="flex-1 text-[15px] font-semibold text-coral-ink">{saveError}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setSaveStatus('idle')
-              setSaveError(null)
-            }}
-            aria-label="Dismiss"
-            className="cursor-pointer rounded-full p-1 text-coral-ink outline-none hover:bg-card hover:text-destructive focus-visible:bg-card focus-visible:text-destructive focus-visible:ring-[3px] focus-visible:ring-ring/60"
-          >
-            <XIcon className="size-4" />
-          </button>
-        </div>
-      )}
 
       <div>
         <h1 className="text-[32px] leading-tight font-bold">{list.name || 'Untitled list'}</h1>

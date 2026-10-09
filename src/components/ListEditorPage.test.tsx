@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ListEditorPage from './ListEditorPage'
+import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
 
 const { getList, updateList, notifyListsChanged } = vi.hoisted(() => ({
@@ -47,7 +48,12 @@ const list: WordList = {
 
 async function renderReady(overrides: Partial<WordList> = {}) {
   getList.mockResolvedValue({ ...list, ...overrides })
-  render(<ListEditorPage listId="l1" />)
+  render(
+    <>
+      <ListEditorPage listId="l1" />
+      <ErrorToaster />
+    </>
+  )
   await screen.findByRole('heading', { name: 'Week 5: Long A' })
 }
 
@@ -201,20 +207,17 @@ describe('ListEditorPage', () => {
     expect(updateList).not.toHaveBeenCalled()
   })
 
-  it('shows an error alert when saving fails and keeps the input', async () => {
+  it('shows a toast when saving fails and keeps the input', async () => {
     updateList.mockRejectedValue(new Error('network down'))
     await renderReady()
 
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not save your changes.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     // The teacher's edit is preserved.
     expect(screen.getByLabelText('List name')).toHaveValue('Renamed')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('flushes a pending save when leaving the page', async () => {

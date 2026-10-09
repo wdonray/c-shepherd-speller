@@ -4,6 +4,7 @@
  */
 
 import type { WordList, CreateWordListInput, UpdateWordListInput } from '@/models/WordList'
+import { HttpError } from '@/lib/error-toast'
 
 /**
  * Browser event fired whenever the list collection changes outside the
@@ -19,7 +20,7 @@ export function notifyListsChanged(): void {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `Request failed with status ${res.status}`)
+    throw new HttpError(body.error || `Request failed with status ${res.status}`, res.status)
   }
   return res.json() as Promise<T>
 }

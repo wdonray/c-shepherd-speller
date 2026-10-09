@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { Header } from './Header'
+import { ErrorToaster } from './error-toaster'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { processProfileImage } from '@/lib/profile-image'
 
@@ -563,44 +564,59 @@ describe('Header', () => {
     fetchMock.mockRestore()
   })
 
-  it('shows the specific error when the menu photo upload fails', async () => {
+  it('shows the specific error in a toast when the menu photo upload fails', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, WebP, or HEIC image.'))
     mockSignedIn()
-    render(<Header />)
+    render(
+      <>
+        <Header />
+        <ErrorToaster />
+      </>
+    )
 
     const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
     const file = new File(['photo'], 'photo.tiff', { type: 'image/tiff' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
+    expect(await screen.findByText('Please choose a JPEG, PNG, WebP, or HEIC image.')).toBeInTheDocument()
   })
 
-  it('shows a generic error when the menu photo upload throws without a message', async () => {
+  it('shows a toast with a generic error when the menu photo upload throws without a message', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockRejectedValue(new Error(''))
     mockSignedIn()
-    render(<Header />)
+    render(
+      <>
+        <Header />
+        <ErrorToaster />
+      </>
+    )
 
     const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update your photo')
+    expect(await screen.findByText('Something went wrong. Please try again.')).toBeInTheDocument()
   })
 
-  it('shows an error when the menu photo upload response is not ok', async () => {
+  it('shows a toast with a server error when the menu photo upload response is not ok', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
     const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }))
     mockSignedIn()
-    render(<Header />)
+    render(
+      <>
+        <Header />
+        <ErrorToaster />
+      </>
+    )
 
     const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
     const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to update photo')
+    expect(await screen.findByText("Something went wrong on our end. We're looking into it.")).toBeInTheDocument()
     fetchMock.mockRestore()
   })
 

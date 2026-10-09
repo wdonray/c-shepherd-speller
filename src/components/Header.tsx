@@ -23,6 +23,7 @@ import { notifyListsChanged } from '@/lib/lists-api'
 import { getUserByEmail } from '@/lib/spelling-api'
 import { processProfileImage } from '@/lib/profile-image'
 import { reportError } from '@/lib/report-error'
+import { getToastMessage, toastError, HttpError } from '@/lib/error-toast'
 
 function initialsFor(name?: string | null, email?: string | null): string {
   if (name) {
@@ -45,7 +46,6 @@ export function Header() {
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
   const [avatarBroken, setAvatarBroken] = useState(false)
-  const [menuPhotoError, setMenuPhotoError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -97,7 +97,6 @@ export function Header() {
   async function handleMenuPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
-    setMenuPhotoError(null)
     try {
       if (!file || !session?.user?.id) return
       const dataUrl = await processProfileImage(file)
@@ -106,17 +105,13 @@ export function Header() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: dataUrl }),
       })
-      if (!response.ok) throw new Error('Failed to update photo')
+      if (!response.ok) throw new HttpError('Failed to update photo', response.status)
       setProfileImage(dataUrl)
       setAvatarBroken(false)
       window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: dataUrl } }))
     } catch (error) {
       reportError(error, { location: 'Header.handleMenuPhotoSelect' })
-      setMenuPhotoError(
-        error instanceof Error && error.message
-          ? error.message
-          : 'Could not update your photo. Check your connection and try again.'
-      )
+      toastError(getToastMessage(error))
     } finally {
       // The native picker is an OS dialog; reassert the menu in case Radix
       // closed it on focus loss, and return focus to the photo button.
@@ -197,11 +192,6 @@ export function Header() {
                   <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
                 </div>
               </div>
-              {menuPhotoError && (
-                <p role="alert" className="px-4 py-2 text-sm font-semibold text-coral-ink">
-                  {menuPhotoError}
-                </p>
-              )}
               <DropdownMenuSeparator className="bg-line" />
               <DropdownMenuItem
                 className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"

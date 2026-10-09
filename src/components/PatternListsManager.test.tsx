@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
+import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
 
 const { getLists, createList, updateList, deleteList, notifyListsChanged, logActivity } = vi.hoisted(() => ({
@@ -200,7 +201,12 @@ describe('PatternListsManager', () => {
   it('shows a toast when creating fails', async () => {
     getLists.mockResolvedValue([list])
     createList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
 
     await screen.findByText('My word lists (1)')
     fireEvent.click(screen.getByRole('button', { name: 'New list' }))
@@ -208,7 +214,7 @@ describe('PatternListsManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not create the list.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     expect(screen.queryByRole('heading', { name: 'New word list' })).not.toBeInTheDocument()
   })
@@ -278,20 +284,6 @@ describe('PatternListsManager', () => {
     ).toBeInTheDocument()
   })
 
-  it('dismisses the overview toast manually', async () => {
-    getLists.mockResolvedValue([list])
-    deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-
-    await screen.findByRole('alert')
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
   it('keeps the list when the list delete is cancelled', async () => {
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
@@ -329,40 +321,22 @@ describe('PatternListsManager', () => {
     expect(mockPush).toHaveBeenCalledWith('/lists/l1')
   })
 
-  it('auto-dismisses the toast after 6 seconds', async () => {
-    getLists.mockResolvedValue([list])
-    deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
-
-    await screen.findByText('My word lists (1)')
-
-    // Fake timers from here so the toast's auto-dismiss timer is controllable.
-    vi.useFakeTimers()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await act(async () => {})
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await act(async () => {})
-
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-
-    act(() => {
-      vi.advanceTimersByTime(6000)
-    })
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    vi.useRealTimers()
-  })
-
   it('shows a toast when deleting a list fails', async () => {
     getLists.mockResolvedValue([list])
     deleteList.mockRejectedValue(new Error('network down'))
-    render(<PatternListsManager />)
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
 
     await screen.findByText('My word lists (1)')
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Could not delete the list.')
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })

@@ -5,6 +5,7 @@ import SessionProvider from '@/components/providers/SessionProvider'
 import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import AnalyticsTracker from '@/components/analytics-tracker'
+import { ErrorToaster } from '@/components/error-toaster'
 import { VersionReloadToast } from '@/components/version-reload-toast'
 
 const lexend = Lexend({
@@ -60,6 +61,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <SiteChrome>{children}</SiteChrome>
             <AnalyticsTracker />
+            <ErrorToaster />
             <VersionReloadToast />
           </ThemeProvider>
         </body>
