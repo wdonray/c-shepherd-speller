@@ -18,6 +18,7 @@ import {
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
 import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
 import PatternEditor from './PatternEditor'
+import { reportError } from '@/lib/report-error'
 
 /** How long to wait after the last edit before auto-saving. */
 const SAVE_DEBOUNCE_MS = 500
@@ -81,6 +82,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           setLoadState('ready')
         }
       } catch (err) {
+        reportError(err, { location: 'ListEditorPage.load' })
         if (!cancelled) {
           setLoadState(err instanceof Error && /not found/i.test(err.message) ? 'not-found' : 'error')
         }
@@ -105,8 +107,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
           patterns: pending.patterns,
-        }).catch(() => {
-          // The page is gone; nothing left to report the error to.
+        }).catch((error: unknown) => {
+          // The page is gone; the save state can't be shown, but the
+          // failure is still reported.
+          reportError(error, { location: 'ListEditorPage.flushPendingSave' })
         })
       }
     }
@@ -137,7 +141,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       savedTimerRef.current = setTimeout(() => {
         setSaveStatus('idle')
       }, SAVED_MESSAGE_MS)
-    } catch {
+    } catch (error) {
+      reportError(error, { location: 'ListEditorPage.doSave' })
       setSaveStatus('error')
       setSaveError('Could not save your changes. Check your connection and try again.')
     }
@@ -165,6 +170,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       setList(data)
       setLoadState('ready')
     } catch (err) {
+      reportError(err, { location: 'ListEditorPage.reload' })
       setLoadState(err instanceof Error && /not found/i.test(err.message) ? 'not-found' : 'error')
     }
   }

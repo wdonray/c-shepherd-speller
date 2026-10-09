@@ -53,4 +53,15 @@ describe('trackEvent', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
     expect(() => trackEvent('list-created')).not.toThrow()
   })
+
+  it('never throws when building the beacon payload fails', () => {
+    vi.stubGlobal('navigator', { sendBeacon: vi.fn() })
+    vi.stubGlobal(
+      'Blob',
+      vi.fn().mockImplementation(() => {
+        throw new Error('no blob')
+      })
+    )
+    expect(() => trackEvent('list-created')).not.toThrow()
+  })
 })

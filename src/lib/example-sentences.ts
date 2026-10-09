@@ -11,6 +11,7 @@
  */
 
 import { FALLBACK_SENTENCES } from '@/data/example-sentences'
+import { reportError } from './report-error'
 
 const STORAGE_KEY = 'patternspell-sentences'
 const MAX_CACHE_ENTRIES = 200
@@ -29,7 +30,8 @@ function readStorageCache(): Record<string, string[]> {
       return parsed as Record<string, string[]>
     }
     return {}
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'example-sentences.readStorageCache' })
     return {}
   }
 }
@@ -38,8 +40,9 @@ function writeStorageCache(cache: Record<string, string[]>): void {
   try {
     const entries = Object.entries(cache).slice(-MAX_CACHE_ENTRIES)
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)))
-  } catch {
+  } catch (error) {
     // Storage unavailable; the memory cache still works.
+    reportError(error, { location: 'example-sentences.writeStorageCache' })
   }
 }
 
@@ -102,7 +105,8 @@ async function fetchFromApi(word: string): Promise<string[]> {
     if (!res.ok) return []
     const data: unknown = await res.json()
     return parseApiResponse(word, data)
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'example-sentences.fetchFromApi', extra: { word } })
     return []
   } finally {
     clearTimeout(timeout)

@@ -64,6 +64,14 @@ describe('activity log', () => {
     expect(() => logActivity('created', 'Created Week 5: Long A')).not.toThrow()
     vi.restoreAllMocks()
   })
+
+  it('survives storage errors when clearing', () => {
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    expect(() => clearActivity()).not.toThrow()
+    vi.restoreAllMocks()
+  })
 })
 
 describe('timeAgo', () => {

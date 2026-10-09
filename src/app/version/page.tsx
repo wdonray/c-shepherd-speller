@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { version } from '../../../package.json'
 import VersionInfo, { RELEASES_API, toRelease, type Release } from '@/components/version-info'
+import { reportError } from '@/lib/report-error'
 
 export const metadata: Metadata = {
   title: 'Version',
@@ -27,7 +28,8 @@ async function getRecentReleases(): Promise<Release[]> {
     const data: unknown = await res.json()
     if (!Array.isArray(data)) return []
     return data.map((item) => toRelease((item ?? {}) as Parameters<typeof toRelease>[0]))
-  } catch {
+  } catch (error) {
+    reportError(error, { location: 'VersionPage.getRecentReleases' })
     return []
   }
 }

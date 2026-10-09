@@ -1,6 +1,7 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
 import { IUser, USER_TABLE_NAME, createUserItem, updateUserItem, updateUserTimestamps } from '../models/User'
+import { reportError } from './report-error'
 
 // Helper function to generate consistent DynamoDB keys from userId
 function getUserKeys(userId: string) {
@@ -90,6 +91,7 @@ export async function getUserByEmail(email: string) {
     const result = await docClient.send(command)
     return result.Items?.[0] as IUser | undefined
   } catch (error) {
+    reportError(error, { location: 'db-utils.getUserByEmail' })
     console.error('Error querying user by email:', error)
     return undefined
   }
@@ -107,6 +109,7 @@ export async function getUserById(userId: string) {
     const result = await docClient.send(command)
     return result.Item as IUser | undefined
   } catch (error) {
+    reportError(error, { location: 'db-utils.getUserById' })
     console.error('Error getting user by ID:', error)
     return undefined
   }

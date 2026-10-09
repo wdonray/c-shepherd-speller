@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { updateUser, getUserById } from '@/lib/db-utils'
 import { UpdateUserBody } from '@/types/User'
 import { requireOwnership } from '@/lib/require-auth'
+import { reportError } from '@/lib/report-error'
 
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(jpeg|png|webp);base64,/
 const IMAGE_MAX_LENGTH = 140_000
@@ -41,6 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updatedUser = await updateUser(id, updateData)
     return NextResponse.json({ message: 'User updated successfully', user: updatedUser }, { status: 200 })
   } catch (error: unknown) {
+    reportError(error, { location: 'PUT /api/users/[id]', extra: { status: 500 } })
     console.error('Error updating user:', error)
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
   }
@@ -65,6 +67,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({ user })
   } catch (error: unknown) {
+    reportError(error, { location: 'GET /api/users/[id]', extra: { status: 500 } })
     console.error('Error getting user:', error)
     return NextResponse.json({ error: 'Failed to get user' }, { status: 500 })
   }

@@ -11,6 +11,7 @@ import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
 import { processProfileImage } from '@/lib/profile-image'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
+import { reportError } from '@/lib/report-error'
 
 export const PROFILE_PHOTO_UPDATED_EVENT = 'patternspell:profile-photo-updated'
 
@@ -125,6 +126,7 @@ export default function ProfileForm() {
           })
         }
       } catch (error) {
+        reportError(error, { location: 'ProfileForm.fetchUser' })
         console.error('Error fetching user:', error)
       } finally {
         setIsLoading(false)
@@ -166,6 +168,7 @@ export default function ProfileForm() {
         setSaveStatus('idle')
       }, SAVED_MESSAGE_MS)
     } catch (error) {
+      reportError(error, { location: 'ProfileForm.doSave' })
       console.error('Error updating user:', error)
       setSaveStatus('error')
       setSaveError('Could not save your changes. Check your connection and try again.')
@@ -216,6 +219,7 @@ export default function ProfileForm() {
       setPhoto(dataUrl)
       await doSave({ ...buildTextPayload(formData), image: dataUrl }, true)
     } catch (err) {
+      reportError(err, { location: 'ProfileForm.handlePhotoSelect' })
       setPhotoError(err instanceof Error ? err.message : 'Could not read the image file.')
     } finally {
       setIsProcessingPhoto(false)

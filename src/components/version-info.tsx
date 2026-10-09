@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { PatternMark } from '@/components/PatternMark'
+import { reportError } from '@/lib/report-error'
 
 export const RELEASES_API = 'https://api.github.com/repos/wdonray/c-shepherd-speller/releases?per_page=5'
 export const RELEASES_URL = 'https://github.com/wdonray/c-shepherd-speller/releases'
@@ -131,7 +132,8 @@ export default function VersionInfo({
         setReleases(next)
         setLastChecked(Date.now())
         setUnreachable(false)
-      } catch {
+      } catch (error) {
+        reportError(error, { location: 'VersionInfo.poll' })
         if (!cancelled) setUnreachable(true)
       }
     }

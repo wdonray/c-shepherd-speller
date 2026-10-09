@@ -8,6 +8,7 @@ import { DownloadIcon, UploadIcon } from 'lucide-react'
 import { createList, getLists } from '@/lib/lists-api'
 import { buildExportFilename } from '@/lib/export-filename'
 import { CreateWordListSchema } from '@/models/WordList'
+import { reportError } from '@/lib/report-error'
 
 const ImportFileSchema = z.array(CreateWordListSchema)
 
@@ -50,7 +51,8 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
         kind: 'success',
         text: `Exported ${lists.length} ${lists.length === 1 ? 'list' : 'lists'}.`,
       })
-    } catch {
+    } catch (error) {
+      reportError(error, { location: 'ImportExportDialog.handleExport' })
       setMessage({ kind: 'error', text: 'Could not export your lists. Check your connection and try again.' })
     } finally {
       setBusy(false)
@@ -88,6 +90,8 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       } else if (e instanceof Error && e.message === 'not-lists') {
         setMessage({ kind: 'error', text: 'That file does not look like a PatternSpell export.' })
       } else {
+        // The not-json / not-lists cases are user errors, not app failures.
+        reportError(e, { location: 'ImportExportDialog.handleFileChange' })
         setMessage({ kind: 'error', text: 'Could not import that file. Check your connection and try again.' })
       }
     } finally {

@@ -22,6 +22,7 @@ import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger 
 import { notifyListsChanged } from '@/lib/lists-api'
 import { getUserByEmail } from '@/lib/spelling-api'
 import { processProfileImage } from '@/lib/profile-image'
+import { reportError } from '@/lib/report-error'
 
 function initialsFor(name?: string | null, email?: string | null): string {
   if (name) {
@@ -53,8 +54,9 @@ export function Header() {
       try {
         const user = await getUserByEmail(session.user.email)
         if (!cancelled) setProfileImage(user.image || undefined)
-      } catch {
+      } catch (error) {
         // Header still works with the Google image or initials fallback.
+        reportError(error, { location: 'Header.fetchProfileImage' })
       }
     }
     fetchProfileImage()
@@ -109,6 +111,7 @@ export function Header() {
       setAvatarBroken(false)
       window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: dataUrl } }))
     } catch (error) {
+      reportError(error, { location: 'Header.handleMenuPhotoSelect' })
       setMenuPhotoError(
         error instanceof Error && error.message
           ? error.message

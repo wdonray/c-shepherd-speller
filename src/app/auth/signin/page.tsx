@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PatternMark } from '@/components/PatternMark'
 import { Loader2 } from 'lucide-react'
+import { reportError } from '@/lib/report-error'
 
 function GoogleMark() {
   return (
@@ -54,6 +55,7 @@ export default function SignIn() {
     try {
       await signIn('google', { callbackUrl: '/' })
     } catch (error) {
+      reportError(error, { location: 'SignInPage.handleGoogleSignIn' })
       setIsLoading(false)
       console.error(error)
     }
