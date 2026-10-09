@@ -31,6 +31,8 @@ export const SpellingPatternSchema = z.object({
   isOddDuck: z.boolean().optional(),
   /** True when the teacher has locked this pattern; hidden until taught */
   isLocked: z.boolean().optional(),
+  /** Teacher-picked keyword anchor emoji, e.g. bee for "ee" */
+  keywordEmoji: z.string().min(1).max(20).optional(),
   /** Teacher-picked example sentences, keyed by word */
   sentences: z.record(z.string().min(1).max(50), z.string().min(1).max(300)).optional(),
 })

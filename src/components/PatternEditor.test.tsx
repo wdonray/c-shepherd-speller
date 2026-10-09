@@ -452,4 +452,26 @@ describe('PatternEditor', () => {
       sentences: undefined,
     })
   })
+
+  it('shows the keyword image picker next to the pattern spelling input', () => {
+    renderEditor()
+    const trigger = screen.getByRole('button', { name: 'Keyword image for pattern a_e' })
+    const spelling = screen.getByLabelText('Pattern spelling')
+    // Same top section of the editor card.
+    expect(trigger.closest('section')).toBe(spelling.closest('section'))
+  })
+
+  it('updates keywordEmoji when an emoji is picked', () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bee' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordEmoji: '🐝' })
+  })
+
+  it('clears keywordEmoji when the keyword image is removed', () => {
+    const { onChange } = renderEditor({ keywordEmoji: '🐝' })
+    fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove keyword image' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordEmoji: undefined })
+  })
 })
