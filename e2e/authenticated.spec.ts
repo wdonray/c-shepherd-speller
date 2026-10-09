@@ -36,9 +36,9 @@ test.describe('authenticated flows', () => {
     await page.getByRole('button', { name: 'Add a pattern', exact: true }).click()
     await expect(page.getByText('Spelling patterns (1)')).toBeVisible()
 
-    // Fill in the pattern via the spelling select.
+    // Fill in the pattern via the spelling text input.
     await page.getByLabel('Target sound').fill('long a')
-    await page.getByLabel('Pattern spelling').selectOption('a_e')
+    await page.getByLabel('Pattern spelling').fill('a_e')
 
     // Add a word.
     await page.getByLabel('New word').fill('cake')
