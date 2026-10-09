@@ -98,10 +98,7 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
       <span>
         {word.slice(0, start)}
         <span
-          className={cn(
-            'font-extrabold underline decoration-[8px] underline-offset-8',
-            'text-sun-ink decoration-sun'
-          )}
+          className={cn('font-extrabold underline decoration-[8px] underline-offset-8', 'text-sun-ink decoration-sun')}
         >
           {word.slice(start, end)}
         </span>
