@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { version } from '../../../package.json'
-import VersionInfo, { RELEASES_API, toRelease, type Release } from '@/components/version-info'
+import VersionInfo from '@/components/version-info'
+import { RELEASES_API, toRelease, type Release } from '@/lib/github'
 import { reportError } from '@/lib/report-error'
 
 export const metadata: Metadata = {

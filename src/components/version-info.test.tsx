@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import VersionInfo, {
   POLL_INTERVAL_MS,
   compareVersions,
@@ -295,6 +295,33 @@ describe('VersionInfo', () => {
     expect(screen.getAllByText('Some change')).toHaveLength(2)
     expect(screen.getByText('Oct 3, 2026 · 1h ago')).toBeInTheDocument()
     expect(screen.getByText('Oct 2, 2026 · 1d ago')).toBeInTheDocument()
+  })
+
+  it('puts Latest and This build on the list entry when the running version is newest', async () => {
+    // Regression test: releases once went stale (newest release older than
+    // the running build), making the page look behind. When the running
+    // version is the newest release, its list entry carries both badges.
+    useFakeTimers()
+    const releases = [release('0.6.0'), release('0.5.0')]
+    vi.stubGlobal(
+      'fetch',
+      mockFetchResponse([releasePayload('v0.6.0'), releasePayload('v0.5.0', { published_at: '2026-10-02T12:00:00Z' })])
+    )
+    render(<VersionInfo currentVersion="0.6.0" initialReleases={releases} />)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    const items = screen.getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    const newest = within(items[0] as HTMLElement)
+    expect(newest.getByText('Latest')).toBeInTheDocument()
+    expect(newest.getByText('This build')).toBeInTheDocument()
+    expect(newest.getByText('v0.6.0')).toBeInTheDocument()
+    // The older release carries neither badge.
+    const older = within(items[1] as HTMLElement)
+    expect(older.queryByText('Latest')).not.toBeInTheDocument()
+    expect(older.queryByText('This build')).not.toBeInTheDocument()
   })
 
   it('omits the summary and date when a release lacks them', async () => {

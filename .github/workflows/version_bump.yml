@@ -18,7 +18,12 @@ jobs:
           # PAT belonging to a ruleset bypass actor, so the version push
           # to main is not blocked by required status checks.
           token: ${{ secrets.VERSION_BUMP_TOKEN }}
-          fetch-depth: 2
+          # Full history: the release-tag step diffs the previous release
+          # tag against the new tag (git log <prev>...<new>), which fails
+          # in a shallow clone once the previous release falls outside the
+          # fetch window. (Same reason donray.dev's release-tag workflow
+          # uses fetch-depth: 0.)
+          fetch-depth: 0
 
       - name: Use Node.js
         uses: actions/setup-node@v7
@@ -43,7 +48,11 @@ jobs:
         id: bump
         if: steps.check.outputs.needed == 'true'
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == feat:* ]]; then
+          # Read the subject via git, not via expression interpolation:
+          # head_commit.message can be multi-line (squash-merge bodies),
+          # which breaks the [[ "..." == feat:* ]] conditional. %s is the
+          # first line by construction, so this is always a single line.
+          if [[ "$(git log -1 --format=%s)" == feat:* ]]; then
             echo "newversion=minor" >> "$GITHUB_OUTPUT"
           else
             echo "newversion=patch" >> "$GITHUB_OUTPUT"
