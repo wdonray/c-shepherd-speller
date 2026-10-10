@@ -91,6 +91,14 @@ describe('GET /api/users/[id]/spelling', () => {
     expect(await res.json()).toEqual({ spellingData })
   })
 
+  it('sends Cache-Control: no-store so a refresh never serves stale spelling data', async () => {
+    const spellingData = { words: ['cat'], sounds: ['a'], spelling: ['cat'] }
+    getUserSpellingData.mockResolvedValue(spellingData)
+    const res = await GET(new NextRequest(`http://localhost/api/users/${ID}/spelling`), ctx(ID))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
   it('returns 500 when getUserSpellingData throws', async () => {
     getUserSpellingData.mockRejectedValue(new Error('db down'))
     const res = await GET(new NextRequest(`http://localhost/api/users/${ID}/spelling`), ctx(ID))

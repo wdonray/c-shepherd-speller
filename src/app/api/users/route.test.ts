@@ -204,6 +204,14 @@ describe('GET /api/users', () => {
     expect(await res.json()).toEqual({ user })
   })
 
+  it('sends Cache-Control: no-store so a refresh never serves a stale user', async () => {
+    const user = { id: 'u1', email: 'teacher@example.com', name: 'Teacher', image: 'data:image/jpeg;base64,abc' }
+    getUserByEmail.mockResolvedValue(user)
+    const res = await GET(new NextRequest('http://localhost/api/users?email=teacher@example.com'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
   it('returns 500 when getUserByEmail throws', async () => {
     getUserByEmail.mockRejectedValue(new Error('db down'))
     const res = await GET(new NextRequest('http://localhost/api/users?email=teacher@example.com'))

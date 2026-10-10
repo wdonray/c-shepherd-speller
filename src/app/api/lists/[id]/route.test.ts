@@ -49,6 +49,15 @@ describe('GET /api/lists/[id]', () => {
     expect(getListById).toHaveBeenCalledWith('u1', 'l1')
   })
 
+  it('sends Cache-Control: no-store so a refresh never serves a stale list', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue(stored)
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
   it('returns 404 when the list does not exist', async () => {
     requireUser.mockResolvedValue(authed)
     getListById.mockResolvedValue(undefined)
