@@ -97,7 +97,10 @@ export default function SignIn() {
     )
   }
 
-  const emailSignInEnabled = providers?.cognito != null
+  // The email/password button only exists when the email-password provider is
+  // configured server-side; Google-only deployments never see it. It routes
+  // to the custom email auth pages instead of Cognito's hosted UI.
+  const emailSignInEnabled = providers?.['email-password'] != null
 
   return (
     <div className="flex justify-center px-8 pt-32 pb-8">
@@ -137,23 +140,12 @@ export default function SignIn() {
               </div>
               <Button
                 variant="secondary"
-                onClick={() => void handleProviderSignIn('cognito')}
+                onClick={() => router.push('/auth/email/signin')}
                 className="w-full"
-                disabled={isLoading != null}
                 aria-label="Sign in with email and password"
-                onKeyDown={handleKeyDown('cognito')}
               >
-                {isLoading === 'cognito' ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="size-5" aria-hidden="true" />
-                    Continue with email
-                  </>
-                )}
+                <Mail className="size-5" aria-hidden="true" />
+                Continue with email
               </Button>
             </>
           )}

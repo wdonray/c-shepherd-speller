@@ -12,11 +12,12 @@ const signInMock = vi.mocked(signIn)
 const useSessionMock = vi.mocked(useSession)
 const useRouterMock = vi.mocked(useRouter)
 const replaceMock = vi.fn()
+const pushMock = vi.fn()
 
 const googleOnlyProviders = { google: { id: 'google', name: 'Google' } }
 const allProviders = {
   ...googleOnlyProviders,
-  cognito: { id: 'cognito', name: 'Cognito' },
+  'email-password': { id: 'email-password', name: 'Email' },
 } as never
 
 describe('SignIn page', () => {
@@ -25,8 +26,9 @@ describe('SignIn page', () => {
     useSessionMock.mockReset()
     getProvidersMock.mockReset()
     replaceMock.mockReset()
+    pushMock.mockReset()
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
-    useRouterMock.mockReturnValue({ replace: replaceMock } as never)
+    useRouterMock.mockReturnValue({ replace: replaceMock, push: pushMock } as never)
     getProvidersMock.mockResolvedValue(googleOnlyProviders as never)
     document.body.removeAttribute('data-auth-page')
   })
@@ -100,7 +102,7 @@ describe('SignIn page', () => {
     })
   })
 
-  it('shows the email sign-in button when the Cognito provider is configured', async () => {
+  it('shows the email sign-in button when the email-password provider is configured', async () => {
     getProvidersMock.mockResolvedValue(allProviders)
     render(<SignIn />)
 
@@ -129,31 +131,15 @@ describe('SignIn page', () => {
     expect(screen.queryByRole('button', { name: 'Sign in with email and password' })).not.toBeInTheDocument()
   })
 
-  it('calls signIn with cognito and the root callbackUrl from the email button', async () => {
+  it('routes to the custom email sign-in page from the email button', async () => {
     getProvidersMock.mockResolvedValue(allProviders)
-    signInMock.mockImplementation(() => new Promise(() => {}))
     render(<SignIn />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Sign in with email and password' }))
 
-    expect(signInMock).toHaveBeenCalledTimes(1)
-    expect(signInMock).toHaveBeenCalledWith('cognito', { callbackUrl: '/' })
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sign in with email and password' })).toBeDisabled()
-      // The Google button is disabled too while a redirect is in flight.
-      expect(screen.getByRole('button', { name: /sign in with google/i })).toBeDisabled()
-    })
-  })
-
-  it('triggers email sign-in from the Enter key', async () => {
-    getProvidersMock.mockResolvedValue(allProviders)
-    signInMock.mockResolvedValue(undefined)
-    render(<SignIn />)
-
-    fireEvent.keyDown(await screen.findByRole('button', { name: 'Sign in with email and password' }), { key: 'Enter' })
-
-    expect(signInMock).toHaveBeenCalledTimes(1)
-    expect(signInMock).toHaveBeenCalledWith('cognito', { callbackUrl: '/' })
+    expect(pushMock).toHaveBeenCalledWith('/auth/email/signin')
+    // It is a plain navigation, not an OAuth redirect: signIn is untouched.
+    expect(signInMock).not.toHaveBeenCalled()
   })
 
   it('redirects authenticated users to the homepage instead of showing the form', async () => {

@@ -1,9 +1,11 @@
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CognitoProvider from 'next-auth/providers/cognito'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { DynamoDBAdapter } from '@next-auth/dynamodb-adapter'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { client } from './dynamodb'
+import { CognitoAuthError, cognitoSignIn, isCognitoEmailAuthConfigured } from './cognito-auth'
 
 // The low-level client comes from the shared connection manager so the auth
 // route honors DYNAMODB_ENDPOINT (DynamoDB Local) and optional credentials
@@ -69,6 +71,36 @@ export const authOptions: NextAuthOptions = {
             ...(process.env.COGNITO_HOSTED_UI_DOMAIN
               ? cognitoCustomDomainOptions(process.env.COGNITO_HOSTED_UI_DOMAIN, process.env.COGNITO_ISSUER)
               : {}),
+          }),
+        ]
+      : []),
+    // Custom email/password pages (under /auth/email) authenticate through
+    // this Credentials provider. authorize() runs server-side against the
+    // Cognito user pool, so passwords never touch the browser beyond the
+    // form post to next-auth's own callback endpoint. Thrown error messages
+    // surface as the signIn() error, so they are machine-readable codes the
+    // custom sign-in page maps to friendly copy.
+    ...(isCognitoEmailAuthConfigured()
+      ? [
+          CredentialsProvider({
+            id: 'email-password',
+            name: 'Email',
+            credentials: {
+              email: { label: 'Email', type: 'email' },
+              password: { label: 'Password', type: 'password' },
+            },
+            async authorize(credentials) {
+              const email = typeof credentials?.email === 'string' ? credentials.email : ''
+              const password = typeof credentials?.password === 'string' ? credentials.password : ''
+              if (!email || !password) return null
+              try {
+                const user = await cognitoSignIn(email, password)
+                return { id: user.sub, email: user.email, name: user.name }
+              } catch (error) {
+                if (error instanceof CognitoAuthError) throw new Error(error.code)
+                throw new Error('server-error')
+              }
+            },
           }),
         ]
       : []),
