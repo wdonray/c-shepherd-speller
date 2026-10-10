@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { PatternMark } from '@/components/PatternMark'
 import {
+  compareVersions,
+  parseVersion,
   RELEASES_API,
   RELEASES_URL,
+  sortReleasesNewestFirst,
   summarizeRelease,
   toRelease,
   type GitHubReleasePayload,
@@ -15,32 +18,22 @@ import { reportError } from '@/lib/report-error'
 
 // Re-exported so existing importers keep working; server components must
 // import these from '@/lib/github' directly (see its header comment).
-export { RELEASES_API, RELEASES_URL, summarizeRelease, toRelease, type GitHubReleasePayload, type Release }
+export {
+  compareVersions,
+  parseVersion,
+  RELEASES_API,
+  RELEASES_URL,
+  sortReleasesNewestFirst,
+  summarizeRelease,
+  toRelease,
+  type GitHubReleasePayload,
+  type Release,
+}
 
 /** How often the page silently re-checks GitHub for new releases. */
 export const POLL_INTERVAL_MS = 120_000
 /** How often the relative timestamps ("3h ago") re-render. */
 const TICK_INTERVAL_MS = 15_000
-
-/** Parse a semver-ish string ("v0.4.19" / "0.4.19") into comparable parts. */
-export function parseVersion(value: string): number[] {
-  return value
-    .replace(/^v/i, '')
-    .split('.')
-    .map((part) => parseInt(part, 10) || 0)
-}
-
-/** Returns 1 if a > b, -1 if a < b, 0 if equal. */
-export function compareVersions(a: string, b: string): number {
-  const pa = parseVersion(a)
-  const pb = parseVersion(b)
-  const length = Math.max(pa.length, pb.length)
-  for (let i = 0; i < length; i++) {
-    const diff = (pa[i] ?? 0) - (pb[i] ?? 0)
-    if (diff !== 0) return diff > 0 ? 1 : -1
-  }
-  return 0
-}
 
 export function formatDate(value: string | null): string | null {
   if (!value) return null
@@ -82,7 +75,7 @@ export async function fetchReleases(): Promise<Release[]> {
   if (!res.ok) throw new Error(`GitHub responded ${res.status}`)
   const data: unknown = await res.json()
   if (!Array.isArray(data)) throw new Error('Unexpected GitHub response')
-  return data.map((item) => toRelease((item ?? {}) as GitHubReleasePayload))
+  return sortReleasesNewestFirst(data.map((item) => toRelease((item ?? {}) as GitHubReleasePayload)))
 }
 
 export default function VersionInfo({
