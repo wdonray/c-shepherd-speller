@@ -3,29 +3,24 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { PatternMark } from '@/components/PatternMark'
+import {
+  RELEASES_API,
+  RELEASES_URL,
+  summarizeRelease,
+  toRelease,
+  type GitHubReleasePayload,
+  type Release,
+} from '@/lib/github'
 import { reportError } from '@/lib/report-error'
 
-export const RELEASES_API = 'https://api.github.com/repos/wdonray/c-shepherd-speller/releases?per_page=5'
-export const RELEASES_URL = 'https://github.com/wdonray/c-shepherd-speller/releases'
+// Re-exported so existing importers keep working; server components must
+// import these from '@/lib/github' directly (see its header comment).
+export { RELEASES_API, RELEASES_URL, summarizeRelease, toRelease, type GitHubReleasePayload, type Release }
 
 /** How often the page silently re-checks GitHub for new releases. */
 export const POLL_INTERVAL_MS = 120_000
 /** How often the relative timestamps ("3h ago") re-render. */
 const TICK_INTERVAL_MS = 15_000
-
-export interface Release {
-  version: string
-  url: string
-  publishedAt: string | null
-  summary: string | null
-}
-
-interface GitHubReleasePayload {
-  tag_name?: unknown
-  html_url?: unknown
-  published_at?: unknown
-  body?: unknown
-}
 
 /** Parse a semver-ish string ("v0.4.19" / "0.4.19") into comparable parts. */
 export function parseVersion(value: string): number[] {
@@ -45,24 +40,6 @@ export function compareVersions(a: string, b: string): number {
     if (diff !== 0) return diff > 0 ? 1 : -1
   }
   return 0
-}
-
-/**
- * Pull a one-line summary from a release body: the first PR title.
- *
- * Handles two formats, conventional first:
- * - conventional-changelog: "  - Fix project card locators (80946f4)" -> "Fix project card locators"
- * - GitHub auto-generated notes: "* fix: photo save permission error by @wdonray in <url>"
- *   -> "fix: photo save permission error"
- */
-export function summarizeRelease(body: string | null): string | null {
-  if (!body) return null
-  const conventional = body.match(/^\s*-\s+(.+?)\s*\([0-9a-f]{7,40}\)\s*$/m)
-  const summary = conventional?.[1]?.trim()
-  if (summary) return summary
-  const generated = body.match(/^\s*\*\s+(.+?)\s+by\s+@\S+/m)
-  const fallback = generated?.[1]?.trim()
-  return fallback ? fallback : null
 }
 
 export function formatDate(value: string | null): string | null {
@@ -94,16 +71,6 @@ export function timeAgo(iso: string | null, now: number): string | null {
 /** Relative age for the "updated …" line; never blank. */
 export function formatCheckedAgo(lastChecked: number, now: number): string {
   return timeAgo(new Date(lastChecked).toISOString(), now) ?? 'just now'
-}
-
-/** Normalize one GitHub release payload into a Release. */
-export function toRelease(data: GitHubReleasePayload): Release {
-  return {
-    version: String(data.tag_name ?? '').replace(/^v/i, ''),
-    url: typeof data.html_url === 'string' && data.html_url ? data.html_url : RELEASES_URL,
-    publishedAt: typeof data.published_at === 'string' ? data.published_at : null,
-    summary: summarizeRelease(typeof data.body === 'string' ? data.body : null),
-  }
 }
 
 /** Fetch the most recent releases from the GitHub API. */
