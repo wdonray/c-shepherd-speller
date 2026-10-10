@@ -1,7 +1,7 @@
 version: 1
 # TEMPORARY workaround (2026-10-05): Amplify console environment variables are
 # documented as "for build time" and are not reaching the SSR runtime for this
-# app (verified: the Lambda sees none of the 9 vars). This build spec persists
+# app (verified: the Lambda sees none of the 17 vars listed below). This build spec persists
 # the build-time vars to .env.production (generated at build time, never
 # committed) so `next start` loads them at runtime. Revert once Amplify fixes
 # runtime injection or the preview is torn down.
@@ -14,11 +14,11 @@ frontend:
       commands:
         - |
           echo "=== env vars present at build time (names only) ==="
-          for var in NEXTAUTH_SECRET NEXTAUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET AUTH_DYNAMODB_REGION AUTH_DYNAMODB_ID AUTH_DYNAMODB_SECRET USER_TABLE_NAME AUTH_TABLE_NAME ANALYTICS_TABLE ANALYTICS_AWS_REGION ANALYTICS_AWS_ACCESS_KEY_ID ANALYTICS_AWS_SECRET_ACCESS_KEY ANALYTICS_SALT; do
+          for var in NEXTAUTH_SECRET NEXTAUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET AUTH_DYNAMODB_REGION AUTH_DYNAMODB_ID AUTH_DYNAMODB_SECRET USER_TABLE_NAME AUTH_TABLE_NAME ANALYTICS_TABLE ANALYTICS_AWS_REGION ANALYTICS_AWS_ACCESS_KEY_ID ANALYTICS_AWS_SECRET_ACCESS_KEY ANALYTICS_SALT COGNITO_CLIENT_ID COGNITO_CLIENT_SECRET COGNITO_ISSUER; do
             if [ -n "$(printenv "$var")" ]; then echo "$var: present"; else echo "$var: MISSING"; fi
           done
         - |
-          for var in NEXTAUTH_SECRET NEXTAUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET AUTH_DYNAMODB_REGION AUTH_DYNAMODB_ID AUTH_DYNAMODB_SECRET USER_TABLE_NAME AUTH_TABLE_NAME ANALYTICS_TABLE ANALYTICS_AWS_REGION ANALYTICS_AWS_ACCESS_KEY_ID ANALYTICS_AWS_SECRET_ACCESS_KEY ANALYTICS_SALT; do
+          for var in NEXTAUTH_SECRET NEXTAUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET AUTH_DYNAMODB_REGION AUTH_DYNAMODB_ID AUTH_DYNAMODB_SECRET USER_TABLE_NAME AUTH_TABLE_NAME ANALYTICS_TABLE ANALYTICS_AWS_REGION ANALYTICS_AWS_ACCESS_KEY_ID ANALYTICS_AWS_SECRET_ACCESS_KEY ANALYTICS_SALT COGNITO_CLIENT_ID COGNITO_CLIENT_SECRET COGNITO_ISSUER; do
             val="$(printenv "$var")"
             if [ -n "$val" ]; then printf '%s=%s\n' "$var" "$val" >> .env.production; fi
           done
