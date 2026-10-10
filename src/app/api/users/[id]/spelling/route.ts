@@ -2,29 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserSpellingData, updateUserSpellingData } from '@/lib/db-utils'
 import { requireOwnership } from '@/lib/require-auth'
 import { reportError } from '@/lib/report-error'
+import { noStore, noStoreJson } from '@/lib/no-store'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 
     const auth = await requireOwnership(id)
-    if (auth.response) return auth.response
+    if (auth.response) return noStore(auth.response)
 
     if (!id) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+      return noStoreJson({ error: 'User ID is required' }, { status: 400 })
     }
 
     const spellingData = await getUserSpellingData(id)
 
     if (!spellingData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return noStoreJson({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ spellingData })
+    return noStoreJson({ spellingData })
   } catch (error: unknown) {
     reportError(error, { location: 'GET /api/users/[id]/spelling', extra: { status: 500 } })
     console.error('Error getting user spelling data:', error)
-    return NextResponse.json({ error: 'Failed to get user spelling data' }, { status: 500 })
+    return noStoreJson({ error: 'Failed to get user spelling data' }, { status: 500 })
   }
 }
 

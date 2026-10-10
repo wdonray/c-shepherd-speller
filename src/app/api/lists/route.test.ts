@@ -46,6 +46,15 @@ describe('GET /api/lists', () => {
     expect(getListsByUser).toHaveBeenCalledWith('u1')
   })
 
+  it('sends Cache-Control: no-store so a refresh never serves stale lists', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListsByUser.mockResolvedValue([{ id: 'l1', name: 'Week 5' }])
+
+    const res = await GET()
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
   it('returns 500 when the database fails', async () => {
     requireUser.mockResolvedValue(authed)
     getListsByUser.mockRejectedValue(new Error('db down'))

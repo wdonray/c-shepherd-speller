@@ -3,19 +3,22 @@ import { requireUser } from '@/lib/require-auth'
 import { createList, getListsByUser } from '@/lib/lists-db'
 import { CreateWordListSchema } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
+import { noStore, noStoreJson } from '@/lib/no-store'
+
+export const dynamic = 'force-dynamic'
 
 /** GET /api/lists — list all of the caller's word lists. */
 export async function GET() {
   const auth = await requireUser()
-  if (auth.response) return auth.response
+  if (auth.response) return noStore(auth.response)
 
   try {
     const lists = await getListsByUser(auth.user.id)
-    return NextResponse.json({ lists })
+    return noStoreJson({ lists })
   } catch (error) {
     reportError(error, { location: 'GET /api/lists', extra: { status: 500 } })
     console.error('Error listing word lists:', error)
-    return NextResponse.json({ error: 'Failed to list word lists' }, { status: 500 })
+    return noStoreJson({ error: 'Failed to list word lists' }, { status: 500 })
   }
 }
 

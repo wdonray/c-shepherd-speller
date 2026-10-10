@@ -3,23 +3,26 @@ import { requireUser } from '@/lib/require-auth'
 import { getListById, updateList, deleteList } from '@/lib/lists-db'
 import { UpdateWordListSchema } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
+import { noStore, noStoreJson } from '@/lib/no-store'
+
+export const dynamic = 'force-dynamic'
 
 /** GET /api/lists/[id] — get one of the caller's lists. */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireUser()
-  if (auth.response) return auth.response
+  if (auth.response) return noStore(auth.response)
   const { id } = await params
 
   try {
     const list = await getListById(auth.user.id, id)
     if (!list) {
-      return NextResponse.json({ error: 'List not found' }, { status: 404 })
+      return noStoreJson({ error: 'List not found' }, { status: 404 })
     }
-    return NextResponse.json({ list })
+    return noStoreJson({ list })
   } catch (error) {
     reportError(error, { location: 'GET /api/lists/[id]', extra: { status: 500 } })
     console.error('Error getting word list:', error)
-    return NextResponse.json({ error: 'Failed to get word list' }, { status: 500 })
+    return noStoreJson({ error: 'Failed to get word list' }, { status: 500 })
   }
 }
 
