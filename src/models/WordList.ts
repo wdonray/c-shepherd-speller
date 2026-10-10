@@ -47,6 +47,17 @@ export const SpellingPatternSchema = z.object({
 })
 export type SpellingPattern = z.infer<typeof SpellingPatternSchema>
 
+/**
+ * Whether a pattern has everything the API requires, so it is safe to
+ * include in a save. `id` is generated, `frequency` has a UI default, and
+ * `words` may be empty; the teacher must fill in the target sound and the
+ * spelling pattern. Used to keep freshly added patterns local-only until
+ * they are complete.
+ */
+export function isPatternComplete(pattern: SpellingPattern): boolean {
+  return pattern.sound.trim() !== '' && pattern.pattern.trim() !== ''
+}
+
 /** A teacher's pattern-based spelling list. */
 export const WordListSchema = z.object({
   id: z.string().min(1),

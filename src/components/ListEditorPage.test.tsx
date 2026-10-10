@@ -164,7 +164,7 @@ describe('ListEditorPage', () => {
     )
   })
 
-  it('adds a pattern from the empty state', async () => {
+  it('adds a pattern from the empty state and saves it once complete', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady({ patterns: [] })
 
@@ -172,8 +172,83 @@ describe('ListEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
 
     expect(screen.getByLabelText('Pattern spelling')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+
     await waitForSave()
-    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ patterns: [expect.anything()] }))
+    expect(updateList).toHaveBeenCalledWith(
+      'l1',
+      expect.objectContaining({ patterns: [expect.objectContaining({ sound: 'long a', pattern: 'ai' })] })
+    )
+  })
+
+  it('does not auto-save a new pattern until its required fields are filled', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+
+    // A blank pattern is local-only: no save fires at all.
+    await new Promise((r) => setTimeout(r, 700))
+    expect(updateList).not.toHaveBeenCalled()
+
+    // Filling only the sound keeps it a draft; the save fires but the
+    // incomplete pattern is held out of the payload.
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ patterns: [] }))
+
+    // Filling the spelling completes it: the next save includes it.
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    await waitFor(() =>
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ patterns: [expect.objectContaining({ sound: 'long a', pattern: 'ai' })] })
+      )
+    )
+  })
+
+  it('discards an incomplete new pattern when leaving the page', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue({ ...list, patterns: [] })
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('button', { name: 'Add a pattern' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    // Unmount before the debounce fires; the flush must not persist the draft.
+    unmount()
+
+    await new Promise((r) => setTimeout(r, 100))
+    const calls = updateList.mock.calls
+    expect(calls.length).toBeGreaterThan(0)
+    for (const [, data] of calls) {
+      expect((data as { patterns: unknown[] }).patterns).toEqual([])
+    }
+  })
+
+  it('shows a toast when clearing a saved pattern’s required field', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith(
+      'l1',
+      expect.objectContaining({ patterns: [expect.objectContaining({ pattern: 'ai' })] })
+    )
+
+    // Clearing the spelling re-opens the draft is not possible once saved;
+    // instead the edit is sent as-is and the API rejects it. Simulate the
+    // rejection path staying graceful (no crash, input preserved).
+    updateList.mockRejectedValueOnce(new Error('Invalid list data'))
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: '' } })
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText('Pattern spelling')).toHaveValue('')
   })
 
   it('confirms and deletes a pattern', async () => {
