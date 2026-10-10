@@ -95,6 +95,26 @@ describe('PatternChartDisplay', () => {
     expect(screen.getByRole('region', { name: 'Pattern eigh' })).toBeInTheDocument()
   })
 
+  it('marks word-level odd ducks with plum styling and an odd ducks section', () => {
+    const oddList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+      ],
+    }
+    render(<PatternChartDisplay list={oddList} />)
+    const section = screen.getByRole('region', { name: 'Odd ducks' })
+    expect(section).toBeInTheDocument()
+    expect(section).toHaveTextContent('cake')
+    expect(section).toHaveTextContent('these spellings do not follow the patterns')
+    // The odd-duck word card gets plum styling in its column.
+    const cakeCard = screen.getByRole('button', { name: 'Analyze the word cake' }).closest('li')
+    expect(cakeCard?.className).toMatch(/border-plum/)
+    const bakeCard = screen.getByRole('button', { name: 'Analyze the word bake' }).closest('li')
+    expect(bakeCard?.className).not.toMatch(/border-plum/)
+  })
+
   it('shows an empty state when the list has no patterns', () => {
     render(<PatternChartDisplay list={{ ...list, patterns: [] }} />)
     expect(screen.getByText(/No patterns in this list yet/)).toBeInTheDocument()

@@ -40,6 +40,29 @@ describe('WordList model', () => {
       expect(result.success).toBe(true)
     })
 
+    it('accepts word-level odd ducks', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, oddDucks: ['through', 'enough'] })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.oddDucks).toEqual(['through', 'enough'])
+      }
+    })
+
+    it('treats missing oddDucks as none (backwards compatible)', () => {
+      // Legacy lists have plain string words and no oddDucks field.
+      const result = SpellingPatternSchema.safeParse(validPattern)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.oddDucks).toBeUndefined()
+        expect(result.data.words).toEqual(validPattern.words)
+      }
+    })
+
+    it('rejects non-string odd duck entries', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, oddDucks: ['ok', 42] })
+      expect(result.success).toBe(false)
+    })
+
     it('accepts a locked pattern', () => {
       const result = SpellingPatternSchema.safeParse({ ...validPattern, isLocked: true })
       expect(result.success).toBe(true)

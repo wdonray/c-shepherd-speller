@@ -10,6 +10,7 @@ import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-reac
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import SentencePicker from './SentencePicker'
 import KeywordImagePicker from './KeywordImagePicker'
+import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
@@ -72,9 +73,11 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
   const removeWord = (word: string) => {
     const sentences = { ...(pattern.sentences ?? {}) }
     delete sentences[word]
+    const oddDucks = (pattern.oddDucks ?? []).filter((w) => w !== word)
     update({
       words: pattern.words.filter((w) => w !== word),
       sentences: Object.keys(sentences).length > 0 ? sentences : undefined,
+      oddDucks: oddDucks.length > 0 ? oddDucks : undefined,
     })
     setWordPendingDelete(null)
   }
@@ -97,6 +100,17 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
       delete sentences[word]
     }
     update({ sentences: Object.keys(sentences).length > 0 ? sentences : undefined })
+  }
+
+  const toggleWordOddDuck = (word: string) => {
+    const oddDucks = new Set(pattern.oddDucks ?? [])
+    if (oddDucks.has(word)) {
+      oddDucks.delete(word)
+    } else {
+      oddDucks.add(word)
+    }
+    const next = [...oddDucks]
+    update({ oddDucks: next.length > 0 ? next : undefined })
   }
 
   const addSuggestedWord = (word: string) => {
@@ -266,6 +280,29 @@ export default function PatternEditor({ pattern, onChange, onRemove }: PatternEd
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-3">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleWordOddDuck(word)}
+                                  aria-pressed={pattern.oddDucks?.includes(word) ?? false}
+                                  aria-label={
+                                    pattern.oddDucks?.includes(word)
+                                      ? `Unmark ${word} as odd duck`
+                                      : `Mark ${word} as odd duck`
+                                  }
+                                  className={cn(
+                                    'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                                    pattern.oddDucks?.includes(word)
+                                      ? 'bg-plum-soft text-plum hover:brightness-95 focus-visible:brightness-95'
+                                      : 'text-muted-foreground hover:bg-plum-soft hover:text-plum focus-visible:bg-plum-soft focus-visible:text-plum'
+                                  )}
+                                >
+                                  <OddDuck className="size-5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mark as odd duck</TooltipContent>
+                            </Tooltip>
                             <SentencePicker
                               word={word}
                               patternId={pattern.id}

@@ -27,6 +27,13 @@ export const SpellingPatternSchema = z.object({
   frequency: PatternFrequencySchema,
   /** Words using this pattern, e.g. ["cake", "bake", "late"] */
   words: z.array(z.string().min(1).max(50)).max(200),
+  /**
+   * Word texts marked as irregular "odd ducks". Only words can be odd ducks,
+   * never patterns. Odd-duck words are excluded from sorting and shown in
+   * the odd-ducks section. Words are unique within a pattern, so text keys
+   * are unambiguous. Optional for backward compatibility with legacy lists.
+   */
+  oddDucks: z.array(z.string().min(1).max(50)).max(200).optional(),
   /** True for the irregular "odd ducks" section */
   isOddDuck: z.boolean().optional(),
   /** True when the teacher has locked this pattern; hidden until taught */

@@ -73,12 +73,14 @@ describe('PatternEditor', () => {
 
   it('does not offer an odd-duck toggle on patterns (only words can be odd ducks)', () => {
     renderEditor()
-    expect(screen.queryByRole('button', { name: /odd duck/i })).not.toBeInTheDocument()
-    // Existing data with the flag set must not crash or surface the toggle.
+    // Word-level toggles exist, but there is no pattern-level toggle.
+    expect(screen.queryByRole('button', { name: 'Mark pattern as odd duck' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mark cake as odd duck' })).toBeInTheDocument()
+    // Existing data with the flag set must not crash or surface a pattern toggle.
     const { rerender } = render(
       <PatternEditor pattern={{ ...basePattern, isOddDuck: true }} onChange={vi.fn()} onRemove={vi.fn()} />
     )
-    expect(screen.queryByRole('button', { name: /odd duck/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mark pattern as odd duck' })).not.toBeInTheDocument()
     rerender(<PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} />)
   })
 
@@ -230,6 +232,26 @@ describe('PatternEditor', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['bake'] })
+  })
+
+  it('marks a word as an odd duck', () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Mark cake as odd duck' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, oddDucks: ['cake'] })
+  })
+
+  it('unmarks an odd duck word', () => {
+    const { onChange } = renderEditor({ oddDucks: ['cake'] })
+    const button = screen.getByRole('button', { name: 'Unmark cake as odd duck' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(button)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, oddDucks: undefined })
+  })
+
+  it('removing a word also removes its odd duck marking', () => {
+    const { onChange } = renderEditor({ oddDucks: ['cake'] })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['bake'], oddDucks: undefined })
   })
 
   it('calls onRemove when the delete button is pressed', () => {
