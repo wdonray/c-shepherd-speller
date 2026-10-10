@@ -65,7 +65,8 @@ describe('EmailSignUpPage', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('already exists')
-    expect(screen.getByRole('link', { name: /sign in instead/i })).toHaveAttribute('href', '/auth/email/signin')
+    expect(screen.getByRole('link', { name: /sign in with email/i })).toHaveAttribute('href', '/auth/email/signin')
+    expect(screen.getByRole('link', { name: /sign in with google/i })).toHaveAttribute('href', '/auth/signin')
   })
 
   it('explains a weak password', async () => {

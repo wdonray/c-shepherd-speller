@@ -7,8 +7,14 @@ vi.mock('@/lib/cognito-auth', async (importOriginal) => ({
   cognitoSignUp: vi.fn(),
 }))
 
+vi.mock('@/lib/db-utils', () => ({
+  getUserByEmail: vi.fn(),
+}))
+
 const { cognitoSignUp } = await import('@/lib/cognito-auth')
 const cognitoSignUpMock = vi.mocked(cognitoSignUp)
+const { getUserByEmail } = await import('@/lib/db-utils')
+const getUserByEmailMock = vi.mocked(getUserByEmail)
 
 const ENV = {
   COGNITO_CLIENT_ID: 'test-client-id',
@@ -30,6 +36,8 @@ beforeEach(() => {
     vi.stubEnv(key, value)
   }
   cognitoSignUpMock.mockReset()
+  getUserByEmailMock.mockReset()
+  getUserByEmailMock.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -44,7 +52,18 @@ describe('POST /api/auth/email/signup', () => {
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ ok: true, userConfirmed: false })
+    expect(getUserByEmailMock).toHaveBeenCalledWith('t@e.com')
     expect(cognitoSignUpMock).toHaveBeenCalledWith('Chaley', 't@e.com', 'S3cure!pass')
+  })
+
+  it('returns 409 without calling Cognito when the email already has an account', async () => {
+    getUserByEmailMock.mockResolvedValue({ id: 'u1', email: 't@e.com' } as never)
+
+    const response = await post({ name: 'N', email: 't@e.com', password: 'S3cure!pass' })
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ ok: false, code: 'email-in-use' })
+    expect(cognitoSignUpMock).not.toHaveBeenCalled()
   })
 
   it('rejects a 503 when the pool is not configured', async () => {

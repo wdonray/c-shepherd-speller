@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { cognitoSignUp } from '@/lib/cognito-auth'
+import { getUserByEmail } from '@/lib/db-utils'
 import { emailAuthErrorResponse, requireEmailAuth } from '@/lib/email-auth-api'
 
 const signupSchema = z.object({
@@ -19,6 +20,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Someone who signed in with Google (or email) already has an app-table
+    // record for this email. Tell them up front instead of creating a second
+    // Cognito user that would "sort of merge" later.
+    const existing = await getUserByEmail(parsed.data.email)
+    if (existing) {
+      return NextResponse.json({ ok: false, code: 'email-in-use' }, { status: 409 })
+    }
     const { userConfirmed } = await cognitoSignUp(parsed.data.name, parsed.data.email, parsed.data.password)
     return NextResponse.json({ ok: true, userConfirmed })
   } catch (error) {
