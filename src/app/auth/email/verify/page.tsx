@@ -15,14 +15,14 @@ const ERROR_COPY: Record<string, string> = {
   'invalid-code': 'That code is not right. Check the email and try again.',
   'expired-code': 'That code has expired. Request a new one below and try again.',
   'too-many-attempts': 'Too many attempts. Wait a few minutes and try again.',
-  'invalid-input': 'Enter the email you signed up with and the 6-digit code.',
+  'invalid-input': 'Enter the 6-digit code.',
   'not-configured': 'Email sign-in is not set up yet. Try signing in with Google instead.',
 }
 const FALLBACK_ERROR = 'Something went wrong. Try again in a moment.'
 
 function EmailVerifyForm() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState(searchParams.get('email') ?? '')
+  const email = searchParams.get('email') ?? ''
   const [code, setCode] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -78,6 +78,19 @@ function EmailVerifyForm() {
     }
   }
 
+  if (email.trim() === '') {
+    return (
+      <EmailAuthCard title="Check your email" subtitle="Enter the 6-digit code we sent you.">
+        <div className="flex w-full flex-col gap-5">
+          <AuthFeedback tone="error">We need an email address to verify a code.</AuthFeedback>
+          <Button asChild className="w-full">
+            <Link href="/auth/email/signup">Create an account</Link>
+          </Button>
+        </div>
+      </EmailAuthCard>
+    )
+  }
+
   if (verified) {
     return (
       <EmailAuthCard title="You are verified" subtitle="Your account is ready.">
@@ -96,20 +109,12 @@ function EmailVerifyForm() {
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {errorCode ? <AuthFeedback tone="error">{ERROR_COPY[errorCode] ?? FALLBACK_ERROR}</AuthFeedback> : null}
         {resent ? <AuthFeedback tone="success">New code sent. Check your email.</AuthFeedback> : null}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            placeholder="you@school.org"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            disabled={isLoading}
-          />
-        </div>
+        <p className="text-sm leading-6 text-muted-foreground">
+          We sent a code to <span className="font-medium text-ink">{email}</span>.{' '}
+          <Link href="/auth/email/signup" className="underline underline-offset-4 hover:text-ink">
+            Use a different email
+          </Link>
+        </p>
         <div className="flex flex-col gap-2">
           <Label htmlFor="code">Verification code</Label>
           <Input
@@ -140,7 +145,7 @@ function EmailVerifyForm() {
           <button
             type="button"
             onClick={handleResend}
-            disabled={isResending || email.trim().length === 0}
+            disabled={isResending}
             className="underline underline-offset-4 hover:text-ink disabled:no-underline disabled:opacity-50"
           >
             {isResending ? 'Sending...' : 'Send a new one'}

@@ -13,6 +13,11 @@ const mockSearchParams = { get: vi.fn() as Mock<(key: string) => string | null> 
 const useSearchParamsMock = vi.mocked(useSearchParams)
 const fetchMock = vi.fn()
 
+function renderWithEmail(email: string | null) {
+  mockSearchParams.get.mockReturnValue(email)
+  return render(<EmailResetPasswordPage />)
+}
+
 function fillAndSubmit(code: string, newPassword: string) {
   fireEvent.change(screen.getByLabelText(/reset code/i), { target: { value: code } })
   fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: newPassword } })
@@ -29,6 +34,7 @@ beforeEach(() => {
   useRouterMock.mockReturnValue({ push: vi.fn(), replace: vi.fn() } as never)
   useSearchParamsMock.mockReturnValue(mockSearchParams as never)
   mockSearchParams.get.mockReturnValue(null)
+  document.body.removeAttribute('data-auth-page')
 })
 
 afterEach(() => {
@@ -37,27 +43,46 @@ afterEach(() => {
 })
 
 describe('EmailResetPasswordPage', () => {
-  it('renders the form and prefills the email from the query string', async () => {
-    mockSearchParams.get.mockReturnValue('t@e.com')
-    render(<EmailResetPasswordPage />)
+  it('shows the email as read-only text with a link to use a different one', async () => {
+    renderWithEmail('t@e.com')
+    await screen.findByRole('heading', { name: 'Choose a new password' })
 
-    expect(await screen.findByRole('heading', { name: 'Choose a new password' })).toBeInTheDocument()
-    expect(screen.getByLabelText(/email/i)).toHaveValue('t@e.com')
+    expect(screen.getByText(/we sent a reset code to/i)).toBeInTheDocument()
+    expect(screen.getByText('t@e.com')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /use a different email/i })).toHaveAttribute(
+      'href',
+      '/auth/email/forgot-password'
+    )
     expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument()
+  })
+
+  it('prompts to request a code when no email is in the query string', async () => {
+    renderWithEmail(null)
+    await screen.findByRole('heading', { name: 'Choose a new password' })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('We need an email address')
+    expect(screen.getByRole('link', { name: /request a new code/i })).toHaveAttribute(
+      'href',
+      '/auth/email/forgot-password'
+    )
+    expect(screen.queryByRole('button', { name: /update password/i })).not.toBeInTheDocument()
   })
 
   it('updates the password and offers the sign-in step', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
-    render(<EmailResetPasswordPage />)
+    renderWithEmail('t@e.com')
     await screen.findByRole('button', { name: /update password/i })
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
 
     fillAndSubmit('123456', 'N3w!password')
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/auth/email/reset-password',
-        expect.objectContaining({ method: 'POST' })
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ email: 't@e.com', code: '123456', newPassword: 'N3w!password' }),
+        })
       )
     })
     expect(await screen.findByRole('heading', { name: 'Password updated' })).toBeInTheDocument()
@@ -74,9 +99,8 @@ describe('EmailResetPasswordPage', () => {
       ['weak-password', 'at least 8 characters'],
     ] as const) {
       fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false, code }) })
-      const { unmount } = render(<EmailResetPasswordPage />)
+      const { unmount } = renderWithEmail('t@e.com')
       await screen.findByRole('button', { name: /update password/i })
-      fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
 
       fillAndSubmit('000000', 'N3w!password')
 
@@ -87,9 +111,8 @@ describe('EmailResetPasswordPage', () => {
 
   it('falls back on network failure', async () => {
     fetchMock.mockRejectedValue(new Error('network down'))
-    render(<EmailResetPasswordPage />)
+    renderWithEmail('t@e.com')
     await screen.findByRole('button', { name: /update password/i })
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
 
     fillAndSubmit('123456', 'N3w!password')
 
@@ -98,9 +121,8 @@ describe('EmailResetPasswordPage', () => {
 
   it('falls back to a generic message when the failure has no code', async () => {
     fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false }) })
-    render(<EmailResetPasswordPage />)
+    renderWithEmail('t@e.com')
     await screen.findByRole('button', { name: /update password/i })
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
 
     fillAndSubmit('123456', 'N3w!password')
 
