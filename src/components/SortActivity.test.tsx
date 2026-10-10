@@ -225,14 +225,14 @@ describe('SortActivity', () => {
     }
 
     it('colors drop columns by sound type, matching the display page', () => {
-      render(<SortActivity list={mixedList} />)
+      render(<SortActivity list={mixedList} onExit={vi.fn()} />)
       expect(screen.getByRole('region', { name: 'Pattern ee drop column' })).toHaveClass('border-leaf')
       expect(screen.getByRole('region', { name: 'Pattern sh drop column' })).toHaveClass('border-coral')
       expect(screen.getByRole('region', { name: 'Pattern ar drop column' })).toHaveClass('border-sky')
     })
 
     it('renders power bars in a neutral color', () => {
-      const { container } = render(<SortActivity list={mixedList} />)
+      const { container } = render(<SortActivity list={mixedList} onExit={vi.fn()} />)
       const filled = container.querySelectorAll('[data-power-segment][data-filled="true"]')
       expect(filled.length).toBeGreaterThan(0)
       for (const seg of filled) {
