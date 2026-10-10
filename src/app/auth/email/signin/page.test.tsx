@@ -88,6 +88,13 @@ describe('EmailSignInPage', () => {
     expect(await screen.findByText(/email sign-in is not set up yet/i)).toBeInTheDocument()
   })
 
+  it('explains when no providers come back at all', async () => {
+    getProvidersMock.mockResolvedValue(null)
+    render(<EmailSignInPage />)
+
+    expect(await screen.findByText(/email sign-in is not set up yet/i)).toBeInTheDocument()
+  })
+
   it('signs in and navigates home on success', async () => {
     signInMock.mockResolvedValue({ ok: true, url: '/' } as never)
     render(<EmailSignInPage />)

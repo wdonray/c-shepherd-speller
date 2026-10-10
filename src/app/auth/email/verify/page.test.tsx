@@ -79,6 +79,16 @@ describe('EmailVerifyPage', () => {
     }
   })
 
+  it('falls back to a generic message when the failure has no code', async () => {
+    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false }) })
+    render(<EmailVerifyPage />)
+    await screen.findByRole('button', { name: /verify email/i })
+
+    fillAndSubmit('t@e.com', '000000')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
+  })
+
   it('resends the code and confirms it', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
     render(<EmailVerifyPage />)
@@ -105,6 +115,17 @@ describe('EmailVerifyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /send a new one/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts.')
+  })
+
+  it('falls back to a generic message when resend fails without a code', async () => {
+    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false }) })
+    render(<EmailVerifyPage />)
+    await screen.findByRole('button', { name: /verify email/i })
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /send a new one/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
   })
 
   it('keeps the resend button disabled until an email is entered', async () => {

@@ -97,6 +97,13 @@ describe('EmailSignUpPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
     unmount()
 
+    // A failure body without a code still gets the generic message.
+    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false }) })
+    const { unmount: unmount2 } = render(<EmailSignUpPage />)
+    fillAndSubmit('N', 't@e.com', 'S3cure!pass')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
+    unmount2()
+
     fetchMock.mockRejectedValue(new Error('network down'))
     render(<EmailSignUpPage />)
     fillAndSubmit('N', 't@e.com', 'S3cure!pass')

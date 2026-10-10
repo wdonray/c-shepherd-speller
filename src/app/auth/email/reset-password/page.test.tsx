@@ -96,4 +96,15 @@ describe('EmailResetPasswordPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
   })
+
+  it('falls back to a generic message when the failure has no code', async () => {
+    fetchMock.mockResolvedValue({ ok: false, json: async () => ({ ok: false }) })
+    render(<EmailResetPasswordPage />)
+    await screen.findByRole('button', { name: /update password/i })
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 't@e.com' } })
+
+    fillAndSubmit('123456', 'N3w!password')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
+  })
 })
