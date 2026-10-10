@@ -26,7 +26,7 @@ function renderPicker(overrides: Partial<typeof baseProps> = {}) {
 
 function openDialog() {
   fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern ee' }))
-  return screen.getByRole('dialog', { name: 'Choose keyword image' })
+  return screen.getByRole('dialog', { name: 'Keyword image' })
 }
 
 describe('KeywordImagePicker', () => {
@@ -62,7 +62,7 @@ describe('KeywordImagePicker', () => {
     openDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Bee' }))
     expect(props.onEmojiSelect).toHaveBeenCalledWith('🐝')
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('accepts a custom emoji', () => {
@@ -83,7 +83,7 @@ describe('KeywordImagePicker', () => {
     await waitFor(() => {
       expect(processKeywordImage).toHaveBeenCalledWith(file)
       expect(props.onImageSelect).toHaveBeenCalledWith('data:image/jpeg;base64,thumb')
-      expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
     })
   })
 
@@ -98,7 +98,7 @@ describe('KeywordImagePicker', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Please choose a JPEG, PNG, WebP, or HEIC image.')
     })
     // The dialog stays open so the teacher can try another photo.
-    expect(screen.getByRole('dialog', { name: 'Choose keyword image' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Keyword image' })).toBeInTheDocument()
   })
 
   it('removes the photo, falling back to the emoji', () => {
@@ -106,7 +106,7 @@ describe('KeywordImagePicker', () => {
     openDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
     expect(props.onImageSelect).toHaveBeenCalledWith(undefined)
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('removes the emoji', () => {
@@ -114,7 +114,7 @@ describe('KeywordImagePicker', () => {
     openDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Remove emoji' }))
     expect(props.onEmojiSelect).toHaveBeenCalledWith(undefined)
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('applies a custom emoji with the Enter key', () => {
@@ -172,7 +172,7 @@ describe('KeywordImagePicker', () => {
     renderPicker()
     openDialog()
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('closes when the overlay is clicked', async () => {
@@ -185,14 +185,14 @@ describe('KeywordImagePicker', () => {
     expect(overlay).not.toBeNull()
     fireEvent.pointerDown(overlay!)
     fireEvent.click(overlay!)
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('closes with the close button', () => {
     renderPicker()
     openDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
   })
 
   it('returns focus to the trigger when the dialog closes', async () => {
@@ -201,5 +201,72 @@ describe('KeywordImagePicker', () => {
     openDialog()
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+
+  it('highlights the currently selected emoji in the grid', () => {
+    renderPicker({ emoji: '🐝' })
+    openDialog()
+    const selected = screen.getByRole('button', { name: 'Bee' })
+    expect(selected).toHaveAttribute('aria-pressed', 'true')
+    expect(selected).toHaveClass('border-sky-deep', 'bg-sky-soft')
+    const unselected = screen.getByRole('button', { name: 'Cat' })
+    expect(unselected).toHaveAttribute('aria-pressed', 'false')
+    expect(unselected).not.toHaveClass('border-sky-deep')
+  })
+
+  it('clicking the selected emoji removes it', () => {
+    const props = renderPicker({ emoji: '🐝' })
+    openDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Bee' }))
+    expect(props.onEmojiSelect).toHaveBeenCalledWith(undefined)
+    expect(props.onImageSelect).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog', { name: 'Keyword image' })).not.toBeInTheDocument()
+  })
+
+  it('selecting an emoji clears an existing photo', () => {
+    const props = renderPicker({ image: 'data:image/jpeg;base64,photo' })
+    openDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Bee' }))
+    expect(props.onImageSelect).toHaveBeenCalledWith(undefined)
+    expect(props.onEmojiSelect).toHaveBeenCalledWith('🐝')
+  })
+
+  it('uploading a photo clears the selected emoji', async () => {
+    const { processKeywordImage } = await import('@/lib/profile-image')
+    vi.mocked(processKeywordImage).mockResolvedValue('data:image/jpeg;base64,thumb')
+    const props = renderPicker({ emoji: '🐝' })
+    openDialog()
+    const file = new File(['x'], 'bee.jpg', { type: 'image/jpeg' })
+    fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } })
+    await waitFor(() => {
+      expect(props.onEmojiSelect).toHaveBeenCalledWith(undefined)
+      expect(props.onImageSelect).toHaveBeenCalledWith('data:image/jpeg;base64,thumb')
+    })
+  })
+
+  it('a custom emoji clears an existing photo', () => {
+    const props = renderPicker({ image: 'data:image/jpeg;base64,photo' })
+    openDialog()
+    fireEvent.change(screen.getByLabelText('Custom keyword emoji'), { target: { value: '🦄' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Use emoji' }))
+    expect(props.onImageSelect).toHaveBeenCalledWith(undefined)
+    expect(props.onEmojiSelect).toHaveBeenCalledWith('🦄')
+  })
+
+  it('applying the already-selected custom emoji removes it', () => {
+    const props = renderPicker({ emoji: '🦄' })
+    openDialog()
+    fireEvent.change(screen.getByLabelText('Custom keyword emoji'), { target: { value: '🦄' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Use emoji' }))
+    expect(props.onEmojiSelect).toHaveBeenCalledWith(undefined)
+    expect(props.onImageSelect).not.toHaveBeenCalled()
+  })
+
+  it('renders a visible title with clearance for the close button', () => {
+    renderPicker()
+    openDialog()
+    const title = screen.getByRole('heading', { name: 'Keyword image' })
+    expect(title).toHaveClass('pr-10')
+    expect(title).not.toHaveClass('sr-only')
   })
 })
