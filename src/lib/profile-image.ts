@@ -13,11 +13,24 @@ export const PROFILE_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'
 
 const QUALITY_STEPS = [0.82, 0.7, 0.6]
 
+/** How long to wait for an image to decode before giving up. */
+const IMAGE_LOAD_TIMEOUT_MS = 10000
+
 function loadImage(objectUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Could not read the image file.'))
+    // Some browsers (notably iOS Safari with HEIC blobs) can leave <img>
+    // hanging forever: neither onload nor onerror fires. Time out so the
+    // UI never sticks on "Uploading..." indefinitely.
+    const timer = setTimeout(() => reject(new Error('Could not read the image file.')), IMAGE_LOAD_TIMEOUT_MS)
+    img.onload = () => {
+      clearTimeout(timer)
+      resolve(img)
+    }
+    img.onerror = () => {
+      clearTimeout(timer)
+      reject(new Error('Could not read the image file.'))
+    }
     img.src = objectUrl
   })
 }
@@ -41,7 +54,17 @@ export const KEYWORD_IMAGE_MAX_DATA_URL_LENGTH = 10 * 1024
 export async function processProfileImage(file: File, opts?: ProcessImageOptions): Promise<string> {
   const maxDimension = opts?.maxDimension ?? PROFILE_IMAGE_MAX_DIMENSION
   const maxDataUrlLength = opts?.maxDataUrlLength ?? PROFILE_IMAGE_MAX_DATA_URL_LENGTH
-  if (!PROFILE_IMAGE_MIME_TYPES.includes(file.type as (typeof PROFILE_IMAGE_MIME_TYPES)[number])) {
+  // iOS Safari sometimes hands over photos (especially HEIC) with an empty
+  // type string. Fall back to the file extension in that case, and attempt to
+  // decode rather than rejecting outright: if the browser cannot decode it,
+  // loadImage rejects with a user-facing message below.
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  const typeLooksLikeHeic = ext === 'heic' || ext === 'heif'
+  if (
+    file.type &&
+    !PROFILE_IMAGE_MIME_TYPES.includes(file.type as (typeof PROFILE_IMAGE_MIME_TYPES)[number]) &&
+    !typeLooksLikeHeic
+  ) {
     throw new Error('Please choose a JPEG, PNG, WebP, or HEIC image.')
   }
   if (file.size > PROFILE_IMAGE_MAX_FILE_BYTES) {

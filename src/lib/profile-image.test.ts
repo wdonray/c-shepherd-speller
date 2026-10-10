@@ -98,6 +98,45 @@ describe('processProfileImage', () => {
     expect(drawImage).toHaveBeenCalledTimes(1)
   })
 
+  it('attempts to decode files with an empty MIME type instead of rejecting them', async () => {
+    // iOS Safari sometimes hands over photos (especially HEIC) with an empty
+    // type string. The processor should attempt to decode rather than reject.
+    const file = new File([new Uint8Array(1000)], 'photo.heic', { type: '' })
+    const dataUrl = await processProfileImage(file)
+    expect(dataUrl).toBe('data:image/jpeg;base64,small')
+  })
+
+  it('rejects when the image neither loads nor errors within the timeout', async () => {
+    // On some iOS versions a HEIC blob can leave <img> hanging forever.
+    // The UI must not stick on "Uploading..." indefinitely.
+    vi.stubGlobal(
+      'Image',
+      class {
+        onload: (() => void) | null = null
+        onerror: (() => void) | null = null
+        src = ''
+        width = 800
+        height = 600
+        // Never fires onload or onerror.
+      }
+    )
+    let timeoutCb: (() => void) | null = null
+    const realSetTimeout = globalThis.setTimeout
+    vi.stubGlobal('setTimeout', ((cb: () => void) => {
+      timeoutCb = cb
+      return 0 as unknown as NodeJS.Timeout
+    }) as typeof setTimeout)
+    try {
+      const promise = processProfileImage(makeFile('image/jpeg', 1000))
+      // Let the Image constructor's microtask run, then fire the timeout.
+      await Promise.resolve()
+      timeoutCb!()
+      await expect(promise).rejects.toThrow('Could not read the image file.')
+    } finally {
+      vi.stubGlobal('setTimeout', realSetTimeout)
+    }
+  })
+
   it('accepts HEIF files and converts them to a JPEG data URL', async () => {
     const dataUrl = await processProfileImage(makeFile('image/heif', 1000))
     expect(dataUrl).toBe('data:image/jpeg;base64,small')
