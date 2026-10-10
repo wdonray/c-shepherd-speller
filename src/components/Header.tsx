@@ -17,6 +17,7 @@ import HelpDialog from './HelpDialog'
 import { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import ImportExportDialog from './ImportExportDialog'
 import { PatternMark } from './PatternMark'
+import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { notifyListsChanged } from '@/lib/lists-api'
 import { getUserByEmail } from '@/lib/spelling-api'
@@ -32,13 +33,45 @@ function initialsFor(name?: string | null, email?: string | null): string {
   return (email?.[0] ?? '?').toUpperCase()
 }
 
+// The tappable photo (with camera badge) is shared between the desktop
+// account menu and the mobile menu's account header.
+function photoButtonContent(avatarImage: string | undefined, initials: string, onImageError: () => void) {
+  return (
+    <>
+      {avatarImage ? (
+        <img
+          src={avatarImage}
+          alt=""
+          aria-hidden="true"
+          className="size-full rounded-full object-cover"
+          onError={onImageError}
+        />
+      ) : (
+        initials
+      )}
+      <span
+        aria-hidden="true"
+        className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-leaf text-white ring-2 ring-card"
+      >
+        <Camera className="size-3" />
+      </span>
+    </>
+  )
+}
+
+const PHOTO_BUTTON_CLASS =
+  'relative flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-chunk-sky text-base font-bold text-white outline-none transition hover:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60'
+
 export function Header() {
   const { data: session } = useSession()
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false)
   const [isImportExportOpen, setIsImportExportOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const menuPhotoButtonRef = useRef<HTMLButtonElement>(null)
+  const desktopPhotoButtonRef = useRef<HTMLButtonElement>(null)
+  const mobilePhotoButtonRef = useRef<HTMLButtonElement>(null)
+  // Which photo button opened the picker, so focus returns to the right one.
+  const photoFocusTargetRef = useRef<HTMLButtonElement | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
@@ -88,7 +121,8 @@ export function Header() {
   // The photo at the top of the account menu opens the file picker directly,
   // and the menu stays open behind the native dialog. The Profile menu item
   // below opens the full profile dialog.
-  function handleMenuPhotoClick() {
+  function openPhotoPicker(sourceRef: React.RefObject<HTMLButtonElement | null>) {
+    photoFocusTargetRef.current = sourceRef.current
     photoInputRef.current?.click()
   }
 
@@ -117,11 +151,35 @@ export function Header() {
       toastError(getToastMessage(error))
     } finally {
       // The native picker is an OS dialog; reassert the menu in case Radix
-      // closed it on focus loss, and return focus to the photo button.
+      // closed it on focus loss, and return focus to the photo button that
+      // opened the picker (desktop button when none was recorded, e.g. tests
+      // that drive the input directly).
       setIsAccountMenuOpen(true)
-      menuPhotoButtonRef.current?.focus()
+      ;(photoFocusTargetRef.current ?? desktopPhotoButtonRef.current)?.focus()
     }
   }
+
+  // Mobile menu actions that open dialogs: close the sheet first so the
+  // dialog doesn't sit behind it.
+  function openImportExportFromMenu() {
+    setIsMobileMenuOpen(false)
+    setIsImportExportOpen(true)
+  }
+
+  function toggleThemeFromMenu() {
+    setIsMobileMenuOpen(false)
+    setTheme(isDark ? 'light' : 'dark')
+  }
+
+  function openHelpFromMenu() {
+    setIsMobileMenuOpen(false)
+    setIsHelpDialogOpen(true)
+  }
+
+  const accountName = session.user.name || 'Your profile'
+  const accountEmail = session.user.email
+  const accountInitials = initialsFor(session.user.name, session.user.email)
+  const markImageBroken = () => setAvatarBroken(true)
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card">
@@ -143,106 +201,100 @@ export function Header() {
               <Link href="/display">Present</Link>
             </Button>
           </div>
-          <DropdownMenu open={isAccountMenuOpen} onOpenChange={setIsAccountMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Open account menu"
-                className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
-              >
-                {avatarImage ? (
-                  <img
-                    src={avatarImage}
-                    alt=""
-                    aria-hidden="true"
-                    className="size-full object-cover"
-                    onError={() => setAvatarBroken(true)}
-                  />
-                ) : (
-                  initialsFor(session.user.name, session.user.email)
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">
-              <div className="flex items-center gap-3 px-2 py-2">
+          {/*
+            The avatar account menu is desktop-only. On mobile there is a
+            single menu entry point (the hamburger below): its bottom sheet
+            carries the account header plus every navigation and account
+            action, grouped. Two menu-like controls side by side in the
+            top bar breaks the one-clear-entry-point mobile pattern, so the
+            avatar trigger is hidden below the md breakpoint.
+          */}
+          <div className="hidden md:block">
+            <DropdownMenu open={isAccountMenuOpen} onOpenChange={setIsAccountMenuOpen}>
+              <DropdownMenuTrigger asChild>
                 <button
-                  ref={menuPhotoButtonRef}
                   type="button"
-                  onClick={handleMenuPhotoClick}
-                  aria-label="Change profile photo"
-                  className="relative flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-chunk-sky text-base font-bold text-white outline-none transition hover:brightness-110 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                  aria-label="Open account menu"
+                  className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-chunk-sky text-sm font-bold text-white shadow-[0_4px_0_var(--color-chunk-sky-deep)] transition hover:brightness-110 focus-visible:brightness-110 active:translate-y-[3px] active:shadow-[0_1px_0_var(--color-chunk-sky-deep)] cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60"
                 >
                   {avatarImage ? (
                     <img
                       src={avatarImage}
                       alt=""
                       aria-hidden="true"
-                      className="size-full rounded-full object-cover"
-                      onError={() => setAvatarBroken(true)}
+                      className="size-full object-cover"
+                      onError={markImageBroken}
                     />
                   ) : (
-                    initialsFor(session.user.name, session.user.email)
+                    accountInitials
                   )}
-                  <span
-                    aria-hidden="true"
-                    className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-leaf text-white ring-2 ring-card"
-                  >
-                    <Camera className="size-3" />
-                  </span>
                 </button>
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-bold text-ink">{session.user.name || 'Your profile'}</p>
-                  <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 rounded-2xl border-2 border-line bg-card p-2">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <button
+                    ref={desktopPhotoButtonRef}
+                    type="button"
+                    onClick={() => openPhotoPicker(desktopPhotoButtonRef)}
+                    aria-label="Change profile photo"
+                    className={PHOTO_BUTTON_CLASS}
+                  >
+                    {photoButtonContent(avatarImage, accountInitials, markImageBroken)}
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-bold text-ink">{accountName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{accountEmail}</p>
+                  </div>
                 </div>
-              </div>
-              <DropdownMenuSeparator className="bg-line" />
-              <DropdownMenuItem
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-                onSelect={() => setIsImportExportOpen(true)}
-              >
-                Import / export
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-                onSelect={() => setTheme(isDark ? 'light' : 'dark')}
-              >
-                Theme: {isDark ? 'Light' : 'Dark'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-                onSelect={() => setIsHelpDialogOpen(true)}
-              >
-                Get help
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                asChild
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-              >
-                <Link href="/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-line" />
-              <DropdownMenuItem
-                asChild
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-              >
-                <Link href="/version">Version</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                asChild
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
-              >
-                <Link href="/analytics">Analytics</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-line" />
-              <DropdownMenuItem
-                className="rounded-xl px-4 py-3 text-[15px] font-semibold text-coral-ink cursor-pointer focus:bg-coral-soft"
-                onSelect={() => signOut({ callbackUrl: '/auth/signin' })}
-              >
-                <LogOutIcon className="size-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator className="bg-line" />
+                <DropdownMenuItem
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                  onSelect={openImportExportFromMenu}
+                >
+                  Import / export
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                  onSelect={() => setTheme(isDark ? 'light' : 'dark')}
+                >
+                  Theme: {isDark ? 'Light' : 'Dark'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                  onSelect={() => setIsHelpDialogOpen(true)}
+                >
+                  Get help
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                >
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-line" />
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                >
+                  <Link href="/version">Version</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                >
+                  <Link href="/analytics">Analytics</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-line" />
+                <DropdownMenuItem
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold text-coral-ink cursor-pointer focus:bg-coral-soft"
+                  onSelect={() => signOut({ callbackUrl: '/auth/signin' })}
+                >
+                  <LogOutIcon className="size-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="secondary" size="icon" className="md:hidden" aria-label="Open menu">
@@ -255,20 +307,78 @@ export function Header() {
               className="rounded-t-3xl border-t-2 border-line bg-card pb-[calc(1rem+env(safe-area-inset-bottom))]"
             >
               <SheetHeader>
-                <SheetTitle>PatternSpell</SheetTitle>
+                <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
-              <nav aria-label="Mobile navigation" className="flex flex-col gap-3 px-4">
-                <SheetClose asChild>
-                  <Button size="lg" asChild>
-                    <Link href="/lists">My Spelling Lists</Link>
+              <div className="flex max-h-[75dvh] flex-col gap-2 overflow-y-auto px-4">
+                <div className="flex items-center gap-3 px-2 py-1">
+                  <button
+                    ref={mobilePhotoButtonRef}
+                    type="button"
+                    onClick={() => openPhotoPicker(mobilePhotoButtonRef)}
+                    aria-label="Change profile photo"
+                    className={PHOTO_BUTTON_CLASS}
+                  >
+                    {photoButtonContent(avatarImage, accountInitials, markImageBroken)}
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-bold text-ink">{accountName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{accountEmail}</p>
+                  </div>
+                </div>
+                <Separator className="bg-line" />
+                <p className="px-2 pt-1 text-xs font-semibold text-muted-foreground">Navigate</p>
+                <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
+                  <SheetClose asChild>
+                    <Button size="lg" asChild>
+                      <Link href="/lists">My Spelling Lists</Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button size="lg" variant="secondary" asChild>
+                      <Link href="/display">Present</Link>
+                    </Button>
+                  </SheetClose>
+                </nav>
+                <p className="px-2 pt-2 text-xs font-semibold text-muted-foreground">Account</p>
+                <div className="flex flex-col gap-1">
+                  <SheetClose asChild>
+                    <Button size="lg" variant="ghost" asChild className="justify-start px-4">
+                      <Link href="/profile">Profile</Link>
+                    </Button>
+                  </SheetClose>
+                  <Button size="lg" variant="ghost" className="justify-start px-4" onClick={openImportExportFromMenu}>
+                    Import / export
                   </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button size="lg" variant="secondary" asChild>
-                    <Link href="/display">Present</Link>
+                  <Button size="lg" variant="ghost" className="justify-start px-4" onClick={toggleThemeFromMenu}>
+                    Theme: {isDark ? 'Light' : 'Dark'}
                   </Button>
-                </SheetClose>
-              </nav>
+                  <Button size="lg" variant="ghost" className="justify-start px-4" onClick={openHelpFromMenu}>
+                    Get help
+                  </Button>
+                </div>
+                <Separator className="bg-line" />
+                <div className="flex flex-col gap-1">
+                  <SheetClose asChild>
+                    <Button size="lg" variant="ghost" asChild className="justify-start px-4">
+                      <Link href="/version">Version</Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button size="lg" variant="ghost" asChild className="justify-start px-4">
+                      <Link href="/analytics">Analytics</Link>
+                    </Button>
+                  </SheetClose>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="justify-start px-4 text-coral-ink hover:text-coral-ink focus-visible:text-coral-ink"
+                    onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                  >
+                    <LogOutIcon className="size-4" />
+                    Sign out
+                  </Button>
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
         </div>

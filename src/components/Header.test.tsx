@@ -707,4 +707,141 @@ describe('Header', () => {
 
     expect(processMock).not.toHaveBeenCalled()
   })
+
+  it('hides the avatar account menu trigger on mobile viewports', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    // One clear menu entry point on mobile: the hamburger. The avatar
+    // dropdown trigger stays in the DOM for desktop (md and up).
+    const trigger = screen.getByRole('button', { name: /open account menu/i })
+    expect(trigger.parentElement).toHaveClass('hidden')
+    expect(trigger.parentElement).toHaveClass('md:block')
+  })
+
+  it('shows the account header at the top of the mobile menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    expect(menu.getByRole('button', { name: 'Change profile photo' })).toBeInTheDocument()
+    expect(menu.getByText('Donray Williams')).toBeInTheDocument()
+    expect(menu.getByText('t@e.c')).toBeInTheDocument()
+  })
+
+  it('groups mobile menu actions into Navigate and Account sections', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    expect(menu.getByText('Navigate')).toBeInTheDocument()
+    expect(menu.getByText('Account')).toBeInTheDocument()
+    expect(menu.getByRole('link', { name: /my spelling lists/i })).toHaveAttribute('href', '/lists')
+    expect(menu.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
+    expect(menu.getByRole('link', { name: /profile/i })).toHaveAttribute('href', '/profile')
+    expect(menu.getByRole('button', { name: /import \/ export/i })).toBeInTheDocument()
+    expect(menu.getByRole('button', { name: /theme:/i })).toBeInTheDocument()
+    expect(menu.getByRole('button', { name: /get help/i })).toBeInTheDocument()
+    expect(menu.getByRole('link', { name: /version/i })).toHaveAttribute('href', '/version')
+    expect(menu.getByRole('link', { name: /analytics/i })).toHaveAttribute('href', '/analytics')
+    expect(menu.getByRole('button', { name: /sign out/i })).toBeInTheDocument()
+  })
+
+  it('opens the import/export dialog from the mobile menu and closes the sheet', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: /import \/ export/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTestId('import-export-dialog')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('toggles the theme from the mobile menu and closes the sheet', () => {
+    mockSignedIn('light')
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    const setTheme = vi.mocked(useTheme).mock.results[0].value.setTheme
+    fireEvent.click(menu.getByRole('button', { name: /theme: dark/i }))
+
+    expect(setTheme).toHaveBeenCalledWith('dark')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('toggles the theme back from the mobile menu when the current theme is dark', () => {
+    mockSignedIn('dark')
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    const setTheme = vi.mocked(useTheme).mock.results[0].value.setTheme
+    fireEvent.click(menu.getByRole('button', { name: /theme: light/i }))
+
+    expect(setTheme).toHaveBeenCalledWith('light')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens the help dialog from the mobile menu and closes the sheet', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: /get help/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTestId('help-dialog')).toHaveAttribute('data-open', 'true')
+  })
+
+  it('signs out from the mobile menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: /sign out/i }))
+
+    expect(signOutMock).toHaveBeenCalledTimes(1)
+    expect(signOutMock).toHaveBeenCalledWith({ callbackUrl: '/auth/signin' })
+  })
+
+  it('opens the file picker from the mobile menu photo button', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click')
+    fireEvent.click(menu.getByRole('button', { name: 'Change profile photo' }))
+    expect(clickSpy).toHaveBeenCalled()
+    clickSpy.mockRestore()
+    // The sheet stays open behind the native file picker.
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('returns focus to the mobile photo button after a mobile menu upload', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: 'Change profile photo' }))
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(menu.getByRole('button', { name: 'Change profile photo' })).toHaveFocus()
+    })
+    fetchMock.mockRestore()
+  })
 })
