@@ -254,6 +254,16 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['bake'], oddDucks: undefined })
   })
 
+  it('removing a word keeps the remaining odd duck markings', () => {
+    const { onChange } = renderEditor({ words: ['cake', 'bake', 'late'], oddDucks: ['cake', 'bake'] })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      words: ['bake', 'late'],
+      oddDucks: ['bake'],
+    })
+  })
+
   it('calls onRemove when the delete button is pressed', () => {
     const { onRemove } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Delete pattern a_e' }))
