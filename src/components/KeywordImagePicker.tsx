@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -91,6 +92,8 @@ export default function KeywordImagePicker({
   const [custom, setCustom] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -99,6 +102,22 @@ export default function KeywordImagePicker({
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
+
+  // The popover renders in a portal at document.body so the pattern editor's
+  // overflow-hidden card can never clip it. Position it under the trigger.
+  useEffect(() => {
+    if (!open) {
+      setPopoverPos(null)
+      return
+    }
+    const el = triggerRef.current
+    // The trigger button always renders, so the ref is set whenever the
+    // popover opens.
+    const rect = el!.getBoundingClientRect()
+    const width = 288 // w-72
+    const left = Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + window.innerWidth - width - 8))
+    setPopoverPos({ top: rect.bottom + window.scrollY + 8, left })
   }, [open])
 
   const triggerLabel = patternName.trim()
@@ -150,6 +169,7 @@ export default function KeywordImagePicker({
     <div className="relative">
       <button
         type="button"
+        ref={triggerRef}
         onClick={() => setOpen((isOpen) => !isOpen)}
         aria-label={triggerLabel}
         aria-expanded={open}
@@ -175,114 +195,118 @@ export default function KeywordImagePicker({
         )}
       </button>
 
-      {open && (
-        <>
-          <div
-            aria-hidden="true"
-            data-testid="keyword-image-scrim"
-            onPointerDown={() => setOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
-          />
-          <div
-            role="dialog"
-            aria-label="Choose keyword image"
-            className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border-2 border-line bg-card p-4 shadow-lg"
-          >
-            <div className="mb-3">
-              <input
-                id="keyword-photo-upload"
-                type="file"
-                accept={PROFILE_IMAGE_MIME_TYPES.join(',')}
-                onChange={handleFileSelect}
-                disabled={uploading}
-                className="sr-only"
-              />
-              <label
-                htmlFor="keyword-photo-upload"
-                className={cn(
-                  'flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                  'bg-primary text-primary-foreground hover:bg-primary/90',
-                  uploading && 'pointer-events-none opacity-50'
+      {open &&
+        popoverPos &&
+        createPortal(
+          <>
+            <div
+              aria-hidden="true"
+              data-testid="keyword-image-scrim"
+              onPointerDown={() => setOpen(false)}
+              className="fixed inset-0 z-[100] cursor-default"
+            />
+            <div
+              role="dialog"
+              aria-label="Choose keyword image"
+              style={{ top: popoverPos.top, left: popoverPos.left }}
+              className="fixed z-[110] w-72 rounded-2xl border-2 border-line bg-card p-4 shadow-lg"
+            >
+              <div className="mb-3">
+                <input
+                  id="keyword-photo-upload"
+                  type="file"
+                  accept={PROFILE_IMAGE_MIME_TYPES.join(',')}
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                  className="sr-only"
+                />
+                <label
+                  htmlFor="keyword-photo-upload"
+                  className={cn(
+                    'flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                    'bg-primary text-primary-foreground hover:bg-primary/90',
+                    uploading && 'pointer-events-none opacity-50'
+                  )}
+                >
+                  <UploadIcon className="size-4" aria-hidden="true" />
+                  {uploading ? 'Uploading photo...' : image ? 'Replace photo' : 'Upload photo'}
+                </label>
+                {uploadError && (
+                  <p role="alert" className="mt-2 text-[13px] font-bold text-destructive">
+                    {uploadError}
+                  </p>
                 )}
-              >
-                <UploadIcon className="size-4" aria-hidden="true" />
-                {uploading ? 'Uploading photo...' : image ? 'Replace photo' : 'Upload photo'}
-              </label>
-              {uploadError && (
-                <p role="alert" className="mt-2 text-[13px] font-bold text-destructive">
-                  {uploadError}
-                </p>
-              )}
-            </div>
-            {KEYWORD_EMOJI_GROUPS.map((group) => (
-              <div key={group.label} role="group" aria-label={group.label} className="mb-3">
-                <p className="mb-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-                  {group.label}
-                </p>
-                <div className="grid grid-cols-5 gap-1">
-                  {group.choices.map((choice) => (
-                    <button
-                      key={choice.emoji}
-                      type="button"
-                      onClick={() => chooseEmoji(choice.emoji)}
-                      aria-label={choice.name}
-                      title={choice.name}
-                      className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg text-2xl outline-none transition hover:bg-line/50 focus-visible:bg-line/50 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                    >
-                      <span aria-hidden="true">{choice.emoji}</span>
-                    </button>
-                  ))}
+              </div>
+              {KEYWORD_EMOJI_GROUPS.map((group) => (
+                <div key={group.label} role="group" aria-label={group.label} className="mb-3">
+                  <p className="mb-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    {group.label}
+                  </p>
+                  <div className="grid grid-cols-5 gap-1">
+                    {group.choices.map((choice) => (
+                      <button
+                        key={choice.emoji}
+                        type="button"
+                        onClick={() => chooseEmoji(choice.emoji)}
+                        aria-label={choice.name}
+                        title={choice.name}
+                        className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg text-2xl outline-none transition hover:bg-line/50 focus-visible:bg-line/50 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                      >
+                        <span aria-hidden="true">{choice.emoji}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="mt-3 border-t-2 border-line pt-3">
+                <label htmlFor="keyword-emoji-custom" className="mb-1 block text-[13px] font-bold text-ink">
+                  Or type any emoji
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    id="keyword-emoji-custom"
+                    value={custom}
+                    onChange={(e) => setCustom(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        applyCustom()
+                      }
+                    }}
+                    placeholder="e.g. 🦄"
+                    aria-label="Custom keyword emoji"
+                    maxLength={20}
+                    className="min-w-0 flex-1"
+                  />
+                  <Button type="button" onClick={applyCustom}>
+                    Use emoji
+                  </Button>
                 </div>
               </div>
-            ))}
-            <div className="mt-3 border-t-2 border-line pt-3">
-              <label htmlFor="keyword-emoji-custom" className="mb-1 block text-[13px] font-bold text-ink">
-                Or type any emoji
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  id="keyword-emoji-custom"
-                  value={custom}
-                  onChange={(e) => setCustom(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      applyCustom()
-                    }
-                  }}
-                  placeholder="e.g. 🦄"
-                  aria-label="Custom keyword emoji"
-                  maxLength={20}
-                  className="min-w-0 flex-1"
-                />
-                <Button type="button" onClick={applyCustom}>
-                  Use emoji
-                </Button>
-              </div>
+              {image && (
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                >
+                  <Trash2Icon className="size-5" aria-hidden="true" />
+                  Remove photo
+                </button>
+              )}
+              {emoji && (
+                <button
+                  type="button"
+                  onClick={removeEmoji}
+                  className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                >
+                  <Trash2Icon className="size-5" aria-hidden="true" />
+                  Remove emoji
+                </button>
+              )}
             </div>
-            {image && (
-              <button
-                type="button"
-                onClick={removeImage}
-                className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-              >
-                <Trash2Icon className="size-5" aria-hidden="true" />
-                Remove photo
-              </button>
-            )}
-            {emoji && (
-              <button
-                type="button"
-                onClick={removeEmoji}
-                className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-              >
-                <Trash2Icon className="size-5" aria-hidden="true" />
-                Remove emoji
-              </button>
-            )}
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   )
 }

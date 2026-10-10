@@ -81,6 +81,21 @@ describe('SortActivity', () => {
     expect(screen.queryByText('Odd ducks, already placed')).not.toBeInTheDocument()
   })
 
+  it('renders sort columns at equal widths regardless of pattern frequency', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    // Columns are the flex children with inline sizing (common, common, rare).
+    const columns = Array.from(document.querySelectorAll('div[style]')).filter((el) =>
+      (el as HTMLElement).style.cssText.includes('flex:')
+    )
+    expect(columns).toHaveLength(3)
+    const flexValues = new Set(columns.map((el) => (el as HTMLElement).style.flex))
+    // All three columns share one flex value: no frequency-proportional sizing.
+    expect(flexValues.size).toBe(1)
+    columns.forEach((col) => {
+      expect((col as HTMLElement).style.minWidth).toBe('220px')
+    })
+  })
+
   it('shows keyboard instructions', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     expect(screen.getByText(/Keyboard: Space to pick up a word/)).toBeInTheDocument()

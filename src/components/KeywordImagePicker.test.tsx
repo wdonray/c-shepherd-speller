@@ -164,4 +164,14 @@ describe('KeywordImagePicker', () => {
     fireEvent.pointerDown(screen.getByTestId('keyword-image-scrim'))
     expect(screen.queryByRole('dialog', { name: 'Choose keyword image' })).not.toBeInTheDocument()
   })
+
+  it('renders the popover in a portal at document.body so overflow-hidden ancestors cannot clip it', () => {
+    renderPicker()
+    fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern ee' }))
+    const dialog = screen.getByRole('dialog', { name: 'Choose keyword image' })
+    expect(dialog.parentElement).toBe(document.body)
+    expect(dialog).toHaveClass('fixed', 'z-[110]')
+    const scrim = screen.getByTestId('keyword-image-scrim')
+    expect(scrim.parentElement).toBe(document.body)
+  })
 })

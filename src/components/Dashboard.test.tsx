@@ -135,6 +135,39 @@ describe('Dashboard', () => {
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })
 
+  it('links to the full lists page', async () => {
+    getLists.mockResolvedValue([list])
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'View all lists' })).toHaveAttribute('href', '/lists')
+    })
+  })
+
+  it('shows only the three most recently touched lists, newest first', async () => {
+    const makeList = (id: string, name: string, updatedAt: string): WordList => ({
+      ...list,
+      id,
+      name,
+      updatedAt,
+    })
+    getLists.mockResolvedValue([
+      makeList('l1', 'Oldest', '2026-10-01T00:00:00.000Z'),
+      makeList('l2', 'Newest', '2026-10-05T00:00:00.000Z'),
+      makeList('l3', 'Middle', '2026-10-03T00:00:00.000Z'),
+      makeList('l4', 'Second newest', '2026-10-04T00:00:00.000Z'),
+      makeList('l5', 'Second oldest', '2026-10-02T00:00:00.000Z'),
+    ])
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (5)')).toBeInTheDocument()
+    })
+    const cards = screen.getAllByText(/Newest|Second newest|Middle|Second oldest|Oldest/)
+    expect(cards.map((c) => c.textContent)).toEqual(['Newest', 'Second newest', 'Middle'])
+    expect(screen.getByRole('link', { name: 'View all lists' })).toHaveAttribute('href', '/lists')
+  })
+
   it('calls onEditList when Open is clicked on a card', async () => {
     const onEditList = vi.fn()
     getLists.mockResolvedValue([list])

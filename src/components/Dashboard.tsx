@@ -198,7 +198,14 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
           </section>
 
           <section aria-label="My word lists" className="space-y-4">
-            <h2 className="text-2xl font-bold">My word lists ({lists.length})</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold">My word lists ({lists.length})</h2>
+              {lists.length > 0 && (
+                <Button variant="secondary" asChild>
+                  <Link href="/lists">View all lists</Link>
+                </Button>
+              )}
+            </div>
             {lists.length === 0 ? (
               <div className="space-y-6">
                 <Button size="lg" onClick={onNewList}>
@@ -219,9 +226,12 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {lists.map((list, i) => (
-                  <WordListCard key={list.id} list={list} index={i} onOpen={onEditList} primaryLabel="Edit list" />
-                ))}
+                {[...lists]
+                  .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                  .slice(0, 3)
+                  .map((list, i) => (
+                    <WordListCard key={list.id} list={list} index={i} onOpen={onEditList} primaryLabel="Edit list" />
+                  ))}
               </div>
             )}
           </section>

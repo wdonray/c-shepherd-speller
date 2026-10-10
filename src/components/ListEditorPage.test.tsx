@@ -89,7 +89,7 @@ describe('ListEditorPage', () => {
 
     await screen.findByRole('heading', { name: 'List not found' })
     expect(screen.getByText('This word list does not exist or was deleted.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Back to my lists' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Back to my lists' })).toHaveAttribute('href', '/lists')
   })
 
   it('shows an error card and retries when loading fails', async () => {
@@ -453,6 +453,6 @@ describe('ListEditorPage', () => {
 
   it('links back to the lists overview', async () => {
     await renderReady()
-    expect(screen.getByRole('link', { name: 'My lists' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'My lists' })).toHaveAttribute('href', '/lists')
   })
 })
