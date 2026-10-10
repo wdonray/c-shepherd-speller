@@ -6,6 +6,10 @@ vi.mock('@/components/ProfileForm', () => ({
   default: () => <div data-testid="profile-form" />,
 }))
 
+vi.mock('@/components/DeleteAccountSection', () => ({
+  default: () => <div data-testid="delete-account-section" />,
+}))
+
 describe('ProfilePage', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -22,6 +26,12 @@ describe('ProfilePage', () => {
     render(<ProfilePage />)
 
     expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
+  })
+
+  it('renders the delete account section', () => {
+    render(<ProfilePage />)
+
+    expect(screen.getByTestId('delete-account-section')).toBeInTheDocument()
   })
 
   it('does not render a sign out button', () => {

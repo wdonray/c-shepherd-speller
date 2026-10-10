@@ -4,7 +4,7 @@ import { IUser, USER_TABLE_NAME, createUserItem, updateUserItem, updateUserTimes
 import { reportError } from './report-error'
 
 // Helper function to generate consistent DynamoDB keys from userId
-function getUserKeys(userId: string) {
+export function getUserKeys(userId: string) {
   const uniqueId = userId.replace('-user', '')
   return {
     PK: `${uniqueId}-user`,

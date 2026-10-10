@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import BackLink from '@/components/BackLink'
 import ProfileForm from '@/components/ProfileForm'
+import DeleteAccountSection from '@/components/DeleteAccountSection'
 
 export const metadata: Metadata = {
   title: 'Profile | PatternSpell',
-  description: 'Manage your PatternSpell profile: photo, name, and teaching information.',
+  description: 'Manage your PatternSpell profile: photo, name, teaching information, and account deletion.',
 }
 
 export default function ProfilePage() {
@@ -18,6 +19,7 @@ export default function ProfilePage() {
       <div className="mt-8">
         <ProfileForm />
       </div>
+      <DeleteAccountSection />
     </div>
   )
 }

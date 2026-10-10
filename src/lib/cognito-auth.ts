@@ -16,6 +16,7 @@ import {
   ResendConfirmationCodeCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
+  DeleteUserCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 import { createHmac } from 'node:crypto'
 
@@ -303,6 +304,57 @@ export async function cognitoResetPassword(
       })
     )
   } catch (error) {
+    throw toCognitoAuthError(error)
+  }
+}
+
+/**
+ * Verify the caller's Cognito password and return a fresh access token.
+ * Used as re-authentication before destructive actions like account deletion:
+ * a wrong password throws CognitoAuthError('invalid-credentials') and nothing
+ * is mutated. The returned token is short-lived; use it promptly.
+ */
+export async function cognitoVerifyPassword(
+  email: string,
+  password: string,
+  client: CognitoIdpClient = getClient()
+): Promise<string> {
+  const { clientId, clientSecret } = cognitoConfig()
+  const username = email.trim().toLowerCase()
+  try {
+    const response = await client.send(
+      new InitiateAuthCommand({
+        AuthFlow: 'USER_PASSWORD_AUTH',
+        ClientId: clientId,
+        AuthParameters: {
+          USERNAME: username,
+          PASSWORD: password,
+          SECRET_HASH: computeSecretHash(username, clientId, clientSecret),
+        },
+      })
+    )
+    const accessToken = response.AuthenticationResult?.AccessToken
+    if (response.ChallengeName || !accessToken) {
+      // No secondary challenges are part of this flow; anything else is unexpected.
+      throw new CognitoAuthError('server-error')
+    }
+    return accessToken
+  } catch (error) {
+    throw toCognitoAuthError(error)
+  }
+}
+
+/**
+ * Delete the caller's own Cognito user with a fresh access token (from
+ * cognitoVerifyPassword). This is the self-service DeleteUser API, so no IAM
+ * permissions are needed. Deleting an already-deleted user is a no-op, which
+ * keeps deletion retries idempotent.
+ */
+export async function cognitoDeleteUser(accessToken: string, client: CognitoIdpClient = getClient()): Promise<void> {
+  try {
+    await client.send(new DeleteUserCommand({ AccessToken: accessToken }))
+  } catch (error) {
+    if ((error as { name?: unknown } | null)?.name === 'UserNotFoundException') return
     throw toCognitoAuthError(error)
   }
 }
