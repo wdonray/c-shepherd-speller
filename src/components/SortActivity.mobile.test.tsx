@@ -70,9 +70,15 @@ describe('SortActivity on mobile', () => {
     return document.querySelector('[aria-live="polite"][role="status"]')
   }
 
+  /** Place a word through the sticky bottom placement bar. */
+  function placeViaBar(word: string, destination: string) {
+    fireEvent.click(screen.getByRole('button', { name: `Select the word ${word}` }))
+    fireEvent.click(screen.getByRole('button', { name: `Put ${word} in the ${destination} column` }))
+  }
+
   it('shows tap instructions instead of drag instructions', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.getByText(/Tap a word, then tap the column it belongs in/)).toBeInTheDocument()
+    expect(screen.getByText(/Tap a word, then choose where it goes/)).toBeInTheDocument()
     expect(screen.queryByText(/Drag each word into the column/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Keyboard:/)).not.toBeInTheDocument()
   })
@@ -96,53 +102,81 @@ describe('SortActivity on mobile', () => {
     expect(liveRegion()?.textContent).toContain("Deselected 'cake'")
   })
 
-  it('places a word in a column via tap-to-place', () => {
+  it('opens the placement bar with one destination per pattern when a word is tapped', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
+    const bar = screen.getByRole('region', { name: 'Choose where to put cake' })
+    expect(bar).toBeInTheDocument()
+    expect(within(bar).getByRole('button', { name: 'Put cake in the a_e column' })).toBeInTheDocument()
+    expect(within(bar).getByRole('button', { name: 'Put cake in the ai column' })).toBeInTheDocument()
+    expect(within(bar).getByRole('button', { name: 'Put cake in the odd column' })).toBeInTheDocument()
+    // A word straight from the bank has nowhere to go back to.
+    expect(within(bar).queryByRole('button', { name: 'Put cake back in the word bank' })).not.toBeInTheDocument()
+    expect(liveRegion()?.textContent).toContain('Choose where it goes.')
+  })
+
+  it('places a word in a column via the bar and closes the bar', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    // One "put here" button per column appears while a word is selected.
-    const placeButtons = screen.getAllByRole('button', { name: /Put cake in/ })
-    expect(placeButtons).toHaveLength(3)
-    fireEvent.click(screen.getByRole('button', { name: 'Put cake in a_e' }))
-    // Cake left the bank and now sits in the a_e column; selection cleared.
+    fireEvent.click(screen.getByRole('button', { name: 'Put cake in the a_e column' }))
+    // Cake left the bank and now sits in the a_e column; the bar closed.
     const bankSection = screen.getByRole('region', { name: 'Word bank' })
     expect(within(bankSection).queryByRole('button', { name: /the word cake/ })).not.toBeInTheDocument()
     const column = screen.getByLabelText('Pattern a_e column')
     expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
     expect(liveRegion()?.textContent).toContain("Placed 'cake' in a_e")
     // Check answers is now enabled.
     expect(screen.getByRole('button', { name: 'Check answers' })).not.toBeDisabled()
   })
 
-  it('moves a placed word back to the word bank', () => {
+  it('cancels placement without moving the word', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Put cake in a_e' }))
-    // Select the placed word, then move it back via the bank button.
+    fireEvent.click(screen.getByRole('button', { name: 'Put cake down' }))
+    expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
+    // Cake is still in the bank, unselected.
+    const bankSection = screen.getByRole('region', { name: 'Word bank' })
+    expect(within(bankSection).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    expect(liveRegion()?.textContent).toContain("Deselected 'cake'")
+  })
+
+  it('moves a placed word back to the word bank via the bar', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    // Selecting the placed word offers the word bank as a destination.
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    fireEvent.click(screen.getByRole('button', { name: /Move .cake. back to word bank/ }))
+    const bar = screen.getByRole('region', { name: 'Choose where to put cake' })
+    fireEvent.click(within(bar).getByRole('button', { name: 'Put cake back in the word bank' }))
     expect(screen.getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(liveRegion()?.textContent).toContain("Moved 'cake' back to the word bank")
   })
 
-  it('moves a word between columns by selecting and placing again', () => {
+  it('moves a word between columns via the bar', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Put cake in the ai column' }))
+    const aiColumn = screen.getByLabelText('Pattern ai column')
+    expect(within(aiColumn).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    expect(liveRegion()?.textContent).toContain("Placed 'cake' in ai")
+  })
+
+  it('switches selection to another word while the bar is open', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Put cake in a_e' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Put cake in ai' }))
-    expect(liveRegion()?.textContent).toContain("Placed 'cake' in ai")
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word bake' }))
+    expect(screen.getByRole('region', { name: 'Choose where to put bake' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
   })
 
   it('checks answers, shows the score, and plays the correct sound', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    const place = (word: string, pattern: string) => {
-      fireEvent.click(screen.getByRole('button', { name: `Select the word ${word}` }))
-      fireEvent.click(screen.getByRole('button', { name: `Put ${word} in ${pattern}` }))
-    }
-    place('cake', 'a_e')
-    place('bake', 'a_e')
-    place('rain', 'ai')
-    place('said', 'odd')
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     // The score text appears in both the live region and the score paragraph.
     expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
@@ -152,14 +186,10 @@ describe('SortActivity on mobile', () => {
 
   it('plays the incorrect sound when any word is wrong', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    const place = (word: string, pattern: string) => {
-      fireEvent.click(screen.getByRole('button', { name: `Select the word ${word}` }))
-      fireEvent.click(screen.getByRole('button', { name: `Put ${word} in ${pattern}` }))
-    }
-    place('cake', 'ai') // wrong column
-    place('bake', 'a_e')
-    place('rain', 'ai')
-    place('said', 'odd')
+    placeViaBar('cake', 'ai') // wrong column
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     expect(playIncorrectSound).toHaveBeenCalled()
     expect(playCorrectSound).not.toHaveBeenCalled()
@@ -170,8 +200,7 @@ describe('SortActivity on mobile', () => {
 
   it('try again returns all words to the bank and clears the selection', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Put cake in a_e' }))
+    placeViaBar('cake', 'a_e')
     fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(screen.getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
@@ -180,11 +209,12 @@ describe('SortActivity on mobile', () => {
     expect(liveRegion()?.textContent).toContain('All words returned to the word bank')
   })
 
-  it('shows an empty-column hint only when no word is selected', () => {
+  it('shows an empty-column hint in columns with no words', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.getAllByText('Tap a word above, then tap here')).toHaveLength(3)
+    expect(screen.getAllByText('No words here yet.')).toHaveLength(3)
+    // The hint stays put while a word is selected; placement happens in the bar.
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
-    expect(screen.queryByText('Tap a word above, then tap here')).not.toBeInTheDocument()
+    expect(screen.getAllByText('No words here yet.')).toHaveLength(3)
   })
 
   it('calls onExit when exiting', () => {
