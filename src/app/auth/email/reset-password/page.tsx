@@ -15,14 +15,14 @@ const ERROR_COPY: Record<string, string> = {
   'invalid-code': 'That code is not right. Check the email and try again.',
   'expired-code': 'That code has expired. Request a new one and try again.',
   'weak-password': 'Use at least 8 characters with uppercase, lowercase, a number, and a symbol.',
-  'invalid-input': 'Fill in every field below, then try again.',
+  'invalid-input': 'Enter the code and a new password, then try again.',
   'too-many-attempts': 'Too many attempts. Wait a few minutes and try again.',
 }
 const FALLBACK_ERROR = 'Something went wrong. Try again in a moment.'
 
 function EmailResetPasswordForm() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState(searchParams.get('email') ?? '')
+  const email = searchParams.get('email') ?? ''
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
@@ -53,6 +53,19 @@ function EmailResetPasswordForm() {
     }
   }
 
+  if (email.trim() === '') {
+    return (
+      <EmailAuthCard title="Choose a new password" subtitle="Enter the code from your email, then pick a new password.">
+        <div className="flex w-full flex-col gap-5">
+          <AuthFeedback tone="error">We need an email address to reset your password.</AuthFeedback>
+          <Button asChild className="w-full">
+            <Link href="/auth/email/forgot-password">Request a new code</Link>
+          </Button>
+        </div>
+      </EmailAuthCard>
+    )
+  }
+
   if (done) {
     return (
       <EmailAuthCard title="Password updated" subtitle="Your new password is ready to use.">
@@ -70,20 +83,12 @@ function EmailResetPasswordForm() {
     <EmailAuthCard title="Choose a new password" subtitle="Enter the code from your email, then pick a new password.">
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {errorCode ? <AuthFeedback tone="error">{ERROR_COPY[errorCode] ?? FALLBACK_ERROR}</AuthFeedback> : null}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            placeholder="you@school.org"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            disabled={isLoading}
-          />
-        </div>
+        <p className="text-sm leading-6 text-muted-foreground">
+          We sent a reset code to <span className="font-medium text-ink">{email}</span>.{' '}
+          <Link href="/auth/email/forgot-password" className="underline underline-offset-4 hover:text-ink">
+            Use a different email
+          </Link>
+        </p>
         <div className="flex flex-col gap-2">
           <Label htmlFor="code">Reset code</Label>
           <Input
