@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
+import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 
 interface SortActivityProps {
@@ -48,13 +49,6 @@ function WordBank({ isOver, children }: { isOver: boolean; children: React.React
     </div>
   )
 }
-
-const COLUMN_ACCENTS = [
-  { border: 'border-leaf', fill: 'bg-leaf', text: 'text-leaf-ink' },
-  { border: 'border-sun-deep', fill: 'bg-sun', text: 'text-sun-ink' },
-  { border: 'border-sky', fill: 'bg-sky', text: 'text-sky-ink' },
-  { border: 'border-plum', fill: 'bg-plum', text: 'text-plum-ink' },
-] as const
 
 function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checked: boolean; correct: boolean | null }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
@@ -97,17 +91,15 @@ function DraggingWordCard({ entry }: { entry: BankWord }) {
 
 function DropColumn({
   pattern,
-  accentIndex,
   children,
   isOver,
 }: {
   pattern: SpellingPattern
-  accentIndex: number
   children: React.ReactNode
   isOver: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
-  const accent = COLUMN_ACCENTS[accentIndex % COLUMN_ACCENTS.length]
+  const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
   return (
     <section
@@ -115,15 +107,15 @@ function DropColumn({
       aria-label={`Pattern ${pattern.pattern} drop column`}
       className={cn(
         'min-h-[200px] rounded-2xl border-[3px] border-dashed bg-card p-5 outline-none transition-colors',
-        accent.border,
+        border,
         isOver && 'bg-sky-soft'
       )}
     >
       <div className="mb-4 text-center">
         <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
         <div className="mt-2 flex items-center justify-center gap-2">
-          <PowerBar level={level} filledClassName={accent.fill} />
-          <span className={cn('text-sm font-bold', accent.text)}>{FREQUENCY_LABELS[level]}</span>
+          <PowerBar level={level} filledClassName="bg-ink" />
+          <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
       </div>
       <ul className="space-y-3">{children}</ul>
@@ -271,12 +263,12 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
         </WordBank>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-          {patterns.map((pattern, i) => {
+          {patterns.map((pattern) => {
             const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
             return (
               <div key={pattern.id} style={{ flex: '1 1 0', minWidth: 220 }} className="flex">
                 <div className="w-full">
-                  <DropColumn pattern={pattern} accentIndex={i} isOver={overId === pattern.id}>
+                  <DropColumn pattern={pattern} isOver={overId === pattern.id}>
                     {columnWords.map((entry) => (
                       <SortableWordCard
                         key={entry.id}

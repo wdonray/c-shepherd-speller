@@ -7,6 +7,7 @@ import WordAnalysis from './WordAnalysis'
 import { Volume2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
+import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
 
 interface PatternChartDisplayProps {
   list: WordList
@@ -26,13 +27,11 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
   rare: 1,
 }
 
-/** Accent colors cycle across columns; labels stay ink for contrast. */
-const COLUMN_ACCENTS = [
-  { border: 'border-leaf', fill: 'bg-leaf', text: 'text-leaf-ink' },
-  { border: 'border-sun-deep', fill: 'bg-sun', text: 'text-sun-ink' },
-  { border: 'border-sky', fill: 'bg-sky', text: 'text-sky-ink' },
-  { border: 'border-plum', fill: 'bg-plum', text: 'text-plum-ink' },
-] as const
+/**
+ * Column border color comes from the pattern's sound type (vowels green,
+ * consonants red, bossy R blue). Frequency is shown by the power-bar length
+ * only, never by color, so the bar and its label stay neutral.
+ */
 
 /**
  * Pattern chart display mode: target sound header, one equal-width column per
@@ -97,8 +96,8 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
     )
   }
 
-  const renderColumn = (pattern: SpellingPattern, i: number) => {
-    const accent = COLUMN_ACCENTS[i % COLUMN_ACCENTS.length]
+  const renderColumn = (pattern: SpellingPattern) => {
+    const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
     const level = FREQUENCY_LEVEL[pattern.frequency]
     // A locked pattern keeps its equal-width column footprint (no layout
     // reflow when toggling) but hides its name and words behind a placeholder.
@@ -107,7 +106,7 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
         <section
           key={pattern.id}
           aria-label="Locked pattern"
-          className={cn('rounded-2xl border-[3px] bg-card p-5', accent.border)}
+          className={cn('rounded-2xl border-[3px] bg-card p-5', border)}
           style={{ flex: '1 1 0', minWidth: 220 }}
         >
           <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 text-center">
@@ -133,7 +132,7 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
       <section
         key={pattern.id}
         aria-label={`Pattern ${pattern.pattern}`}
-        className={cn('rounded-2xl border-[3px] bg-card p-5', accent.border)}
+        className={cn('rounded-2xl border-[3px] bg-card p-5', border)}
         style={{ flex: '1 1 0', minWidth: 220 }}
       >
         <div className="mb-4 text-center">
@@ -159,8 +158,8 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
             {renderLockToggle(pattern)}
           </div>
           <div className="mt-2 flex items-center justify-center gap-2">
-            <PowerBar level={level} filledClassName={accent.fill} />
-            <span className={cn('text-sm font-bold', accent.text)}>{FREQUENCY_LABELS[level]}</span>
+            <PowerBar level={level} filledClassName="bg-ink" />
+            <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
           </div>
         </div>
         <ul className="space-y-3">
@@ -232,7 +231,7 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
             </p>
           )}
           <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch" data-chart-columns>
-            {columns.map((pattern, i) => renderColumn(pattern, i))}
+            {columns.map((pattern) => renderColumn(pattern))}
           </div>
 
           {!isPrint && (

@@ -355,4 +355,44 @@ describe('PatternChartDisplay', () => {
       expect(container.firstChild).toHaveClass('print-chart', 'force-light')
     })
   })
+
+  describe('sound-type column colors', () => {
+    const mixedList: WordList = {
+      id: 'l2',
+      userId: 'u1',
+      name: 'Mixed sounds',
+      patterns: [
+        { id: 'p1', sound: 'long e', pattern: 'ee', frequency: 'common', words: ['see'] },
+        { id: 'p2', sound: 'sh', pattern: 'sh', frequency: 'common', words: ['ship'] },
+        { id: 'p3', sound: 'ar', pattern: 'ar', frequency: 'common', words: ['car'] },
+      ],
+      createdAt: '2026-10-06T00:00:00.000Z',
+      updatedAt: '2026-10-06T00:00:00.000Z',
+    }
+
+    it('colors columns by sound type: vowels green, consonants red, bossy R blue', () => {
+      render(<PatternChartDisplay list={mixedList} />)
+      expect(screen.getByRole('region', { name: 'Pattern ee' })).toHaveClass('border-leaf')
+      expect(screen.getByRole('region', { name: 'Pattern sh' })).toHaveClass('border-coral')
+      expect(screen.getByRole('region', { name: 'Pattern ar' })).toHaveClass('border-sky')
+    })
+
+    it('keeps the sound-type border on locked columns', () => {
+      const locked: WordList = {
+        ...mixedList,
+        patterns: [{ id: 'p1', sound: 'sh', pattern: 'sh', frequency: 'common', words: ['ship'], isLocked: true }],
+      }
+      render(<PatternChartDisplay list={locked} />)
+      expect(screen.getByRole('region', { name: 'Locked pattern' })).toHaveClass('border-coral')
+    })
+
+    it('renders power bars in a neutral color: frequency is length-only', () => {
+      const { container } = render(<PatternChartDisplay list={mixedList} />)
+      const filled = container.querySelectorAll('[data-power-segment][data-filled="true"]')
+      expect(filled.length).toBeGreaterThan(0)
+      for (const seg of filled) {
+        expect(seg).toHaveClass('bg-ink')
+      }
+    })
+  })
 })
