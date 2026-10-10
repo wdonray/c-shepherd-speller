@@ -78,7 +78,7 @@ Leave `DYNAMODB_ENDPOINT` unset and fill in `AUTH_DYNAMODB_REGION`, `AUTH_DYNAMO
 
 ### Cognito email/password setup (optional)
 
-Adds a "Continue with email" button on the sign-in page. Teachers sign up and sign in with an email and password through Cognito's Hosted UI; no password handling lives in this codebase.
+Adds a "Continue with email" button on the sign-in page. Teachers sign up and sign in with an email and password on the app's own auth pages (`/auth/email/*`), which call the user pool server-side; the Cognito hosted UI is bypassed. Passwords travel over HTTPS only and are never logged or persisted.
 
 1. In the [Cognito console](https://console.aws.amazon.com/cognito/), create a User Pool:
    - Sign-in options: email (use email as the username, keep it a required attribute)

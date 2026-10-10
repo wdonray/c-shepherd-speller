@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import type { NextAuthOptions } from 'next-auth'
 import type { Adapter } from 'next-auth/adapters'
+import { CognitoAuthError, cognitoSignIn } from './cognito-auth'
+
+// cognitoSignIn hits AWS; mock it while keeping the rest of the module
+// (isCognitoEmailAuthConfigured, CognitoAuthError) real.
+vi.mock('./cognito-auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  cognitoSignIn: vi.fn(),
+}))
+
+const cognitoSignInMock = vi.mocked(cognitoSignIn)
 
 /**
  * Regression test for the auth adapter wiring (see PROGRESS.md "C1
@@ -170,7 +180,7 @@ describe('auth provider configuration', () => {
       vi.stubEnv(key, value)
     }
     const providers = await loadProviders()
-    expect(providers).toHaveLength(2)
+    expect(providers).toHaveLength(3)
     expect(providers[0]).toMatchObject({ id: 'google', name: 'Google' })
     expect(providers[1]).toMatchObject({ id: 'cognito', name: 'Cognito', type: 'oauth' })
     expect((providers[1] as { options: unknown }).options).toMatchObject({
@@ -178,6 +188,17 @@ describe('auth provider configuration', () => {
       clientSecret: COGNITO_ENV.COGNITO_CLIENT_SECRET,
       issuer: COGNITO_ENV.COGNITO_ISSUER,
     })
+    // The custom email/password pages authenticate through this provider.
+    // (next-auth v4 nests Credentials options under `.options` until
+    // parseProviders normalizes the id at request time.)
+    const emailPassword = providers[2] as unknown as {
+      type: string
+      options: { id: string; name: string; authorize: unknown }
+    }
+    expect(emailPassword.type).toBe('credentials')
+    expect(emailPassword.options.id).toBe('email-password')
+    expect(emailPassword.options.name).toBe('Email')
+    expect(typeof emailPassword.options.authorize).toBe('function')
   })
 
   it('leaves Cognito out when only some Cognito env vars are set', async () => {
@@ -214,7 +235,7 @@ describe('auth provider configuration', () => {
     }
     vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', 'https://auth.patternspell.org')
     const providers = await loadProviders()
-    expect(providers).toHaveLength(2)
+    expect(providers).toHaveLength(3)
     const cognito = providers[1] as {
       id: string
       options: Record<string, unknown>
@@ -253,5 +274,105 @@ describe('auth provider configuration', () => {
     const providers = await loadProviders()
     expect(providers).toHaveLength(1)
     expect(providers[0]).toMatchObject({ id: 'google' })
+  })
+})
+
+/**
+ * The email-password Credentials provider backs the custom /auth/email
+ * pages. authorize() runs server-side against Cognito; thrown messages are
+ * machine-readable codes the sign-in page maps to friendly copy.
+ */
+describe('email-password provider authorize', () => {
+  const COGNITO_ENV = {
+    COGNITO_CLIENT_ID: 'test-client-id',
+    COGNITO_CLIENT_SECRET: 'test-secret',
+    COGNITO_ISSUER: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_test',
+  }
+
+  beforeEach(() => {
+    vi.resetModules()
+    cognitoSignInMock.mockReset()
+    for (const [key, value] of Object.entries(COGNITO_ENV)) {
+      vi.stubEnv(key, value)
+    }
+    vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  async function loadAuthorize() {
+    const { authOptions } = await import('./auth')
+    // next-auth v4 nests Credentials options under `.options`; parseProviders
+    // promotes the custom id at request time, so find by type here.
+    const provider = authOptions.providers.find((p) => p.type === 'credentials') as unknown as {
+      options: {
+        authorize: (
+          credentials: Record<string, string> | undefined
+        ) => Promise<{ id: string; email: string; name: string | null } | null>
+      }
+    }
+    expect(provider?.options?.authorize).toBeDefined()
+    return provider.options.authorize
+  }
+
+  it('returns the Cognito user on success', async () => {
+    cognitoSignInMock.mockResolvedValue({ sub: 'sub-1', email: 't@e.com', name: 'Teacher' })
+    const authorize = await loadAuthorize()
+
+    await expect(authorize({ email: 't@e.com', password: 'pw' })).resolves.toEqual({
+      id: 'sub-1',
+      email: 't@e.com',
+      name: 'Teacher',
+    })
+    expect(cognitoSignInMock).toHaveBeenCalledWith('t@e.com', 'pw')
+  })
+
+  it('returns null when the email is missing', async () => {
+    const authorize = await loadAuthorize()
+
+    await expect(authorize({ password: 'pw' })).resolves.toBeNull()
+    expect(cognitoSignInMock).not.toHaveBeenCalled()
+  })
+
+  it('returns null when the password is missing', async () => {
+    const authorize = await loadAuthorize()
+
+    await expect(authorize({ email: 't@e.com' })).resolves.toBeNull()
+    expect(cognitoSignInMock).not.toHaveBeenCalled()
+  })
+
+  it('returns null when credentials are absent or not strings', async () => {
+    const authorize = await loadAuthorize()
+
+    await expect(authorize(undefined)).resolves.toBeNull()
+    await expect(authorize({ email: 42, password: 'pw' } as never)).resolves.toBeNull()
+    expect(cognitoSignInMock).not.toHaveBeenCalled()
+  })
+
+  it('throws the Cognito error code for the page to map', async () => {
+    cognitoSignInMock.mockRejectedValue(new CognitoAuthError('not-confirmed'))
+    const authorize = await loadAuthorize()
+
+    await expect(authorize({ email: 't@e.com', password: 'pw' })).rejects.toThrow(
+      expect.objectContaining({ message: 'not-confirmed' })
+    )
+  })
+
+  it('throws server-error for unexpected failures', async () => {
+    cognitoSignInMock.mockRejectedValue(new Error('network blew up'))
+    const authorize = await loadAuthorize()
+
+    await expect(authorize({ email: 't@e.com', password: 'pw' })).rejects.toThrow(
+      expect.objectContaining({ message: 'server-error' })
+    )
+  })
+
+  it('is not registered when Cognito is not configured', async () => {
+    vi.stubEnv('COGNITO_CLIENT_ID', '')
+    const { authOptions } = await import('./auth')
+
+    expect(authOptions.providers.some((p) => p.type === 'credentials')).toBe(false)
   })
 })
