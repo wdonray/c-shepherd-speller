@@ -54,7 +54,7 @@ export default function EmailSignUpPage() {
 
   return (
     <EmailAuthCard title="Create your account" subtitle="One account for all of your spelling lists.">
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {errorCode === 'email-in-use' ? (
           <AuthFeedback tone="error">
             {ERROR_COPY['email-in-use']}{' '}

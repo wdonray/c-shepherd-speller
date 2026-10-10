@@ -2,7 +2,7 @@
 
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogOutIcon, Loader2, AlertTriangle } from 'lucide-react'
@@ -11,13 +11,6 @@ import { reportError } from '@/lib/report-error'
 export default function SignOut() {
   const router = useRouter()
   const [isSigningOut, setIsSigningOut] = useState(false)
-
-  useEffect(() => {
-    document.body.setAttribute('data-auth-page', 'true')
-    return () => {
-      document.body.removeAttribute('data-auth-page')
-    }
-  }, [])
 
   async function handleSignOut() {
     setIsSigningOut(true)

@@ -210,11 +210,6 @@
     @apply bg-background text-foreground font-sans;
   }
 
-  /* Prevent scrolling on auth pages */
-  body[data-auth-page='true'] {
-    overflow: hidden;
-  }
-
   /* Respect users who prefer reduced motion: disable animations and
      transitions globally so state changes are instant. */
   @media (prefers-reduced-motion: reduce) {

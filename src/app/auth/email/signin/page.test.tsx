@@ -37,7 +37,6 @@ beforeEach(() => {
   useSearchParamsMock.mockReturnValue(mockSearchParams as never)
   mockSearchParams.get.mockReturnValue(null)
   getProvidersMock.mockResolvedValue(emailPasswordProviders)
-  document.body.removeAttribute('data-auth-page')
 })
 
 afterEach(() => {

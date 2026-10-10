@@ -56,7 +56,7 @@ function EmailResetPasswordForm() {
   if (done) {
     return (
       <EmailAuthCard title="Password updated" subtitle="Your new password is ready to use.">
-        <div className="flex w-full flex-col gap-4">
+        <div className="flex w-full flex-col gap-5">
           <AuthFeedback tone="success">Password changed. Sign in with the new one.</AuthFeedback>
           <Button asChild className="w-full">
             <Link href={`/auth/email/signin?email=${encodeURIComponent(email.trim())}`}>Continue to sign in</Link>
@@ -68,7 +68,7 @@ function EmailResetPasswordForm() {
 
   return (
     <EmailAuthCard title="Choose a new password" subtitle="Enter the code from your email, then pick a new password.">
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {errorCode ? <AuthFeedback tone="error">{ERROR_COPY[errorCode] ?? FALLBACK_ERROR}</AuthFeedback> : null}
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>

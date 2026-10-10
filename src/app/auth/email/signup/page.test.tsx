@@ -27,7 +27,6 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
   useRouterMock.mockReturnValue({ push: pushMock, replace: vi.fn() } as never)
-  document.body.removeAttribute('data-auth-page')
 })
 
 afterEach(() => {

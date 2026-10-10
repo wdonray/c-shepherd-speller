@@ -17,7 +17,6 @@ beforeEach(() => {
   useRouterMock.mockReset()
   replaceMock.mockReset()
   useRouterMock.mockReturnValue({ replace: replaceMock } as never)
-  document.body.removeAttribute('data-auth-page')
 })
 
 describe('EmailAuthCard', () => {
@@ -41,13 +40,24 @@ describe('EmailAuthCard', () => {
     expect(screen.getByRole('heading', { name: 'Title only' })).toBeInTheDocument()
   })
 
-  it('sets data-auth-page on the body while mounted and removes it on unmount', () => {
+  it('never locks body scroll or tags the body while mounted', () => {
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
     const { unmount } = render(<EmailAuthCard title="T">x</EmailAuthCard>)
 
-    expect(document.body.getAttribute('data-auth-page')).toBe('true')
+    expect(document.body.hasAttribute('data-auth-page')).toBe(false)
+    expect(document.body.style.overflow).not.toBe('hidden')
     unmount()
     expect(document.body.hasAttribute('data-auth-page')).toBe(false)
+  })
+
+  it('uses the mobile-first layout: top-aligned with safe-area bottom padding', () => {
+    useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
+    const { container } = render(<EmailAuthCard title="T">x</EmailAuthCard>)
+
+    const wrapper = container.firstElementChild
+    expect(wrapper?.className).toContain('pt-10')
+    expect(wrapper?.className).not.toContain('pt-32')
+    expect(wrapper?.className).toContain('env(safe-area-inset-bottom)')
   })
 
   it('redirects signed-in visitors to the homepage instead of rendering', async () => {

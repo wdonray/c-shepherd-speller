@@ -29,7 +29,6 @@ beforeEach(() => {
   useRouterMock.mockReturnValue({ push: vi.fn(), replace: vi.fn() } as never)
   useSearchParamsMock.mockReturnValue(mockSearchParams as never)
   mockSearchParams.get.mockReturnValue(null)
-  document.body.removeAttribute('data-auth-page')
 })
 
 afterEach(() => {

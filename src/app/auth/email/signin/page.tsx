@@ -86,7 +86,7 @@ function EmailSignInForm() {
           </Link>
         </AuthFeedback>
       ) : (
-        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
           {feedback}
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>

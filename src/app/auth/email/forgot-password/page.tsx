@@ -45,7 +45,7 @@ export default function EmailForgotPasswordPage() {
   if (sent) {
     return (
       <EmailAuthCard title="Check your email" subtitle="If that address has an account, a reset code is on its way.">
-        <div className="flex w-full flex-col gap-4">
+        <div className="flex w-full flex-col gap-5">
           <AuthFeedback tone="success">Reset code sent. It expires in about an hour.</AuthFeedback>
           <Button asChild className="w-full">
             <Link href={`/auth/email/reset-password?email=${encodeURIComponent(email.trim())}`}>Enter your code</Link>
@@ -57,7 +57,7 @@ export default function EmailForgotPasswordPage() {
 
   return (
     <EmailAuthCard title="Reset your password" subtitle="We will email you a reset code.">
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {failed ? <AuthFeedback tone="error">{FALLBACK_ERROR}</AuthFeedback> : null}
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>

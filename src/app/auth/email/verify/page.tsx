@@ -81,7 +81,7 @@ function EmailVerifyForm() {
   if (verified) {
     return (
       <EmailAuthCard title="You are verified" subtitle="Your account is ready.">
-        <div className="flex w-full flex-col gap-4">
+        <div className="flex w-full flex-col gap-5">
           <AuthFeedback tone="success">Email verified. Sign in to get started.</AuthFeedback>
           <Button asChild className="w-full">
             <Link href={`/auth/email/signin?email=${encodeURIComponent(email.trim())}`}>Continue to sign in</Link>
@@ -93,7 +93,7 @@ function EmailVerifyForm() {
 
   return (
     <EmailAuthCard title="Check your email" subtitle="Enter the 6-digit code we sent you.">
-      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex w-full flex-col gap-5">
         {errorCode ? <AuthFeedback tone="error">{ERROR_COPY[errorCode] ?? FALLBACK_ERROR}</AuthFeedback> : null}
         {resent ? <AuthFeedback tone="success">New code sent. Check your email.</AuthFeedback> : null}
         <div className="flex flex-col gap-2">
