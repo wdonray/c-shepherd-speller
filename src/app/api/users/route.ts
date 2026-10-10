@@ -23,6 +23,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Idempotent: never create a second record for an email that already has
+    // one. The home page's syncUser can run concurrently (session refetches),
+    // and a blind create here combined with GSI replication lag produced
+    // duplicate records, which made email lookups flip-flop between them.
+    const existing = await getUserByEmail(email)
+    if (existing) {
+      return NextResponse.json({ message: 'User already exists', user: existing }, { status: 200 })
+    }
+
     const user = await createUser({
       email,
       name,

@@ -94,6 +94,35 @@ describe('db-utils', () => {
       await expect(getUserByEmail('nobody@example.com')).resolves.toBeUndefined()
     })
 
+    it('returns the most recently updated record when duplicate emails exist', async () => {
+      const older = { ...storedUser, id: 'old-user', updatedAt: '2026-01-01T00:00:00.000Z' }
+      const newer = {
+        ...storedUser,
+        id: 'new-user',
+        image: 'data:image/jpeg;base64,AAA',
+        updatedAt: '2026-10-10T00:00:00.000Z',
+      }
+      // GSI query order is not guaranteed; duplicates must resolve deterministically.
+      send.mockResolvedValue({ Items: [older, newer] })
+      await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(newer)
+      send.mockResolvedValue({ Items: [newer, older] })
+      await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(newer)
+    })
+
+    it('treats records without updatedAt as oldest when resolving duplicates', async () => {
+      const noTimestamp = { ...storedUser, id: 'no-ts-user', updatedAt: undefined }
+      const newer = { ...storedUser, id: 'new-user', updatedAt: '2026-10-10T00:00:00.000Z' }
+      send.mockResolvedValue({ Items: [noTimestamp, newer] })
+      await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(newer)
+      send.mockResolvedValue({ Items: [newer, noTimestamp] })
+      await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(newer)
+    })
+
+    it('returns undefined when the query returns no Items', async () => {
+      send.mockResolvedValue({})
+      await expect(getUserByEmail('nobody@example.com')).resolves.toBeUndefined()
+    })
+
     it('returns undefined and logs when the query fails', async () => {
       send.mockRejectedValue(new Error('boom'))
       await expect(getUserByEmail('teacher@example.com')).resolves.toBeUndefined()

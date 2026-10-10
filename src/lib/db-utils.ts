@@ -89,7 +89,18 @@ export async function getUserByEmail(email: string) {
 
   try {
     const result = await docClient.send(command)
-    return result.Items?.[0] as IUser | undefined
+    const items = (result.Items ?? []) as IUser[]
+    if (items.length > 1) {
+      // Duplicate records for one email should not happen (POST /api/users is
+      // idempotent), but if they do the GSI query order is not guaranteed, so
+      // resolve deterministically: the most recently updated record wins. This
+      // keeps reads stable instead of flip-flopping between records.
+      reportError(new Error(`Duplicate user records for email: ${email} (${items.length} records)`), {
+        location: 'db-utils.getUserByEmail',
+      })
+      items.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
+    }
+    return items[0] as IUser | undefined
   } catch (error) {
     reportError(error, { location: 'db-utils.getUserByEmail' })
     console.error('Error querying user by email:', error)
