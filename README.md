@@ -95,6 +95,8 @@ Adds a "Continue with email" button on the sign-in page. Teachers sign up and si
    - plus `http://localhost:3000` equivalents for local dev
 4. Copy the client ID, client secret, and the issuer URL (`https://cognito-idp.<region>.amazonaws.com/<user-pool-id>`) into `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`, and `COGNITO_ISSUER` (Amplify env vars in production)
 
+   Optional: to show the Hosted UI on a custom domain (e.g. `https://auth.patternspell.org`) instead of the default `amazoncognito.com` URL, add the custom domain to the user pool, then set `COGNITO_HOSTED_UI_DOMAIN` to its URL (also an Amplify env var in production). Leave it empty to use the pool's default domain.
+
 The button only renders when all three variables are set, so Google-only deployments are unaffected. A teacher who signs in with both Google and email gets two separate accounts; they are not linked.
 
 ## Available scripts

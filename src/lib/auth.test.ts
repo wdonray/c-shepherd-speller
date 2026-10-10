@@ -147,6 +147,7 @@ describe('auth provider configuration', () => {
     vi.stubEnv('COGNITO_CLIENT_ID', '')
     vi.stubEnv('COGNITO_CLIENT_SECRET', '')
     vi.stubEnv('COGNITO_ISSUER', '')
+    vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', '')
   })
 
   afterEach(() => {
@@ -183,6 +184,72 @@ describe('auth provider configuration', () => {
     vi.stubEnv('COGNITO_CLIENT_ID', COGNITO_ENV.COGNITO_CLIENT_ID)
     vi.stubEnv('COGNITO_CLIENT_SECRET', COGNITO_ENV.COGNITO_CLIENT_SECRET)
     // COGNITO_ISSUER stays empty.
+    const providers = await loadProviders()
+    expect(providers).toHaveLength(1)
+    expect(providers[0]).toMatchObject({ id: 'google' })
+  })
+
+  it('uses OIDC discovery defaults when no custom hosted-UI domain is set', async () => {
+    for (const [key, value] of Object.entries(COGNITO_ENV)) {
+      vi.stubEnv(key, value)
+    }
+    const providers = await loadProviders()
+    const cognito = providers[1] as {
+      wellKnown: string
+      options: Record<string, unknown>
+    }
+    // The default discovery URL stays intact, and no endpoint overrides are
+    // passed, so the login flow is byte-for-byte the pre-custom-domain one.
+    expect(cognito.wellKnown).toBe(`${COGNITO_ENV.COGNITO_ISSUER}/.well-known/openid-configuration`)
+    expect(cognito.options).not.toHaveProperty('authorization')
+    expect(cognito.options).not.toHaveProperty('token')
+    expect(cognito.options).not.toHaveProperty('userinfo')
+    expect(cognito.options).not.toHaveProperty('jwks_endpoint')
+    expect(cognito.options).not.toHaveProperty('wellKnown')
+  })
+
+  it('pins OAuth endpoints to the custom hosted-UI domain when it is set', async () => {
+    for (const [key, value] of Object.entries(COGNITO_ENV)) {
+      vi.stubEnv(key, value)
+    }
+    vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', 'https://auth.patternspell.org')
+    const providers = await loadProviders()
+    expect(providers).toHaveLength(2)
+    const cognito = providers[1] as {
+      id: string
+      options: Record<string, unknown>
+    }
+    expect(cognito.id).toBe('cognito')
+    // next-auth merges these option-level overrides over the provider
+    // defaults, so the top-level endpoints switch to the custom domain.
+    expect(cognito.options).toMatchObject({
+      wellKnown: undefined,
+      authorization: 'https://auth.patternspell.org/oauth2/authorize',
+      token: 'https://auth.patternspell.org/oauth2/token',
+      userinfo: 'https://auth.patternspell.org/oauth2/userInfo',
+      jwks_endpoint: `${COGNITO_ENV.COGNITO_ISSUER}/.well-known/jwks.json`,
+    })
+    // The issuer is untouched so ID-token `iss` validation still passes.
+    expect(cognito.options).toMatchObject({ issuer: COGNITO_ENV.COGNITO_ISSUER })
+  })
+
+  it('strips trailing slashes from the custom hosted-UI domain', async () => {
+    for (const [key, value] of Object.entries(COGNITO_ENV)) {
+      vi.stubEnv(key, value)
+    }
+    vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', 'https://auth.patternspell.org///')
+    const providers = await loadProviders()
+    const cognito = providers[1] as { options: Record<string, unknown> }
+    expect(cognito.options).toMatchObject({
+      authorization: 'https://auth.patternspell.org/oauth2/authorize',
+      token: 'https://auth.patternspell.org/oauth2/token',
+      userinfo: 'https://auth.patternspell.org/oauth2/userInfo',
+    })
+  })
+
+  it('still leaves Cognito out when only the custom domain is set', async () => {
+    vi.stubEnv('COGNITO_HOSTED_UI_DOMAIN', 'https://auth.patternspell.org')
+    // COGNITO_CLIENT_ID/SECRET/ISSUER stay empty.
     const providers = await loadProviders()
     expect(providers).toHaveLength(1)
     expect(providers[0]).toMatchObject({ id: 'google' })
