@@ -6,9 +6,16 @@ vi.mock('@/lib/cognito-auth', async (importOriginal) => ({
   ...((await importOriginal()) as object),
   cognitoResetPassword: vi.fn(),
 }))
+vi.mock('@/lib/antibot', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  checkRateLimit: vi.fn(() => ({ allowed: true })),
+  getClientIp: vi.fn(() => '9.9.9.9'),
+}))
 
 const { cognitoResetPassword } = await import('@/lib/cognito-auth')
 const cognitoResetPasswordMock = vi.mocked(cognitoResetPassword)
+const { checkRateLimit } = await import('@/lib/antibot')
+const checkRateLimitMock = vi.mocked(checkRateLimit)
 
 const ENV = {
   COGNITO_CLIENT_ID: 'test-client-id',
@@ -30,6 +37,8 @@ beforeEach(() => {
     vi.stubEnv(key, value)
   }
   cognitoResetPasswordMock.mockReset()
+  checkRateLimitMock.mockReset()
+  checkRateLimitMock.mockReturnValue({ allowed: true })
 })
 
 afterEach(() => {
@@ -86,5 +95,15 @@ describe('POST /api/auth/email/reset-password', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toMatchObject({ ok: false, code: 'weak-password' })
+  })
+
+  it('returns 429 without calling Cognito when the IP is rate limited', async () => {
+    checkRateLimitMock.mockReturnValue({ allowed: false })
+
+    const response = await post({ email: 't@e.com', code: '123456', newPassword: 'N3w!passw' })
+
+    expect(response.status).toBe(429)
+    expect(await response.json()).toEqual({ ok: false, code: 'too-many-attempts' })
+    expect(cognitoResetPasswordMock).not.toHaveBeenCalled()
   })
 })

@@ -6,9 +6,16 @@ vi.mock('@/lib/cognito-auth', async (importOriginal) => ({
   ...((await importOriginal()) as object),
   cognitoConfirmSignUp: vi.fn(),
 }))
+vi.mock('@/lib/antibot', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  checkRateLimit: vi.fn(() => ({ allowed: true })),
+  getClientIp: vi.fn(() => '9.9.9.9'),
+}))
 
 const { cognitoConfirmSignUp } = await import('@/lib/cognito-auth')
 const cognitoConfirmSignUpMock = vi.mocked(cognitoConfirmSignUp)
+const { checkRateLimit } = await import('@/lib/antibot')
+const checkRateLimitMock = vi.mocked(checkRateLimit)
 
 const ENV = {
   COGNITO_CLIENT_ID: 'test-client-id',
@@ -30,6 +37,8 @@ beforeEach(() => {
     vi.stubEnv(key, value)
   }
   cognitoConfirmSignUpMock.mockReset()
+  checkRateLimitMock.mockReset()
+  checkRateLimitMock.mockReturnValue({ allowed: true })
 })
 
 afterEach(() => {
@@ -82,5 +91,15 @@ describe('POST /api/auth/email/verify', () => {
 
     expect(response.status).toBe(410)
     expect(await response.json()).toMatchObject({ ok: false, code: 'expired-code' })
+  })
+
+  it('returns 429 without calling Cognito when the IP is rate limited', async () => {
+    checkRateLimitMock.mockReturnValue({ allowed: false })
+
+    const response = await post({ email: 't@e.com', code: '123456' })
+
+    expect(response.status).toBe(429)
+    expect(await response.json()).toEqual({ ok: false, code: 'too-many-attempts' })
+    expect(cognitoConfirmSignUpMock).not.toHaveBeenCalled()
   })
 })
