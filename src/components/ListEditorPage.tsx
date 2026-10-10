@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
-import { generatePatternId, type WordList, type SpellingPattern } from '@/models/WordList'
+import { generatePatternId, isPatternComplete, type WordList, type SpellingPattern } from '@/models/WordList'
 import PatternEditor from './PatternEditor'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
@@ -25,6 +25,15 @@ import { getErrorMessage, toastError } from '@/lib/error-toast'
 const SAVE_DEBOUNCE_MS = 500
 /** How long the "Saved" confirmation stays visible. */
 const SAVED_MESSAGE_MS = 2000
+
+/**
+ * Patterns safe to persist: every complete pattern, plus any pre-existing
+ * pattern (one the teacher may be mid-edit on). Newly added patterns that
+ * are still missing required fields are held back until complete.
+ */
+function saveablePatterns(patterns: SpellingPattern[], unsavedIds: ReadonlySet<string>): SpellingPattern[] {
+  return patterns.filter((p) => isPatternComplete(p) || !unsavedIds.has(p.id))
+}
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
@@ -71,6 +80,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
+  /**
+   * Ids of patterns added in this session that have never been complete.
+   * They stay local-only until the teacher fills the required fields; the
+   * save payload filters them out so a half-typed pattern is never persisted
+   * (and never trips API validation).
+   */
+  const unsavedPatternIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -106,7 +122,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         updateList(pending.id, {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
-          patterns: pending.patterns,
+          patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
         }).catch((error: unknown) => {
           // The page is gone; the save state can't be shown, but the
           // failure is still reported.
@@ -133,7 +149,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       await updateList(next.id, {
         name: next.name,
         gradeLevel: next.gradeLevel,
-        patterns: next.patterns,
+        patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
       })
       notifyListsChanged()
       setSaveStatus('saved')
@@ -205,6 +221,11 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   // From here on, list is the loaded WordList, so the editor helpers below
   // need no null guards.
   const updatePattern = (patternId: string, updated: SpellingPattern) => {
+    // Once a new pattern has its required fields, it graduates to a normal
+    // pattern and is included in saves from here on.
+    if (isPatternComplete(updated)) {
+      unsavedPatternIdsRef.current.delete(patternId)
+    }
     applyChange({
       ...list,
       patterns: list.patterns.map((p) => (p.id === patternId ? updated : p)),
@@ -219,7 +240,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       frequency: 'common',
       words: [],
     }
-    applyChange({ ...list, patterns: [...list.patterns, newPattern] })
+    // Local-only until the required fields are filled: no auto-save fires,
+    // so a blank pattern is never persisted (or rejected by API validation).
+    unsavedPatternIdsRef.current.add(newPattern.id)
+    setList({ ...list, patterns: [...list.patterns, newPattern] })
   }
 
   const confirmDeletePattern = (target: SpellingPattern) => {

@@ -9,6 +9,7 @@ import {
   generateListId,
   generatePatternId,
   getListKeys,
+  isPatternComplete,
   type WordList,
 } from './WordList'
 
@@ -136,6 +137,28 @@ describe('WordList model', () => {
       const words = Array.from({ length: 201 }, (_, i) => `word${i}`)
       const result = SpellingPatternSchema.safeParse({ ...validPattern, words })
       expect(result.success).toBe(false)
+    })
+  })
+
+  describe('isPatternComplete', () => {
+    it('is true when sound and spelling are filled', () => {
+      expect(isPatternComplete({ ...validPattern })).toBe(true)
+    })
+
+    it('is false when the spelling is empty', () => {
+      expect(isPatternComplete({ ...validPattern, pattern: '' })).toBe(false)
+    })
+
+    it('is false when the sound is empty', () => {
+      expect(isPatternComplete({ ...validPattern, sound: '' })).toBe(false)
+    })
+
+    it('is false when both are blank or whitespace-only', () => {
+      expect(isPatternComplete({ ...validPattern, sound: '   ', pattern: '  ' })).toBe(false)
+    })
+
+    it('is true with no words yet', () => {
+      expect(isPatternComplete({ ...validPattern, words: [] })).toBe(true)
     })
   })
 
