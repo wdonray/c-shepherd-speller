@@ -22,6 +22,12 @@ export function Footer() {
           >
             LinkedIn
           </a>
+          <a href="/privacy" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Privacy
+          </a>
+          <a href="/terms" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Terms
+          </a>
           <BuyMeACoffeeButton />
         </div>
       </div>

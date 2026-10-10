@@ -31,7 +31,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico, apple-icon.png, icon.png, icon.svg (icon files for browsers and home-screen shortcuts)
      * - auth (authentication pages)
+     * - privacy, terms (public legal pages; must stay readable without sign-in)
      */
-    '/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth).*)',
+    '/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth|privacy|terms).*)',
   ],
 }
