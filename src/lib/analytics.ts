@@ -25,10 +25,12 @@ export { SITE_UNIQUES_PK, UNIQUES_SK_V2, clientIpFromHeaders, dayKey, hashVisito
  *   with a `views` counter.
  * - One item per page for engaged unique visitors: pk = "PAGE#<path>", sk = "UNIQUES_V2"
  *   with a `visitors` string-set of salted visitor hashes (kept permanently).
- *   V2 exists because the original UNIQUES sets were polluted with bot hashes
- *   before engagement gating. Only visitors who scrolled (human signal) are
- *   recorded here.
+ *   V2 exists because the original "UNIQUES" (V1) sets were polluted with bot
+ *   hashes before engagement gating. Only visitors who scrolled (human signal)
+ *   are recorded here. V1 sets are kept and still summed into the dashboard
+ *   so historical counts are preserved (V2 keys, keep history).
  * - One item for site-wide engaged unique visitors: pk = "SITE", sk = "UNIQUES_V2"
+ *   (plus the legacy "UNIQUES" V1 item, also summed into the dashboard)
  *   so the headline count dedupes across pages (a visitor who reads three
  *   pages counts once, not three times).
  * - Raw IPs are never stored. A visitor is identified by
@@ -89,6 +91,9 @@ export function __resetClientForTests(): void {
 }
 
 const pkFor = (path: string) => `PAGE#${path}`
+
+/** Sort key for the legacy V1 unique-visitor sets (pre-engagement-gating). */
+const UNIQUES_SK_V1 = 'UNIQUES'
 
 /** Compare daily stats by day ascending (for sort). */
 export function compareDays(a: { day: string }, b: { day: string }): number {
@@ -226,7 +231,8 @@ export interface AnalyticsSummary {
 /**
  * Read the analytics table for the public dashboard. Returns null when
  * analytics is not configured (local dev / CI without credentials).
- * Unique visitor counts come from the UNIQUES_V2 sets (engagement-gated).
+ * Unique visitor counts come from the UNIQUES_V2 sets (engagement-gated)
+ * plus the legacy UNIQUES (V1) sets, so historical counts are preserved.
  */
 export async function getAnalyticsSummary(days = 30, now: Date = new Date()): Promise<AnalyticsSummary | null> {
   const config = getConfig()
@@ -267,11 +273,13 @@ export async function getAnalyticsSummary(days = 30, now: Date = new Date()): Pr
 
   let siteUniques = 0
 
+  const isUniquesKey = (sk: string | undefined) => sk === UNIQUES_SK_V2 || sk === UNIQUES_SK_V1
+
   for (const item of items) {
     const pk = item.pk as string | undefined
     const sk = item.sk as string | undefined
-    if (pk === SITE_UNIQUES_PK && sk === UNIQUES_SK_V2) {
-      siteUniques = countUniques(item)
+    if (pk === SITE_UNIQUES_PK && isUniquesKey(sk)) {
+      siteUniques += countUniques(item)
       continue
     }
     if (!pk?.startsWith('PAGE#')) continue
@@ -279,8 +287,8 @@ export async function getAnalyticsSummary(days = 30, now: Date = new Date()): Pr
     const stat = ensure(path)
     if (sk === 'TOTAL') {
       stat.totalViews = (item.views as number) ?? 0
-    } else if (sk === UNIQUES_SK_V2) {
-      stat.uniques = countUniques(item)
+    } else if (isUniquesKey(sk)) {
+      stat.uniques += countUniques(item)
     } else if (sk?.startsWith('DAY#')) {
       const day = sk.slice('DAY#'.length)
       if (day >= cutoffDay) {
@@ -392,24 +400,38 @@ export async function getPageTotalViews(path: string): Promise<number | null> {
 }
 
 /**
- * Engaged unique visitors for a page: the size of its V2 visitor set.
- * Only visitors who sent a human engagement signal (scroll) are counted.
- * A visitor who returns any number of times still counts once.
+ * Engaged unique visitors for a page: the size of its V2 visitor set plus
+ * the legacy V1 set, so historical counts are preserved.
+ * Only visitors who sent a human engagement signal (scroll) are counted
+ * in V2. A visitor who returns any number of times still counts once.
  */
 export async function getPageUniqueViews(path: string): Promise<number | null> {
   const config = getConfig()
   if (!config) return null
   const client = getClient(config)
-  const res = await client.send(
-    new GetCommand({
-      TableName: config.table,
-      Key: { pk: pkFor(path), sk: UNIQUES_SK_V2 },
-    })
+  const countSet = (item: { visitors?: string[] | Set<string> } | undefined): number => {
+    const visitors = item?.visitors
+    if (!visitors) return 0
+    return Array.isArray(visitors) ? visitors.length : visitors.size
+  }
+  const [v2, v1] = await Promise.all([
+    client.send(
+      new GetCommand({
+        TableName: config.table,
+        Key: { pk: pkFor(path), sk: UNIQUES_SK_V2 },
+      })
+    ),
+    client.send(
+      new GetCommand({
+        TableName: config.table,
+        Key: { pk: pkFor(path), sk: UNIQUES_SK_V1 },
+      })
+    ),
+  ])
+  return (
+    countSet(v2.Item as { visitors?: string[] | Set<string> } | undefined) +
+    countSet(v1.Item as { visitors?: string[] | Set<string> } | undefined)
   )
-  const item = res.Item as { visitors?: string[] | Set<string> } | undefined
-  const visitors = item?.visitors
-  if (!visitors) return 0
-  return Array.isArray(visitors) ? visitors.length : visitors.size
 }
 
 /* ------------------------------------------------------------------ */

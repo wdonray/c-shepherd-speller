@@ -232,16 +232,24 @@ describe('getPageUniqueViews (with DynamoDB)', () => {
     __resetClientForTests()
   })
 
-  it('returns the size of the V2 visitor set', async () => {
-    const send = mockClient(async () => ({ Item: { visitors: ['a', 'b', 'c'] } }))
-    await expect(getPageUniqueViews('/blog/test')).resolves.toBe(3)
-    // Verifies the V2 key is used.
-    const key = (send.mock.calls[0][0] as { input: { Key: { sk: string } } }).input.Key
-    expect(key.sk).toBe('UNIQUES_V2')
+  it('returns the sum of V2 and V1 visitor sets', async () => {
+    const send = mockClient(async (cmd: unknown) => {
+      const sk = (cmd as { input: { Key: { sk: string } } }).input.Key.sk
+      if (sk === 'UNIQUES_V2') return { Item: { visitors: ['a', 'b', 'c'] } }
+      return { Item: { visitors: ['x', 'y'] } }
+    })
+    await expect(getPageUniqueViews('/blog/test')).resolves.toBe(5)
+    // Verifies both keys are fetched.
+    const sks = send.mock.calls.map((call) => (call[0] as { input: { Key: { sk: string } } }).input.Key.sk)
+    expect(sks).toEqual(['UNIQUES_V2', 'UNIQUES'])
   })
 
   it('handles Set visitor collections', async () => {
-    mockClient(async () => ({ Item: { visitors: new Set(['d', 'e']) } }))
+    mockClient(async (cmd: unknown) => {
+      const sk = (cmd as { input: { Key: { sk: string } } }).input.Key.sk
+      if (sk === 'UNIQUES_V2') return { Item: { visitors: new Set(['d', 'e']) } }
+      return {}
+    })
     await expect(getPageUniqueViews('/blog/test')).resolves.toBe(2)
   })
 
@@ -263,7 +271,7 @@ describe('getAnalyticsSummary (with DynamoDB)', () => {
     await expect(getAnalyticsSummary()).resolves.toBeNull()
   })
 
-  it('aggregates totals, daily stats, and V2 uniques', async () => {
+  it('aggregates totals, daily stats, and V1+V2 uniques', async () => {
     mockClient(async () => ({
       Items: [
         { pk: 'PAGE#/blog/a', sk: 'TOTAL', path: '/blog/a', views: 100 },
@@ -273,7 +281,7 @@ describe('getAnalyticsSummary (with DynamoDB)', () => {
           path: '/blog/a',
           visitors: new Set(['u1', 'u2']),
         },
-        // Legacy V1 UNIQUES items are ignored by the new read path.
+        // Legacy V1 UNIQUES items are summed into the dashboard counts.
         {
           pk: 'PAGE#/blog/a',
           sk: 'UNIQUES',
@@ -320,7 +328,7 @@ describe('getAnalyticsSummary (with DynamoDB)', () => {
           sk: 'UNIQUES_V2',
           visitors: ['u1', 'u2', 'u3'],
         },
-        // Legacy V1 SITE UNIQUES ignored.
+        // Legacy V1 SITE UNIQUES: summed into the headline count.
         {
           pk: 'SITE',
           sk: 'UNIQUES',
@@ -344,10 +352,12 @@ describe('getAnalyticsSummary (with DynamoDB)', () => {
     const summary = await getAnalyticsSummary(30, new Date('2026-10-03T12:00:00Z'))
     expect(summary).not.toBeNull()
     expect(summary!.totalViews).toBe(100)
-    expect(summary!.totalUniques).toBe(3)
+    // V2 (3) + V1 (2) summed for the site-wide count.
+    expect(summary!.totalUniques).toBe(5)
     expect(summary!.pages).toHaveLength(2)
     expect(summary!.pages[0].path).toBe('/blog/a')
-    expect(summary!.pages[0].uniques).toBe(2)
+    // V2 (2) + V1 (4) summed for the page count.
+    expect(summary!.pages[0].uniques).toBe(6)
     expect(summary!.pages[1].path).toBe('/blog/b')
     expect(summary!.pages[1].uniques).toBe(0)
     expect(summary!.dailyTotals).toHaveLength(5)
