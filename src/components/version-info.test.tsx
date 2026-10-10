@@ -106,6 +106,30 @@ describe('summarizeRelease', () => {
   it('ignores contributor lines without a sha', () => {
     expect(summarizeRelease('- Just a line\n- Another (nothex!)')).toBeNull()
   })
+
+  it('parses GitHub auto-generated release notes', () => {
+    expect(
+      summarizeRelease(
+        "## What's Changed\n* fix: photo save permission error by @wdonray in https://github.com/wdonray/c-shepherd-speller/pull/123\n* feat: new chart by @wdonray in https://github.com/wdonray/c-shepherd-speller/pull/124\n"
+      )
+    ).toBe('fix: photo save permission error')
+  })
+
+  it('prefers the conventional format when both are present', () => {
+    expect(
+      summarizeRelease('- Conventional title (abcdef1)\n* generated: title by @wdonray in https://example.com/pull/1')
+    ).toBe('Conventional title')
+  })
+
+  it('returns null for generated-notes lines with no title', () => {
+    expect(summarizeRelease('*   by @wdonray in https://example.com/pull/1')).toBeNull()
+  })
+
+  it('ignores New Contributors lines in generated notes', () => {
+    expect(
+      summarizeRelease('## New Contributors\n* @wdonray made their first contribution in https://example.com/pull/1\n')
+    ).toBeNull()
+  })
 })
 
 describe('formatDate', () => {
@@ -166,6 +190,13 @@ describe('toRelease', () => {
       publishedAt: '2026-10-03T11:00:00Z',
       summary: 'Some change',
     })
+  })
+
+  it('summarizes GitHub auto-generated release bodies', () => {
+    const payload = releasePayload('v0.6.0', {
+      body: "## What's Changed\n* fix: photo save permission error by @wdonray in https://github.com/wdonray/c-shepherd-speller/pull/123\n",
+    })
+    expect(toRelease(payload).summary).toBe('fix: photo save permission error')
   })
 
   it('handles missing fields', () => {
