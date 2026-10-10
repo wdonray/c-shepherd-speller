@@ -29,13 +29,14 @@ export interface GitHubReleasePayload {
  * Pull a one-line summary from a release body: the first PR title.
  *
  * Handles two formats, conventional first:
- * - conventional-changelog: "  - Fix project card locators (80946f4)" -> "Fix project card locators"
+ * - conventional-changelog: "  - Fix project card locators (80946f4)" or
+ *   "  - Fix project card locators (#123)" -> "Fix project card locators"
  * - GitHub auto-generated notes: "* fix: photo save permission error by @wdonray in <url>"
  *   -> "fix: photo save permission error"
  */
 export function summarizeRelease(body: string | null): string | null {
   if (!body) return null
-  const conventional = body.match(/^\s*-\s+(.+?)\s*\([0-9a-f]{7,40}\)\s*$/m)
+  const conventional = body.match(/^\s*-\s+(.+?)\s*\((?:#\d+|[0-9a-f]{7,40})\)\s*$/m)
   const summary = conventional?.[1]?.trim()
   if (summary) return summary
   const generated = body.match(/^\s*\*\s+(.+?)\s+by\s+@\S+/m)
