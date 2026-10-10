@@ -115,6 +115,20 @@ describe('POST /api/users', () => {
     expect(body.user).toEqual(user)
   })
 
+  it('returns the existing user instead of creating a duplicate when the email already has a record', async () => {
+    const existing = { id: 'u1', email: 'teacher@example.com', name: 'Teacher' }
+    getUserByEmail.mockResolvedValue(existing)
+    const req = new NextRequest('http://localhost/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'teacher@example.com', name: 'Teacher' }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    expect(createUser).not.toHaveBeenCalled()
+    const body = await res.json()
+    expect(body.user).toEqual(existing)
+  })
+
   it('creates the user with provided spelling lists', async () => {
     createUser.mockResolvedValue({ id: 'u1' })
     const req = new NextRequest('http://localhost/api/users', {
