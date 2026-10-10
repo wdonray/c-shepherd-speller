@@ -120,13 +120,20 @@ describe('processProfileImage', () => {
         // Never fires onload or onerror.
       }
     )
-    vi.useFakeTimers()
+    let timeoutCb: (() => void) | null = null
+    const realSetTimeout = globalThis.setTimeout
+    vi.stubGlobal('setTimeout', ((cb: () => void) => {
+      timeoutCb = cb
+      return 0 as unknown as NodeJS.Timeout
+    }) as typeof setTimeout)
     try {
       const promise = processProfileImage(makeFile('image/jpeg', 1000))
-      await vi.advanceTimersByTimeAsync(11000)
+      // Let the Image constructor's microtask run, then fire the timeout.
+      await Promise.resolve()
+      timeoutCb!()
       await expect(promise).rejects.toThrow('Could not read the image file.')
     } finally {
-      vi.useRealTimers()
+      vi.stubGlobal('setTimeout', realSetTimeout)
     }
   })
 
