@@ -4,11 +4,13 @@ import {
   COGNITO_ERROR_MESSAGES,
   computeSecretHash,
   cognitoConfirmSignUp,
+  cognitoDeleteUser,
   cognitoForgotPassword,
   cognitoResendConfirmationCode,
   cognitoResetPassword,
   cognitoSignIn,
   cognitoSignUp,
+  cognitoVerifyPassword,
   isCognitoEmailAuthConfigured,
   parseCognitoRegion,
   toCognitoAuthError,
@@ -363,5 +365,63 @@ describe('default client construction', () => {
     // The second call exercises the cache hit.
     await expect(cognitoSignUp('N', 't@e.com', 'S3cure!pass')).rejects.toBeInstanceOf(CognitoAuthError)
     await expect(cognitoSignUp('N', 't@e.com', 'S3cure!pass')).rejects.toBeInstanceOf(CognitoAuthError)
+  })
+})
+
+describe('cognitoVerifyPassword', () => {
+  it('returns the access token when the password is correct', async () => {
+    const { send, client } = mockClient()
+    send.mockResolvedValue({ AuthenticationResult: { AccessToken: 'token-123' } })
+    await expect(cognitoVerifyPassword('t@e.com', 'S3cure!pass', client)).resolves.toBe('token-123')
+    const command = send.mock.calls[0][0]
+    expect(command.input.AuthFlow).toBe('USER_PASSWORD_AUTH')
+    expect(command.input.AuthParameters.USERNAME).toBe('t@e.com')
+  })
+
+  it('throws invalid-credentials for a wrong password', async () => {
+    const { send, client } = mockClient()
+    send.mockRejectedValue(sdkError('NotAuthorizedException'))
+    const error = await cognitoVerifyPassword('t@e.com', 'wrong', client).catch((e) => e)
+    expect(error).toBeInstanceOf(CognitoAuthError)
+    expect(error.code).toBe('invalid-credentials')
+  })
+
+  it('throws server-error when Cognito issues a challenge', async () => {
+    const { send, client } = mockClient()
+    send.mockResolvedValue({ ChallengeName: 'NEW_PASSWORD_REQUIRED' })
+    const error = await cognitoVerifyPassword('t@e.com', 'S3cure!pass', client).catch((e) => e)
+    expect(error).toBeInstanceOf(CognitoAuthError)
+    expect(error.code).toBe('server-error')
+  })
+
+  it('throws server-error when no access token is returned', async () => {
+    const { send, client } = mockClient()
+    send.mockResolvedValue({ AuthenticationResult: {} })
+    const error = await cognitoVerifyPassword('t@e.com', 'S3cure!pass', client).catch((e) => e)
+    expect(error).toBeInstanceOf(CognitoAuthError)
+    expect(error.code).toBe('server-error')
+  })
+})
+
+describe('cognitoDeleteUser', () => {
+  it('deletes the user with the access token', async () => {
+    const { send, client } = mockClient()
+    send.mockResolvedValue({})
+    await expect(cognitoDeleteUser('token-123', client)).resolves.toBeUndefined()
+    expect(send.mock.calls[0][0].input).toEqual({ AccessToken: 'token-123' })
+  })
+
+  it('treats an already-deleted user as success', async () => {
+    const { send, client } = mockClient()
+    send.mockRejectedValue(sdkError('UserNotFoundException'))
+    await expect(cognitoDeleteUser('token-123', client)).resolves.toBeUndefined()
+  })
+
+  it('maps other failures to CognitoAuthError', async () => {
+    const { send, client } = mockClient()
+    send.mockRejectedValue(sdkError('TooManyRequestsException'))
+    const error = await cognitoDeleteUser('token-123', client).catch((e) => e)
+    expect(error).toBeInstanceOf(CognitoAuthError)
+    expect(error.code).toBe('too-many-attempts')
   })
 })
