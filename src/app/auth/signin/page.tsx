@@ -41,13 +41,6 @@ export default function SignIn() {
   const router = useRouter()
 
   useEffect(() => {
-    document.body.setAttribute('data-auth-page', 'true')
-    return () => {
-      document.body.removeAttribute('data-auth-page')
-    }
-  }, [])
-
-  useEffect(() => {
     if (status === 'authenticated' && session?.user?.id != null) {
       router.replace('/')
     }
@@ -103,18 +96,18 @@ export default function SignIn() {
   const emailSignInEnabled = providers?.['email-password'] != null
 
   return (
-    <div className="flex justify-center px-8 pt-32 pb-8">
-      <Card className="mx-4 w-full max-w-[400px] sm:mx-0">
-        <CardContent className="flex flex-col items-center px-10 py-12">
-          <PatternMark className="h-[110px] w-[110px]" label="PatternSpell logo" />
-          <h1 className="mt-6 text-center text-[26px] font-bold text-ink">PatternSpell</h1>
-          <p className="mt-3 text-center text-[15px] leading-6 text-muted-foreground">
+    <div className="flex justify-center px-5 pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] sm:min-h-[85vh] sm:items-center sm:px-8 sm:py-16">
+      <Card className="w-full max-w-[400px]">
+        <CardContent className="flex flex-col items-center px-6 py-8 sm:px-10 sm:py-12">
+          <PatternMark className="h-[72px] w-[72px] sm:h-[110px] sm:w-[110px]" label="PatternSpell logo" />
+          <h1 className="mt-5 text-center text-[26px] font-bold text-ink sm:mt-6">PatternSpell</h1>
+          <p className="mt-2 text-center text-[15px] leading-6 text-muted-foreground sm:mt-3">
             A pattern-based spelling toolkit for K-3 teachers.
           </p>
           <Button
             variant="secondary"
             onClick={() => void handleProviderSignIn('google')}
-            className="mt-8 w-full"
+            className="mt-6 w-full sm:mt-8"
             disabled={isLoading != null}
             aria-label="Sign in with Google account"
             onKeyDown={handleKeyDown('google')}

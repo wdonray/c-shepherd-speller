@@ -30,7 +30,6 @@ describe('SignIn page', () => {
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
     useRouterMock.mockReturnValue({ replace: replaceMock, push: pushMock } as never)
     getProvidersMock.mockResolvedValue(googleOnlyProviders as never)
-    document.body.removeAttribute('data-auth-page')
   })
 
   afterEach(() => {
@@ -45,9 +44,10 @@ describe('SignIn page', () => {
     expect(screen.getByText('Free for everyone.')).toBeInTheDocument()
   })
 
-  it('sets data-auth-page on the body while mounted and removes it on unmount', () => {
+  it('never locks body scroll or tags the body while mounted', () => {
     const { unmount } = render(<SignIn />)
-    expect(document.body.getAttribute('data-auth-page')).toBe('true')
+    expect(document.body.hasAttribute('data-auth-page')).toBe(false)
+    expect(document.body.style.overflow).not.toBe('hidden')
     unmount()
     expect(document.body.hasAttribute('data-auth-page')).toBe(false)
   })

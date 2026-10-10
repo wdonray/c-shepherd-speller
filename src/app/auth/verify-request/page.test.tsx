@@ -11,9 +11,10 @@ describe('VerifyRequest page', () => {
     expect(link).toHaveAttribute('href', '/auth/signin')
   })
 
-  it('sets data-auth-page on the body while mounted and removes it on unmount', () => {
+  it('never locks body scroll or tags the body while mounted', () => {
     const { unmount } = render(<VerifyRequest />)
-    expect(document.body.getAttribute('data-auth-page')).toBe('true')
+    expect(document.body.hasAttribute('data-auth-page')).toBe(false)
+    expect(document.body.style.overflow).not.toBe('hidden')
     unmount()
     expect(document.body.hasAttribute('data-auth-page')).toBe(false)
   })

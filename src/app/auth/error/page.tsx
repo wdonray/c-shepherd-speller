@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Suspense, useEffect } from 'react'
+import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
@@ -10,13 +10,6 @@ import { AlertCircle, RefreshCw, Home, HelpCircle } from 'lucide-react'
 function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-
-  useEffect(() => {
-    document.body.setAttribute('data-auth-page', 'true')
-    return () => {
-      document.body.removeAttribute('data-auth-page')
-    }
-  }, [])
 
   const errorMessages: Record<string, { title: string; description: string; action?: string }> = {
     Configuration: {
