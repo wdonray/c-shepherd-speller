@@ -88,6 +88,18 @@ describe('PracticePage', () => {
     })
   })
 
+  it('links the empty state CTA to new list creation', async () => {
+    getLists.mockResolvedValue([])
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/no word lists yet/i)).toBeInTheDocument()
+    })
+    const newListLink = screen.getByRole('link', { name: 'New list' })
+    expect(newListLink).toHaveAttribute('href', '/lists/new')
+    expect(screen.queryByRole('link', { name: 'Back to home' })).not.toBeInTheDocument()
+  })
+
   it('shows the practice mode when a list is selected', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)
