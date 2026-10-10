@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
+import { HttpError } from '@/lib/error-toast'
 import type { WordList } from '@/models/WordList'
 
 const { getLists } = vi.hoisted(() => ({
@@ -11,6 +12,9 @@ const { getLists } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
+
+const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
+vi.mock('@/lib/report-error', () => ({ reportError }))
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -194,6 +198,47 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(screen.getByText('My word lists (1)')).toBeInTheDocument()
     })
+  })
+
+  it('does not fetch lists when signed out', async () => {
+    mockSession()
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
+    })
+    expect(getLists).not.toHaveBeenCalled()
+    expect(reportError).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByText('No word lists yet')).toBeInTheDocument()
+  })
+
+  it('does not fetch lists while the session is still loading', async () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: null,
+      status: 'loading',
+      update: async () => null,
+    } as never)
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
+    })
+    expect(getLists).not.toHaveBeenCalled()
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('treats a 401 from getLists as signed out, not an error', async () => {
+    mockSession('Donray Williams')
+    getLists.mockRejectedValue(new HttpError('Unauthorized', 401))
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
+    })
+    expect(reportError).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByText('No word lists yet')).toBeInTheDocument()
   })
 
   it('reloads lists when the lists-changed event fires', async () => {

@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
+import { HttpError } from '@/lib/error-toast'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
 import type { WordList } from '@/models/WordList'
 import WordListCard from './WordListCard'
@@ -97,23 +98,38 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
  * and recent activity.
  */
 export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [lists, setLists] = useState<WordList[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [activity, setActivity] = useState<ActivityEvent[]>([])
 
   const loadLists = useCallback(() => {
+    // Lists belong to a signed-in teacher. A signed-out visitor gets a 401
+    // from /api/lists, which means "not signed in", not an application
+    // error: never fetch, never report to Sentry, never show the error card.
+    if (status !== 'authenticated') {
+      setLists([])
+      setLoadError(false)
+      if (status !== 'loading') setLoading(false)
+      return
+    }
     setLoading(true)
     setLoadError(false)
     getLists()
       .then(setLists)
       .catch((error: unknown) => {
+        if (error instanceof HttpError && error.status === 401) {
+          // Session expired between page load and fetch: signed out, not an error.
+          setLists([])
+          setLoadError(false)
+          return
+        }
         reportError(error, { location: 'Dashboard.loadLists' })
         setLoadError(true)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [status])
 
   useEffect(() => {
     loadLists()
