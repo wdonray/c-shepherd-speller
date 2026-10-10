@@ -59,8 +59,13 @@ export default function EmailSignUpPage() {
           <AuthFeedback tone="error">
             {ERROR_COPY['email-in-use']}{' '}
             <Link href="/auth/email/signin" className="font-medium underline underline-offset-4">
-              Sign in instead
+              Sign in with email
+            </Link>{' '}
+            or{' '}
+            <Link href="/auth/signin" className="font-medium underline underline-offset-4">
+              sign in with Google
             </Link>
+            .
           </AuthFeedback>
         ) : errorCode ? (
           <AuthFeedback tone="error">{ERROR_COPY[errorCode] ?? FALLBACK_ERROR}</AuthFeedback>
