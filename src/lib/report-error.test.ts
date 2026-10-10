@@ -92,6 +92,10 @@ describe('isNetworkError', () => {
     expect(isNetworkError(new TypeError('NetworkError: A network error occurred.'))).toBe(true)
   })
 
+  it('detects Safari Load failed', () => {
+    expect(isNetworkError(new TypeError('Load failed'))).toBe(true)
+  })
+
   it('detects NetworkError DOMExceptions', () => {
     expect(isNetworkError(new DOMException('offline', 'NetworkError'))).toBe(true)
   })

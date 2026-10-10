@@ -7,12 +7,13 @@ type ReportErrorOptions = {
   extra?: Record<string, unknown>
 }
 
-const NETWORK_ERROR_MESSAGE_PATTERNS = [/network error/i, /failed to fetch/i]
+const NETWORK_ERROR_MESSAGE_PATTERNS = [/network error/i, /failed to fetch/i, /load failed/i]
 
 /**
  * Transient connectivity failures are environmental noise, not app bugs.
  * Safari reports a dropped connection as `TypeError: NetworkError: A network
- * error occurred.`, other browsers as `TypeError: Failed to fetch`.
+ * error occurred.` or `TypeError: Load failed`, other browsers as
+ * `TypeError: Failed to fetch`.
  */
 export function isNetworkError(error: unknown): boolean {
   if (error instanceof DOMException && error.name === 'NetworkError') return true
