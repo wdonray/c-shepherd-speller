@@ -17,6 +17,30 @@ const docClient = DynamoDBDocument.from(client, {
   },
 })
 
+/**
+ * Endpoint overrides that point a Cognito provider at a custom hosted-UI
+ * domain instead of the default amazoncognito.com URL.
+ *
+ * next-auth's CognitoProvider discovers its endpoints from the pool's OIDC
+ * discovery document, which only advertises the default domain. Setting
+ * `wellKnown` to undefined bypasses discovery so the explicit endpoints are
+ * used. Everything else matches the discovered configuration: `issuer` (set
+ * by the caller) keeps ID-token `iss` validation working, `jwks_endpoint`
+ * is the pool's standard JWKS location, and no authorization params are
+ * added, so openid-client's defaults (scope `openid`, response_type `code`)
+ * apply exactly as they do without the override.
+ */
+function cognitoCustomDomainOptions(hostedUiDomain: string, issuer: string) {
+  const domain = hostedUiDomain.replace(/\/+$/, '')
+  return {
+    wellKnown: undefined,
+    authorization: `${domain}/oauth2/authorize`,
+    token: `${domain}/oauth2/token`,
+    userinfo: `${domain}/oauth2/userInfo`,
+    jwks_endpoint: `${issuer}/.well-known/jwks.json`,
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -27,12 +51,24 @@ export const authOptions: NextAuthOptions = {
     // registered when the pool is configured, so the sign-in page keeps
     // showing just Google until then. See README "Cognito email/password
     // setup" for the pool settings these map to.
+    //
+    // COGNITO_HOSTED_UI_DOMAIN optionally points the OAuth endpoints at a
+    // custom hosted-UI domain (e.g. https://auth.patternspell.org) instead of
+    // the default amazoncognito.com URL. The pool's OIDC discovery document
+    // only knows the default domain, so discovery is bypassed and the
+    // endpoints are pinned explicitly. `issuer` stays the cognito-idp URL so
+    // ID-token `iss` validation still passes, and `jwks_endpoint` keeps the
+    // signature check working. Authorization params are left untouched, so
+    // the login flow is byte-for-byte the same apart from the host.
     ...(process.env.COGNITO_CLIENT_ID && process.env.COGNITO_CLIENT_SECRET && process.env.COGNITO_ISSUER
       ? [
           CognitoProvider({
             clientId: process.env.COGNITO_CLIENT_ID,
             clientSecret: process.env.COGNITO_CLIENT_SECRET,
             issuer: process.env.COGNITO_ISSUER,
+            ...(process.env.COGNITO_HOSTED_UI_DOMAIN
+              ? cognitoCustomDomainOptions(process.env.COGNITO_HOSTED_UI_DOMAIN, process.env.COGNITO_ISSUER)
+              : {}),
           }),
         ]
       : []),
