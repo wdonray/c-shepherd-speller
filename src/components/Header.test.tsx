@@ -560,6 +560,63 @@ describe('Header', () => {
     fetchMock.mockRestore()
   })
 
+  it('uses the app-table user id (not the session id) for the menu photo upload', async () => {
+    // Regression test: session.user.id is the next-auth UUID, but the
+    // /api/users/[id] ownership check compares against the app-table user id
+    // from getUserByEmail. Using the session id always 403s.
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    useSessionMock.mockReturnValue({
+      data: { user: { id: 'nextauth-uuid-123', email: 't@e.c', name: 'Donray Williams' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
+    getUserByEmailMock.mockResolvedValue({
+      id: '1791331096691_abc-user',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    render(<Header />)
+
+    openMenu()
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/users/1791331096691_abc-user',
+        expect.objectContaining({ method: 'PUT' })
+      )
+      expect(fetchMock).not.toHaveBeenCalledWith('/api/users/nextauth-uuid-123', expect.anything())
+    })
+    fetchMock.mockRestore()
+  })
+
+  it('shows an error toast when the app-table user is not found during menu photo upload', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    mockSignedIn()
+    getUserByEmailMock.mockResolvedValue(null as never)
+    render(
+      <>
+        <Header />
+        <ErrorToaster />
+      </>
+    )
+
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    expect(await screen.findByText('Could not find your profile. Please try again.')).toBeInTheDocument()
+  })
+
   it('shows the specific error in a toast when the menu photo upload fails', async () => {
     const processMock = vi.mocked(processProfileImage)
     processMock.mockRejectedValue(new Error('Please choose a JPEG, PNG, WebP, or HEIC image.'))
