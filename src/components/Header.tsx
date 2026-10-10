@@ -72,6 +72,10 @@ export function Header() {
   const mobilePhotoButtonRef = useRef<HTMLButtonElement>(null)
   // Which photo button opened the picker, so focus returns to the right one.
   const photoFocusTargetRef = useRef<HTMLButtonElement | null>(null)
+  // Which surface ('desktop' | 'mobile') the upload was initiated from, so
+  // post-upload UI only touches that surface. Null when nothing was
+  // recorded, e.g. tests that drive the file input directly.
+  const photoSourceRef = useRef<'desktop' | 'mobile' | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const { setTheme, theme } = useTheme()
   const isDark = useMemo(() => theme === 'dark', [theme])
@@ -118,10 +122,12 @@ export function Header() {
   // If the image URL fails to load, fall back to initials instead of a broken image.
   const avatarImage = avatarBroken ? undefined : (profileImage ?? session.user.image ?? undefined)
 
-  // The photo at the top of the account menu opens the file picker directly,
-  // and the menu stays open behind the native dialog. The Profile menu item
-  // below opens the full profile dialog.
-  function openPhotoPicker(sourceRef: React.RefObject<HTMLButtonElement | null>) {
+  // The photo at the top of the account menu (desktop) or the bottom
+  // sheet (mobile) opens the file picker directly. The desktop account
+  // menu stays open behind the native dialog; the mobile sheet has no
+  // popover, so nothing must open there after the upload completes.
+  function openPhotoPicker(source: 'desktop' | 'mobile', sourceRef: React.RefObject<HTMLButtonElement | null>) {
+    photoSourceRef.current = source
     photoFocusTargetRef.current = sourceRef.current
     photoInputRef.current?.click()
   }
@@ -152,9 +158,14 @@ export function Header() {
     } finally {
       // The native picker is an OS dialog; reassert the menu in case Radix
       // closed it on focus loss, and return focus to the photo button that
-      // opened the picker (desktop button when none was recorded, e.g. tests
-      // that drive the input directly).
-      setIsAccountMenuOpen(true)
+      // opened the picker. The reassert only applies to the desktop account
+      // menu: on mobile the upload comes from the bottom sheet, which has
+      // no popover, so opening it here would flash the desktop popover over
+      // the phone UI. An unrecorded source (e.g. tests driving the input
+      // directly) keeps the desktop behavior.
+      if (photoSourceRef.current !== 'mobile') {
+        setIsAccountMenuOpen(true)
+      }
       ;(photoFocusTargetRef.current ?? desktopPhotoButtonRef.current)?.focus()
     }
   }
@@ -235,7 +246,7 @@ export function Header() {
                   <button
                     ref={desktopPhotoButtonRef}
                     type="button"
-                    onClick={() => openPhotoPicker(desktopPhotoButtonRef)}
+                    onClick={() => openPhotoPicker('desktop', desktopPhotoButtonRef)}
                     aria-label="Change profile photo"
                     className={PHOTO_BUTTON_CLASS}
                   >
@@ -314,7 +325,7 @@ export function Header() {
                   <button
                     ref={mobilePhotoButtonRef}
                     type="button"
-                    onClick={() => openPhotoPicker(mobilePhotoButtonRef)}
+                    onClick={() => openPhotoPicker('mobile', mobilePhotoButtonRef)}
                     aria-label="Change profile photo"
                     className={PHOTO_BUTTON_CLASS}
                   >
