@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import CognitoProvider from 'next-auth/providers/cognito'
 import { DynamoDBAdapter } from '@next-auth/dynamodb-adapter'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { client } from './dynamodb'
@@ -22,6 +23,19 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    // Email/password sign-in via a Cognito User Pool. The provider is only
+    // registered when the pool is configured, so the sign-in page keeps
+    // showing just Google until then. See README "Cognito email/password
+    // setup" for the pool settings these map to.
+    ...(process.env.COGNITO_CLIENT_ID && process.env.COGNITO_CLIENT_SECRET && process.env.COGNITO_ISSUER
+      ? [
+          CognitoProvider({
+            clientId: process.env.COGNITO_CLIENT_ID,
+            clientSecret: process.env.COGNITO_CLIENT_SECRET,
+            issuer: process.env.COGNITO_ISSUER,
+          }),
+        ]
+      : []),
   ],
   adapter: DynamoDBAdapter(docClient, {
     tableName: process.env.AUTH_TABLE_NAME || 'next-auth',

@@ -5,7 +5,7 @@
 [![Tests](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml/badge.svg)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/wdonray/c-shepherd-speller/actions/workflows/test.yml)
 
-A login-gated web app for teachers to manage classroom spelling lists (words, sounds, spelling patterns) and store them in DynamoDB. Google OAuth handles sign-in.
+A login-gated web app for teachers to manage classroom spelling lists (words, sounds, spelling patterns) and store them in DynamoDB. Google OAuth and optional Cognito email/password handle sign-in.
 
 > **Renamed:** this project was formerly called "Shepherd Speller". The repository name (`c-shepherd-speller`) and infrastructure names (DynamoDB tables, etc.) are intentionally unchanged; only the product name and branding are now PatternSpell.
 
@@ -22,7 +22,7 @@ This app was written in August 2025, never deployed, and has no users. A revival
 
 ## What exists today
 
-- **Google OAuth sign-in** for teachers, with sign-in, sign-out, and error pages. Routes outside `/api/*` redirect unauthenticated visitors to `/auth/signin` via middleware.
+- **Google OAuth sign-in** for teachers, with sign-in, sign-out, and error pages. An optional **Cognito email/password** sign-in appears as a second button once a User Pool is configured (see Setup). Routes outside `/api/*` redirect unauthenticated visitors to `/auth/signin` via middleware.
 - **Teacher list manager**: a dashboard where the signed-in teacher manages their own lists of words, sounds, and spelling patterns (add, edit, delete), with JSON import/export, a profile dialog, and a light/dark theme toggle.
 - **REST API** under `/api/users`:
   - `POST /api/users` and `GET /api/users?email=` (create, look up)
@@ -76,6 +76,27 @@ Leave `DYNAMODB_ENDPOINT` unset and fill in `AUTH_DYNAMODB_REGION`, `AUTH_DYNAMO
 4. Add `http://localhost:3000/api/auth/callback/google` to the authorized redirect URIs
 5. Copy the Client ID and Client Secret into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.local`
 
+### Cognito email/password setup (optional)
+
+Adds a "Continue with email" button on the sign-in page. Teachers sign up and sign in with an email and password through Cognito's Hosted UI; no password handling lives in this codebase.
+
+1. In the [Cognito console](https://console.aws.amazon.com/cognito/), create a User Pool:
+   - Sign-in options: email (use email as the username, keep it a required attribute)
+   - Password policy: Cognito defaults are fine
+   - Email verification: required (Cognito sends the code; SES charges are pennies at this scale)
+   - Pricing tier: Lite is enough (10,000 free MAU/month, then $0.0055/MAU; the app is far below the free tier)
+2. Create an app client:
+   - Confidential client, generate a client secret
+   - Allowed OAuth flows: Authorization code grant
+   - Allowed OAuth scopes: `openid`, `email`, `profile`
+3. Under the Hosted UI / domain settings, create a Cognito domain prefix and add the callback and sign-out URLs:
+   - `https://patternspell.org/api/auth/callback/cognito`
+   - `https://patternspell.org/auth/signin`
+   - plus `http://localhost:3000` equivalents for local dev
+4. Copy the client ID, client secret, and the issuer URL (`https://cognito-idp.<region>.amazonaws.com/<user-pool-id>`) into `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`, and `COGNITO_ISSUER` (Amplify env vars in production)
+
+The button only renders when all three variables are set, so Google-only deployments are unaffected. A teacher who signs in with both Google and email gets two separate accounts; they are not linked.
+
 ## Available scripts
 
 ```bash
@@ -107,7 +128,7 @@ c-shepherd-speller/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── auth/[...nextauth]/   # NextAuth route (Google provider, DynamoDB adapter)
+│   │   │   ├── auth/[...nextauth]/   # NextAuth route (Google + optional Cognito providers, DynamoDB adapter)
 │   │   │   └── users/               # User and spelling-data API routes
 │   │   ├── auth/                    # signin, signout, error, verify-request pages
 │   │   ├── layout.tsx               # Root layout

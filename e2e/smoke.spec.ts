@@ -13,6 +13,14 @@ test.describe('unauthenticated smoke', () => {
     await expect(page.getByRole('button', { name: /sign in with google/i })).toBeVisible()
   })
 
+  test('signin page shows the email button when Cognito is configured', async ({ page }) => {
+    await page.goto('/auth/signin')
+    // The Playwright webServer sets dummy COGNITO_* vars, so the Cognito
+    // provider is registered and the button renders. The suite never
+    // follows the redirect to the dummy issuer.
+    await expect(page.getByRole('button', { name: 'Sign in with email and password' })).toBeVisible()
+  })
+
   test('home redirects to signin when unauthenticated', async ({ page }) => {
     const response = await page.goto('/')
     // Next.js proxy issues a 307 to /auth/signin; Playwright follows it.

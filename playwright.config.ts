@@ -10,6 +10,9 @@ import { defineConfig, devices } from '@playwright/test'
  *   NEXTAUTH_URL=http://localhost:3000
  *   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (dummy values are fine;
  *     the suite never hits Google)
+ *   COGNITO_CLIENT_ID / COGNITO_CLIENT_SECRET / COGNITO_ISSUER (dummy values
+ *     are fine; the suite never hits Cognito, it only renders the email
+ *     sign-in button)
  *
  * Local run:
  *   1. Start DynamoDB Local and create tables (see README)
@@ -46,6 +49,11 @@ export default defineConfig({
       NEXTAUTH_URL: 'http://localhost:3000',
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? 'e2e-dummy',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? 'e2e-dummy',
+      // Dummy Cognito pool so the sign-in page renders the email button in
+      // E2E; the suite never redirects to the issuer.
+      COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID ?? 'e2e-dummy',
+      COGNITO_CLIENT_SECRET: process.env.COGNITO_CLIENT_SECRET ?? 'e2e-dummy',
+      COGNITO_ISSUER: process.env.COGNITO_ISSUER ?? 'https://cognito-idp.us-east-1.amazonaws.com/e2e-dummy',
     },
   },
 })

@@ -1,12 +1,13 @@
 'use client'
 
-import { signIn, useSession } from 'next-auth/react'
+import { getProviders, signIn, useSession } from 'next-auth/react'
+import type { ClientSafeProvider } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PatternMark } from '@/components/PatternMark'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Mail } from 'lucide-react'
 import { reportError } from '@/lib/report-error'
 
 function GoogleMark() {
@@ -33,7 +34,9 @@ function GoogleMark() {
 }
 
 export default function SignIn() {
-  const [isLoading, setIsLoading] = useState(false)
+  // Which provider is mid-redirect, so only its button shows the spinner.
+  const [isLoading, setIsLoading] = useState<string | null>(null)
+  const [providers, setProviders] = useState<Record<string, ClientSafeProvider> | null>(null)
   const { data: session, status } = useSession()
   const router = useRouter()
 
@@ -50,14 +53,33 @@ export default function SignIn() {
     }
   }, [status, session, router])
 
-  async function handleGoogleSignIn() {
-    setIsLoading(true)
+  // The email/password button only exists when the Cognito provider is
+  // configured server-side; Google-only deployments never see it.
+  useEffect(() => {
+    getProviders()
+      .then(setProviders)
+      .catch((error) => {
+        reportError(error, { location: 'SignInPage.getProviders' })
+        console.error(error)
+      })
+  }, [])
+
+  async function handleProviderSignIn(providerId: string) {
+    setIsLoading(providerId)
     try {
-      await signIn('google', { callbackUrl: '/' })
+      await signIn(providerId, { callbackUrl: '/' })
     } catch (error) {
-      reportError(error, { location: 'SignInPage.handleGoogleSignIn' })
-      setIsLoading(false)
+      reportError(error, { location: 'SignInPage.handleProviderSignIn' })
+      setIsLoading(null)
       console.error(error)
+    }
+  }
+
+  function handleKeyDown(providerId: string) {
+    return (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !isLoading) {
+        void handleProviderSignIn(providerId)
+      }
     }
   }
 
@@ -75,6 +97,8 @@ export default function SignIn() {
     )
   }
 
+  const emailSignInEnabled = providers?.cognito != null
+
   return (
     <div className="flex justify-center px-8 pt-32 pb-8">
       <Card className="mx-4 w-full max-w-[400px] sm:mx-0">
@@ -86,13 +110,13 @@ export default function SignIn() {
           </p>
           <Button
             variant="secondary"
-            onClick={handleGoogleSignIn}
+            onClick={() => void handleProviderSignIn('google')}
             className="mt-8 w-full"
-            disabled={isLoading}
+            disabled={isLoading != null}
             aria-label="Sign in with Google account"
-            onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleGoogleSignIn()}
+            onKeyDown={handleKeyDown('google')}
           >
-            {isLoading ? (
+            {isLoading === 'google' ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing in...
@@ -104,6 +128,35 @@ export default function SignIn() {
               </>
             )}
           </Button>
+          {emailSignInEnabled && (
+            <>
+              <div className="my-4 flex w-full items-center gap-3" aria-hidden="true">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => void handleProviderSignIn('cognito')}
+                className="w-full"
+                disabled={isLoading != null}
+                aria-label="Sign in with email and password"
+                onKeyDown={handleKeyDown('cognito')}
+              >
+                {isLoading === 'cognito' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="size-5" aria-hidden="true" />
+                    Continue with email
+                  </>
+                )}
+              </Button>
+            </>
+          )}
           <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for everyone.</p>
         </CardContent>
       </Card>

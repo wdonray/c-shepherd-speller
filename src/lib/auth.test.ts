@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import type { NextAuthOptions } from 'next-auth'
 import type { Adapter } from 'next-auth/adapters'
 
@@ -26,6 +26,11 @@ describe('auth adapter wiring', () => {
     vi.stubEnv('AUTH_DYNAMODB_ID', 'AKIAIOSFODNN7EXAMPLE')
     vi.stubEnv('AUTH_DYNAMODB_SECRET', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
     vi.stubEnv('AUTH_TABLE_NAME', 'next-auth')
+    // Keep the provider list hermetic: the adapter assertions below expect
+    // Google only, regardless of the machine running the test.
+    vi.stubEnv('COGNITO_CLIENT_ID', '')
+    vi.stubEnv('COGNITO_CLIENT_SECRET', '')
+    vi.stubEnv('COGNITO_ISSUER', '')
     ;({ authOptions } = await import('./auth'))
     expect(authOptions.adapter).toBeDefined()
     adapter = authOptions.adapter!
@@ -35,7 +40,7 @@ describe('auth adapter wiring', () => {
     vi.unstubAllEnvs()
   })
 
-  it('uses Google as the only provider and the custom auth pages', () => {
+  it('uses Google as the only provider when Cognito is not configured and the custom auth pages', () => {
     expect(authOptions.providers).toHaveLength(1)
     expect(authOptions.providers[0]).toMatchObject({ id: 'google', name: 'Google' })
     expect(authOptions.pages).toMatchObject({
@@ -121,5 +126,65 @@ describe('auth adapter wiring', () => {
     const token = { sub: 'existing' }
     const result = await authOptions.callbacks?.jwt!({ token, user: undefined } as never)
     expect(result).toEqual(token)
+  })
+})
+
+/**
+ * The Cognito provider is registered only when the user pool is fully
+ * configured (client id, client secret, issuer). Each case re-imports the
+ * auth module with a fresh env so the matrix stays hermetic. No DynamoDB
+ * Local needed here; only the provider list is inspected.
+ */
+describe('auth provider configuration', () => {
+  const COGNITO_ENV = {
+    COGNITO_CLIENT_ID: 'test-client-id',
+    COGNITO_CLIENT_SECRET: 'test-client-secret',
+    COGNITO_ISSUER: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_test',
+  }
+
+  beforeEach(() => {
+    vi.resetModules()
+    vi.stubEnv('COGNITO_CLIENT_ID', '')
+    vi.stubEnv('COGNITO_CLIENT_SECRET', '')
+    vi.stubEnv('COGNITO_ISSUER', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  async function loadProviders() {
+    const { authOptions } = await import('./auth')
+    return authOptions.providers
+  }
+
+  it('registers only Google when no Cognito env vars are set', async () => {
+    const providers = await loadProviders()
+    expect(providers).toHaveLength(1)
+    expect(providers[0]).toMatchObject({ id: 'google' })
+  })
+
+  it('registers Cognito alongside Google when all Cognito env vars are set', async () => {
+    for (const [key, value] of Object.entries(COGNITO_ENV)) {
+      vi.stubEnv(key, value)
+    }
+    const providers = await loadProviders()
+    expect(providers).toHaveLength(2)
+    expect(providers[0]).toMatchObject({ id: 'google', name: 'Google' })
+    expect(providers[1]).toMatchObject({ id: 'cognito', name: 'Cognito', type: 'oauth' })
+    expect((providers[1] as { options: unknown }).options).toMatchObject({
+      clientId: COGNITO_ENV.COGNITO_CLIENT_ID,
+      clientSecret: COGNITO_ENV.COGNITO_CLIENT_SECRET,
+      issuer: COGNITO_ENV.COGNITO_ISSUER,
+    })
+  })
+
+  it('leaves Cognito out when only some Cognito env vars are set', async () => {
+    vi.stubEnv('COGNITO_CLIENT_ID', COGNITO_ENV.COGNITO_CLIENT_ID)
+    vi.stubEnv('COGNITO_CLIENT_SECRET', COGNITO_ENV.COGNITO_CLIENT_SECRET)
+    // COGNITO_ISSUER stays empty.
+    const providers = await loadProviders()
+    expect(providers).toHaveLength(1)
+    expect(providers[0]).toMatchObject({ id: 'google' })
   })
 })
