@@ -81,6 +81,16 @@ export function Header() {
   const isDark = useMemo(() => theme === 'dark', [theme])
   const [profileImage, setProfileImage] = useState<string | undefined>(undefined)
   const [avatarBroken, setAvatarBroken] = useState(false)
+  // Last image URL applied to state. A freshly fetched URL gets a fresh
+  // load attempt; a URL that already failed keeps showing initials
+  // instead of a broken image.
+  const profileImageRef = useRef<string | undefined>(undefined)
+
+  function applyProfileImage(image: string | undefined) {
+    if (image !== profileImageRef.current) setAvatarBroken(false)
+    profileImageRef.current = image
+    setProfileImage(image)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -88,7 +98,7 @@ export function Header() {
       if (!session?.user?.email) return
       try {
         const user = await getUserByEmail(session.user.email)
-        if (!cancelled) setProfileImage(user.image || undefined)
+        if (!cancelled) applyProfileImage(user.image || undefined)
       } catch (error) {
         // Header still works with the Google image or initials fallback.
         reportError(error, { location: 'Header.fetchProfileImage' })
@@ -102,7 +112,7 @@ export function Header() {
         // A re-fetch here can return stale data because the email lookup
         // queries an eventually-consistent index.
         setAvatarBroken(false)
-        setProfileImage(detailImage || undefined)
+        applyProfileImage(detailImage || undefined)
         return
       }
       fetchProfileImage()
@@ -149,8 +159,8 @@ export function Header() {
         body: JSON.stringify({ image: dataUrl }),
       })
       if (!response.ok) throw new HttpError('Failed to update photo', response.status)
-      setProfileImage(dataUrl)
       setAvatarBroken(false)
+      applyProfileImage(dataUrl)
       window.dispatchEvent(new CustomEvent(PROFILE_PHOTO_UPDATED_EVENT, { detail: { image: dataUrl } }))
     } catch (error) {
       reportError(error, { location: 'Header.handleMenuPhotoSelect' })
@@ -168,6 +178,34 @@ export function Header() {
       }
       ;(photoFocusTargetRef.current ?? desktopPhotoButtonRef.current)?.focus()
     }
+  }
+
+  // Re-read the stored photo. The mount-time fetch can miss it (the email
+  // lookup hits an eventually-consistent index, and the record can be
+  // created after the header mounts), while the profile page fetches on its
+  // own mount and looks correct. Refreshing whenever a menu opens keeps the
+  // account header truthful instead of showing stale initials.
+  async function refreshProfileImage() {
+    const email = session?.user?.email
+    if (!email) return
+    try {
+      const user = await getUserByEmail(email)
+      applyProfileImage(user.image || undefined)
+    } catch (error) {
+      // Keep whatever the header already shows; a failed refresh must not
+      // blank a photo that is already displayed.
+      reportError(error, { location: 'Header.refreshProfileImage' })
+    }
+  }
+
+  function handleMobileMenuOpenChange(open: boolean) {
+    setIsMobileMenuOpen(open)
+    if (open) void refreshProfileImage()
+  }
+
+  function handleAccountMenuOpenChange(open: boolean) {
+    setIsAccountMenuOpen(open)
+    if (open) void refreshProfileImage()
   }
 
   // Mobile menu actions that open dialogs: close the sheet first so the
@@ -221,7 +259,7 @@ export function Header() {
             avatar trigger is hidden below the md breakpoint.
           */}
           <div className="hidden md:block">
-            <DropdownMenu open={isAccountMenuOpen} onOpenChange={setIsAccountMenuOpen}>
+            <DropdownMenu open={isAccountMenuOpen} onOpenChange={handleAccountMenuOpenChange}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
@@ -306,7 +344,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <Sheet open={isMobileMenuOpen} onOpenChange={handleMobileMenuOpenChange}>
             <SheetTrigger asChild>
               <Button variant="secondary" size="icon" className="md:hidden" aria-label="Open menu">
                 <MenuIcon className="size-5" aria-hidden="true" />

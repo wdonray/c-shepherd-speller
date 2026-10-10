@@ -893,4 +893,95 @@ describe('Header', () => {
     expect(photoButton).toHaveFocus()
     fetchMock.mockRestore()
   })
+
+  it('refreshes the stored profile photo when the mobile menu opens', async () => {
+    // The mount-time fetch can miss the photo (the email lookup hits an
+    // eventually-consistent index), while a later read has it. Opening the
+    // sheet must refresh, or the account header shows initials forever.
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,storedphoto',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    const photoButton = menu.getByRole('button', { name: 'Change profile photo' })
+    await waitFor(() => expect(photoButton.querySelector('img')).not.toBeNull())
+    expect(photoButton.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,storedphoto')
+    expect(getUserByEmailMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('refreshes the stored profile photo when the desktop account menu opens', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+    mockSignedIn()
+    render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+
+    getUserByEmailMock.mockResolvedValue({
+      id: 'u1',
+      email: 't@e.c',
+      name: 'Donray Williams',
+      image: 'data:image/jpeg;base64,storedphoto',
+      words: [],
+      sounds: [],
+      spelling: [],
+    })
+
+    openMenu()
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    await waitFor(() => expect(photoButton.querySelector('img')).not.toBeNull())
+    expect(photoButton.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,storedphoto')
+    expect(getUserByEmailMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not refetch the profile photo when the menus open without a session email', () => {
+    useSessionMock.mockReturnValue({
+      data: { user: { id: 'u1' } },
+      status: 'authenticated',
+      update: async () => null,
+    } as never)
+    useThemeMock.mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(getUserByEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps initials when the profile photo refresh fails on menu open', async () => {
+    getUserByEmailMock.mockRejectedValue(new Error('network down'))
+    mockSignedIn()
+    const { container } = render(<Header />)
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    await waitFor(() => expect(getUserByEmailMock).toHaveBeenCalledTimes(2))
+    expect(menu.getByRole('button', { name: 'Change profile photo' })).toHaveTextContent('DW')
+    expect(container.innerHTML).not.toContain('<img')
+  })
 })
