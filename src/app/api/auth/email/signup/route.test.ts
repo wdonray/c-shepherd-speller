@@ -11,10 +11,20 @@ vi.mock('@/lib/db-utils', () => ({
   getUserByEmail: vi.fn(),
 }))
 
+vi.mock('@/lib/antibot', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  checkRateLimit: vi.fn(() => ({ allowed: true })),
+  getClientIp: vi.fn(() => '9.9.9.9'),
+  verifyTurnstileToken: vi.fn(async () => ({ ok: true })),
+}))
+
 const { cognitoSignUp } = await import('@/lib/cognito-auth')
 const cognitoSignUpMock = vi.mocked(cognitoSignUp)
 const { getUserByEmail } = await import('@/lib/db-utils')
 const getUserByEmailMock = vi.mocked(getUserByEmail)
+const { checkRateLimit, verifyTurnstileToken } = await import('@/lib/antibot')
+const checkRateLimitMock = vi.mocked(checkRateLimit)
+const verifyTurnstileTokenMock = vi.mocked(verifyTurnstileToken)
 
 const ENV = {
   COGNITO_CLIENT_ID: 'test-client-id',
@@ -38,6 +48,10 @@ beforeEach(() => {
   cognitoSignUpMock.mockReset()
   getUserByEmailMock.mockReset()
   getUserByEmailMock.mockResolvedValue(undefined)
+  checkRateLimitMock.mockReset()
+  checkRateLimitMock.mockReturnValue({ allowed: true })
+  verifyTurnstileTokenMock.mockReset()
+  verifyTurnstileTokenMock.mockResolvedValue({ ok: true })
 })
 
 afterEach(() => {
@@ -107,5 +121,66 @@ describe('POST /api/auth/email/signup', () => {
 
     expect(response.status).toBe(500)
     expect(await response.json()).toMatchObject({ ok: false, code: 'server-error' })
+  })
+
+  it('returns 429 before parsing when the IP is rate limited', async () => {
+    checkRateLimitMock.mockReturnValue({ allowed: false })
+
+    const response = await post('not json{{{')
+
+    expect(checkRateLimitMock).toHaveBeenCalledWith('signup:9.9.9.9', 10, 600_000)
+    expect(response.status).toBe(429)
+    expect(await response.json()).toEqual({ ok: false, code: 'too-many-attempts' })
+    expect(verifyTurnstileTokenMock).not.toHaveBeenCalled()
+    expect(cognitoSignUpMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects a filled honeypot with 400 before verifying Turnstile', async () => {
+    const response = await post({
+      name: 'N',
+      email: 't@e.com',
+      password: 'S3cure!pass',
+      website: 'https://spam.example',
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ ok: false, code: 'invalid-input' })
+    expect(verifyTurnstileTokenMock).not.toHaveBeenCalled()
+    expect(cognitoSignUpMock).not.toHaveBeenCalled()
+  })
+
+  it('accepts an empty honeypot field', async () => {
+    cognitoSignUpMock.mockResolvedValue({ userConfirmed: false })
+
+    const response = await post({
+      name: 'N',
+      email: 't@e.com',
+      password: 'S3cure!pass',
+      website: '',
+      turnstileToken: 'token-123',
+    })
+
+    expect(response.status).toBe(200)
+    expect(verifyTurnstileTokenMock).toHaveBeenCalledWith('token-123', '9.9.9.9')
+  })
+
+  it('returns 403 when Turnstile verification fails', async () => {
+    verifyTurnstileTokenMock.mockResolvedValue({ ok: false, reason: 'invalid' })
+
+    const response = await post({ name: 'N', email: 't@e.com', password: 'S3cure!pass' })
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({ ok: false, code: 'verification-failed' })
+    expect(cognitoSignUpMock).not.toHaveBeenCalled()
+  })
+
+  it('returns 503 when Turnstile is unconfigured in production', async () => {
+    verifyTurnstileTokenMock.mockResolvedValue({ ok: false, reason: 'unconfigured' })
+
+    const response = await post({ name: 'N', email: 't@e.com', password: 'S3cure!pass' })
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({ ok: false, code: 'verification-unavailable' })
+    expect(cognitoSignUpMock).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { EmailAuthCard } from '../_components/email-auth-card'
 import { AuthFeedback } from '../_components/auth-feedback'
+import TurnstileWidget, { type TurnstileHandle } from '../_components/turnstile-widget'
 import { reportError } from '@/lib/report-error'
 
 const ERROR_COPY: Record<string, string> = {
@@ -17,6 +18,7 @@ const ERROR_COPY: Record<string, string> = {
   'invalid-input': 'Check the fields below and try again.',
   'too-many-attempts': 'Too many attempts. Wait a few minutes and try again.',
   'not-configured': 'Email sign-in is not set up yet. Try signing in with Google instead.',
+  'verification-failed': 'The security check did not pass. Please try again.',
 }
 const FALLBACK_ERROR = 'Something went wrong. Try again in a moment.'
 
@@ -25,18 +27,32 @@ export default function EmailSignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  // Honeypot: hidden from real users; bots that fill every field trip it.
+  const [website, setWebsite] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const turnstileRef = useRef<TurnstileHandle>(null)
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorCode(null)
     setIsLoading(true)
     try {
+      // Invisible Turnstile challenge; skipped entirely when no site key is
+      // configured (local dev). The server enforces the token in production.
+      let turnstileToken: string | undefined
+      if (turnstileSiteKey) {
+        turnstileToken = (await turnstileRef.current?.execute()) ?? undefined
+        if (!turnstileToken) {
+          setErrorCode('verification-failed')
+          return
+        }
+      }
       const response = await fetch('/api/auth/email/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, website, turnstileToken }),
       })
       const body = (await response.json()) as { ok: boolean; code?: string }
       if (body.ok) {
@@ -116,6 +132,20 @@ export default function EmailSignUpPage() {
             At least 8 characters, with uppercase, lowercase, a number, and a symbol.
           </p>
         </div>
+        {/* Honeypot: positioned off-screen, never focusable, ignored by assistive tech. */}
+        <div aria-hidden="true" className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0">
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            name="website"
+            type="text"
+            autoComplete="off"
+            tabIndex={-1}
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+          />
+        </div>
+        {turnstileSiteKey ? <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} /> : null}
         <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
           {isLoading ? (
             <>
