@@ -53,6 +53,19 @@ describe('WordAnalysis', () => {
     expect(within(heading).getByText('ai').className).toContain('text-sun-ink')
   })
 
+  it('shows an odd duck badge and note for a word-level odd duck', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, oddDucks: ['rain'] }} />)
+    expect(screen.getByText('Odd duck')).toBeInTheDocument()
+    expect(screen.getByText(/memorize the whole word/)).toBeInTheDocument()
+    const heading = screen.getByRole('heading', { level: 2 })
+    expect(within(heading).getByText('ai').className).toContain('text-plum-ink')
+  })
+
+  it('does not show the odd duck note for a regular word', () => {
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, oddDucks: ['pain'] }} />)
+    expect(screen.queryByText('Odd duck')).not.toBeInTheDocument()
+  })
+
   it('shows the mapping note for a multi-letter pattern', () => {
     render(<WordAnalysis {...defaultProps} />)
     expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()

@@ -88,6 +88,7 @@ export function splitWordParts(word: string): WordParts | null {
  */
 export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAnalysisProps) {
   const match = findPatternInWord(word, pattern.pattern)
+  const odd = pattern.oddDucks?.includes(word) ?? false
   const mappingNote = buildMappingNote(pattern.pattern, pattern.sound)
   const wordParts = splitWordParts(word)
 
@@ -98,7 +99,10 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
       <span>
         {word.slice(0, start)}
         <span
-          className={cn('font-extrabold underline decoration-[8px] underline-offset-8', 'text-sun-ink decoration-sun')}
+          className={cn(
+            'font-extrabold underline decoration-[8px] underline-offset-8',
+            odd ? 'text-plum-ink decoration-plum' : 'text-sun-ink decoration-sun'
+          )}
         >
           {word.slice(start, end)}
         </span>
@@ -140,6 +144,17 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
             <span className="font-semibold text-ink">{pattern.pattern}</span>
           </p>
         </div>
+
+        {odd && (
+          <div className="space-y-2">
+            <span className="inline-block rounded-full bg-plum-soft px-4 py-1.5 text-sm font-bold text-plum-ink">
+              Odd duck
+            </span>
+            <p className="text-[15px] text-ink">
+              This spelling is irregular. It does not follow the pattern, so memorize the whole word.
+            </p>
+          </div>
+        )}
 
         <p className="text-[15px] text-ink">{mappingNote}</p>
 

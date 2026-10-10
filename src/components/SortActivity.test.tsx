@@ -81,6 +81,22 @@ describe('SortActivity', () => {
     expect(screen.queryByText('Odd ducks, already placed')).not.toBeInTheDocument()
   })
 
+  it('shows word-level odd ducks as already placed and excludes them from the bank', () => {
+    const oddList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'pain'] },
+      ],
+    }
+    render(<SortActivity list={oddList} onExit={vi.fn()} />)
+    expect(screen.getByText('Odd ducks, already placed')).toBeInTheDocument()
+    expect(screen.getByText(/cake.*these spellings do not follow the patterns/)).toBeInTheDocument()
+    // The odd duck is not in the sortable bank.
+    expect(screen.queryByRole('button', { name: 'Drag the word cake' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
+  })
+
   it('renders sort columns at equal widths regardless of pattern frequency', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     // Columns are the flex children with inline sizing (common, common, rare).

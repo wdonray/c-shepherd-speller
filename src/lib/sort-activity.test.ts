@@ -16,11 +16,24 @@ const list: WordList = {
 }
 
 describe('buildWordBank', () => {
-  it('collects words from all patterns including former odd ducks', () => {
+  it('collects words from all patterns including former pattern odd ducks', () => {
     const bank = buildWordBank(list)
     expect(bank).toHaveLength(5)
     const words = bank.map((b) => b.word).sort()
     expect(words).toEqual(['bake', 'cake', 'pain', 'rain', 'said'])
+  })
+
+  it('excludes word-level odd ducks from the bank', () => {
+    const oddList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'pain'] },
+      ],
+    }
+    const bank = buildWordBank(oddList)
+    const words = bank.map((b) => b.word).sort()
+    expect(words).toEqual(['bake', 'pain', 'rain'])
   })
 
   it('tags each word with its pattern id', () => {

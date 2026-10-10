@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
+import { OddDuck } from './OddDuck'
 import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -140,6 +141,17 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
 
   const patterns = useMemo(() => {
     return [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+  }, [list])
+
+  const oddDuckWords = useMemo(() => {
+    const words: string[] = []
+    for (const pattern of list.patterns) {
+      const odd = new Set(pattern.oddDucks ?? [])
+      for (const word of pattern.words) {
+        if (odd.has(word)) words.push(word)
+      }
+    }
+    return words
   }, [list])
 
   const placedIds = useMemo(() => new Set(Object.keys(placements)), [placements])
@@ -286,6 +298,18 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             )
           })}
         </div>
+
+        {oddDuckWords.length > 0 && (
+          <section aria-label="Odd ducks" className="mt-6 rounded-2xl border-2 border-plum bg-plum-soft p-5">
+            <div className="mb-2 flex items-center gap-3">
+              <OddDuck className="size-11 text-plum" label="Odd duck" />
+              <h2 className="text-lg font-bold text-plum-ink">Odd ducks, already placed</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {oddDuckWords.join(', ')}: these spellings do not follow the patterns.
+            </p>
+          </section>
+        )}
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {!checked ? (
