@@ -43,6 +43,36 @@ export function summarizeRelease(body: string | null): string | null {
   return fallback ? fallback : null
 }
 
+/** Parse a semver-ish string ("v0.4.19" / "0.4.19") into comparable parts. */
+export function parseVersion(value: string): number[] {
+  return value
+    .replace(/^v/i, '')
+    .split('.')
+    .map((part) => parseInt(part, 10) || 0)
+}
+
+/** Returns 1 if a > b, -1 if a < b, 0 if equal. */
+export function compareVersions(a: string, b: string): number {
+  const pa = parseVersion(a)
+  const pb = parseVersion(b)
+  const length = Math.max(pa.length, pb.length)
+  for (let i = 0; i < length; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0)
+    if (diff !== 0) return diff > 0 ? 1 : -1
+  }
+  return 0
+}
+
+/**
+ * Newest release first by version. The GitHub API returns releases
+ * newest-created first, which diverges from version order for backfilled
+ * releases; the /version page's "Latest" badge must mark the true newest
+ * release, so sort explicitly.
+ */
+export function sortReleasesNewestFirst(releases: Release[]): Release[] {
+  return [...releases].sort((a, b) => compareVersions(b.version, a.version))
+}
+
 /** Normalize one GitHub release payload into a Release. */
 export function toRelease(data: GitHubReleasePayload): Release {
   return {

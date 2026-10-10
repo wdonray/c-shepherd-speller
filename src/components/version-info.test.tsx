@@ -253,6 +253,15 @@ describe('fetchReleases', () => {
     expect(releases).toHaveLength(1)
     expect(releases[0]?.version).toBe('')
   })
+
+  it('sorts releases newest-first even when the API returns creation order', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetchResponse([releasePayload('v0.30.0'), releasePayload('v0.30.2'), releasePayload('v0.28.0')])
+    )
+    const releases = await fetchReleases()
+    expect(releases.map((r) => r.version)).toEqual(['0.30.2', '0.30.0', '0.28.0'])
+  })
 })
 
 describe('VersionInfo', () => {
