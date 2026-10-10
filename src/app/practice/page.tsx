@@ -116,7 +116,7 @@ function PracticeInner() {
                 Create one from My Spelling Lists first, then come back to practice.
               </p>
               <Button asChild className="mt-6">
-                <Link href="/">Back to home</Link>
+                <Link href="/lists/new">New list</Link>
               </Button>
             </div>
           ) : (
