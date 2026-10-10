@@ -844,4 +844,53 @@ describe('Header', () => {
     })
     fetchMock.mockRestore()
   })
+
+  it('does not open the desktop account popover after a mobile menu upload', async () => {
+    // Regression: the post-upload handler used to re-open the desktop
+    // account menu unconditionally, flashing its popover over the phone UI
+    // even though the trigger is desktop-only. The mobile sheet has no
+    // popover, so nothing may open after a mobile upload.
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    fireEvent.click(menu.getByRole('button', { name: 'Change profile photo' }))
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalledWith(file)
+    })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    // The bottom sheet stays open showing the updated photo.
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    fetchMock.mockRestore()
+  })
+
+  it('keeps the desktop account menu open after a desktop photo upload', async () => {
+    const processMock = vi.mocked(processProfileImage)
+    processMock.mockResolvedValue('data:image/jpeg;base64,newphoto')
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    mockSignedIn()
+    render(<Header />)
+
+    openMenu()
+    const photoButton = screen.getByRole('button', { name: 'Change profile photo' })
+    fireEvent.click(photoButton)
+    const fileInput = screen.getByLabelText('Upload profile photo') as HTMLInputElement
+    const file = new File(['photo'], 'photo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    await waitFor(() => {
+      expect(processMock).toHaveBeenCalledWith(file)
+    })
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(photoButton).toHaveFocus()
+    fetchMock.mockRestore()
+  })
 })
