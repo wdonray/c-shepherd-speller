@@ -274,11 +274,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           {patterns.map((pattern, i) => {
             const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
             return (
-              <div
-                key={pattern.id}
-                style={{ flexGrow: FREQUENCY_LEVEL[pattern.frequency], flexBasis: 0, minWidth: 220 }}
-                className="flex"
-              >
+              <div key={pattern.id} style={{ flex: '1 1 0', minWidth: 220 }} className="flex">
                 <div className="w-full">
                   <DropColumn pattern={pattern} accentIndex={i} isOver={overId === pattern.id}>
                     {columnWords.map((entry) => (

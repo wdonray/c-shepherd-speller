@@ -71,15 +71,15 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'xyz' }))
   })
 
-  it('explains the odd-duck mark in a tooltip', async () => {
+  it('does not offer an odd-duck toggle on patterns (only words can be odd ducks)', () => {
     renderEditor()
-    const toggle = screen.getByRole('button', { name: /mark as odd duck/i })
-    fireEvent.focus(toggle)
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Odd ducks are irregular spellings that do not follow the usual pattern/)
-      ).toBeInTheDocument()
-    })
+    expect(screen.queryByRole('button', { name: /odd duck/i })).not.toBeInTheDocument()
+    // Existing data with the flag set must not crash or surface the toggle.
+    const { rerender } = render(
+      <PatternEditor pattern={{ ...basePattern, isOddDuck: true }} onChange={vi.fn()} onRemove={vi.fn()} />
+    )
+    expect(screen.queryByRole('button', { name: /odd duck/i })).not.toBeInTheDocument()
+    rerender(<PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} />)
   })
 
   it('edits the target sound', () => {
@@ -156,25 +156,6 @@ describe('PatternEditor', () => {
     expect(screen.getByText('Less common')).toBeInTheDocument()
   })
 
-  it('gives the odd-duck toggle hover and focus-visible treatments in both states', () => {
-    const onChange = vi.fn()
-    const onRemove = vi.fn()
-    const { rerender } = render(<PatternEditor pattern={basePattern} onChange={onChange} onRemove={onRemove} />)
-    const off = screen.getByRole('button', { name: /mark as odd duck/i })
-    expect(off).toHaveClass(
-      'hover:border-plum',
-      'hover:text-plum-ink',
-      'focus-visible:border-plum',
-      'focus-visible:text-plum-ink',
-      'focus-visible:ring-[3px]'
-    )
-
-    rerender(<PatternEditor pattern={{ ...basePattern, isOddDuck: true }} onChange={onChange} onRemove={onRemove} />)
-    const on = screen.getByRole('button', { name: 'Odd duck' })
-    // The selected state must still respond to hover: no dead zone.
-    expect(on).toHaveClass('hover:brightness-95', 'focus-visible:brightness-95', 'focus-visible:ring-[3px]')
-  })
-
   it('gives frequency radios hover and focus-visible treatments in both states', () => {
     renderEditor()
     const selected = screen.getByRole('radio', { name: /^Common\./ })
@@ -183,28 +164,10 @@ describe('PatternEditor', () => {
     expect(unselected).toHaveClass('hover:opacity-100', 'focus-visible:opacity-100', 'focus-visible:ring-[3px]')
   })
 
-  it('toggles the odd-duck mark on', () => {
-    const { onChange } = renderEditor()
-    const toggle = screen.getByRole('button', { name: /mark as odd duck/i })
-    expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    fireEvent.click(toggle)
-    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isOddDuck: true })
-  })
-
-  it('shows the odd-duck state when set and toggles it off', () => {
-    const { onChange } = renderEditor({ isOddDuck: true })
-    const toggle = screen.getByRole('button', { name: 'Odd duck' })
-    expect(toggle).toHaveAttribute('aria-pressed', 'true')
-    expect(toggle).toHaveTextContent('Odd duck')
-    fireEvent.click(toggle)
-    expect(onChange).toHaveBeenCalledWith({ ...basePattern, isOddDuck: false })
-  })
-
-  it('renders a lock toggle pill next to the odd-duck toggle', () => {
+  it('renders a lock toggle pill', () => {
     renderEditor()
     const toggle = screen.getByRole('button', { name: 'Lock pattern' })
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    // Same pill treatment as the odd-duck toggle.
     expect(toggle).toHaveClass('rounded-full', 'border-2', 'min-h-[44px]')
   })
 
