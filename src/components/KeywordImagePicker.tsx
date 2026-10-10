@@ -65,9 +65,9 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
 interface KeywordImagePickerProps {
   /** Spelling pattern the image anchors; used in accessible labels. */
   patternName: string
-  /** Uploaded photo (JPEG data URL). Takes display precedence over emoji. */
+  /** Uploaded photo (JPEG data URL). Mutually exclusive with emoji. */
   image: string | undefined
-  /** Keyword anchor emoji; shown when no photo is set. */
+  /** Keyword anchor emoji. Mutually exclusive with photo. */
   emoji: string | undefined
   onImageSelect: (image: string | undefined) => void
   onEmojiSelect: (emoji: string | undefined) => void
@@ -79,7 +79,9 @@ interface KeywordImagePickerProps {
  * opens a centered modal dialog with a photo upload option, a curated grid of
  * K-3-friendly emojis, a freeform custom-emoji input, and remove options. The
  * dialog constrains to the viewport with internal scrolling, so the picker
- * works on every screen size. Selections are lifted to the parent so they
+ * works on every screen size. The currently selected emoji is highlighted;
+ * clicking it again removes it. A photo and an emoji are mutually exclusive:
+ * picking one clears the other. Selections are lifted to the parent so they
  * flow through the editor's existing onChange auto-save.
  */
 export default function KeywordImagePicker({
@@ -99,7 +101,14 @@ export default function KeywordImagePicker({
     : 'Keyword image for this pattern'
 
   const chooseEmoji = (next: string) => {
-    onEmojiSelect(next)
+    if (next === emoji) {
+      // Clicking the already-selected emoji removes it.
+      onEmojiSelect(undefined)
+    } else {
+      // A photo and an emoji can never both be set: picking an emoji clears any photo.
+      if (image) onImageSelect(undefined)
+      onEmojiSelect(next)
+    }
     setOpen(false)
   }
 
@@ -118,6 +127,8 @@ export default function KeywordImagePicker({
     setUploadError(null)
     try {
       const dataUrl = await processKeywordImage(file)
+      // A photo and an emoji can never both be set: uploading a photo clears any emoji.
+      if (emoji) onEmojiSelect(undefined)
       onImageSelect(dataUrl)
       setOpen(false)
     } catch (error) {
@@ -167,7 +178,7 @@ export default function KeywordImagePicker({
         </button>
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto">
-        <DialogTitle className="sr-only">Choose keyword image</DialogTitle>
+        <DialogTitle className="pr-10 text-[17px] font-bold text-ink">Keyword image</DialogTitle>
         <div className="mb-3">
           <input
             id="keyword-photo-upload"
@@ -198,18 +209,27 @@ export default function KeywordImagePicker({
           <div key={group.label} role="group" aria-label={group.label} className="mb-3">
             <p className="mb-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">{group.label}</p>
             <div className="grid grid-cols-5 gap-1">
-              {group.choices.map((choice) => (
-                <button
-                  key={choice.emoji}
-                  type="button"
-                  onClick={() => chooseEmoji(choice.emoji)}
-                  aria-label={choice.name}
-                  title={choice.name}
-                  className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg text-2xl outline-none transition hover:bg-line/50 focus-visible:bg-line/50 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                >
-                  <span aria-hidden="true">{choice.emoji}</span>
-                </button>
-              ))}
+              {group.choices.map((choice) => {
+                const selected = choice.emoji === emoji
+                return (
+                  <button
+                    key={choice.emoji}
+                    type="button"
+                    onClick={() => chooseEmoji(choice.emoji)}
+                    aria-label={choice.name}
+                    aria-pressed={selected}
+                    title={choice.name}
+                    className={cn(
+                      'flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-lg border-2 text-2xl outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                      selected
+                        ? 'border-sky-deep bg-sky-soft'
+                        : 'border-transparent hover:bg-line/50 focus-visible:bg-line/50'
+                    )}
+                  >
+                    <span aria-hidden="true">{choice.emoji}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         ))}
