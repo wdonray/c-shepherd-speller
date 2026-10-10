@@ -96,9 +96,14 @@ export function Header() {
     const file = e.target.files?.[0]
     e.target.value = ''
     try {
-      if (!file || !session?.user?.id) return
+      if (!file || !session?.user?.email) return
       const dataUrl = await processProfileImage(file)
-      const response = await fetch(`/api/users/${session.user.id}`, {
+      // Use the app-table user id, NOT session.user.id. The session carries
+      // the next-auth UUID, but /api/users/[id] checks ownership against the
+      // app-table id from getUserByEmail; using the session id always 403s.
+      const user = await getUserByEmail(session.user.email)
+      if (!user) throw new Error('Could not find your profile. Please try again.')
+      const response = await fetch(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: dataUrl }),
