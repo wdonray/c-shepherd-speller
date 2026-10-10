@@ -67,11 +67,20 @@ jobs:
       # workflow, which only fires when the tag is pushed with a PAT.
       # This repo has no PAT secret, and GITHUB_TOKEN pushes never trigger
       # downstream workflows, so the release is created here in the same
-      # run instead. Tag -> version -> changelog still holds.
+      # run instead. The tag already exists remotely after the
+      # `git push --follow-tags` step above.
+      # The angular preset produces conventional-changelog notes, which the
+      # /version page parses for its per-version summaries.
+      - name: Get version tag
+        id: version
+        if: steps.check.outputs.needed == 'true'
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub release
         if: steps.check.outputs.needed == 'true'
+        uses: Akryum/release-tag@a45f9f6a7572682345b87927ea3aacf723225e0b
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="v$(node -p "require('./package.json').version")"
-          gh release create "$VERSION" --generate-notes --title "$VERSION"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          preset: angular

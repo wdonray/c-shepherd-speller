@@ -48,14 +48,21 @@ export function compareVersions(a: string, b: string): number {
 }
 
 /**
- * Pull a one-line summary from a release body: the first PR title, e.g.
- * "  - Fix project card locators (80946f4)" -> "Fix project card locators".
+ * Pull a one-line summary from a release body: the first PR title.
+ *
+ * Handles two formats, conventional first:
+ * - conventional-changelog: "  - Fix project card locators (80946f4)" -> "Fix project card locators"
+ * - GitHub auto-generated notes: "* fix: photo save permission error by @wdonray in <url>"
+ *   -> "fix: photo save permission error"
  */
 export function summarizeRelease(body: string | null): string | null {
   if (!body) return null
-  const match = body.match(/^\s*-\s+(.+?)\s*\([0-9a-f]{7,40}\)\s*$/m)
-  const summary = match?.[1]?.trim()
-  return summary ? summary : null
+  const conventional = body.match(/^\s*-\s+(.+?)\s*\([0-9a-f]{7,40}\)\s*$/m)
+  const summary = conventional?.[1]?.trim()
+  if (summary) return summary
+  const generated = body.match(/^\s*\*\s+(.+?)\s+by\s+@\S+/m)
+  const fallback = generated?.[1]?.trim()
+  return fallback ? fallback : null
 }
 
 export function formatDate(value: string | null): string | null {
