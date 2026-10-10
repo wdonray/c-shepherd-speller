@@ -95,6 +95,21 @@ describe('PatternChartDisplay', () => {
     expect(screen.getByRole('region', { name: 'Pattern eigh' })).toBeInTheDocument()
   })
 
+  it('marks word-level odd ducks in the print variant', () => {
+    const oddList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
+      ],
+    }
+    render(<PatternChartDisplay list={oddList} variant="print" />)
+    expect(screen.getByRole('region', { name: 'Odd ducks' })).toBeInTheDocument()
+    // Print variant renders words as plain list items, odd ducks get plum styling.
+    const items = screen.getAllByRole('listitem')
+    const cakeItem = items.find((li) => li.textContent === 'cake')
+    expect(cakeItem?.className).toMatch(/border-plum/)
+  })
+
   it('marks word-level odd ducks with plum styling and an odd ducks section', () => {
     const oddList: WordList = {
       ...list,
