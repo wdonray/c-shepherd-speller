@@ -171,20 +171,11 @@ function MobileWordCard({
 }
 
 /**
- * Column for the mobile tap-to-place layout: stacked full-width with an
- * explicit place button instead of a drop target.
+ * Column for the mobile tap-to-place layout: stacked full-width. Words are
+ * placed via the sticky bottom placement bar, so the column itself is
+ * display-only.
  */
-function MobileDropColumn({
-  pattern,
-  selectedEntry,
-  onPlace,
-  children,
-}: {
-  pattern: SpellingPattern
-  selectedEntry: BankWord | null
-  onPlace: (entry: BankWord) => void
-  children: React.ReactNode
-}) {
+function MobileDropColumn({ pattern, children }: { pattern: SpellingPattern; children: React.ReactNode }) {
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
   return (
@@ -199,18 +190,78 @@ function MobileDropColumn({
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
       </div>
-      {selectedEntry && (
-        <Button
-          type="button"
-          onClick={() => onPlace(selectedEntry)}
-          aria-label={`Put ${selectedEntry.word} in ${pattern.pattern}`}
-          className="mb-4 min-h-[48px] w-full"
-        >
-          Put &lsquo;{selectedEntry.word}&rsquo; here
-        </Button>
-      )}
       <ul className="space-y-3">{children}</ul>
     </section>
+  )
+}
+
+/**
+ * Sticky bottom placement bar for the mobile tap-to-place layout. Tapping a
+ * word opens this bar with one big destination button per pattern column, so
+ * the student never has to scroll to find where to put the word: the choices
+ * come to the thumb instead. This follows the mobile action-sheet pattern
+ * (tap an item, choose a destination from the bottom of the screen) used by
+ * mail and task apps for "move to" flows.
+ */
+function MobilePlaceBar({
+  word,
+  patterns,
+  showWordBank,
+  onPlace,
+  onDismiss,
+}: {
+  word: BankWord
+  patterns: SpellingPattern[]
+  showWordBank: boolean
+  onPlace: (destination: SpellingPattern | 'bank') => void
+  onDismiss: () => void
+}) {
+  return (
+    <div
+      role="region"
+      aria-label={`Choose where to put ${word.word}`}
+      className="fixed inset-x-0 bottom-0 z-50 border-t-2 border-line bg-card px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.12)]"
+    >
+      <div className="mx-auto max-w-xl">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[15px] font-bold text-ink">Where does &lsquo;{word.word}&rsquo; go?</p>
+          <Button type="button" variant="ghost" size="sm" onClick={onDismiss} aria-label={`Put ${word.word} down`}>
+            Cancel
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {patterns.map((pattern) => (
+            <button
+              key={pattern.id}
+              type="button"
+              onClick={() => onPlace(pattern)}
+              aria-label={`Put ${word.word} in the ${pattern.pattern} column`}
+              className={cn(
+                'min-h-[52px] flex-1 rounded-[14px] border-2 border-line bg-background px-4 py-2 text-[18px] font-bold whitespace-nowrap text-ink outline-none transition-colors',
+                'hover:border-sky-deep hover:bg-sky-soft',
+                'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:bg-sky-soft'
+              )}
+            >
+              {pattern.pattern}
+            </button>
+          ))}
+          {showWordBank && (
+            <button
+              type="button"
+              onClick={() => onPlace('bank')}
+              aria-label={`Put ${word.word} back in the word bank`}
+              className={cn(
+                'min-h-[52px] flex-1 rounded-[14px] border-2 border-dashed border-line bg-background px-4 py-2 text-[18px] font-bold whitespace-nowrap text-muted-foreground outline-none transition-colors',
+                'hover:border-sky-deep hover:bg-sky-soft hover:text-ink',
+                'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:bg-sky-soft'
+              )}
+            >
+              Word bank
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -220,8 +271,10 @@ function MobileDropColumn({
  * The teacher checks answers when ready.
  *
  * On viewports below the md breakpoint the drag-and-drop interaction is
- * replaced with tap-to-place (tap a word, then tap a column), because small
- * screens cannot scroll horizontally to reach every column while dragging.
+ * replaced with tap-to-place: tap a word, then choose a destination from the
+ * sticky bottom bar. Small screens cannot show every column at once, so the
+ * destinations come to the thumb instead of making the student scroll to
+ * find them.
  */
 export default function SortActivity({ list, onExit }: SortActivityProps) {
   const bank = useMemo(() => buildWordBank(list), [list])
@@ -317,29 +370,25 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     (entry: BankWord) => {
       if (selectedEntry?.id === entry.id) {
         setSelectedEntry(null)
-        announce(`Deselected '${entry.word}'.`)
+        announce(`Deselected '${entry.word}'. Put it down.`)
       } else {
         setSelectedEntry(entry)
-        announce(`Selected '${entry.word}'. Choose a column.`)
+        announce(`Selected '${entry.word}'. Choose where it goes.`)
       }
     },
     [selectedEntry, announce]
   )
 
-  const handleMobilePlace = useCallback(
-    (entry: BankWord, pattern: SpellingPattern) => {
-      placeWord(entry, pattern.id)
+  const handleMobilePlaceDestination = useCallback(
+    (entry: BankWord, destination: SpellingPattern | 'bank') => {
+      // The bar only offers real destinations, so placeWord cannot fail here.
+      const result = placeWord(entry, destination === 'bank' ? WORD_BANK_ID : destination.id)!
       setSelectedEntry(null)
-      announce(`Placed '${entry.word}' in ${pattern.pattern}.`)
-    },
-    [placeWord, announce]
-  )
-
-  const handleMobileMoveToBank = useCallback(
-    (entry: BankWord) => {
-      placeWord(entry, WORD_BANK_ID)
-      setSelectedEntry(null)
-      announce(`Moved '${entry.word}' back to the word bank.`)
+      if (result === 'bank') {
+        announce(`Moved '${entry.word}' back to the word bank.`)
+      } else {
+        announce(`Placed '${entry.word}' in ${result.pattern}.`)
+      }
     },
     [placeWord, announce]
   )
@@ -380,12 +429,17 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="force-light w-full rounded-[20px] bg-background p-6 sm:p-10">
+      <div
+        className={cn(
+          'force-light w-full rounded-[20px] bg-background p-6 sm:p-10',
+          isMobile && selectedEntry && 'pb-64'
+        )}
+      >
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-extrabold text-ink">Sort the words</h2>
           {isMobile ? (
             <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted-foreground">
-              Tap a word, then tap the column it belongs in. Tap a placed word to move it.
+              Tap a word, then choose where it goes. Tap a placed word to move it.
             </p>
           ) : (
             <>
@@ -407,19 +461,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           <>
             <section aria-label="Word bank" className="mb-8 rounded-2xl border-2 border-line bg-card p-4">
               <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
-              {selectedEntry && placedIds.has(selectedEntry.id) && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => handleMobileMoveToBank(selectedEntry)}
-                  className="mb-3 min-h-[48px] w-full"
-                >
-                  Move &lsquo;{selectedEntry.word}&rsquo; back to word bank
-                </Button>
-              )}
               {bankWords.length === 0 ? (
                 <p className="py-4 text-center text-[15px] text-muted-foreground">
-                  All words placed. Check answers or move words between columns to change them.
+                  All words placed. Check answers or tap a word to move it.
                 </p>
               ) : (
                 <ul className="space-y-3">
@@ -441,12 +485,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
               {patterns.map((pattern) => {
                 const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
                 return (
-                  <MobileDropColumn
-                    key={pattern.id}
-                    pattern={pattern}
-                    selectedEntry={selectedEntry}
-                    onPlace={(entry) => handleMobilePlace(entry, pattern)}
-                  >
+                  <MobileDropColumn key={pattern.id} pattern={pattern}>
                     {columnWords.map((entry) => (
                       <MobileWordCard
                         key={entry.id}
@@ -457,15 +496,26 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                         onSelect={() => handleMobileWordTap(entry)}
                       />
                     ))}
-                    {columnWords.length === 0 && !selectedEntry && (
-                      <li className="py-8 text-center text-sm text-muted-foreground">
-                        Tap a word above, then tap here
-                      </li>
+                    {columnWords.length === 0 && (
+                      <li className="py-8 text-center text-sm text-muted-foreground">No words here yet.</li>
                     )}
                   </MobileDropColumn>
                 )
               })}
             </div>
+
+            {selectedEntry && (
+              <MobilePlaceBar
+                word={selectedEntry}
+                patterns={patterns}
+                showWordBank={placedIds.has(selectedEntry.id)}
+                onPlace={(destination) => handleMobilePlaceDestination(selectedEntry, destination)}
+                onDismiss={() => {
+                  announce(`Deselected '${selectedEntry.word}'. Put it down.`)
+                  setSelectedEntry(null)
+                }}
+              />
+            )}
           </>
         ) : (
           <>
