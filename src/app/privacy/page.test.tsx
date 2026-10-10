@@ -30,9 +30,7 @@ describe('PrivacyPolicyPage', () => {
 
   it('lists third-party subprocessors', () => {
     render(<PrivacyPolicyPage />)
-    expect(
-      screen.getByRole('heading', { name: /third parties we rely on/i, level: 2 })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /third parties we rely on/i, level: 2 })).toBeInTheDocument()
     expect(screen.getAllByText(/Google:/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Amazon Web Services:/).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Sentry:/).length).toBeGreaterThan(0)
@@ -40,9 +38,7 @@ describe('PrivacyPolicyPage', () => {
 
   it('includes a children privacy section with a contact path', () => {
     render(<PrivacyPolicyPage />)
-    expect(
-      screen.getByRole('heading', { name: /children's privacy/i, level: 2 })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /children's privacy/i, level: 2 })).toBeInTheDocument()
     const contactLinks = screen.getAllByRole('link', { name: 'donrayxwilliams@gmail.com' })
     expect(contactLinks.length).toBeGreaterThan(0)
     expect(contactLinks[0]).toHaveAttribute('href', 'mailto:donrayxwilliams@gmail.com')

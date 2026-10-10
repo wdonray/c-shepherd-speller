@@ -24,9 +24,7 @@ describe('TermsOfServicePage', () => {
 
   it('states educator responsibilities for classroom use', () => {
     render(<TermsOfServicePage />)
-    expect(
-      screen.getByRole('heading', { name: /your responsibilities as an educator/i, level: 2 })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /your responsibilities as an educator/i, level: 2 })).toBeInTheDocument()
     expect(screen.getAllByText(/will not enter student names/i).length).toBeGreaterThan(0)
   })
 
@@ -38,9 +36,7 @@ describe('TermsOfServicePage', () => {
 
   it('includes limitation of liability and contact', () => {
     render(<TermsOfServicePage />)
-    expect(
-      screen.getByRole('heading', { name: /limitation of liability/i, level: 2 })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /limitation of liability/i, level: 2 })).toBeInTheDocument()
     const contactLinks = screen.getAllByRole('link', { name: 'donrayxwilliams@gmail.com' })
     expect(contactLinks.length).toBeGreaterThan(0)
     expect(contactLinks[0]).toHaveAttribute('href', 'mailto:donrayxwilliams@gmail.com')
