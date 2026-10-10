@@ -30,6 +30,20 @@ describe('Footer', () => {
     expect(screen.getByText('PatternSpell. Made for K-3 classrooms.')).toBeInTheDocument()
   })
 
+  it('renders the Privacy link to the public privacy policy', () => {
+    render(<Footer />)
+    const link = screen.getByRole('link', { name: 'Privacy' })
+    expect(link).toHaveAttribute('href', '/privacy')
+    expect(link).not.toHaveAttribute('target', '_blank')
+  })
+
+  it('renders the Terms link to the public terms of service', () => {
+    render(<Footer />)
+    const link = screen.getByRole('link', { name: 'Terms' })
+    expect(link).toHaveAttribute('href', '/terms')
+    expect(link).not.toHaveAttribute('target', '_blank')
+  })
+
   it('renders the Buy me a coffee button opening in a new tab', () => {
     render(<Footer />)
     const link = screen.getByRole('link', { name: 'Buy me a coffee' })

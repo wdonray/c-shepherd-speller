@@ -143,6 +143,17 @@ export default function SignIn() {
             </>
           )}
           <p className="mt-6 text-center text-[13px] text-muted-foreground">Free for everyone.</p>
+          <p className="mt-3 text-center text-[12px] text-muted-foreground">
+            By signing in, you agree to our{' '}
+            <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+              Privacy Policy
+            </a>
+            .
+          </p>
         </CardContent>
       </Card>
     </div>

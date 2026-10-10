@@ -76,4 +76,11 @@ describe('proxy config', () => {
     expect(pattern.test('/icon.png')).toBe(false)
     expect(pattern.test('/icon.svg')).toBe(false)
   })
+
+  it('excludes legal pages so they are readable without sign-in', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/privacy')).toBe(false)
+    expect(pattern.test('/terms')).toBe(false)
+    expect(pattern.test('/lists')).toBe(true)
+  })
 })
