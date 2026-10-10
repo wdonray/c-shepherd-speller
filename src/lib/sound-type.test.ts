@@ -38,9 +38,12 @@ describe('getSoundType', () => {
   })
 
   describe('bossy R', () => {
-    it.each(['ar', 'er', 'ir', 'or', 'ur', 'air', 'ear', 'are', 'ore'])('classifies %s as bossy R', (pattern) => {
-      expect(getSoundType(pattern)).toBe('bossyR')
-    })
+    it.each(['ar', 'er', 'ir', 'or', 'ur', 'air', 'ear', 'are', 'ore', 'ere', 'ire'])(
+      'classifies %s as bossy R',
+      (pattern) => {
+        expect(getSoundType(pattern)).toBe('bossyR')
+      }
+    )
 
     it('is case-insensitive', () => {
       expect(getSoundType('AR')).toBe('bossyR')
@@ -65,12 +68,37 @@ describe('getSoundType', () => {
     it('classifies a lone r as a consonant, not bossy R', () => {
       expect(getSoundType('r')).toBe('consonant')
     })
+
+    it.each(['qu', 'dge'])('classifies %s as a consonant despite the vowel letter', (pattern) => {
+      expect(getSoundType(pattern)).toBe('consonant')
+    })
+
+    it.each(['ce', 'ci', 'cy'])('classifies soft-c pattern %s as a consonant', (pattern) => {
+      expect(getSoundType(pattern)).toBe('consonant')
+    })
+
+    it.each(['ge', 'gi', 'gy'])('classifies soft-g pattern %s as a consonant', (pattern) => {
+      expect(getSoundType(pattern)).toBe('consonant')
+    })
+
+    it('is case-insensitive for map entries', () => {
+      expect(getSoundType('QU')).toBe('consonant')
+      expect(getSoundType('Dge')).toBe('consonant')
+      expect(getSoundType('CE')).toBe('consonant')
+    })
   })
 
-  describe('documented heuristic limits', () => {
-    it('reads silent-e markers as vowels (dge)', () => {
-      // Simple and predictable beats clever: any vowel letter counts.
-      expect(getSoundType('dge')).toBe('vowel')
+  describe('heuristic fallback for unlisted patterns', () => {
+    it('classifies an unlisted vowel team as a vowel', () => {
+      expect(getSoundType('ough')).toBe('vowel')
+    })
+
+    it('classifies an unlisted r-controlled pattern as bossy R', () => {
+      expect(getSoundType('our')).toBe('bossyR')
+    })
+
+    it('classifies an unlisted consonant cluster as a consonant', () => {
+      expect(getSoundType('str')).toBe('consonant')
     })
   })
 })
