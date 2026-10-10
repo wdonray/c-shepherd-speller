@@ -99,6 +99,25 @@ describe('summarizeRelease', () => {
     ).toBe('Fix project card locators')
   })
 
+  it('extracts titles from angular preset PR references (#123)', () => {
+    expect(
+      summarizeRelease(
+        '### 🚀 Enhancements\n\n  - Use custom Cognito hosted-UI domain when COGNITO_HOSTED_UI_DOMAIN is set (#132)\n\n### 🩹 Fixes\n\n  - Repair release pipeline and /version page data source (#133)\n'
+      )
+    ).toBe('Use custom Cognito hosted-UI domain when COGNITO_HOSTED_UI_DOMAIN is set')
+  })
+
+  it('keeps parenthesized words inside the title with a PR reference', () => {
+    expect(summarizeRelease('  - Fix thing (special) (#134)\n')).toBe('Fix thing (special)')
+  })
+
+  it('ignores contributor lines with markdown links or emails', () => {
+    expect(
+      summarizeRelease('### ❤️ Contributors\n\n- Donray Williams ([@wdonray](http://github.com/wdonray))\n')
+    ).toBeNull()
+    expect(summarizeRelease('### ❤️ Contributors\n\n- Donray Williams <donrayxwilliams@gmail.com>\n')).toBeNull()
+  })
+
   it('returns null when no PR line is present', () => {
     expect(summarizeRelease('### \u2764\ufe0f Contributors\n\n- Wdonray')).toBeNull()
   })
