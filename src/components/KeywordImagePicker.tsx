@@ -112,8 +112,9 @@ export default function KeywordImagePicker({
       return
     }
     const el = triggerRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
+    // The trigger button always renders, so the ref is set whenever the
+    // popover opens.
+    const rect = el!.getBoundingClientRect()
     const width = 288 // w-72
     const left = Math.max(8, Math.min(rect.left + window.scrollX, window.scrollX + window.innerWidth - width - 8))
     setPopoverPos({ top: rect.bottom + window.scrollY + 8, left })
