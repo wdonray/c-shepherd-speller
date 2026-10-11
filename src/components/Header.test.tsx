@@ -372,7 +372,7 @@ describe('Header', () => {
     openMenu()
     expect(screen.getByRole('menuitem', { name: 'Version' })).toHaveAttribute('href', '/version')
     expect(screen.getByRole('menuitem', { name: 'Analytics' })).toHaveAttribute('href', '/analytics')
-    expect(screen.getByRole('menuitem', { name: 'Report an issue' })).toHaveAttribute('href', '/feedback')
+    expect(screen.getByRole('menuitem', { name: 'Give feedback' })).toHaveAttribute('href', '/feedback')
   })
 
   it('opens and closes the help dialog from the menu', () => {
@@ -425,7 +425,7 @@ describe('Header', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
     const menu = within(screen.getByRole('dialog'))
-    expect(menu.getByRole('link', { name: /report an issue/i })).toHaveAttribute('href', '/feedback')
+    expect(menu.getByRole('link', { name: /give feedback/i })).toHaveAttribute('href', '/feedback')
   })
 
   it('closes the mobile menu with Escape', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ListEditorPage from './ListEditorPage'
 import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
@@ -26,6 +26,11 @@ vi.mock('next/link', () => ({
       {children}
     </a>
   ),
+}))
+
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock }),
 }))
 
 const patternA: SpellingPattern = {
@@ -361,6 +366,9 @@ describe('ListEditorPage', () => {
     await waitFor(() => {
       expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
     })
+    await waitFor(() => {
+      expect(notifyListsChanged).toHaveBeenCalled()
+    })
   })
 
   it('does not save on unmount when nothing is pending', async () => {
@@ -393,6 +401,23 @@ describe('ListEditorPage', () => {
 
     await waitForSave()
     expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: '2' }))
+  })
+
+  it('auto-saves a picked list color', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Blue' }))
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ color: 'sky' }))
+  })
+
+  it('pre-selects the stored list color', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ color: 'coral' })
+
+    expect(screen.getByRole('radio', { name: 'Red' })).toHaveAttribute('aria-checked', 'true')
   })
 
   it('hides the Saved indicator after two seconds', async () => {
@@ -582,5 +607,106 @@ describe('ListEditorPage', () => {
   it('links back to the lists overview', async () => {
     await renderReady()
     expect(screen.getByRole('link', { name: 'My lists' })).toHaveAttribute('href', '/lists')
+  })
+
+  it('shows an unsaved-changes indicator until the debounced save completes', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    await waitForSave()
+    await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument())
+  })
+
+  it('asks for confirmation when leaving with unsaved changes', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+
+    expect(screen.getByText('Leave without saving?')).toBeInTheDocument()
+    expect(
+      screen.getByText('You have unsaved changes. If you leave now, those changes will be lost.')
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    await waitFor(() => expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument())
+    expect(pushMock).not.toHaveBeenCalled()
+  })
+
+  it('navigates to the lists overview after confirming leave', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+    expect(pushMock).toHaveBeenCalledWith('/lists')
+  })
+
+  it('does not interrupt navigation when nothing is unsaved', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument()
+    expect(pushMock).not.toHaveBeenCalled()
+  })
+
+  it('goes back after confirming leave from the back button', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    const goSpy = vi.spyOn(window.history, 'go').mockImplementation(() => {})
+    const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    expect(screen.getByText('Leave without saving?')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
+    expect(goSpy).toHaveBeenCalledWith(-2)
+
+    goSpy.mockRestore()
+    backSpy.mockRestore()
+  })
+
+  it('closes the leave confirmation with Escape without navigating', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    expect(screen.getByText('Leave without saving?')).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument())
+    expect(pushMock).not.toHaveBeenCalled()
+  })
+
+  it('deletes a newly added pattern without persisting it', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete this pattern' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Delete this pattern?' })).not.toBeInTheDocument()
+    })
+    // The incomplete pattern never reaches the server: the save only carries the original patterns.
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ patterns: [patternA] }))
   })
 })

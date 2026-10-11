@@ -175,11 +175,10 @@ function DisplayModeInner() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allLists.map((l, i) => (
+              {allLists.map((l) => (
                 <WordListCard
                   key={l.id}
                   list={l}
-                  index={i}
                   href={`/display?list=${encodeURIComponent(l.id)}`}
                   primaryLabel="Present chart"
                   showPresent={false}

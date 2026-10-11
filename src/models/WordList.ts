@@ -65,6 +65,27 @@ export function isPatternComplete(pattern: SpellingPattern): boolean {
   return pattern.sound.trim() !== '' && pattern.pattern.trim() !== ''
 }
 
+/** Curated accent colors for spelling lists, keyed to the app's theme tokens. */
+export const ListColorSchema = z.enum(['leaf', 'sky', 'plum', 'sun', 'coral'])
+export type ListColor = z.infer<typeof ListColorSchema>
+
+/** The palette teachers can pick from for a list's accent color. */
+export const LIST_COLORS: readonly ListColor[] = ['leaf', 'sky', 'plum', 'sun', 'coral']
+
+/**
+ * Default accent color for every newly created list. Always the same,
+ * so a fresh list is instantly recognizable as PatternSpell's own.
+ */
+export const DEFAULT_LIST_COLOR: ListColor = 'leaf'
+
+/**
+ * Resolve the effective accent color for a list. Lists created before
+ * colors existed have no color stored and fall back to the default.
+ */
+export function resolveListColor(list: WordList): ListColor {
+  return list.color ?? DEFAULT_LIST_COLOR
+}
+
 /** A teacher's pattern-based spelling list. */
 export const WordListSchema = z.object({
   id: z.string().min(1),
@@ -73,16 +94,19 @@ export const WordListSchema = z.object({
   /** Display name, e.g. "Week 5: Long A" */
   name: z.string().min(1).max(100),
   gradeLevel: z.string().max(20).optional(),
+  /** Accent color key; absent on legacy lists, which use the default. */
+  color: ListColorSchema.optional(),
   patterns: z.array(SpellingPatternSchema).max(20),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
 export type WordList = z.infer<typeof WordListSchema>
 
-/** Payload for creating a list (server fills in id, userId, timestamps). */
+/** Payload for creating a list (server fills in id, userId, timestamps, and the default color). */
 export const CreateWordListSchema = z.object({
   name: z.string().min(1).max(100),
   gradeLevel: z.string().max(20).optional(),
+  color: ListColorSchema.optional(),
   patterns: z
     .array(SpellingPatternSchema.omit({ id: true }))
     .max(20)
@@ -94,6 +118,7 @@ export type CreateWordListInput = z.infer<typeof CreateWordListSchema>
 export const UpdateWordListSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   gradeLevel: z.string().max(20).optional(),
+  color: ListColorSchema.optional(),
   patterns: z.array(SpellingPatternSchema).max(20).optional(),
 })
 export type UpdateWordListInput = z.infer<typeof UpdateWordListSchema>
@@ -130,6 +155,7 @@ export function createWordListItem(userId: string, input: CreateWordListInput): 
     userId,
     name: input.name,
     gradeLevel: input.gradeLevel,
+    color: input.color ?? DEFAULT_LIST_COLOR,
     patterns: input.patterns.map((p) => ({ ...p, id: generatePatternId() })),
     createdAt: now,
     updatedAt: now,
@@ -142,6 +168,7 @@ export function updateWordListItem(list: WordList, input: UpdateWordListInput): 
     ...list,
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.gradeLevel !== undefined ? { gradeLevel: input.gradeLevel } : {}),
+    ...(input.color !== undefined ? { color: input.color } : {}),
     ...(input.patterns !== undefined ? { patterns: input.patterns } : {}),
     updatedAt: new Date().toISOString(),
   }

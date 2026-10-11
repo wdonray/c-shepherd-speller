@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import BackLink from '@/components/BackLink'
 import { CheckCircle2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,8 +17,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
-import { generatePatternId, isPatternComplete, type WordList, type SpellingPattern } from '@/models/WordList'
+import {
+  generatePatternId,
+  isPatternComplete,
+  resolveListColor,
+  type ListColor,
+  type WordList,
+  type SpellingPattern,
+} from '@/models/WordList'
+import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-changes-guard'
 import PatternEditor from './PatternEditor'
+import ListColorPicker from './ListColorPicker'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 
@@ -38,19 +48,31 @@ function saveablePatterns(patterns: SpellingPattern[], unsavedIds: ReadonlySet<s
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
-function SaveIndicator({ status }: { status: SaveStatus }) {
-  if (status === 'idle') return null
-  return (
-    <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-      {status === 'saving' && 'Saving...'}
-      {status === 'saved' && (
-        <>
-          <CheckCircle2Icon className="size-4 text-leaf-ink" aria-hidden="true" />
-          Saved
-        </>
-      )}
-    </p>
-  )
+function SaveIndicator({ status, isDirty }: { status: SaveStatus; isDirty: boolean }) {
+  if (status === 'saving') {
+    return (
+      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        Saving...
+      </p>
+    )
+  }
+  if (isDirty) {
+    return (
+      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
+        Unsaved changes
+      </p>
+    )
+  }
+  if (status === 'saved') {
+    return (
+      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <CheckCircle2Icon className="size-4 text-leaf-ink" aria-hidden="true" />
+        Saved
+      </p>
+    )
+  }
+  return null
 }
 
 function ListEditorSkeleton() {
@@ -72,10 +94,18 @@ function ListEditorSkeleton() {
 
 /** Full-page editor for a single word list. All edits auto-save. */
 export default function ListEditorPage({ listId }: { listId: string }) {
+  const router = useRouter()
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [list, setList] = useState<WordList | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [deletePatternTarget, setDeletePatternTarget] = useState<SpellingPattern | null>(null)
+  const [leaveTarget, setLeaveTarget] = useState<LeaveTarget | null>(null)
+  /** A debounced save is armed but has not run yet. */
+  const [hasPendingSave, setHasPendingSave] = useState(false)
+  /** Patterns added this session that are still incomplete and local-only. */
+  const [localOnlyCount, setLocalOnlyCount] = useState(0)
+  /** The last save attempt failed; the edits are still unsaved. */
+  const [saveFailed, setSaveFailed] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
@@ -127,18 +157,24 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         updateList(pending.id, {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
+          color: pending.color,
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
-        }).catch((error: unknown) => {
-          // The page is gone; the save state can't be shown, but the
-          // failure is still reported.
-          reportError(error, { location: 'ListEditorPage.flushPendingSave' })
         })
+          .then(() => {
+            notifyListsChanged()
+          })
+          .catch((error: unknown) => {
+            // The page is gone; the save state can't be shown, but the
+            // failure is still reported.
+            reportError(error, { location: 'ListEditorPage.flushPendingSave' })
+          })
       }
     }
   }, [])
 
   async function doSave(next: WordList): Promise<void> {
     pendingSaveRef.current = null
+    setHasPendingSave(false)
     if (savedTimerRef.current) {
       clearTimeout(savedTimerRef.current)
       savedTimerRef.current = null
@@ -154,15 +190,18 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       await updateList(next.id, {
         name: next.name,
         gradeLevel: next.gradeLevel,
+        color: next.color,
         patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
       })
       notifyListsChanged()
+      setSaveFailed(false)
       setSaveStatus('saved')
       savedTimerRef.current = setTimeout(() => {
         setSaveStatus('idle')
       }, SAVED_MESSAGE_MS)
     } catch (error) {
       reportError(error, { location: 'ListEditorPage.doSave' })
+      setSaveFailed(true)
       setSaveStatus('idle')
       toastError(getErrorMessage(error))
     }
@@ -170,6 +209,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
   function scheduleAutosave(next: WordList): void {
     pendingSaveRef.current = next
+    setHasPendingSave(true)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
@@ -193,6 +233,25 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       reportError(err, { location: 'ListEditorPage.reload' })
       setLoadState(err instanceof Error && /not found/i.test(err.message) ? 'not-found' : 'error')
     }
+  }
+
+  const isDirty = hasPendingSave || saveStatus === 'saving' || localOnlyCount > 0 || saveFailed
+  const { depart } = useUnsavedChangesGuard(isDirty, setLeaveTarget)
+
+  const cancelLeave = () => setLeaveTarget(null)
+  const confirmLeave = () => {
+    // Only reachable from the dialog's confirm button, which renders while leaveTarget is set.
+    const target = leaveTarget as LeaveTarget
+    setLeaveTarget(null)
+    depart(() => {
+      if (target.kind === 'url') {
+        router.push(target.url)
+      } else {
+        // The guard re-armed its sentinel when the back button was pressed;
+        // depart already removed it, so step one more entry back to leave.
+        window.history.go(-2)
+      }
+    })
   }
 
   if (loadState === 'loading') {
@@ -230,6 +289,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     // pattern and is included in saves from here on.
     if (isPatternComplete(updated)) {
       unsavedPatternIdsRef.current.delete(patternId)
+      setLocalOnlyCount(unsavedPatternIdsRef.current.size)
     }
     applyChange({
       ...list,
@@ -251,10 +311,14 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     // Flag the new card so its mount scrolls it into view (see the pattern
     // list rendering below).
     pendingScrollIdRef.current = newPattern.id
+    setLocalOnlyCount(unsavedPatternIdsRef.current.size)
     setList({ ...list, patterns: [...list.patterns, newPattern] })
   }
 
   const confirmDeletePattern = (target: SpellingPattern) => {
+    if (unsavedPatternIdsRef.current.delete(target.id)) {
+      setLocalOnlyCount(unsavedPatternIdsRef.current.size)
+    }
     applyChange({
       ...list,
       patterns: list.patterns.filter((p) => p.id !== target.id),
@@ -266,7 +330,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
         <BackLink href="/lists">My lists</BackLink>
-        <SaveIndicator status={saveStatus} />
+        <SaveIndicator status={saveStatus} isDirty={isDirty} />
       </div>
 
       <div>
@@ -292,6 +356,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             onChange={(e) => applyChange({ ...list, gradeLevel: e.target.value || undefined })}
             placeholder="e.g. 1"
             maxLength={20}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-2 text-sm leading-none font-medium select-none">List color</span>
+          <ListColorPicker
+            value={resolveListColor(list)}
+            onChange={(color: ListColor) => applyChange({ ...list, color })}
           />
         </div>
       </div>
@@ -370,6 +441,25 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             </DialogFooter>
           </DialogContent>
         )}
+      </Dialog>
+
+      <Dialog open={leaveTarget !== null} onOpenChange={(open) => !open && cancelLeave()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Leave without saving?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. If you leave now, those changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={cancelLeave}>
+              Keep editing
+            </Button>
+            <Button variant="destructive" onClick={confirmLeave}>
+              Leave without saving
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   )
