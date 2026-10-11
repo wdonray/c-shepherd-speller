@@ -58,6 +58,9 @@ export default function HomePage() {
             }),
           })
         }
+      } catch {
+        // Sync failure is non-fatal: the dashboard still renders, the user
+        // record just will not be up to date this session.
       } finally {
         setIsSyncing(false)
       }
