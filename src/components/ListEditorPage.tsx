@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
+import { logActivity } from '@/lib/activity'
 import {
   generatePatternId,
   isPatternComplete,
@@ -110,6 +111,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
+  /** Whether this editor visit already logged an "edited" activity event. */
+  const editLoggedRef = useRef(false)
   /**
    * Id of the pattern added most recently, waiting for its card to mount so
    * it can be scrolled into view. Cleared the moment the scroll fires.
@@ -220,6 +223,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   /** Apply a local edit and schedule its auto-save. */
   function applyChange(next: WordList): void {
     setList(next)
+    // One activity entry per editor visit: the autosave fires on every
+    // keystroke pause, but the teacher's trail should show a single edit.
+    if (!editLoggedRef.current) {
+      editLoggedRef.current = true
+      logActivity('edited', next.name, next.id)
+    }
     scheduleAutosave(next)
   }
 

@@ -75,7 +75,7 @@ describe('NewListForm', () => {
         patterns: [],
       })
     })
-    expect(logActivity).toHaveBeenCalledWith('created', 'Week 7: Long O')
+    expect(logActivity).toHaveBeenCalledWith('created', 'Week 7: Long O', 'l9')
     expect(trackEvent).toHaveBeenCalledWith('list-created')
     expect(notifyListsChanged).toHaveBeenCalled()
     expect(mockPush).toHaveBeenCalledWith('/lists/l9')

@@ -16,6 +16,11 @@ vi.mock('@/lib/lists-api', () => ({
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
 
+const { logActivity } = vi.hoisted(() => ({
+  logActivity: vi.fn(),
+}))
+vi.mock('@/lib/activity', () => ({ logActivity }))
+
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))
@@ -136,6 +141,19 @@ describe('ListEditorPage', () => {
     expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
     expect(notifyListsChanged).toHaveBeenCalled()
     expect(screen.getByText('Saved')).toBeInTheDocument()
+  })
+
+  it('logs one edited activity event for the first edit of a visit', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    const name = screen.getByLabelText('List name')
+    fireEvent.change(name, { target: { value: 'Renamed' } })
+    fireEvent.change(name, { target: { value: 'Renamed again' } })
+
+    expect(logActivity).toHaveBeenCalledTimes(1)
+    expect(logActivity).toHaveBeenCalledWith('edited', 'Renamed', 'l1')
+    await waitForSave()
   })
 
   it('debounces rapid edits into a single save', async () => {

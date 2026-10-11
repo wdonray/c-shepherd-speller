@@ -257,9 +257,11 @@ describe('Dashboard', () => {
   })
 
   it('shows recent activity when events exist', async () => {
-    logActivity('practiced', 'Practiced Week 5: Long A, 8 of 10 correct')
-    logActivity('created', 'Created Week 6: Long E')
+    logActivity('practiced', 'Practiced Week 5: Long A, 8 of 10 correct', 'l1')
+    logActivity('created', 'Created Week 6: Long E', 'l2')
     logActivity('presented', 'Presented Week 5: Long A')
+    logActivity('edited', 'Edited Week 5: Long A', 'l1')
+    logActivity('deleted', 'Deleted Week 4: Long U')
     getLists.mockResolvedValue([])
 
     render(<Dashboard {...defaultProps} />)
@@ -276,6 +278,17 @@ describe('Dashboard', () => {
     expect(createdChip).toHaveClass('bg-plum-soft', 'text-plum-ink')
     const presentedChip = screen.getByText('Presented', { selector: 'span' })
     expect(presentedChip).toHaveClass('bg-sky-soft', 'text-sky-ink')
+    const editedChip = screen.getByText('Edited', { selector: 'span' })
+    expect(editedChip).toHaveClass('bg-sun-soft', 'text-sun-ink')
+    const deletedChip = screen.getByText('Deleted', { selector: 'span' })
+    expect(deletedChip).toHaveClass('bg-coral-soft', 'text-coral-ink')
+    // Events with a list id link to the list's editor.
+    expect(screen.getByRole('link', { name: 'Created Week 6: Long E' })).toHaveAttribute('href', '/lists/l2')
+    expect(screen.getByRole('link', { name: 'Edited Week 5: Long A' })).toHaveAttribute('href', '/lists/l1')
+    // Presented without a list id, and deleted lists, are plain text.
+    expect(screen.queryByRole('link', { name: 'Presented Week 5: Long A' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Deleted Week 4: Long U' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Deleted Week 4: Long U/)).toBeInTheDocument()
   })
 
   it('hides the recent activity section when there are no events', async () => {

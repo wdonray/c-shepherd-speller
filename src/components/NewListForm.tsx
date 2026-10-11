@@ -36,7 +36,7 @@ export default function NewListForm() {
         gradeLevel: gradeLevel.trim() || undefined,
         patterns: [],
       })
-      logActivity('created', list.name)
+      logActivity('created', list.name, list.id)
       trackEvent('list-created')
       notifyListsChanged()
       router.push(`/lists/${encodeURIComponent(list.id)}`)
