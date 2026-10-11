@@ -285,6 +285,13 @@ describe('Dashboard', () => {
     // Events with a list id link to the list's editor.
     expect(screen.getByRole('link', { name: 'Created Week 6: Long E' })).toHaveAttribute('href', '/lists/l2')
     expect(screen.getByRole('link', { name: 'Edited Week 5: Long A' })).toHaveAttribute('href', '/lists/l1')
+    // The link must be discoverable without hover (touch devices have no
+    // hover), so it carries its own visible color and underline instead of
+    // revealing the underline only on hover.
+    const entryLink = screen.getByRole('link', { name: 'Created Week 6: Long E' })
+    expect(entryLink).toHaveClass('text-sky-deep', 'underline')
+    expect(entryLink.className).not.toMatch(/hover:decoration-current/)
+    expect(entryLink.className).not.toMatch(/decoration-line/)
     // Presented without a list id, and deleted lists, are plain text.
     expect(screen.queryByRole('link', { name: 'Presented Week 5: Long A' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Deleted Week 4: Long U' })).not.toBeInTheDocument()

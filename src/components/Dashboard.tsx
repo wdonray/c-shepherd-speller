@@ -87,7 +87,7 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
                   {event.listId ? (
                     <Link
                       href={`/lists/${encodeURIComponent(event.listId)}`}
-                      className="underline decoration-line underline-offset-4 hover:decoration-current"
+                      className="font-medium text-sky-deep underline underline-offset-4"
                     >
                       {event.text}
                     </Link>
