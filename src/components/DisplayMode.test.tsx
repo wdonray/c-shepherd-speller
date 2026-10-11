@@ -207,7 +207,7 @@ describe('DisplayMode', () => {
     expect(mockBack).not.toHaveBeenCalled()
   })
 
-  it('goes home on Escape from the list picker', async () => {
+  it('does not navigate on Escape from the list picker', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
@@ -215,11 +215,11 @@ describe('DisplayMode', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     })
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(mockPush).toHaveBeenCalledWith('/home')
+    expect(mockPush).not.toHaveBeenCalled()
     expect(mockBack).not.toHaveBeenCalled()
   })
 
-  it('goes back to the picker on Escape from the chart', async () => {
+  it('does not navigate on Escape from the chart', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)
     render(<DisplayMode />)
@@ -229,7 +229,7 @@ describe('DisplayMode', () => {
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(mockPush).toHaveBeenCalledWith('/display')
+    expect(mockPush).not.toHaveBeenCalled()
     expect(mockBack).not.toHaveBeenCalled()
   })
 

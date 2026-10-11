@@ -37,10 +37,8 @@ function DisplayModeInner() {
     router.push('/home')
   }, [router])
 
-  // Back from the chart to the list picker.
-  const backToPicker = useCallback(() => {
-    router.push('/display')
-  }, [router])
+  // Escape never navigates. When the browser is in full screen, Escape exits
+  // full screen natively; the app takes no action on Escape at all.
 
   // Lock/unlock a pattern in present mode: optimistic update, then persist.
   // On failure the optimistic change is reverted and the load error is shown.
@@ -59,19 +57,8 @@ function DisplayModeInner() {
     }
   }, [])
 
-  // Escape exits the presentation: chart to picker, picker to the app.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      if (listId && list) {
-        backToPicker()
-      } else {
-        backToApp()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [listId, list, backToApp, backToPicker])
+  // Escape never navigates. When the browser is in full screen, Escape exits
+  // full screen natively; the app takes no action on Escape at all.
 
   useEffect(() => {
     setLoading(true)
