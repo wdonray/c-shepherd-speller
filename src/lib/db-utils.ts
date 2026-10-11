@@ -22,9 +22,14 @@ export async function createUser(userData: {
   const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   const userId = `${uniqueId}-user`
 
+  // Email is the GSI lookup key and getUserByEmail queries its lowercase
+  // form, so the stored value must be lowercase too. Cognito and Google can
+  // return mixed-case emails; without this, the record is written but never
+  // found again, and every requireUser() endpoint returns 403 (Sentry #157).
   const user = createUserItem({
     id: userId,
     ...userData,
+    email: userData.email.toLowerCase(),
     lastActive: new Date().toISOString(),
   })
 
