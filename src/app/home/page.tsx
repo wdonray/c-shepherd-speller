@@ -15,8 +15,12 @@ export default function HomePage() {
   // so there is no flash of a scrolled position, and the rAF re-pin catches
   // iOS Safari nudging scroll while its toolbar settles after load.
   // (history.scrollRestoration only covers history navigation, not fresh loads.)
+  // Cleanup restores the previous value so back navigation on other pages
+  // keeps the browser's default scroll-restoration behavior.
   useLayoutEffect(() => {
-    if ('scrollRestoration' in window.history) {
+    const supportsScrollRestoration = 'scrollRestoration' in window.history
+    const previousScrollRestoration = supportsScrollRestoration ? window.history.scrollRestoration : 'auto'
+    if (supportsScrollRestoration) {
       window.history.scrollRestoration = 'manual'
     }
     window.scrollTo(0, 0)
@@ -30,7 +34,12 @@ export default function HomePage() {
       }
     }
     raf = requestAnimationFrame(pinToTop)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (supportsScrollRestoration) {
+        window.history.scrollRestoration = previousScrollRestoration
+      }
+    }
   }, [])
 
   useEffect(() => {

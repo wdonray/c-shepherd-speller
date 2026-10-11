@@ -214,7 +214,7 @@ describe('Home page (/home)', () => {
     cancelSpy.mockRestore()
   })
 
-  it('sets manual scroll restoration when supported', () => {
+  it('sets manual scroll restoration when supported and restores it on unmount', () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     // jsdom lacks scrollRestoration; define it so the manual branch is covered.
     Object.defineProperty(window.history, 'scrollRestoration', {
@@ -225,9 +225,11 @@ describe('Home page (/home)', () => {
     mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
 
-    render(<HomePage />)
+    const { unmount } = render(<HomePage />)
 
     expect(window.history.scrollRestoration).toBe('manual')
+    unmount()
+    expect(window.history.scrollRestoration).toBe('auto')
     scrollToSpy.mockRestore()
   })
 })
