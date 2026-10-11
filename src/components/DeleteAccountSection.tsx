@@ -180,7 +180,7 @@ export default function DeleteAccountSection() {
             </div>
           ) : null}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={closeDialog} disabled={isDeleting}>
               Cancel
             </Button>
