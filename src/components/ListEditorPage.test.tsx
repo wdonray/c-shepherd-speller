@@ -73,6 +73,9 @@ async function waitForSave() {
   await waitFor(() => expect(screen.queryByText('Saving...')).not.toBeInTheDocument(), { timeout: 3000 })
 }
 
+/** Wait long enough for a debounced save attempt to fire, for tests where no save is expected. */
+const SAVE_DEBOUNCE_WAIT_MS = 750
+
 describe('ListEditorPage', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>>
 
@@ -143,7 +146,7 @@ describe('ListEditorPage', () => {
     expect(screen.getByText('Saved')).toBeInTheDocument()
   })
 
-  it('logs one edited activity event for the first edit of a visit', async () => {
+  it('logs one edited activity event after the first successful save of a visit', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
 
@@ -151,9 +154,37 @@ describe('ListEditorPage', () => {
     fireEvent.change(name, { target: { value: 'Renamed' } })
     fireEvent.change(name, { target: { value: 'Renamed again' } })
 
-    expect(logActivity).toHaveBeenCalledTimes(1)
-    expect(logActivity).toHaveBeenCalledWith('edited', 'Renamed', 'l1')
+    // Nothing is logged before the save completes.
+    expect(logActivity).not.toHaveBeenCalled()
+
     await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed again' }))
+    expect(logActivity).toHaveBeenCalledTimes(1)
+    expect(logActivity).toHaveBeenCalledWith('edited', 'Renamed again', 'l1')
+  })
+
+  it('does not log an edited activity event when the save fails', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+
+    await waitForSave()
+    expect(logActivity).not.toHaveBeenCalled()
+  })
+
+  it('does not log an edited activity event when the name is blank and the save is skipped', async () => {
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: '   ' } })
+
+    // Let the debounce elapse; the save is skipped for blank names, so just
+    // wait out the timer rather than waiting for a save.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, SAVE_DEBOUNCE_WAIT_MS))
+    })
+    expect(updateList).not.toHaveBeenCalled()
+    expect(logActivity).not.toHaveBeenCalled()
   })
 
   it('debounces rapid edits into a single save', async () => {

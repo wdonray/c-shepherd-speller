@@ -164,6 +164,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
         })
           .then(() => {
+            // Log the once-per-visit edit entry only now that the flush
+            // actually succeeded.
+            if (!editLoggedRef.current) {
+              editLoggedRef.current = true
+              logActivity('edited', pending.name, pending.id)
+            }
             notifyListsChanged()
           })
           .catch((error: unknown) => {
@@ -196,6 +202,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         color: next.color,
         patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
       })
+      // Log the once-per-visit edit entry only now that the autosave
+      // succeeded. Skipped blank-name saves and failed updates below leave
+      // the activity trail alone.
+      if (!editLoggedRef.current) {
+        editLoggedRef.current = true
+        logActivity('edited', next.name, next.id)
+      }
       notifyListsChanged()
       setSaveFailed(false)
       setSaveStatus('saved')
@@ -220,15 +233,11 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     }, SAVE_DEBOUNCE_MS)
   }
 
-  /** Apply a local edit and schedule its auto-save. */
+  /** Apply a local edit and schedule its auto-save. The once-per-visit
+   * edit activity entry is logged from the successful save paths, not here,
+   * so skipped or failed saves never leave a phantom "edited" entry. */
   function applyChange(next: WordList): void {
     setList(next)
-    // One activity entry per editor visit: the autosave fires on every
-    // keystroke pause, but the teacher's trail should show a single edit.
-    if (!editLoggedRef.current) {
-      editLoggedRef.current = true
-      logActivity('edited', next.name, next.id)
-    }
     scheduleAutosave(next)
   }
 
