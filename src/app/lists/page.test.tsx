@@ -16,7 +16,7 @@ describe('ListsPage', () => {
     render(<ListsPage />)
 
     expect(screen.getByRole('heading', { name: 'My Spelling Lists' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home')
     expect(screen.getByTestId('pattern-lists-manager')).toBeInTheDocument()
   })
 })

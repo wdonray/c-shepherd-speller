@@ -23,6 +23,8 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - / (the public landing page; signed-in visitors are redirected
+     *   client-side to /home)
      * - api/auth (next-auth's own routes handle their own auth and must stay
      *   reachable unauthenticated: signin, callback, session, etc.)
      * - api/version (the public version endpoint; the new-version reload
@@ -33,6 +35,6 @@ export const config = {
      * - auth (authentication pages)
      * - privacy, terms (public legal pages; must stay readable without sign-in)
      */
-    '/((?!api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth|privacy|terms).*)',
+    '/((?!$|api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth|privacy|terms).*)',
   ],
 }

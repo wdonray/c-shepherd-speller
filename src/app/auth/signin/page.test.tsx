@@ -59,7 +59,7 @@ describe('SignIn page', () => {
     fireEvent.click(await screen.findByRole('button', { name: /sign in with google/i }))
 
     expect(signInMock).toHaveBeenCalledTimes(1)
-    expect(signInMock).toHaveBeenCalledWith('google', { callbackUrl: '/' })
+    expect(signInMock).toHaveBeenCalledWith('google', { callbackUrl: '/home' })
     await waitFor(() => {
       expect(screen.getByText('Signing in...')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in with google/i })).toBeDisabled()
@@ -150,7 +150,7 @@ describe('SignIn page', () => {
     render(<SignIn />)
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/')
+      expect(replaceMock).toHaveBeenCalledWith('/home')
     })
     expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument()
   })

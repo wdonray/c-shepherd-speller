@@ -21,10 +21,16 @@ test.describe('unauthenticated smoke', () => {
     await expect(page.getByRole('button', { name: 'Sign in with email and password' })).toBeVisible()
   })
 
-  test('home redirects to signin when unauthenticated', async ({ page }) => {
-    const response = await page.goto('/')
-    // Next.js proxy issues a 307 to /auth/signin; Playwright follows it.
-    expect(response?.status()).toBe(200)
+  test('landing page is public; dashboard redirects to signin when unauthenticated', async ({ page }) => {
+    const landing = await page.goto('/')
+    // The marketing page renders for visitors with no session.
+    expect(landing?.status()).toBe(200)
+    await expect(page.getByRole('heading', { name: /teach spelling by pattern/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /get started free/i }).first()).toBeVisible()
+
+    // The app dashboard stays behind auth.
+    const dashboard = await page.goto('/home')
+    expect(dashboard?.status()).toBe(200)
     expect(page.url()).toContain('/auth/signin')
   })
 

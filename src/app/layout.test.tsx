@@ -31,10 +31,10 @@ describe('RootLayout', () => {
       update: async () => null,
     } as never)
     vi.mocked(useTheme).mockReturnValue({ theme: 'light', setTheme: vi.fn() } as never)
-    vi.mocked(usePathname).mockReturnValue('/')
+    vi.mocked(usePathname).mockReturnValue('/lists')
   })
 
-  it('renders header, main with the child, and footer', () => {
+  it('renders header, main with the child, and footer on app routes', () => {
     render(
       <RootLayout>
         <p>child content</p>

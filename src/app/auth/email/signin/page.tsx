@@ -41,9 +41,9 @@ function EmailSignInForm() {
     setErrorCode(null)
     setIsLoading(true)
     try {
-      const result = await signIn('email-password', { email, password, redirect: false, callbackUrl: '/' })
+      const result = await signIn('email-password', { email, password, redirect: false, callbackUrl: '/home' })
       if (result?.ok) {
-        router.push(result.url ?? '/')
+        router.push(result.url ?? '/home')
         return
       }
       setErrorCode(result?.error ?? 'server-error')

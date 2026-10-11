@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function FeedbackPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <BackLink href="/">Back to home</BackLink>
+      <BackLink href="/home">Back to home</BackLink>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
         Report an issue or request a feature
       </h1>

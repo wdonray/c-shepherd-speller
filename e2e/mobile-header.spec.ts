@@ -19,7 +19,7 @@ test.describe('mobile header menu', () => {
   })
 
   test('bar has a single menu entry point; the avatar trigger is hidden', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
 
     const header = page.locator('header')
     await expect(header.getByRole('link', { name: 'PatternSpell home' })).toBeVisible()
@@ -33,7 +33,7 @@ test.describe('mobile header menu', () => {
   })
 
   test('the sheet groups navigation and account actions under an account header', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
 
     await page
       .locator('header')
@@ -65,7 +65,7 @@ test.describe('mobile header menu', () => {
   })
 
   test('My Spelling Lists in the mobile menu goes to the lists page', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
 
     await page
       .locator('header')
@@ -79,7 +79,7 @@ test.describe('mobile header menu', () => {
   })
 
   test('Present in the mobile menu goes to display mode', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
 
     await page
       .locator('header')

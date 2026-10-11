@@ -6,13 +6,14 @@ import { Footer } from './Footer'
 
 /**
  * Site chrome wrapper. The display route is chrome-free for projector use,
- * and list print routes are chrome-free for a clean poster with no site
- * header or footer; the page content goes full-bleed.
+ * list print routes are chrome-free for a clean poster with no site
+ * header or footer, and the landing page renders its own public header
+ * and footer; everywhere else gets the app header and footer.
  */
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  if (pathname === '/display' || pathname?.endsWith('/print')) {
+  if (pathname === '/' || pathname === '/display' || pathname?.endsWith('/print')) {
     return <main className="min-h-dvh">{children}</main>
   }
 

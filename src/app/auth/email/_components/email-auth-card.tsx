@@ -33,7 +33,7 @@ export function EmailAuthCard({
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id != null) {
-      router.replace('/')
+      router.replace('/home')
     }
   }, [status, session, router])
 
