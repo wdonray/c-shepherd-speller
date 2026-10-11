@@ -1,17 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import { SiteChrome } from './SiteChrome'
 
-vi.mock('next/navigation', () => ({ usePathname: vi.fn() }))
+vi.mock('next/navigation', () => ({ usePathname: vi.fn(), useSearchParams: vi.fn() }))
 vi.mock('./Header', () => ({ Header: () => <div data-testid="site-header" /> }))
 vi.mock('./Footer', () => ({ Footer: () => <div data-testid="site-footer" /> }))
 
 const usePathnameMock = vi.mocked(usePathname)
+const useSearchParamsMock = vi.mocked(useSearchParams)
+
+function searchParams(query = ''): ReadonlyURLSearchParams {
+  return new URLSearchParams(query) as unknown as ReadonlyURLSearchParams
+}
 
 describe('SiteChrome', () => {
   beforeEach(() => {
     usePathnameMock.mockReset()
+    useSearchParamsMock.mockReset()
+    useSearchParamsMock.mockReturnValue(searchParams())
   })
 
   it('renders the header, footer, and full-width main on regular pages', () => {
@@ -42,8 +49,22 @@ describe('SiteChrome', () => {
     expect(screen.getByRole('main')).toHaveTextContent('landing content')
   })
 
-  it('renders a chrome-free full-bleed main on /display', () => {
+  it('keeps the header on the /display list picker: present mode starts at list selection', () => {
     usePathnameMock.mockReturnValue('/display')
+    render(
+      <SiteChrome>
+        <p>picker content</p>
+      </SiteChrome>
+    )
+
+    expect(screen.getByTestId('site-header')).toBeInTheDocument()
+    expect(screen.getByTestId('site-footer')).toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveTextContent('picker content')
+  })
+
+  it('renders a chrome-free full-bleed main in present mode (/display with a list selected)', () => {
+    usePathnameMock.mockReturnValue('/display')
+    useSearchParamsMock.mockReturnValue(searchParams('list=l1'))
     render(
       <SiteChrome>
         <p>display content</p>
