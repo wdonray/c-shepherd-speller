@@ -223,6 +223,17 @@ describe('PatternListsManager', () => {
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })
 
+  it('renders list cards in a responsive multi-column grid', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+
+    await screen.findByText('My word lists (2)')
+    const grid = screen.getByTestId('lists-grid')
+    expect(grid).toHaveClass('grid', 'gap-4', 'sm:grid-cols-2', 'lg:grid-cols-3')
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.getByText('Week 6')).toBeInTheDocument()
+  })
+
   it('navigates to the list page when Edit list is clicked', async () => {
     getLists.mockResolvedValue([list, list2])
     render(<PatternListsManager />)
