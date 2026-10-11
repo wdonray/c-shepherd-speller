@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BackLink from '@/components/BackLink'
@@ -36,6 +36,8 @@ import { getErrorMessage, toastError } from '@/lib/error-toast'
 const SAVE_DEBOUNCE_MS = 500
 /** How long the "Saved" confirmation stays visible. */
 const SAVED_MESSAGE_MS = 2000
+/** How long the bottom "Add a pattern" button's shift animation runs. */
+const BUTTON_SHIFT_MS = 300
 
 /**
  * Patterns safe to persist: every complete pattern, plus any pre-existing
@@ -125,6 +127,23 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * (and never trips API validation).
    */
   const unsavedPatternIdsRef = useRef<Set<string>>(new Set())
+  /**
+   * Wrapper around the bottom "Add a pattern" button, rendered below the
+   * pattern list. Adding a pattern inserts a new card above it, pushing it
+   * down; the wrapper's position is measured before and after so the shift
+   * can be animated (see the layout effect below).
+   */
+  const bottomButtonRef = useRef<HTMLDivElement>(null)
+  /**
+   * Bottom button wrapper plus its document-relative Y, captured in
+   * addPattern before the new card shifts the button down. Consumed by the
+   * layout effect after commit; null when no add just happened (initial
+   * load, deletions, and other edits never animate). Null when there is no
+   * bottom button yet (empty list).
+   */
+  const bottomButtonShiftRef = useRef<{ el: HTMLDivElement; y: number } | null>(null)
+  /** In-flight shift animation on the bottom button wrapper, if any. */
+  const bottomButtonAnimationRef = useRef<Animation | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -272,6 +291,37 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     })
   }
 
+  // After a pattern is added, glide the bottom "Add a pattern" button down
+  // to its new position instead of letting it jump (FLIP: the document Y
+  // captured in addPattern is the First, this is the Last, and the keyframes
+  // below are the Invert and Play). Runs before paint, so no jump is ever
+  // visible. Only addPattern arms it; deletes and the initial load skip it.
+  useLayoutEffect(() => {
+    const shift = bottomButtonShiftRef.current
+    bottomButtonShiftRef.current = null
+    if (shift === null) return
+    const { el: wrapper, y: beforeY } = shift
+    // jsdom does not implement the Web Animations API; the shift simply
+    // does not animate there.
+    if (typeof wrapper.animate !== 'function') return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // Viewport-relative top plus scrollY keeps the measurement independent
+    // of the smooth scroll that addPattern kicks off on the new card.
+    const deltaY = beforeY - (wrapper.getBoundingClientRect().top + window.scrollY)
+    if (deltaY === 0) return
+    const animation = wrapper.animate([{ transform: `translateY(${deltaY}px)` }, { transform: 'translateY(0)' }], {
+      duration: BUTTON_SHIFT_MS,
+      easing: 'ease-out',
+    })
+    bottomButtonAnimationRef.current = animation
+    return () => {
+      animation.cancel()
+      if (bottomButtonAnimationRef.current === animation) {
+        bottomButtonAnimationRef.current = null
+      }
+    }
+  }, [list?.patterns.length])
+
   if (loadState === 'loading') {
     return <ListEditorSkeleton />
   }
@@ -323,6 +373,18 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       frequency: 'common',
       words: [],
     }
+    // Cancel any in-flight shift animation so the measurement below reads
+    // the bottom button wrapper's true layout position.
+    bottomButtonAnimationRef.current?.cancel()
+    bottomButtonAnimationRef.current = null
+    // First (FLIP): document-relative Y before the new card pushes the
+    // bottom button down. Viewport-relative top plus scrollY keeps the
+    // measurement independent of the smooth scroll that fires on the new
+    // card. Null when there is no bottom button yet (empty list).
+    const wrapper = bottomButtonRef.current
+    bottomButtonShiftRef.current = wrapper
+      ? { el: wrapper, y: wrapper.getBoundingClientRect().top + window.scrollY }
+      : null
     // Local-only until the required fields are filled: no auto-save fires,
     // so a blank pattern is never persisted (or rejected by API validation).
     unsavedPatternIdsRef.current.add(newPattern.id)
@@ -408,31 +470,36 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           </Button>
         </div>
       ) : (
-        <div className="space-y-6">
-          {list.patterns.map((pattern) => (
-            <div
-              key={pattern.id}
-              ref={(element) => {
-                if (!element) return
-                // The new card mounts in the same commit as the state update
-                // that flagged it, so scroll it into view exactly once here.
-                // Keeps the card clear of the sticky header (scroll-mt-24).
-                if (pendingScrollIdRef.current === pattern.id) {
-                  pendingScrollIdRef.current = null
-                  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-                  element.scrollIntoView({ behavior, block: 'start' })
-                }
-              }}
-              className="scroll-mt-24"
-            >
-              <PatternEditor
-                pattern={pattern}
-                onChange={(updated) => updatePattern(pattern.id, updated)}
-                onRemove={() => setDeletePatternTarget(pattern)}
-              />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="space-y-6">
+            {list.patterns.map((pattern) => (
+              <div
+                key={pattern.id}
+                ref={(element) => {
+                  if (!element) return
+                  // The new card mounts in the same commit as the state update
+                  // that flagged it, so scroll it into view exactly once here.
+                  // Keeps the card clear of the sticky header (scroll-mt-24).
+                  if (pendingScrollIdRef.current === pattern.id) {
+                    pendingScrollIdRef.current = null
+                    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                    element.scrollIntoView({ behavior, block: 'start' })
+                  }
+                }}
+                className="scroll-mt-24"
+              >
+                <PatternEditor
+                  pattern={pattern}
+                  onChange={(updated) => updatePattern(pattern.id, updated)}
+                  onRemove={() => setDeletePatternTarget(pattern)}
+                />
+              </div>
+            ))}
+          </div>
+          <div ref={bottomButtonRef} className="flex justify-center pt-2">
+            <Button onClick={addPattern}>Add a pattern</Button>
+          </div>
+        </>
       )}
 
       <Dialog open={deletePatternTarget !== null} onOpenChange={() => setDeletePatternTarget(null)}>

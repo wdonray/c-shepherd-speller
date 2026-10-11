@@ -76,6 +76,47 @@ async function waitForSave() {
 /** Wait long enough for a debounced save attempt to fire, for tests where no save is expected. */
 const SAVE_DEBOUNCE_WAIT_MS = 750
 
+/**
+ * jsdom has no layout and no Web Animations API, so stub both to assert the
+ * bottom button's FLIP shift. `tops` feeds successive getBoundingClientRect
+ * top values: the first call is addPattern's "before" measurement, the
+ * second the layout effect's "after" measurement. Extra entries are reused
+ * for rapid double-adds.
+ */
+function stubBottomButtonAnimation(tops: number[]) {
+  const remaining = [...tops]
+  const rectSpy = vi.spyOn(window.HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+    () =>
+      ({
+        top: remaining.length > 1 ? remaining.shift()! : remaining[0],
+        left: 0,
+        bottom: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as unknown as DOMRect
+  )
+  const cancelMock = vi.fn()
+  const animateMock = vi.fn(() => ({ cancel: cancelMock }) as unknown as Animation)
+  Object.defineProperty(window.HTMLElement.prototype, 'animate', {
+    value: animateMock,
+    configurable: true,
+    writable: true,
+  })
+  return {
+    animateMock,
+    cancelMock,
+    restore: () => {
+      rectSpy.mockRestore()
+      // `animate` is not a jsdom own-property; deleting restores its absence.
+      delete (window.HTMLElement.prototype as { animate?: unknown }).animate
+    },
+  }
+}
+
 describe('ListEditorPage', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>>
 
@@ -286,6 +327,125 @@ describe('ListEditorPage', () => {
         configurable: true,
         value: originalMatchMedia,
       })
+    }
+  })
+
+  it('renders a centered add-pattern button below the pattern list', async () => {
+    await renderReady()
+
+    // The header keeps its "+ Add a pattern" button; the new bottom button
+    // is the plain "Add a pattern" one, centered under the list.
+    const bottomButton = screen.getByRole('button', { name: 'Add a pattern' })
+    expect(bottomButton).toBeInTheDocument()
+    expect(bottomButton.parentElement).toHaveClass('flex', 'justify-center')
+  })
+
+  it('adds a pattern from the bottom button', async () => {
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+
+    expect(screen.getByText('Spelling patterns (2)')).toBeInTheDocument()
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+  })
+
+  it('animates the bottom button gliding down after a pattern is added', async () => {
+    const { animateMock, restore } = stubBottomButtonAnimation([100, 500])
+    try {
+      await renderReady()
+
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+
+      // The button moved from document Y 100 to 500, so the animation
+      // starts 400px up and settles to its new position.
+      expect(animateMock).toHaveBeenCalledTimes(1)
+      expect(animateMock).toHaveBeenCalledWith([{ transform: 'translateY(-400px)' }, { transform: 'translateY(0)' }], {
+        duration: 300,
+        easing: 'ease-out',
+      })
+    } finally {
+      restore()
+    }
+  })
+
+  it('skips the shift animation when the button did not move', async () => {
+    const { animateMock, restore } = stubBottomButtonAnimation([100])
+    try {
+      await renderReady()
+
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+
+      expect(animateMock).not.toHaveBeenCalled()
+    } finally {
+      restore()
+    }
+  })
+
+  it('skips the shift animation when the user prefers reduced motion', async () => {
+    const originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: (query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+    const { animateMock, restore } = stubBottomButtonAnimation([100, 500])
+    try {
+      await renderReady()
+
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+
+      expect(animateMock).not.toHaveBeenCalled()
+    } finally {
+      restore()
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      })
+    }
+  })
+
+  it('cancels the in-flight shift animation when adding again quickly', async () => {
+    const { animateMock, cancelMock, restore } = stubBottomButtonAnimation([100, 500, 500, 500])
+    try {
+      await renderReady()
+
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+      expect(animateMock).toHaveBeenCalledTimes(1)
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+
+      // The second add cancels the first animation so its measurement
+      // reads the wrapper's true layout position.
+      expect(cancelMock).toHaveBeenCalled()
+    } finally {
+      restore()
+    }
+  })
+
+  it('cancels the shift animation when the page unmounts', async () => {
+    const { animateMock, cancelMock, restore } = stubBottomButtonAnimation([100, 500])
+    try {
+      getList.mockResolvedValue(list)
+      const { unmount } = render(<ListEditorPage listId="l1" />)
+      await screen.findByRole('heading', { name: 'Week 5: Long A' })
+
+      fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+      expect(animateMock).toHaveBeenCalledTimes(1)
+
+      unmount()
+      expect(cancelMock).toHaveBeenCalled()
+    } finally {
+      restore()
     }
   })
 
