@@ -55,10 +55,10 @@ describe('PatternChartDisplay', () => {
     // Common sorts before less-common before rare.
     expect(aE.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(ai.compareDocumentPosition(eigh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // Equal widths regardless of frequency.
-    for (const col of [aE, ai, eigh]) {
-      expect(col).toHaveStyle({ flexGrow: '1', flexBasis: '0' })
-    }
+    // Equal widths regardless of frequency: the grid caps at 3 columns per
+    // row and wraps, so every column takes an equal grid track.
+    const columns = document.querySelector('[data-chart-columns]')
+    expect(columns).toHaveClass('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3')
     // Power bars and frequency labels encode commonness.
     expect(within(aE).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
     expect(within(aE).getByText('Common')).toBeInTheDocument()
@@ -203,8 +203,10 @@ describe('PatternChartDisplay', () => {
     expect(aE.compareDocumentPosition(placeholders[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(placeholders[0].compareDocumentPosition(eigh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    // Same equal-width footprint, so toggling causes no layout reflow.
-    expect(placeholders[0]).toHaveStyle({ flexGrow: '1', flexBasis: '0' })
+    // Same equal-width footprint in the grid, so toggling causes no layout
+    // reflow: no flex sizing leaks into the grid columns.
+    expect(placeholders[0].style.flexGrow).toBe('')
+    expect(placeholders[0]).toHaveClass('min-w-0')
   })
 
   it('shows an unlock toggle for a locked pattern', () => {
@@ -323,6 +325,15 @@ describe('PatternChartDisplay', () => {
       ...list,
       patterns: [{ ...list.patterns[0], keywordEmoji: '🐝' }, ...list.patterns.slice(1)],
     }
+
+    it('keeps the side-by-side flex row instead of the wrapping grid', () => {
+      render(<PatternChartDisplay list={withEmoji} variant="print" onToggleLock={vi.fn()} />)
+      const columns = document.querySelector('[data-chart-columns]')
+      expect(columns).toHaveClass('flex', 'lg:flex-row')
+      expect(columns).not.toHaveClass('grid', 'lg:grid-cols-3')
+      const firstColumn = screen.getByRole('region', { name: 'Pattern a_e' })
+      expect(firstColumn).toHaveStyle({ flexGrow: '1', flexBasis: '0' })
+    })
 
     it('renders words as plain text with no buttons, speakers, or lock toggles', () => {
       render(<PatternChartDisplay list={withEmoji} variant="print" onToggleLock={vi.fn()} />)

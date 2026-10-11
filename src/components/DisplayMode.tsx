@@ -113,9 +113,9 @@ function DisplayModeInner() {
         </div>
         {/* Chart: matches PatternChartDisplay column layout */}
         <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
-          <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="flex-1 rounded-2xl border-2 border-line bg-card p-6">
+              <div key={i} className="rounded-2xl border-2 border-line bg-card p-6">
                 <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
                 <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
                 <div className="mt-4 space-y-2">
@@ -259,9 +259,9 @@ export default function DisplayMode() {
             </div>
           </div>
           <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
-            <div className="flex flex-col gap-6 lg:flex-row">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="flex-1 rounded-2xl border-2 border-line bg-card p-6">
+                <div key={i} className="rounded-2xl border-2 border-line bg-card p-6">
                   <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
                   <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
                   <div className="mt-4 space-y-2">
