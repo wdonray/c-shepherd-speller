@@ -78,6 +78,17 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
   // are grid items, so no inline flex sizing applies.
   const columnStyle = isPrint ? { flex: '1 1 0', minWidth: 220 } : undefined
 
+  // Present-mode grid tracks are capped at a consistent column width and
+  // centered, so one or two patterns render at the same size as a full
+  // three-column row instead of stretching. The track count follows the
+  // pattern count so a lone column lands in the middle of the screen.
+  let presentTracks = 'sm:grid-cols-[repeat(2,minmax(0,420px))] lg:grid-cols-[repeat(3,minmax(0,420px))]'
+  if (columns.length === 1) {
+    presentTracks = 'sm:grid-cols-[minmax(0,420px)]'
+  } else if (columns.length === 2) {
+    presentTracks = 'sm:grid-cols-[repeat(2,minmax(0,420px))]'
+  }
+
   /** Lock toggle for an unlocked column header (locked columns render a placeholder instead). */
   const renderLockToggle = (pattern: SpellingPattern) => {
     if (!onToggleLock || isPrint) return null
@@ -239,10 +250,15 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
           <div
             className={cn(
               'gap-6',
-              // Present: max 3 equal-width columns per row, wrapping to the next
-              // row. Print keeps the old flex row so the poster layout is
+              // Present: at most 3 columns per row, wrapping to the next row.
+              // Track widths are capped and the grid is centered (see
+              // presentTracks above), so one or two patterns render at the
+              // same size as a full three-column row instead of stretching.
+              // Print keeps the old uncapped flex row so the poster layout is
               // unchanged (the print stylesheet forces side-by-side columns).
-              isPrint ? 'flex flex-col lg:flex-row lg:items-stretch' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+              isPrint
+                ? 'flex flex-col lg:flex-row lg:items-stretch'
+                : cn('mx-auto grid w-full max-w-[1400px] grid-cols-1 justify-center', presentTracks)
             )}
             data-chart-columns
           >

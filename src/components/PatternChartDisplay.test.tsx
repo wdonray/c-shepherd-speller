@@ -59,12 +59,42 @@ describe('PatternChartDisplay', () => {
     // Equal widths regardless of frequency: the grid caps at 3 columns per
     // row and wraps, so every column takes an equal grid track.
     const columns = document.querySelector('[data-chart-columns]')
-    expect(columns).toHaveClass('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3')
+    expect(columns).toHaveClass(
+      'grid',
+      'grid-cols-1',
+      'sm:grid-cols-[repeat(2,minmax(0,420px))]',
+      'lg:grid-cols-[repeat(3,minmax(0,420px))]'
+    )
     // Power bars and frequency labels encode commonness.
     expect(within(aE).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
     expect(within(aE).getByText('Common')).toBeInTheDocument()
     expect(within(ai).getByText('Less common')).toBeInTheDocument()
     expect(within(eigh).getByText('Rare')).toBeInTheDocument()
+  })
+
+  describe('present-mode column sizing', () => {
+    const [firstPattern, secondPattern] = list.patterns
+
+    it('renders a single pattern as one centered, width-capped track', () => {
+      render(<PatternChartDisplay list={{ ...list, patterns: [firstPattern] }} />)
+      const row = document.querySelector('[data-chart-columns]')
+      expect(row).toHaveClass('mx-auto', 'max-w-[1400px]', 'justify-center', 'sm:grid-cols-[minmax(0,420px)]')
+      expect(row).not.toHaveClass('lg:grid-cols-[repeat(3,minmax(0,420px))]')
+    })
+
+    it('renders two patterns as two centered, width-capped tracks', () => {
+      render(<PatternChartDisplay list={{ ...list, patterns: [firstPattern, secondPattern] }} />)
+      const row = document.querySelector('[data-chart-columns]')
+      expect(row).toHaveClass('mx-auto', 'max-w-[1400px]', 'justify-center', 'sm:grid-cols-[repeat(2,minmax(0,420px))]')
+      expect(row).not.toHaveClass('lg:grid-cols-[repeat(3,minmax(0,420px))]')
+    })
+
+    it('keeps the print poster on the uncapped flex row', () => {
+      render(<PatternChartDisplay list={list} variant="print" />)
+      const row = document.querySelector('[data-chart-columns]')
+      expect(row).toHaveClass('flex')
+      expect(row).not.toHaveClass('grid', 'mx-auto', 'max-w-[1400px]', 'justify-center')
+    })
   })
 
   it('explains the frequency encoding in the caption', () => {
