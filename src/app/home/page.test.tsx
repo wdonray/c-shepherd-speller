@@ -73,7 +73,7 @@ describe('Home page (/home)', () => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(fetchMock).toHaveBeenCalledWith('/api/users?email=a@b.c')
+    expect(fetchMock).toHaveBeenCalledWith('/api/users?email=a%40b.c')
   })
 
   it('creates the user with a POST when the user record has no id', async () => {
