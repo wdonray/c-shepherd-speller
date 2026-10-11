@@ -84,7 +84,7 @@ export default function PrintPage({ listId }: { listId: string }) {
         <h1 className="text-3xl font-bold">List not found</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">This word list does not exist or was deleted.</p>
         <Button asChild className="mt-6">
-          <Link href="/">Back to my lists</Link>
+          <Link href="/lists">Back to my lists</Link>
         </Button>
       </div>
     )

@@ -42,7 +42,7 @@ export default function SignIn() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id != null) {
-      router.replace('/')
+      router.replace('/home')
     }
   }, [status, session, router])
 
@@ -60,7 +60,7 @@ export default function SignIn() {
   async function handleProviderSignIn(providerId: string) {
     setIsLoading(providerId)
     try {
-      await signIn(providerId, { callbackUrl: '/' })
+      await signIn(providerId, { callbackUrl: '/home' })
     } catch (error) {
       reportError(error, { location: 'SignInPage.handleProviderSignIn' })
       setIsLoading(null)

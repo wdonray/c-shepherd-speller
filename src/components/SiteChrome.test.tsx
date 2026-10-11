@@ -15,7 +15,7 @@ describe('SiteChrome', () => {
   })
 
   it('renders the header, footer, and full-width main on regular pages', () => {
-    usePathnameMock.mockReturnValue('/')
+    usePathnameMock.mockReturnValue('/home')
     render(
       <SiteChrome>
         <p>page content</p>
@@ -27,6 +27,19 @@ describe('SiteChrome', () => {
     const main = screen.getByRole('main')
     expect(main).toHaveTextContent('page content')
     expect(main.className).toContain('min-h-dvh')
+  })
+
+  it('renders a chrome-free main on the landing page (it has its own header)', () => {
+    usePathnameMock.mockReturnValue('/')
+    render(
+      <SiteChrome>
+        <p>landing content</p>
+      </SiteChrome>
+    )
+
+    expect(screen.queryByTestId('site-header')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('site-footer')).not.toBeInTheDocument()
+    expect(screen.getByRole('main')).toHaveTextContent('landing content')
   })
 
   it('renders a chrome-free full-bleed main on /display', () => {

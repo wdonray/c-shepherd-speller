@@ -98,7 +98,7 @@ describe('Header', () => {
     render(<Header />)
 
     const homeLink = screen.getByRole('link', { name: 'PatternSpell home' })
-    expect(homeLink).toHaveAttribute('href', '/')
+    expect(homeLink).toHaveAttribute('href', '/home')
     expect(homeLink).toHaveTextContent('PatternSpell')
   })
 

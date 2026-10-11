@@ -25,7 +25,7 @@ describe('ProfilePage', () => {
   it('links back to home', () => {
     render(<ProfilePage />)
 
-    expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/home')
   })
 
   it('renders the delete account section', () => {

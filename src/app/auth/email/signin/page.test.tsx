@@ -106,7 +106,7 @@ describe('EmailSignInPage', () => {
         email: 't@e.com',
         password: 's3cret',
         redirect: false,
-        callbackUrl: '/',
+        callbackUrl: '/home',
       })
       expect(pushMock).toHaveBeenCalledWith('/')
     })
@@ -120,7 +120,7 @@ describe('EmailSignInPage', () => {
     fillAndSubmit('t@e.com', 's3cret')
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/')
+      expect(pushMock).toHaveBeenCalledWith('/home')
     })
   })
 
