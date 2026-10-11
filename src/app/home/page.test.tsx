@@ -157,7 +157,7 @@ describe('Home page (/home)', () => {
     expect(mockPush).toHaveBeenCalledWith('/lists/l1')
   })
 
-  it('uses empty name when the session has no name', async () => {
+  it('uses Teacher fallback name when the session has no name', async () => {
     mockSession({ user: { email: 'a@b.c' } }, 'authenticated')
     const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
       init?.method === 'POST'
@@ -171,7 +171,7 @@ describe('Home page (/home)', () => {
       expect(fetchMock).toHaveBeenCalledWith('/api/users', expect.objectContaining({ method: 'POST' }))
     })
     const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
-    expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: '' })
+    expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: 'Teacher' })
   })
 
   it('scrolls to the top on mount and re-pins via rAF', () => {

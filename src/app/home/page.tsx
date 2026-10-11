@@ -63,7 +63,7 @@ export default function HomePage() {
             method: 'POST',
             body: JSON.stringify({
               email,
-              name: session?.user?.name || '',
+              name: session?.user?.name || 'Teacher',
             }),
           })
         }
