@@ -87,6 +87,10 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
     setSelected({ word, pattern })
   }
 
+  // Print keeps the old side-by-side flex row sizing; present-mode columns
+  // are grid items, so no inline flex sizing applies.
+  const columnStyle = isPrint ? { flex: '1 1 0', minWidth: 220 } : undefined
+
   /** Lock toggle for an unlocked column header (locked columns render a placeholder instead). */
   const renderLockToggle = (pattern: SpellingPattern) => {
     if (!onToggleLock || isPrint) return null
@@ -114,8 +118,8 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
         <section
           key={pattern.id}
           aria-label="Locked pattern"
-          className={cn('rounded-2xl border-[3px] bg-card p-5', border)}
-          style={{ flex: '1 1 0', minWidth: 220 }}
+          className={cn('min-w-0 rounded-2xl border-[3px] bg-card p-5', border)}
+          style={columnStyle}
         >
           <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 text-center">
             <LockIcon className="size-10 text-muted-foreground" aria-hidden="true" />
@@ -140,8 +144,8 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
       <section
         key={pattern.id}
         aria-label={`Pattern ${pattern.pattern}`}
-        className={cn('rounded-2xl border-[3px] bg-card p-5', border)}
-        style={{ flex: '1 1 0', minWidth: 220 }}
+        className={cn('min-w-0 rounded-2xl border-[3px] bg-card p-5', border)}
+        style={columnStyle}
       >
         <div className="mb-4 text-center">
           {pattern.keywordImage ? (
@@ -245,7 +249,16 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
               All patterns are locked. Unlock a pattern to begin.
             </p>
           )}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch" data-chart-columns>
+          <div
+            className={cn(
+              'gap-6',
+              // Present: max 3 equal-width columns per row, wrapping to the next
+              // row. Print keeps the old flex row so the poster layout is
+              // unchanged (the print stylesheet forces side-by-side columns).
+              isPrint ? 'flex flex-col lg:flex-row lg:items-stretch' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+            )}
+            data-chart-columns
+          >
             {columns.map((pattern) => renderColumn(pattern))}
           </div>
 
