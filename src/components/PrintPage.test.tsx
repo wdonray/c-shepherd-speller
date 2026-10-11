@@ -53,8 +53,9 @@ describe('PrintPage', () => {
 
   it('renders the print chart and calls window.print() once the list loads', async () => {
     render(<PrintPage listId="l1" />)
-    // The poster shows the target sound and only the unlocked pattern.
-    expect(await screen.findByText('long a')).toBeInTheDocument()
+    // The poster shows the list name and only the unlocked pattern.
+    expect(await screen.findByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('long a')).not.toBeInTheDocument()
     expect(screen.getByText('cake')).toBeInTheDocument()
     expect(screen.queryByText('rain')).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
@@ -79,7 +80,8 @@ describe('PrintPage', () => {
     expect(printSpy).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    expect(await screen.findByText('long a')).toBeInTheDocument()
+    expect(await screen.findByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('long a')).not.toBeInTheDocument()
     await waitFor(() => {
       expect(printSpy).toHaveBeenCalledTimes(1)
     })
