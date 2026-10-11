@@ -245,8 +245,8 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
                 {[...lists]
                   .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
                   .slice(0, 3)
-                  .map((list, i) => (
-                    <WordListCard key={list.id} list={list} index={i} onOpen={onEditList} primaryLabel="Edit list" />
+                  .map((list) => (
+                    <WordListCard key={list.id} list={list} onOpen={onEditList} primaryLabel="Edit list" />
                   ))}
               </div>
             )}

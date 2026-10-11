@@ -4,6 +4,10 @@ import {
   CreateWordListSchema,
   UpdateWordListSchema,
   SpellingPatternSchema,
+  ListColorSchema,
+  DEFAULT_LIST_COLOR,
+  LIST_COLORS,
+  resolveListColor,
   createWordListItem,
   updateWordListItem,
   generateListId,
@@ -294,6 +298,42 @@ describe('WordList model', () => {
       const list = createWordListItem('u1', { name: 'Test', gradeLevel: '1', patterns: [] })
       expect(list.gradeLevel).toBe('1')
     })
+
+    it('applies the default color when none is given', () => {
+      const list = createWordListItem('u1', { name: 'Test', patterns: [] })
+      expect(list.color).toBe(DEFAULT_LIST_COLOR)
+    })
+
+    it('keeps an explicitly chosen color', () => {
+      const list = createWordListItem('u1', { name: 'Test', color: 'coral', patterns: [] })
+      expect(list.color).toBe('coral')
+    })
+  })
+
+  describe('list colors', () => {
+    it('has a single fixed default color', () => {
+      expect(DEFAULT_LIST_COLOR).toBe('leaf')
+    })
+
+    it('offers a curated palette', () => {
+      expect([...LIST_COLORS]).toEqual(['leaf', 'sky', 'plum', 'sun', 'coral'])
+    })
+
+    it('rejects unknown color keys', () => {
+      expect(ListColorSchema.safeParse('rainbow').success).toBe(false)
+    })
+
+    it('resolveListColor uses the stored color', () => {
+      expect(resolveListColor({ ...validList, color: 'plum' })).toBe('plum')
+    })
+
+    it('resolveListColor falls back to the default for legacy lists without a color', () => {
+      expect(resolveListColor(validList)).toBe(DEFAULT_LIST_COLOR)
+    })
+
+    it('WordListSchema accepts lists without a color (legacy)', () => {
+      expect(WordListSchema.safeParse(validList).success).toBe(true)
+    })
   })
 
   describe('updateWordListItem', () => {
@@ -312,6 +352,16 @@ describe('WordList model', () => {
     it('updates gradeLevel when provided', () => {
       const updated = updateWordListItem(validList, { gradeLevel: '2' })
       expect(updated.gradeLevel).toBe('2')
+    })
+
+    it('updates color when provided', () => {
+      const updated = updateWordListItem(validList, { color: 'sun' })
+      expect(updated.color).toBe('sun')
+    })
+
+    it('leaves color alone when not provided', () => {
+      const updated = updateWordListItem({ ...validList, color: 'plum' }, { name: 'Renamed' })
+      expect(updated.color).toBe('plum')
     })
 
     it('leaves unspecified fields alone', () => {

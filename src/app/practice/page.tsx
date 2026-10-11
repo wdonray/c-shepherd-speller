@@ -121,11 +121,10 @@ function PracticeInner() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allLists.map((l, i) => (
+              {allLists.map((l) => (
                 <WordListCard
                   key={l.id}
                   list={l}
-                  index={i}
                   href={`/practice?list=${encodeURIComponent(l.id)}`}
                   primaryLabel="Start practice"
                   showPresent={false}

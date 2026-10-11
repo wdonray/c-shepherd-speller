@@ -400,6 +400,23 @@ describe('ListEditorPage', () => {
     expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ gradeLevel: '2' }))
   })
 
+  it('auto-saves a picked list color', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Blue' }))
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ color: 'sky' }))
+  })
+
+  it('pre-selects the stored list color', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ color: 'coral' })
+
+    expect(screen.getByRole('radio', { name: 'Red' })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('hides the Saved indicator after two seconds', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
