@@ -70,7 +70,7 @@ describe('PrintPage', () => {
     expect(await screen.findByRole('heading', { name: 'List not found' })).toBeInTheDocument()
     expect(printSpy).not.toHaveBeenCalled()
     expect(reportError).toHaveBeenCalled()
-    expect(screen.getByRole('link', { name: 'Back to my lists' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Back to my lists' })).toHaveAttribute('href', '/lists')
   })
 
   it('shows an error state without printing when loading fails, and retries', async () => {

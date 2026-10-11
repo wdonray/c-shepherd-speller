@@ -188,7 +188,7 @@ describe('DisplayMode', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/home')
     expect(mockBack).not.toHaveBeenCalled()
   })
 
@@ -200,7 +200,7 @@ describe('DisplayMode', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     })
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/home')
     expect(mockBack).not.toHaveBeenCalled()
   })
 

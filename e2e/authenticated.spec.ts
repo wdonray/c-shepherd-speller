@@ -13,7 +13,7 @@ test.describe('authenticated flows', () => {
   })
 
   test('home shows the teacher dashboard', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
     await expect(page.getByText(/my word lists/i)).toBeVisible()
     await expect(page.getByRole('button', { name: 'New list' })).toBeVisible()
     // The dashboard has Practice and Present links (Header also has them, so use first)
@@ -22,7 +22,7 @@ test.describe('authenticated flows', () => {
   })
 
   test('list manager: creates a new pattern-based list', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
     await page.getByRole('link', { name: /my spelling lists/i }).click()
     await expect(page).toHaveURL('/lists')
 
@@ -54,7 +54,7 @@ test.describe('authenticated flows', () => {
   })
 
   test('profile page opens and saves', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/home')
 
     await page.getByRole('button', { name: /menu/i }).click()
     await page.getByText('Profile').click()

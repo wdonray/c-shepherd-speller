@@ -66,7 +66,7 @@ describe('proxy config', () => {
     const pattern = new RegExp(`^${config.matcher[0]}$`)
     expect(pattern.test('/api/version')).toBe(false)
     expect(pattern.test('/api/users')).toBe(true)
-    expect(pattern.test('/')).toBe(true)
+    expect(pattern.test('/home')).toBe(true)
   })
 
   it('excludes icon files so browsers can fetch them unauthenticated', () => {
@@ -75,6 +75,13 @@ describe('proxy config', () => {
     expect(pattern.test('/apple-icon.png')).toBe(false)
     expect(pattern.test('/icon.png')).toBe(false)
     expect(pattern.test('/icon.svg')).toBe(false)
+  })
+
+  it('excludes the landing page so visitors can read it without sign-in', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/')).toBe(false)
+    expect(pattern.test('/home')).toBe(true)
+    expect(pattern.test('/lists')).toBe(true)
   })
 
   it('excludes legal pages so they are readable without sign-in', () => {

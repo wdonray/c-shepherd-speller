@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function ListsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
-      <BackLink href="/">Home</BackLink>
+      <BackLink href="/home">Home</BackLink>
       <div className="mt-2 space-y-1">
         <h1 className="text-3xl font-bold">My Spelling Lists</h1>
         <p className="text-[15px] text-muted-foreground">

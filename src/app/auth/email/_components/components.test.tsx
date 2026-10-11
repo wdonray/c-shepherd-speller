@@ -64,7 +64,7 @@ describe('EmailAuthCard', () => {
     useSessionMock.mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' } as never)
     render(<EmailAuthCard title="T">x</EmailAuthCard>)
 
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/'))
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/home'))
     expect(screen.queryByRole('heading', { name: 'T' })).not.toBeInTheDocument()
   })
 

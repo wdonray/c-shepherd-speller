@@ -88,7 +88,7 @@ function PracticeInner() {
               {loadError}
             </p>
             <Button asChild className="mt-6">
-              <Link href="/">Back to home</Link>
+              <Link href="/home">Back to home</Link>
             </Button>
           </div>
         </div>
@@ -101,7 +101,7 @@ function PracticeInner() {
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-6xl space-y-8 px-4 py-6">
           <div>
-            <BackLink href="/" aria-label="Back to home">
+            <BackLink href="/home" aria-label="Back to home">
               Back
             </BackLink>
             <h1 className="mt-2 text-[30px] leading-tight font-bold">Choose a list to practice</h1>

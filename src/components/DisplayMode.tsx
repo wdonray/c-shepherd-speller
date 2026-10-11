@@ -33,7 +33,7 @@ function DisplayModeInner() {
 
   // Back to the app always goes home.
   const backToApp = useCallback(() => {
-    router.push('/')
+    router.push('/home')
   }, [router])
 
   // Back from the chart to the list picker.
@@ -142,7 +142,7 @@ function DisplayModeInner() {
           <p className="text-[15px] text-ink">{LOAD_ERROR}</p>
         </div>
         <Button variant="secondary" asChild>
-          <Link href="/">Back to home</Link>
+          <Link href="/home">Back to home</Link>
         </Button>
       </div>
     )
@@ -170,7 +170,7 @@ function DisplayModeInner() {
               <p className="text-xl font-bold text-ink">No word lists yet</p>
               <p className="mt-2 text-[15px] text-muted-foreground">Create one from My Spelling Lists first.</p>
               <Button className="mt-6" asChild>
-                <Link href="/">Back to home</Link>
+                <Link href="/home">Back to home</Link>
               </Button>
             </div>
           ) : (
