@@ -68,6 +68,21 @@ describe('sendFeedbackEmail', () => {
     expect(message.Body.Text.Data).toContain('From: Chaley Williams <teacher@example.com>')
   })
 
+  it('strips newlines from header-bound fields to block header injection', async () => {
+    await sendFeedbackEmail({
+      ...baseInput,
+      subject: 'Broken\r\nBcc: attacker@evil.example',
+      reporterEmail: 'teacher@example.com\r\n',
+      reporterName: 'Chaley\r\nWilliams',
+    })
+
+    const input = lastCommandInput()
+    expect(input.ReplyToAddresses).toEqual(['teacher@example.com'])
+    const message = input.Message as { Subject: { Data: string }; Body: { Text: { Data: string } } }
+    expect(message.Subject.Data).toBe('[PatternSpell feedback] Issue report: Broken Bcc: attacker@evil.example')
+    expect(message.Body.Text.Data).toContain('From: Chaley Williams <teacher@example.com>')
+  })
+
   it('honors FEEDBACK_TO_EMAIL and FEEDBACK_FROM_EMAIL overrides', async () => {
     process.env.FEEDBACK_TO_EMAIL = 'other@example.com'
     process.env.FEEDBACK_FROM_EMAIL = 'App <app@example.com>'

@@ -61,6 +61,16 @@ function typeLabel(type: FeedbackType): string {
 }
 
 /**
+ * Strip carriage returns and line feeds from values that end up in email
+ * headers (subject, Reply-To). A newline in a header value would inject
+ * extra headers and turn the form into a spam relay; the SES API is
+ * structured, but this keeps the delivered message clean either way.
+ */
+function sanitizeHeaderField(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim()
+}
+
+/**
  * Email the feedback to Donray. Reply-To is the reporter's address so he can
  * answer directly. Throws when SES rejects the send; callers map that to a
  * user-facing error.
@@ -68,8 +78,9 @@ function typeLabel(type: FeedbackType): string {
 export async function sendFeedbackEmail(input: FeedbackEmailInput, client: SesClient = getClient()): Promise<void> {
   const to = process.env.FEEDBACK_TO_EMAIL || DEFAULT_TO_EMAIL
   const from = process.env.FEEDBACK_FROM_EMAIL || DEFAULT_FROM_EMAIL
-  const reporter = input.reporterName ? `${input.reporterName} <${input.reporterEmail}>` : input.reporterEmail
-  const subject = `[PatternSpell feedback] ${typeLabel(input.type)}: ${input.subject}`
+  const reporterEmail = sanitizeHeaderField(input.reporterEmail)
+  const reporter = input.reporterName ? `${sanitizeHeaderField(input.reporterName)} <${reporterEmail}>` : reporterEmail
+  const subject = sanitizeHeaderField(`[PatternSpell feedback] ${typeLabel(input.type)}: ${input.subject}`)
   const body = [
     'A PatternSpell user sent feedback from the app.',
     '',
@@ -85,7 +96,7 @@ export async function sendFeedbackEmail(input: FeedbackEmailInput, client: SesCl
     new SendEmailCommand({
       Source: from,
       Destination: { ToAddresses: [to] },
-      ReplyToAddresses: [input.reporterEmail],
+      ReplyToAddresses: [reporterEmail],
       Message: {
         Subject: { Data: subject, Charset: 'UTF-8' },
         Body: { Text: { Data: body, Charset: 'UTF-8' } },

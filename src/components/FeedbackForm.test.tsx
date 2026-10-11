@@ -5,6 +5,7 @@ const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
 
 import FeedbackForm from './FeedbackForm'
+import { resetTurnstileScript } from '@/app/auth/email/_components/turnstile-widget'
 
 const fetchMock = vi.fn()
 const validDetails = 'Clicking print on the list page does nothing at all.'
@@ -23,6 +24,9 @@ describe('FeedbackForm', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    delete window.turnstile
+    resetTurnstileScript()
   })
 
   it('renders with issue selected by default', () => {
@@ -80,7 +84,113 @@ describe('FeedbackForm', () => {
       type: 'feature',
       subject: 'Print button is broken',
       details: validDetails,
+      website: '',
     })
+  })
+
+  it('renders a honeypot field hidden from assistive tech', () => {
+    render(<FeedbackForm />)
+
+    const honeypot = document.getElementById('website')
+    expect(honeypot).toBeInTheDocument()
+    expect(honeypot?.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(honeypot).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('submits the honeypot value so the server can reject bot fills', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    fillValidForm()
+    fireEvent.change(document.getElementById('website')!, { target: { value: 'http://spam.example' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body).website).toBe('http://spam.example')
+  })
+
+  it('shows the server message when verification fails', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: 'Verification failed. Please try again.' }),
+    })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Verification failed. Please try again.')).toBeInTheDocument()
+    expect(screen.queryByText('Message sent')).not.toBeInTheDocument()
+  })
+
+  it('blocks submit when the Turnstile challenge produces no token', async () => {
+    vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'test-site-key')
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Could not verify you are human. Please try again.')).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends the Turnstile token when the challenge succeeds', async () => {
+    vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'test-site-key')
+    let capturedCallback: ((token: string) => void) | null = null
+    const renderedWidgets: string[] = []
+    const fakeTurnstile = {
+      render: (_el: HTMLElement, options: { callback: (token: string) => void }) => {
+        capturedCallback = options.callback
+        renderedWidgets.push('widget-1')
+        return 'widget-1'
+      },
+      execute: () => {
+        capturedCallback?.('test-token-123')
+      },
+      remove: vi.fn(),
+    }
+    Object.defineProperty(window, 'turnstile', { value: fakeTurnstile, configurable: true, writable: true })
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    // Wait for the widget's async setup (script load + render + pre-warm)
+    // so a token is ready before submitting, as in a real browser.
+    await waitFor(() => expect(renderedWidgets).toContain('widget-1'))
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body).turnstileToken).toBe('test-token-123')
+  })
+
+  it('shows a generic error when the error body has no message', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Something went wrong sending your message. Please try again.')).toBeInTheDocument()
+  })
+
+  it('shows a generic error when the error body is unreadable', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('bad json')
+      },
+    })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Something went wrong sending your message. Please try again.')).toBeInTheDocument()
   })
 
   it('resets to a blank form from the success state', async () => {
