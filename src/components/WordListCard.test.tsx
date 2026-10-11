@@ -124,4 +124,47 @@ describe('WordListCard', () => {
     expect(screen.getByText('1 pattern, 1 word')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Frequency: Rare' })).toBeInTheDocument()
   })
+
+  it('hides the pattern preview when showPreview is false', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" showPreview={false} />)
+    expect(screen.queryByLabelText('Spelling patterns')).not.toBeInTheDocument()
+    expect(screen.queryByText('a_e')).not.toBeInTheDocument()
+  })
+
+  it('makes the whole card a link when href is provided', () => {
+    render(
+      <WordListCard
+        list={list}
+        primaryLabel="Present chart"
+        showPresent={false}
+        showPreview={false}
+        href="/display?list=l1"
+      />
+    )
+    const cardLink = screen.getByRole('link', { name: 'Present chart: Week 5: Long A' })
+    expect(cardLink).toHaveAttribute('href', '/display?list=l1')
+    expect(screen.queryByRole('button', { name: 'Present chart' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the Delete button working above the card link', () => {
+    const onDelete = vi.fn()
+    render(
+      <WordListCard
+        list={list}
+        onDelete={onDelete}
+        primaryLabel="Present chart"
+        showPresent={false}
+        showPreview={false}
+        href="/display?list=l1"
+      />
+    )
+    expect(screen.getByRole('link', { name: 'Present chart: Week 5: Long A' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(onDelete).toHaveBeenCalledWith(list)
+  })
+
+  it('does not throw when the primary button is clicked without onOpen', () => {
+    render(<WordListCard list={list} primaryLabel="Edit list" />)
+    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))).not.toThrow()
+  })
 })

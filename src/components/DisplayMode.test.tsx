@@ -71,27 +71,28 @@ describe('DisplayMode', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
-  it('shows a single Present chart action per card on the picker', async () => {
+  it('shows a single whole-card link per list on the picker', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: 'Present chart' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Open' })).not.toBeInTheDocument()
+    const cardLink = screen.getByRole('link', { name: 'Present chart: Week 5' })
+    expect(cardLink).toHaveAttribute('href', '/display?list=l1')
+    expect(screen.queryByRole('button', { name: 'Present chart' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Spelling patterns')).not.toBeInTheDocument()
   })
 
-  it('navigates to the chart when a list card is opened', async () => {
+  it('links each picker card to its chart', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Present chart' }))
-    expect(mockPush).toHaveBeenCalledWith('/display?list=l1')
+    expect(screen.getByRole('link', { name: 'Present chart: Week 5' })).toHaveAttribute('href', '/display?list=l1')
   })
 
   it('shows an empty state when there are no lists', async () => {
