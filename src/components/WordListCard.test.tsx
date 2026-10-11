@@ -39,6 +39,24 @@ describe('WordListCard', () => {
     expect(screen.getByRole('img', { name: 'Frequency: Less common' })).toBeInTheDocument()
   })
 
+  it('shows every pattern in the grid, not just the first three', () => {
+    const manyPatterns: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+        { id: 'p3', sound: 'long a', pattern: 'ay', frequency: 'common', words: ['day'] },
+        { id: 'p4', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['eight'] },
+        { id: 'p5', sound: 'long a', pattern: 'ey', frequency: 'rare', words: ['they'] },
+      ],
+    }
+    render(<WordListCard list={manyPatterns} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    for (const pattern of ['a_e', 'ai', 'ay', 'eigh', 'ey']) {
+      expect(screen.getByText(pattern)).toBeInTheDocument()
+    }
+    expect(screen.getByText('5 patterns, 5 words')).toBeInTheDocument()
+  })
+
   it('cycles the accent color by index', () => {
     const { container, rerender } = render(
       <WordListCard list={list} index={0} onOpen={vi.fn()} primaryLabel="Edit list" />

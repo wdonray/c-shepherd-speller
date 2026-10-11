@@ -60,10 +60,10 @@ export default function WordListCard({
         <p className="text-sm text-muted-foreground">
           {patternCount} {patternCount === 1 ? 'pattern' : 'patterns'}, {wordCount} {wordCount === 1 ? 'word' : 'words'}
         </p>
-        <ul className="space-y-2" aria-label="Spelling patterns">
-          {list.patterns.slice(0, 3).map((pattern) => (
-            <li key={pattern.id} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 truncate text-sm font-semibold">{pattern.pattern}</span>
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
+          {list.patterns.map((pattern) => (
+            <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
+              <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
               <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
             </li>
           ))}
