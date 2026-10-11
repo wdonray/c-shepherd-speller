@@ -28,10 +28,12 @@ jobs:
     steps:
       - name: Check for API key
         id: keycheck
+        env:
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
         run: |
-          if [ -z "${{ secrets.MODEL_API_KEY }}"; then
+          if [ -z "$MODEL_API_KEY" ]; then
             echo "MODEL_API_KEY secret not set; skipping gracefully."
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/checkout@v6
