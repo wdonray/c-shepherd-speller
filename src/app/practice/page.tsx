@@ -126,8 +126,10 @@ function PracticeInner() {
                   key={l.id}
                   list={l}
                   index={i}
-                  chooserHref={`/practice?list=${encodeURIComponent(l.id)}`}
-                  chooserLabel={`Practice ${l.name}`}
+                  href={`/practice?list=${encodeURIComponent(l.id)}`}
+                  primaryLabel="Start practice"
+                  showPresent={false}
+                  showPreview={false}
                 />
               ))}
             </div>

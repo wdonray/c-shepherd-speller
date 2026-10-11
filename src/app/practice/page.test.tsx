@@ -56,7 +56,7 @@ describe('PracticePage', () => {
     expect(screen.getByText('Week 5')).toBeInTheDocument()
   })
 
-  it('renders whole-card chooser links with no buttons on practice picker cards', async () => {
+  it('renders whole-card chooser links with no chart preview on practice picker cards', async () => {
     getLists.mockResolvedValue([list])
     render(<PracticePage />)
 
@@ -65,7 +65,8 @@ describe('PracticePage', () => {
     })
     expect(screen.queryByRole('link', { name: 'Present' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Practice Week 5' })).toHaveAttribute('href', '/practice?list=l1')
+    expect(screen.queryByRole('list', { name: 'Spelling patterns' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Start practice: Week 5' })).toHaveAttribute('href', '/practice?list=l1')
   })
 
   it('opens practice for the chosen list', async () => {
@@ -75,7 +76,7 @@ describe('PracticePage', () => {
     await waitFor(() => {
       expect(screen.getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.getByRole('link', { name: 'Practice Week 5' })).toHaveAttribute('href', '/practice?list=l1')
+    expect(screen.getByRole('link', { name: 'Start practice: Week 5' })).toHaveAttribute('href', '/practice?list=l1')
   })
 
   it('shows an empty state when there are no lists', async () => {
