@@ -180,9 +180,10 @@ function DisplayModeInner() {
                   key={l.id}
                   list={l}
                   index={i}
-                  onOpen={(selected) => router.push(`/display?list=${encodeURIComponent(selected.id)}`)}
+                  href={`/display?list=${encodeURIComponent(l.id)}`}
                   primaryLabel="Present chart"
                   showPresent={false}
+                  showPreview={false}
                 />
               ))}
             </div>
