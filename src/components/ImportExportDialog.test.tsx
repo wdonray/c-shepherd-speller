@@ -38,32 +38,32 @@ describe('ImportExportDialog', () => {
     })
   })
 
-  it('renders the export and import sections', () => {
+  it('renders the share and receive sections', () => {
     renderDialog()
-    expect(screen.getByRole('heading', { name: 'Import / export' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /export lists/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /choose file/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Share lists' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /share lists/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /receive lists/i })).toBeInTheDocument()
   })
 
-  it('opens the file picker when Choose file is clicked', () => {
+  it('opens the file picker when Receive lists is clicked', () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {})
 
     renderDialog()
-    fireEvent.click(screen.getByRole('button', { name: /choose file/i }))
+    fireEvent.click(screen.getByRole('button', { name: /receive lists/i }))
 
     expect(clickSpy).toHaveBeenCalled()
     clickSpy.mockRestore()
   })
 
-  it('exports lists to a downloaded JSON file', async () => {
+  it('shares lists to a downloaded file', async () => {
     getLists.mockResolvedValue([list])
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
     renderDialog()
-    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Exported 1 list.')
+      expect(screen.getByRole('status')).toHaveTextContent('Shared 1 list.')
     })
     expect(getLists).toHaveBeenCalled()
     expect(clickSpy).toHaveBeenCalled()
@@ -85,10 +85,10 @@ describe('ImportExportDialog', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
     renderDialog()
-    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Exported 1 list.')
+      expect(screen.getByRole('status')).toHaveTextContent('Shared 1 list.')
     })
     expect(anchors).toHaveLength(1)
     expect(anchors[0].download).toMatch(/^patternspell-lists-\d{4}-\d{2}-\d{2}\.json$/)
@@ -102,24 +102,24 @@ describe('ImportExportDialog', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 
     renderDialog()
-    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Exported 2 lists.')
+      expect(screen.getByRole('status')).toHaveTextContent('Shared 2 lists.')
     })
   })
 
   it('shows a toast when export fails', async () => {
     getLists.mockRejectedValue(new Error('network down'))
     renderDialog()
-    fireEvent.click(screen.getByRole('button', { name: /export lists/i }))
+    fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
   })
 
-  it('imports lists from a valid file', async () => {
+  it('receives lists from a valid file', async () => {
     const onImported = vi.fn()
     createList.mockResolvedValue(list)
     renderDialog({ onImported })
@@ -130,7 +130,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Imported 1 list.')
+      expect(screen.getByRole('status')).toHaveTextContent('Received 1 list.')
     })
     expect(createList).toHaveBeenCalledWith({ name: 'Week 7: Long O', patterns: [] })
     expect(onImported).toHaveBeenCalled()
@@ -154,7 +154,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Imported 2 lists.')
+      expect(screen.getByRole('status')).toHaveTextContent('Received 2 lists.')
     })
     expect(createList).toHaveBeenCalledTimes(2)
   })
@@ -165,7 +165,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('That file is not valid JSON.')
+      expect(screen.getByRole('alert')).toHaveTextContent("That file doesn't look like a lists file.")
     })
     expect(createList).not.toHaveBeenCalled()
   })
@@ -178,7 +178,7 @@ describe('ImportExportDialog', () => {
     fireEvent.change(screen.getByLabelText(/choose a lists file/i), { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('That file does not look like a PatternSpell export.')
+      expect(screen.getByRole('alert')).toHaveTextContent("That file doesn't look like lists shared from PatternSpell.")
     })
     expect(createList).not.toHaveBeenCalled()
   })

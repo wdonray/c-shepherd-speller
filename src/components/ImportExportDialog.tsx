@@ -21,8 +21,9 @@ interface ImportExportDialogProps {
 }
 
 /**
- * Import / export dialog (opened from the header menu). Export downloads all
- * word lists as JSON; import reads such a file back and creates the lists.
+ * Share / receive dialog (opened from the header menu). Sharing saves all
+ * word lists to a file another teacher can receive; receiving reads such a
+ * file back and creates the lists.
  */
 export default function ImportExportDialog({ isOpen, onClose, onImported }: ImportExportDialogProps) {
   const [busy, setBusy] = useState(false)
@@ -50,7 +51,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       URL.revokeObjectURL(url)
       setMessage({
         kind: 'success',
-        text: `Exported ${lists.length} ${lists.length === 1 ? 'list' : 'lists'}.`,
+        text: `Shared ${lists.length} ${lists.length === 1 ? 'list' : 'lists'}.`,
       })
     } catch (error) {
       reportError(error, { location: 'ImportExportDialog.handleExport' })
@@ -83,13 +84,13 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
         await createList(input)
         imported += 1
       }
-      setMessage({ kind: 'success', text: `Imported ${imported} ${imported === 1 ? 'list' : 'lists'}.` })
+      setMessage({ kind: 'success', text: `Received ${imported} ${imported === 1 ? 'list' : 'lists'}.` })
       onImported()
     } catch (e) {
       if (e instanceof Error && e.message === 'not-json') {
-        setMessage({ kind: 'error', text: 'That file is not valid JSON.' })
+        setMessage({ kind: 'error', text: "That file doesn't look like a lists file." })
       } else if (e instanceof Error && e.message === 'not-lists') {
-        setMessage({ kind: 'error', text: 'That file does not look like a PatternSpell export.' })
+        setMessage({ kind: 'error', text: "That file doesn't look like lists shared from PatternSpell." })
       } else {
         // The not-json / not-lists cases are user errors, not app failures.
         reportError(e, { location: 'ImportExportDialog.handleFileChange' })
@@ -107,29 +108,31 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import / export</DialogTitle>
+          <DialogTitle>Share lists</DialogTitle>
           <DialogDescription>
-            Back up your word lists to a file, or bring lists in from a file you exported earlier.
+            Share your word lists with another teacher, or add lists a teacher shared with you.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-2">
           <div className="space-y-2">
-            <h3 className="font-bold">Export</h3>
-            <p className="text-sm text-muted-foreground">Download all of your word lists as one JSON file.</p>
+            <h3 className="font-bold">Share</h3>
+            <p className="text-sm text-muted-foreground">
+              Save all of your word lists to a file you can send to another teacher.
+            </p>
             <Button onClick={handleExport} disabled={busy}>
               <DownloadIcon className="size-4" />
-              {busy ? 'Working...' : 'Export lists'}
+              {busy ? 'Working...' : 'Share lists'}
             </Button>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold">Import</h3>
-            <p className="text-sm text-muted-foreground">Choose a JSON file exported from PatternSpell.</p>
+            <h3 className="font-bold">Receive</h3>
+            <p className="text-sm text-muted-foreground">Choose a file with lists another teacher shared with you.</p>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="secondary" onClick={openFilePicker} disabled={busy}>
                 <UploadIcon className="size-4" />
-                Choose file
+                Receive lists
               </Button>
               {fileName && <span className="text-sm text-muted-foreground">{fileName}</span>}
               <input
@@ -137,7 +140,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
                 type="file"
                 accept="application/json,.json"
                 className="sr-only"
-                aria-label="Choose a lists file to import"
+                aria-label="Choose a lists file to receive"
                 onChange={handleFileChange}
               />
             </div>

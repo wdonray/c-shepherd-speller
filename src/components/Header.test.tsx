@@ -308,12 +308,12 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
   })
 
-  it('opens the import/export dialog from the menu', () => {
+  it('opens the share lists dialog from the menu', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
-    fireEvent.click(screen.getByText('Import / export'))
+    fireEvent.click(screen.getByText('Share lists'))
     expect(screen.getByTestId('import-export-dialog')).toHaveAttribute('data-open', 'true')
 
     fireEvent.click(screen.getByRole('button', { name: 'close import-export' }))
@@ -751,7 +751,7 @@ describe('Header', () => {
     expect(menu.getByRole('link', { name: /my spelling lists/i })).toHaveAttribute('href', '/lists')
     expect(menu.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
     expect(menu.getByRole('link', { name: /profile/i })).toHaveAttribute('href', '/profile')
-    expect(menu.getByRole('button', { name: /import \/ export/i })).toBeInTheDocument()
+    expect(menu.getByRole('button', { name: /share lists/i })).toBeInTheDocument()
     expect(menu.getByRole('button', { name: /theme:/i })).toBeInTheDocument()
     expect(menu.getByRole('button', { name: /get help/i })).toBeInTheDocument()
     expect(menu.getByRole('link', { name: /version/i })).toHaveAttribute('href', '/version')
@@ -765,7 +765,7 @@ describe('Header', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
     const menu = within(screen.getByRole('dialog'))
-    fireEvent.click(menu.getByRole('button', { name: /import \/ export/i }))
+    fireEvent.click(menu.getByRole('button', { name: /share lists/i }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByTestId('import-export-dialog')).toHaveAttribute('data-open', 'true')

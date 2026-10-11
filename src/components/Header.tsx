@@ -300,7 +300,7 @@ export function Header() {
                   className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
                   onSelect={openImportExportFromMenu}
                 >
-                  Import / export
+                  Share lists
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
@@ -402,7 +402,7 @@ export function Header() {
                     </Button>
                   </SheetClose>
                   <Button size="lg" variant="ghost" className="justify-start px-4" onClick={openImportExportFromMenu}>
-                    Import / export
+                    Share lists
                   </Button>
                   <Button size="lg" variant="ghost" className="justify-start px-4" onClick={toggleThemeFromMenu}>
                     Theme: {isDark ? 'Light' : 'Dark'}
