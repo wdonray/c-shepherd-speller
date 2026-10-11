@@ -56,6 +56,20 @@ describe('db-utils', () => {
       expect(user.id).toBe(command.input.Item.id)
       expect(user.createdAt).toBeTruthy()
     })
+
+    it('lowercases the email before storing so getUserByEmail can find it', async () => {
+      send.mockResolvedValue({})
+      const user = await createUser({
+        email: 'Teacher@Example.COM',
+        name: 'Teacher',
+        words: [],
+        sounds: [],
+        spelling: [],
+      })
+      const command = send.mock.calls[0][0]
+      expect(command.input.Item.email).toBe('teacher@example.com')
+      expect(user.email).toBe('teacher@example.com')
+    })
   })
 
   describe('updateUser', () => {
