@@ -27,8 +27,8 @@ function renderEditor(overrides: Partial<SpellingPattern> = {}) {
   const onChange = vi.fn()
   const onRemove = vi.fn()
   const pattern = { ...basePattern, ...overrides }
-  render(<PatternEditor pattern={pattern} onChange={onChange} onRemove={onRemove} />)
-  return { onChange, onRemove, pattern }
+  const { container } = render(<PatternEditor pattern={pattern} onChange={onChange} onRemove={onRemove} />)
+  return { onChange, onRemove, pattern, container }
 }
 
 describe('PatternEditor', () => {
@@ -50,6 +50,19 @@ describe('PatternEditor', () => {
     renderEditor({ pattern: '' })
     expect(screen.getByRole('region', { name: 'Untitled pattern' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete this pattern' })).toBeInTheDocument()
+  })
+
+  it('uses the passed color for the top bar', () => {
+    const { container } = render(
+      <PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} color="sky" />
+    )
+    expect(container.querySelector('.bg-sky.h-2')).toBeInTheDocument()
+    expect(container.querySelector('.bg-leaf.h-2')).not.toBeInTheDocument()
+  })
+
+  it('defaults the top bar to the default list color when no color is passed', () => {
+    const { container } = renderEditor()
+    expect(container.querySelector('.bg-leaf.h-2')).toBeInTheDocument()
   })
 
   it('edits the pattern spelling', () => {
