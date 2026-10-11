@@ -61,7 +61,7 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /good (morning|afternoon|evening), donray/i })).toBeInTheDocument()
     })
-    expect(screen.getByText('Here is your spelling toolkit for this week.')).toBeInTheDocument()
+    expect(screen.queryByText('Here is your spelling toolkit for this week.')).not.toBeInTheDocument()
   })
 
   it('greets without a name when the session has none', async () => {
