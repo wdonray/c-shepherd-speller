@@ -63,7 +63,7 @@ describe('ImportExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Shared 1 list.')
+      expect(screen.getByRole('status')).toHaveTextContent('Saved 1 list. Send the file to another teacher to share.')
     })
     expect(getLists).toHaveBeenCalled()
     expect(clickSpy).toHaveBeenCalled()
@@ -88,7 +88,7 @@ describe('ImportExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Shared 1 list.')
+      expect(screen.getByRole('status')).toHaveTextContent('Saved 1 list. Send the file to another teacher to share.')
     })
     expect(anchors).toHaveLength(1)
     expect(anchors[0].download).toMatch(/^patternspell-lists-\d{4}-\d{2}-\d{2}\.json$/)
@@ -105,7 +105,7 @@ describe('ImportExportDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /share lists/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Shared 2 lists.')
+      expect(screen.getByRole('status')).toHaveTextContent('Saved 2 lists. Send the file to another teacher to share.')
     })
   })
 

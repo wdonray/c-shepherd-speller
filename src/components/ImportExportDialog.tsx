@@ -51,7 +51,7 @@ export default function ImportExportDialog({ isOpen, onClose, onImported }: Impo
       URL.revokeObjectURL(url)
       setMessage({
         kind: 'success',
-        text: `Shared ${lists.length} ${lists.length === 1 ? 'list' : 'lists'}.`,
+        text: `Saved ${lists.length} ${lists.length === 1 ? 'list' : 'lists'}. Send the file to another teacher to share.`,
       })
     } catch (error) {
       reportError(error, { location: 'ImportExportDialog.handleExport' })
