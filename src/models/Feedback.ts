@@ -23,3 +23,11 @@ export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   issue: 'Report an issue',
   feature: 'Request a feature',
 }
+
+/**
+ * Feedback attachments are screenshots only: one image per message, 5 MB
+ * max. Limits from Donray's decision on issue #202. Shared by the form (for
+ * client-side validation) and the API route (which enforces them again).
+ */
+export const FEEDBACK_ATTACHMENT_MAX_SIZE = 5 * 1024 * 1024
+export const FEEDBACK_ATTACHMENT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const

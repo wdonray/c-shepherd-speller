@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { FeedbackSchema, FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/models/Feedback'
+import {
+  FeedbackSchema,
+  FEEDBACK_TYPE_LABELS,
+  FEEDBACK_ATTACHMENT_MAX_SIZE,
+  FEEDBACK_ATTACHMENT_MIME_TYPES,
+  type FeedbackType,
+} from '@/models/Feedback'
 import { cn } from '@/lib/utils'
 import { reportError } from '@/lib/report-error'
 import TurnstileWidget, { type TurnstileHandle } from '@/app/auth/email/_components/turnstile-widget'
@@ -29,10 +35,13 @@ export default function FeedbackForm() {
   const [details, setDetails] = useState('')
   // Honeypot: hidden from real users; bots that fill every field trip it.
   const [website, setWebsite] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<{ subject?: string; details?: string }>({})
+  // Optional screenshot. Validated on select; the server validates again.
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ subject?: string; details?: string; attachment?: string }>({})
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const turnstileRef = useRef<TurnstileHandle>(null)
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
@@ -41,9 +50,35 @@ export default function FeedbackForm() {
     setSubject('')
     setDetails('')
     setWebsite('')
+    setAttachment(null)
+    // The file input always renders, so the ref is set whenever reset runs.
+    fileInputRef.current!.value = ''
     setFieldErrors({})
     setSubmitError(null)
     setSent(false)
+  }
+
+  function handleAttachmentChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    if (!file) {
+      setAttachment(null)
+      setFieldErrors((prev) => ({ ...prev, attachment: undefined }))
+      return
+    }
+    if (!(FEEDBACK_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
+      e.target.value = ''
+      setAttachment(null)
+      setFieldErrors((prev) => ({ ...prev, attachment: 'Attachments must be PNG, JPEG, GIF, or WebP images.' }))
+      return
+    }
+    if (file.size > FEEDBACK_ATTACHMENT_MAX_SIZE) {
+      e.target.value = ''
+      setAttachment(null)
+      setFieldErrors((prev) => ({ ...prev, attachment: 'Attachments must be 5 MB or smaller.' }))
+      return
+    }
+    setAttachment(file)
+    setFieldErrors((prev) => ({ ...prev, attachment: undefined }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -69,11 +104,14 @@ export default function FeedbackForm() {
           return
         }
       }
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...parsed.data, website, turnstileToken }),
-      })
+      const form = new FormData()
+      form.set('type', parsed.data.type)
+      form.set('subject', parsed.data.subject)
+      form.set('details', parsed.data.details)
+      form.set('website', website)
+      if (turnstileToken) form.set('turnstileToken', turnstileToken)
+      if (attachment) form.set('attachment', attachment)
+      const res = await fetch('/api/feedback', { method: 'POST', body: form })
       if (res.status === 429) {
         setSubmitError('You have sent a few messages recently. Please wait a little while and try again.')
       } else if (!res.ok) {
@@ -176,6 +214,26 @@ export default function FeedbackForm() {
         {fieldErrors.details && (
           <p id="feedback-details-error" role="alert" className="text-sm font-medium text-destructive">
             {fieldErrors.details}
+          </p>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="feedback-attachment">Screenshot (optional)</Label>
+        <Input
+          id="feedback-attachment"
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          onChange={handleAttachmentChange}
+          aria-invalid={fieldErrors.attachment ? true : undefined}
+          aria-describedby={fieldErrors.attachment ? 'feedback-attachment-error' : 'feedback-attachment-hint'}
+        />
+        <p id="feedback-attachment-hint" className="text-sm text-muted-foreground">
+          Add one screenshot to show what you saw. PNG, JPEG, GIF, or WebP, up to 5 MB.
+        </p>
+        {fieldErrors.attachment && (
+          <p id="feedback-attachment-error" role="alert" className="text-sm font-medium text-destructive">
+            {fieldErrors.attachment}
           </p>
         )}
       </div>

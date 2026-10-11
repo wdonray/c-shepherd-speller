@@ -80,12 +80,12 @@ describe('FeedbackForm', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/feedback')
     expect(init.method).toBe('POST')
-    expect(JSON.parse(init.body)).toEqual({
-      type: 'feature',
-      subject: 'Print button is broken',
-      details: validDetails,
-      website: '',
-    })
+    const body = init.body as FormData
+    expect(body.get('type')).toBe('feature')
+    expect(body.get('subject')).toBe('Print button is broken')
+    expect(body.get('details')).toBe(validDetails)
+    expect(body.get('website')).toBe('')
+    expect(body.get('attachment')).toBeNull()
   })
 
   it('renders a honeypot field hidden from assistive tech', () => {
@@ -107,7 +107,7 @@ describe('FeedbackForm', () => {
 
     expect(await screen.findByText('Message sent')).toBeInTheDocument()
     const [, init] = fetchMock.mock.calls[0]
-    expect(JSON.parse(init.body).website).toBe('http://spam.example')
+    expect((init.body as FormData).get('website')).toBe('http://spam.example')
   })
 
   it('shows the server message when verification fails', async () => {
@@ -164,7 +164,7 @@ describe('FeedbackForm', () => {
 
     expect(await screen.findByText('Message sent')).toBeInTheDocument()
     const [, init] = fetchMock.mock.calls[0]
-    expect(JSON.parse(init.body).turnstileToken).toBe('test-token-123')
+    expect((init.body as FormData).get('turnstileToken')).toBe('test-token-123')
   })
 
   it('shows a generic error when the error body has no message', async () => {
@@ -193,9 +193,79 @@ describe('FeedbackForm', () => {
     expect(await screen.findByText('Something went wrong sending your message. Please try again.')).toBeInTheDocument()
   })
 
+  it('rejects a non-image attachment but still sends the message without it', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    const input = screen.getByLabelText('Screenshot (optional)') as HTMLInputElement
+    const exe = new File(['MZ'], 'evil.exe', { type: 'application/x-msdownload' })
+
+    fireEvent.change(input, { target: { files: [exe] } })
+
+    expect(await screen.findByText('Attachments must be PNG, JPEG, GIF, or WebP images.')).toBeInTheDocument()
+    expect(input.value).toBe('')
+    fillValidForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.body as FormData).get('attachment')).toBeNull()
+  })
+
+  it('rejects an oversized attachment', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    const input = screen.getByLabelText('Screenshot (optional)') as HTMLInputElement
+    const big = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })
+
+    fireEvent.change(input, { target: { files: [big] } })
+
+    expect(await screen.findByText('Attachments must be 5 MB or smaller.')).toBeInTheDocument()
+    expect(input.value).toBe('')
+    fillValidForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.body as FormData).get('attachment')).toBeNull()
+  })
+
+  it('sends a valid attachment with the form', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    const png = new File(['fake-png-bytes'], 'shot.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('Screenshot (optional)'), { target: { files: [png] } })
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    const sentFile = (init.body as FormData).get('attachment') as File
+    expect(sentFile).toBeInstanceOf(File)
+    expect(sentFile.name).toBe('shot.png')
+  })
+
+  it('clears the attachment when the file selection is removed', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    const input = screen.getByLabelText('Screenshot (optional)')
+    const png = new File(['fake-png-bytes'], 'shot.png', { type: 'image/png' })
+    fireEvent.change(input, { target: { files: [png] } })
+    fireEvent.change(input, { target: { files: [] } })
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.body as FormData).get('attachment')).toBeNull()
+  })
+
   it('resets to a blank form from the success state', async () => {
     fetchMock.mockResolvedValue({ ok: true, status: 200 })
     render(<FeedbackForm />)
+    const png = new File(['fake-png-bytes'], 'shot.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('Screenshot (optional)'), { target: { files: [png] } })
     fillValidForm()
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
     await screen.findByText('Message sent')
@@ -205,6 +275,7 @@ describe('FeedbackForm', () => {
     expect(screen.getByRole('radio', { name: /report an issue/i })).toBeChecked()
     expect(screen.getByLabelText('Subject')).toHaveValue('')
     expect(screen.getByLabelText('Details')).toHaveValue('')
+    expect((screen.getByLabelText('Screenshot (optional)') as HTMLInputElement).value).toBe('')
   })
 
   it('shows a specific message when rate limited', async () => {
