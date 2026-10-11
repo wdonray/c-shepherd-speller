@@ -81,6 +81,11 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
   /**
+   * Id of the pattern added most recently, waiting for its card to mount so
+   * it can be scrolled into view. Cleared the moment the scroll fires.
+   */
+  const pendingScrollIdRef = useRef<string | null>(null)
+  /**
    * Ids of patterns added in this session that have never been complete.
    * They stay local-only until the teacher fills the required fields; the
    * save payload filters them out so a half-typed pattern is never persisted
@@ -243,6 +248,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     // Local-only until the required fields are filled: no auto-save fires,
     // so a blank pattern is never persisted (or rejected by API validation).
     unsavedPatternIdsRef.current.add(newPattern.id)
+    // Flag the new card so its mount scrolls it into view (see the pattern
+    // list rendering below).
+    pendingScrollIdRef.current = newPattern.id
     setList({ ...list, patterns: [...list.patterns, newPattern] })
   }
 
@@ -313,12 +321,27 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       ) : (
         <div className="space-y-6">
           {list.patterns.map((pattern) => (
-            <PatternEditor
+            <div
               key={pattern.id}
-              pattern={pattern}
-              onChange={(updated) => updatePattern(pattern.id, updated)}
-              onRemove={() => setDeletePatternTarget(pattern)}
-            />
+              ref={(element) => {
+                if (!element) return
+                // The new card mounts in the same commit as the state update
+                // that flagged it, so scroll it into view exactly once here.
+                // Keeps the card clear of the sticky header (scroll-mt-24).
+                if (pendingScrollIdRef.current === pattern.id) {
+                  pendingScrollIdRef.current = null
+                  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                  element.scrollIntoView({ behavior, block: 'start' })
+                }
+              }}
+              className="scroll-mt-24"
+            >
+              <PatternEditor
+                pattern={pattern}
+                onChange={(updated) => updatePattern(pattern.id, updated)}
+                onRemove={() => setDeletePatternTarget(pattern)}
+              />
+            </div>
           ))}
         </div>
       )}

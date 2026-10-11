@@ -64,13 +64,20 @@ async function waitForSave() {
 }
 
 describe('ListEditorPage', () => {
+  let scrollIntoViewMock: ReturnType<typeof vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>>
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    // jsdom does not implement scrollIntoView; stub it so the add-pattern
+    // scroll can be asserted (and so existing add-pattern tests don't throw).
+    scrollIntoViewMock = vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>()
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    delete (window.HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView
   })
 
   it('shows a loading skeleton, then the editor', async () => {
@@ -180,6 +187,52 @@ describe('ListEditorPage', () => {
       'l1',
       expect.objectContaining({ patterns: [expect.objectContaining({ sound: 'long a', pattern: 'ai' })] })
     )
+  })
+
+  it('smooth-scrolls the new pattern card into view after adding', async () => {
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
+    // The scroll targets the new card specifically: its wrapper carries the
+    // sticky-header offset and contains the untitled pattern section.
+    const scrolledElement = scrollIntoViewMock.mock.instances[0] as HTMLElement
+    expect(scrolledElement.classList.contains('scroll-mt-24')).toBe(true)
+    expect(scrolledElement.querySelector('section[aria-label="Untitled pattern"]')).not.toBeNull()
+  })
+
+  it('scrolls instantly when the user prefers reduced motion', async () => {
+    const originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: (query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }),
+    })
+    try {
+      await renderReady({ patterns: [] })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1)
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' })
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      })
+    }
   })
 
   it('does not auto-save a new pattern until its required fields are filled', async () => {
