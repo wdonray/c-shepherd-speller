@@ -14,13 +14,16 @@ import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
-import type { SpellingPattern, PatternFrequency } from '@/models/WordList'
+import type { SpellingPattern, PatternFrequency, ListColor } from '@/models/WordList'
+import { LIST_ACCENT_CLASSES, DEFAULT_LIST_COLOR } from '@/models/WordList'
 
 interface PatternEditorProps {
   pattern: SpellingPattern
   onChange: (pattern: SpellingPattern) => void
   /** Called when the delete button is pressed; the parent confirms before removing. */
   onRemove: () => void
+  /** List accent color: the card's top bar follows it. Defaults to the default list color. */
+  color?: ListColor
 }
 
 const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; level: PowerBarLevel }[] = [
@@ -51,13 +54,13 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
 }
 
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
-export default function PatternEditor({ pattern, onChange, onRemove }: PatternEditorProps) {
+export default function PatternEditor({ pattern, onChange, onRemove, color = DEFAULT_LIST_COLOR }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const isLocked = pattern.isLocked ?? false
 
-  const accent = { bar: 'bg-leaf', text: 'text-leaf-ink', fill: 'bg-leaf', soft: 'bg-leaf-soft' }
+  const accent = LIST_ACCENT_CLASSES[color]
 
   const update = (updates: Partial<SpellingPattern>) => {
     onChange({ ...pattern, ...updates })

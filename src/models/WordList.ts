@@ -86,6 +86,19 @@ export function resolveListColor(list: WordList): ListColor {
   return list.color ?? DEFAULT_LIST_COLOR
 }
 
+/**
+ * Card accent classes per list color, from the app's theme tokens.
+ * The list cards and the list editor's pattern top bars share these,
+ * so changing the list color reads everywhere at once.
+ */
+export const LIST_ACCENT_CLASSES: Record<ListColor, { bar: string; fill: string; soft: string; text: string }> = {
+  leaf: { bar: 'bg-leaf', fill: 'bg-leaf', soft: 'bg-leaf-soft', text: 'text-leaf-ink' },
+  sky: { bar: 'bg-sky', fill: 'bg-sky', soft: 'bg-sky-soft', text: 'text-sky-ink' },
+  plum: { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
+  sun: { bar: 'bg-sun', fill: 'bg-sun', soft: 'bg-sun-soft', text: 'text-sun-ink' },
+  coral: { bar: 'bg-coral', fill: 'bg-coral', soft: 'bg-coral-soft', text: 'text-coral-ink' },
+}
+
 /** A teacher's pattern-based spelling list. */
 export const WordListSchema = z.object({
   id: z.string().min(1),
