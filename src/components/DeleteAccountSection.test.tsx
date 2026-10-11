@@ -55,6 +55,18 @@ describe('DeleteAccountSection', () => {
     expect(screen.getByText('This cannot be undone.')).toBeInTheDocument()
   })
 
+  it('separates the modal action buttons with a gap', async () => {
+    render(<DeleteAccountSection />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+    const footer = document.querySelector('[data-slot="dialog-footer"]')
+    expect(footer).not.toBeNull()
+    expect(footer?.className).toMatch(/gap-[1-9]/)
+    expect(footer?.className).not.toMatch(/gap-0/)
+  })
+
   it('keeps the delete button disabled until the typed email matches', async () => {
     render(<DeleteAccountSection />)
     fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
