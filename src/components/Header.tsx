@@ -337,7 +337,7 @@ export function Header() {
                   asChild
                   className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
                 >
-                  <Link href="/feedback">Report an issue</Link>
+                  <Link href="/feedback">Give feedback</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-line" />
                 <DropdownMenuItem
@@ -425,7 +425,7 @@ export function Header() {
                   </SheetClose>
                   <SheetClose asChild>
                     <Button size="lg" variant="ghost" asChild className="justify-start px-4">
-                      <Link href="/feedback">Report an issue</Link>
+                      <Link href="/feedback">Give feedback</Link>
                     </Button>
                   </SheetClose>
                   <Button
