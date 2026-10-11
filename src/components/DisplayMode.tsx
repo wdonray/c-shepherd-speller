@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getList, getLists, updateList } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
+import FullscreenButton from './FullscreenButton'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import { reportError } from '@/lib/report-error'
@@ -216,6 +217,7 @@ function DisplayModeInner() {
                 Sort words
               </Button>
             )}
+            <FullscreenButton />
           </div>
         </div>
       </div>

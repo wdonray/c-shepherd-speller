@@ -160,6 +160,21 @@ describe('DisplayMode', () => {
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
   })
 
+  it('shows a full screen button in the chart header when supported', async () => {
+    Object.defineProperty(document.documentElement, 'requestFullscreen', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    })
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+    })
+  })
+
   it('shows an error state when the selected list fails to load', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockRejectedValue(new Error('offline'))
