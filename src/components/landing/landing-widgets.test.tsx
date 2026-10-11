@@ -26,9 +26,12 @@ describe('SignedInRedirect', () => {
     expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  it('does not redirect while the session is loading', () => {
+  it('shows a full-screen spinner and does not redirect while the session is loading', () => {
     useSessionMock.mockReturnValue({ data: null, status: 'loading', update: async () => null } as never)
     render(<SignedInRedirect />)
+    const status = screen.getByRole('status', { name: 'Checking sign-in status' })
+    expect(status).toBeVisible()
+    expect(status).toHaveClass('fixed', 'inset-0')
     expect(mockReplace).not.toHaveBeenCalled()
   })
 })
