@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { PlusIcon } from 'lucide-react'
 import { getLists, deleteList, notifyListsChanged } from '@/lib/lists-api'
+import { logActivity } from '@/lib/activity'
 import { type WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
@@ -61,6 +62,9 @@ export default function PatternListsManager() {
     setDeletingList(true)
     try {
       await deleteList(target.id)
+      // No listId: the deleted list's editor no longer exists, so the
+      // entry stays plain text rather than a dead link.
+      logActivity('deleted', target.name)
       setLists((prev) => prev.filter((l) => l.id !== target.id))
       notifyListsChanged()
     } catch (error) {

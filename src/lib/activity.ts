@@ -4,18 +4,23 @@ import { reportError } from './report-error'
 
 /**
  * Recent activity for the teacher dashboard: a small localStorage-backed log
- * of what the teacher did (created a list, practiced, presented). Powers the
- * "Recent activity" section on the dashboard. Local only; never leaves the
- * browser.
+ * of what the teacher did (created, edited, deleted, practiced, presented a
+ * list). Powers the "Recent activity" section on the dashboard. Local only;
+ * never leaves the browser.
  */
 
-export type ActivityKind = 'created' | 'practiced' | 'presented'
+export type ActivityKind = 'created' | 'edited' | 'deleted' | 'practiced' | 'presented'
 
 export interface ActivityEvent {
   id: string
   kind: ActivityKind
   /** Human-readable summary, e.g. "Practiced Week 5: Long A, 8 of 10 correct". */
   text: string
+  /**
+   * Id of the list this event refers to. Absent for events that predate
+   * linking and for deleted lists, whose editor no longer exists.
+   */
+  listId?: string
   /** Unix milliseconds. */
   at: number
 }
@@ -35,7 +40,8 @@ function readRaw(): ActivityEvent[] {
         e !== null &&
         typeof (e as ActivityEvent).id === 'string' &&
         typeof (e as ActivityEvent).text === 'string' &&
-        typeof (e as ActivityEvent).at === 'number'
+        typeof (e as ActivityEvent).at === 'number' &&
+        ((e as ActivityEvent).listId === undefined || typeof (e as ActivityEvent).listId === 'string')
     )
   } catch (error) {
     reportError(error, { location: 'activity.readRaw' })
@@ -48,13 +54,15 @@ export function getActivity(): ActivityEvent[] {
   return readRaw().sort((a, b) => b.at - a.at)
 }
 
-export function logActivity(kind: ActivityKind, text: string): void {
+/** Log an event. listId links the entry back to the list's editor. */
+export function logActivity(kind: ActivityKind, text: string, listId?: string): void {
   try {
     const events = readRaw()
     events.unshift({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       kind,
       text,
+      listId,
       at: Date.now(),
     })
     localStorage.setItem(STORAGE_KEY, JSON.stringify(events.slice(0, MAX_EVENTS)))

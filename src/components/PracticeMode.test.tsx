@@ -225,7 +225,7 @@ describe('PracticeMode', () => {
     expect(screen.getByText('3 of 3 correct')).toBeInTheDocument()
     expect(screen.getByText('Best streak: 3')).toBeInTheDocument()
     expect(screen.getByLabelText('3 of 3 stars')).toBeInTheDocument()
-    expect(logActivity).toHaveBeenCalledWith('practiced', 'Week 5')
+    expect(logActivity).toHaveBeenCalledWith('practiced', 'Week 5', 'l1')
     expect(trackEvent).toHaveBeenCalledWith('practice-session')
     expect(trackEvent).toHaveBeenCalledWith('words-practiced', 3)
     // No misses, so no review button.

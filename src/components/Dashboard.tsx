@@ -37,6 +37,8 @@ const ACTIVITY_META: Record<ActivityEvent['kind'], { label: string; chipClasses:
   practiced: { label: 'Practiced', chipClasses: 'bg-leaf-soft text-leaf-ink' },
   presented: { label: 'Presented', chipClasses: 'bg-sky-soft text-sky-ink' },
   created: { label: 'Created', chipClasses: 'bg-plum-soft text-plum-ink' },
+  edited: { label: 'Edited', chipClasses: 'bg-sun-soft text-sun-ink' },
+  deleted: { label: 'Deleted', chipClasses: 'bg-coral-soft text-coral-ink' },
 }
 
 function GettingStarted() {
@@ -82,7 +84,17 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
                   {meta.label}
                 </span>
                 <p>
-                  {event.text}, <span className="text-muted-foreground">{timeAgo(event.at)}</span>
+                  {event.listId ? (
+                    <Link
+                      href={`/lists/${encodeURIComponent(event.listId)}`}
+                      className="underline decoration-line underline-offset-4 hover:decoration-current"
+                    >
+                      {event.text}
+                    </Link>
+                  ) : (
+                    event.text
+                  )}
+                  , <span className="text-muted-foreground">{timeAgo(event.at)}</span>
                 </p>
               </Card>
             </li>

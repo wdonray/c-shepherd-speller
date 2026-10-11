@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
+import { logActivity } from '@/lib/activity'
 import {
   generatePatternId,
   isPatternComplete,
@@ -110,6 +111,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
+  /** Whether this editor visit already logged an "edited" activity event. */
+  const editLoggedRef = useRef(false)
   /**
    * Id of the pattern added most recently, waiting for its card to mount so
    * it can be scrolled into view. Cleared the moment the scroll fires.
@@ -161,6 +164,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
         })
           .then(() => {
+            // Log the once-per-visit edit entry only now that the flush
+            // actually succeeded.
+            if (!editLoggedRef.current) {
+              editLoggedRef.current = true
+              logActivity('edited', pending.name, pending.id)
+            }
             notifyListsChanged()
           })
           .catch((error: unknown) => {
@@ -193,6 +202,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         color: next.color,
         patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
       })
+      // Log the once-per-visit edit entry only now that the autosave
+      // succeeded. Skipped blank-name saves and failed updates below leave
+      // the activity trail alone.
+      if (!editLoggedRef.current) {
+        editLoggedRef.current = true
+        logActivity('edited', next.name, next.id)
+      }
       notifyListsChanged()
       setSaveFailed(false)
       setSaveStatus('saved')
@@ -217,7 +233,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     }, SAVE_DEBOUNCE_MS)
   }
 
-  /** Apply a local edit and schedule its auto-save. */
+  /** Apply a local edit and schedule its auto-save. The once-per-visit
+   * edit activity entry is logged from the successful save paths, not here,
+   * so skipped or failed saves never leave a phantom "edited" entry. */
   function applyChange(next: WordList): void {
     setList(next)
     scheduleAutosave(next)

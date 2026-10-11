@@ -30,6 +30,20 @@ describe('activity log', () => {
     expect(events[0].at).toBeGreaterThan(events[1].at)
   })
 
+  it('stores the list id with the event', () => {
+    logActivity('created', 'Created Week 5: Long A', 'l1')
+    logActivity('edited', 'Edited Week 5: Long A', 'l1')
+    logActivity('deleted', 'Deleted Week 4: Long U')
+
+    const events = getActivity()
+    expect(events).toHaveLength(3)
+    expect(events[0].listId).toBeUndefined()
+    expect(events[1].kind).toBe('edited')
+    expect(events[1].listId).toBe('l1')
+    expect(events[2].kind).toBe('created')
+    expect(events[2].listId).toBe('l1')
+  })
+
   it('caps the log at 20 events', () => {
     for (let i = 0; i < 25; i++) {
       vi.setSystemTime(new Date(`2026-10-06T12:00:${String(i).padStart(2, '0')}Z`))
@@ -54,6 +68,12 @@ describe('activity log', () => {
     expect(getActivity()).toEqual([])
 
     localStorage.setItem('shepherd-speller-activity', JSON.stringify([{ bogus: true }, 'nope', null]))
+    expect(getActivity()).toEqual([])
+
+    localStorage.setItem(
+      'shepherd-speller-activity',
+      JSON.stringify([{ id: 'a', kind: 'created', text: 'x', listId: 42, at: 1 }])
+    )
     expect(getActivity()).toEqual([])
   })
 

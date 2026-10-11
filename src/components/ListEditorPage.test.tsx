@@ -16,6 +16,11 @@ vi.mock('@/lib/lists-api', () => ({
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
 
+const { logActivity } = vi.hoisted(() => ({
+  logActivity: vi.fn(),
+}))
+vi.mock('@/lib/activity', () => ({ logActivity }))
+
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))
@@ -67,6 +72,9 @@ async function waitForSave() {
   await waitFor(() => expect(updateList).toHaveBeenCalled(), { timeout: 3000 })
   await waitFor(() => expect(screen.queryByText('Saving...')).not.toBeInTheDocument(), { timeout: 3000 })
 }
+
+/** Wait long enough for a debounced save attempt to fire, for tests where no save is expected. */
+const SAVE_DEBOUNCE_WAIT_MS = 750
 
 describe('ListEditorPage', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>>
@@ -136,6 +144,47 @@ describe('ListEditorPage', () => {
     expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
     expect(notifyListsChanged).toHaveBeenCalled()
     expect(screen.getByText('Saved')).toBeInTheDocument()
+  })
+
+  it('logs one edited activity event after the first successful save of a visit', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    const name = screen.getByLabelText('List name')
+    fireEvent.change(name, { target: { value: 'Renamed' } })
+    fireEvent.change(name, { target: { value: 'Renamed again' } })
+
+    // Nothing is logged before the save completes.
+    expect(logActivity).not.toHaveBeenCalled()
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed again' }))
+    expect(logActivity).toHaveBeenCalledTimes(1)
+    expect(logActivity).toHaveBeenCalledWith('edited', 'Renamed again', 'l1')
+  })
+
+  it('does not log an edited activity event when the save fails', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+
+    await waitForSave()
+    expect(logActivity).not.toHaveBeenCalled()
+  })
+
+  it('does not log an edited activity event when the name is blank and the save is skipped', async () => {
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: '   ' } })
+
+    // Let the debounce elapse; the save is skipped for blank names, so just
+    // wait out the timer rather than waiting for a save.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, SAVE_DEBOUNCE_WAIT_MS))
+    })
+    expect(updateList).not.toHaveBeenCalled()
+    expect(logActivity).not.toHaveBeenCalled()
   })
 
   it('debounces rapid edits into a single save', async () => {
@@ -369,6 +418,29 @@ describe('ListEditorPage', () => {
     await waitFor(() => {
       expect(notifyListsChanged).toHaveBeenCalled()
     })
+  })
+
+  it('does not log a second edited event when a later edit is flushed on unmount', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue(list)
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitForSave()
+    expect(logActivity).toHaveBeenCalledTimes(1)
+
+    // A second edit is flushed on unmount; the successful flush must not log again.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed again' } })
+    unmount()
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed again' }))
+    })
+    await waitFor(() => {
+      expect(notifyListsChanged).toHaveBeenCalled()
+    })
+    expect(logActivity).toHaveBeenCalledTimes(1)
   })
 
   it('does not save on unmount when nothing is pending', async () => {

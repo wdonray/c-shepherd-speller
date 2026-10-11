@@ -16,6 +16,11 @@ vi.mock('@/lib/lists-api', () => ({
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
 
+const { logActivity } = vi.hoisted(() => ({
+  logActivity: vi.fn(),
+}))
+vi.mock('@/lib/activity', () => ({ logActivity }))
+
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...rest}>
@@ -161,6 +166,7 @@ describe('PatternListsManager', () => {
       expect(deleteList).toHaveBeenCalledWith('l1')
     })
     expect(notifyListsChanged).toHaveBeenCalled()
+    expect(logActivity).toHaveBeenCalledWith('deleted', 'Week 5: Long A')
     await waitFor(() => {
       expect(screen.getByText('My word lists (1)')).toBeInTheDocument()
     })

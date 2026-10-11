@@ -135,7 +135,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       return
     }
     if (currentIndex + 1 >= allWords.length) {
-      logActivity('practiced', list.name)
+      logActivity('practiced', list.name, list.id)
       trackEvent('practice-session')
       trackEvent('words-practiced', allWords.length)
       setPhase('complete')
