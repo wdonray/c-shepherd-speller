@@ -44,9 +44,9 @@ test.describe('display mode', () => {
       const id = await seedPatternList(page)
       await page.goto(`/display?list=${id}`)
 
-      // Sound header with a hear button.
-      await expect(page.getByText('long a')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Hear the sound long a' })).toBeVisible()
+      // List name header above the chart.
+      await expect(page.getByText('E2E Long A')).toBeVisible()
+      await expect(page.getByText('long a')).not.toBeVisible()
 
       // One column per regular pattern.
       await expect(page.getByRole('region', { name: 'Pattern a_e' })).toBeVisible()
