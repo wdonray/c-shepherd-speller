@@ -420,6 +420,29 @@ describe('ListEditorPage', () => {
     })
   })
 
+  it('does not log a second edited event when a later edit is flushed on unmount', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue(list)
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitForSave()
+    expect(logActivity).toHaveBeenCalledTimes(1)
+
+    // A second edit is flushed on unmount; the successful flush must not log again.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed again' } })
+    unmount()
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed again' }))
+    })
+    await waitFor(() => {
+      expect(notifyListsChanged).toHaveBeenCalled()
+    })
+    expect(logActivity).toHaveBeenCalledTimes(1)
+  })
+
   it('does not save on unmount when nothing is pending', async () => {
     getList.mockResolvedValue(list)
     const { unmount } = render(<ListEditorPage listId="l1" />)
