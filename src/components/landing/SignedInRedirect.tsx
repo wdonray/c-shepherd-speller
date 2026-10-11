@@ -8,8 +8,10 @@ import { Loader2 } from 'lucide-react'
 /**
  * Signed-in visitors have no use for the marketing page; send them
  * straight to the app dashboard instead of showing login buttons.
- * While the session is still loading we cover the page with a spinner
- * so visitors never see the landing page flash before the redirect.
+ * The full-screen cover stays up until we know the visitor is signed
+ * out, so the landing page never flashes: not while the session is
+ * loading, and not in the gap between auth resolving and the redirect
+ * to /home completing.
  */
 export function SignedInRedirect() {
   const { status } = useSession()
@@ -21,7 +23,7 @@ export function SignedInRedirect() {
     }
   }, [status, router])
 
-  if (status !== 'loading') {
+  if (status === 'unauthenticated') {
     return null
   }
 

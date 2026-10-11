@@ -13,9 +13,14 @@ vi.mock('next/navigation', () => ({
 const useSessionMock = vi.mocked(useSession)
 
 describe('SignedInRedirect', () => {
-  it('redirects authenticated users to /home', () => {
+  it('redirects authenticated users to /home while keeping the cover up', () => {
     useSessionMock.mockReturnValue({ data: {}, status: 'authenticated', update: async () => null } as never)
     render(<SignedInRedirect />)
+    // The full-screen cover stays up while the redirect is in flight so the
+    // landing page never flashes between auth resolving and navigation.
+    const status = screen.getByRole('status', { name: 'Checking sign-in status' })
+    expect(status).toBeVisible()
+    expect(status).toHaveClass('fixed', 'inset-0', 'z-[60]')
     expect(mockReplace).toHaveBeenCalledWith('/home')
   })
 
