@@ -1,69 +1,72 @@
-'use client'
+"use client";
 
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useMemo, useEffect, useLayoutEffect, useState } from 'react'
-import Dashboard from '@/components/Dashboard'
-import type { WordList } from '@/models/WordList'
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useMemo, useEffect, useLayoutEffect, useState } from "react";
+import Dashboard from "@/components/Dashboard";
+import type { WordList } from "@/models/WordList";
 
 export default function HomePage() {
-  const { data: session, status } = useSession()
-  const [isSyncing, setIsSyncing] = useState(false)
-  const router = useRouter()
+  const { data: session, status } = useSession();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const router = useRouter();
 
   // Start at the top of the page on load. useLayoutEffect runs before paint
   // so there is no flash of a scrolled position, and the rAF re-pin catches
   // iOS Safari nudging scroll while its toolbar settles after load.
   // (history.scrollRestoration only covers history navigation, not fresh loads.)
   useLayoutEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual'
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
     }
-    window.scrollTo(0, 0)
-    let frames = 2
-    let raf = 0
+    window.scrollTo(0, 0);
+    let frames = 2;
+    let raf = 0;
     const pinToTop = () => {
-      window.scrollTo(0, 0)
-      frames -= 1
+      window.scrollTo(0, 0);
+      frames -= 1;
       if (frames > 0) {
-        raf = requestAnimationFrame(pinToTop)
+        raf = requestAnimationFrame(pinToTop);
       }
-    }
-    raf = requestAnimationFrame(pinToTop)
-    return () => cancelAnimationFrame(raf)
-  }, [])
+    };
+    raf = requestAnimationFrame(pinToTop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     async function syncUser() {
-      setIsSyncing(true)
+      setIsSyncing(true);
 
-      const email = session?.user?.email
+      const email = session?.user?.email;
 
       if (!email) {
-        setIsSyncing(false)
-        return
+        setIsSyncing(false);
+        return;
       }
 
-      const user = await fetch(`/api/users?email=${email}`)
-      const userData = await user.json()
+      try {
+        const user = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
+        if (!user.ok) return;
+        const userData = await user.json();
 
-      if (!userData.user.id) {
-        await fetch(`/api/users`, {
-          method: 'POST',
-          body: JSON.stringify({
-            email,
-            name: session?.user?.name || '',
-          }),
-        })
+        if (!userData.user?.id) {
+          await fetch(`/api/users`, {
+            method: "POST",
+            body: JSON.stringify({
+              email,
+              name: session?.user?.name || "",
+            }),
+          });
+        }
+      } finally {
+        setIsSyncing(false);
       }
-
-      setIsSyncing(false)
     }
 
-    syncUser()
-  }, [session?.user])
+    syncUser();
+  }, [session?.user]);
 
-  const isLoading = useMemo(() => status === 'loading' || isSyncing, [status, isSyncing])
+  const isLoading = useMemo(() => status === "loading" || isSyncing, [status, isSyncing]);
 
   if (isLoading) {
     return (
@@ -113,15 +116,15 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <>
       <Dashboard
-        onNewList={() => router.push('/lists/new')}
+        onNewList={() => router.push("/lists/new")}
         onEditList={(list: WordList) => router.push(`/lists/${encodeURIComponent(list.id)}`)}
       />
     </>
-  )
+  );
 }
