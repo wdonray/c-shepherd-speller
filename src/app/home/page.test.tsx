@@ -105,6 +105,31 @@ describe('Home page (/home)', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('renders the dashboard when the user lookup returns an error', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: false, json: async () => ({ error: 'boom' }) }))
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
+  })
+
+  it('renders the dashboard when user sync fails', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => {
+      throw new Error('network down')
+    })
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('status', { name: 'Loading dashboard' })).not.toBeInTheDocument()
+  })
+
   it('navigates to the new-list page when New list is clicked', async () => {
     mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
     stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
