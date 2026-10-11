@@ -129,18 +129,22 @@ describe('FeedbackForm', () => {
     expect(reportError).toHaveBeenCalledTimes(1)
   })
 
-  it('ignores a second submit while sending', async () => {
+  it('ignores a second submit while a send is in flight', async () => {
     let resolveFetch!: (value: { ok: boolean; status: number }) => void
     fetchMock.mockReturnValue(new Promise((resolve) => (resolveFetch = resolve)))
     render(<FeedbackForm />)
     fillValidForm()
 
-    const button = screen.getByRole('button', { name: 'Send message' })
-    fireEvent.click(button)
-    fireEvent.click(button)
+    // Submit the form directly: the submit button is disabled while sending,
+    // so this is the only way to reach the in-flight guard.
+    const form = document.querySelector('form')
+    expect(form).toBeInTheDocument()
+    fireEvent.submit(form!)
+    fireEvent.submit(form!)
     resolveFetch({ ok: true, status: 200 })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
   })
 
   it('shows character counts for subject and details', () => {
