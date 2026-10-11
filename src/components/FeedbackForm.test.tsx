@@ -93,6 +93,19 @@ describe('FeedbackForm', () => {
     expect(honeypot).toHaveAttribute('tabindex', '-1')
   })
 
+  it('submits the honeypot value so the server can reject bot fills', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    fillValidForm()
+    fireEvent.change(document.getElementById('website')!, { target: { value: 'http://spam.example' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Message sent')).toBeInTheDocument()
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body).website).toBe('http://spam.example')
+  })
+
   it('shows the server message when verification fails', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
