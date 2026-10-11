@@ -25,7 +25,6 @@ describe('FeedbackForm', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
-    // @ts-expect-error test cleanup
     delete window.turnstile
     resetTurnstileScript()
   })
