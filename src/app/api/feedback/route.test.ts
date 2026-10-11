@@ -1,0 +1,110 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+
+const { requireSession } = vi.hoisted(() => ({ requireSession: vi.fn() }))
+vi.mock('@/lib/require-auth', () => ({ requireSession }))
+
+const { sendFeedbackEmail } = vi.hoisted(() => ({ sendFeedbackEmail: vi.fn() }))
+vi.mock('@/lib/feedback-email', () => ({ sendFeedbackEmail }))
+
+import { POST } from './route'
+import { resetRateLimits } from '@/lib/antibot'
+import { version } from '../../../../package.json'
+
+const authed = {
+  session: { user: { email: 'Teacher@Example.com', name: 'Chaley Williams' } },
+  response: null,
+}
+
+const validBody = {
+  type: 'issue',
+  subject: 'Print button is broken',
+  details: 'Clicking print on the list page does nothing at all.',
+}
+
+function jsonRequest(body: unknown): NextRequest {
+  return new NextRequest('http://localhost/api/feedback', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+describe('POST /api/feedback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resetRateLimits()
+  })
+
+  it('returns 401 when not signed in', async () => {
+    requireSession.mockResolvedValue({
+      session: null,
+      response: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
+    })
+
+    const res = await POST(jsonRequest(validBody))
+
+    expect(res.status).toBe(401)
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when the body is not JSON', async () => {
+    requireSession.mockResolvedValue(authed)
+    const req = new NextRequest('http://localhost/api/feedback', { method: 'POST', body: 'not json {' })
+
+    const res = await POST(req)
+
+    expect(res.status).toBe(400)
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when the payload fails validation', async () => {
+    requireSession.mockResolvedValue(authed)
+
+    const res = await POST(jsonRequest({ ...validBody, details: 'x' }))
+
+    expect(res.status).toBe(400)
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('emails the feedback with the caller address, name, and app version', async () => {
+    requireSession.mockResolvedValue(authed)
+    sendFeedbackEmail.mockResolvedValue(undefined)
+
+    const res = await POST(jsonRequest(validBody))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(sendFeedbackEmail).toHaveBeenCalledWith({
+      type: 'issue',
+      subject: 'Print button is broken',
+      details: 'Clicking print on the list page does nothing at all.',
+      reporterEmail: 'Teacher@Example.com',
+      reporterName: 'Chaley Williams',
+      appVersion: version,
+    })
+  })
+
+  it('rate limits to five messages per user per hour', async () => {
+    requireSession.mockResolvedValue(authed)
+    sendFeedbackEmail.mockResolvedValue(undefined)
+
+    for (let i = 0; i < 5; i++) {
+      const res = await POST(jsonRequest(validBody))
+      expect(res.status).toBe(200)
+    }
+
+    const limited = await POST(jsonRequest(validBody))
+    expect(limited.status).toBe(429)
+    expect(sendFeedbackEmail).toHaveBeenCalledTimes(5)
+  })
+
+  it('returns 500 when sending fails', async () => {
+    requireSession.mockResolvedValue(authed)
+    sendFeedbackEmail.mockRejectedValue(new Error('MessageRejected'))
+
+    const res = await POST(jsonRequest(validBody))
+
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Could not send your message. Please try again.')
+  })
+})
