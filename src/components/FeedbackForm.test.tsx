@@ -80,7 +80,45 @@ describe('FeedbackForm', () => {
       type: 'feature',
       subject: 'Print button is broken',
       details: validDetails,
+      website: '',
     })
+  })
+
+  it('renders a honeypot field hidden from assistive tech', () => {
+    render(<FeedbackForm />)
+
+    const honeypot = document.getElementById('website')
+    expect(honeypot).toBeInTheDocument()
+    expect(honeypot?.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(honeypot).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('shows the server message when verification fails', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: 'Verification failed. Please try again.' }),
+    })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Verification failed. Please try again.')).toBeInTheDocument()
+    expect(screen.queryByText('Message sent')).not.toBeInTheDocument()
+  })
+
+  it('blocks submit when the Turnstile challenge produces no token', async () => {
+    vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', 'test-site-key')
+    fetchMock.mockResolvedValue({ ok: true, status: 200 })
+    render(<FeedbackForm />)
+    fillValidForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
+
+    expect(await screen.findByText('Could not verify you are human. Please try again.')).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllEnvs()
   })
 
   it('resets to a blank form from the success state', async () => {

@@ -9,6 +9,15 @@ vi.mock('@/lib/feedback-email', () => ({ sendFeedbackEmail }))
 
 import { POST } from './route'
 import { resetRateLimits } from '@/lib/antibot'
+
+vi.mock('@/lib/antibot', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  verifyTurnstileToken: vi.fn(async () => ({ ok: true })),
+}))
+
+const { verifyTurnstileToken } = await import('@/lib/antibot')
+const verifyTurnstileTokenMock = vi.mocked(verifyTurnstileToken)
+
 import { version } from '../../../../package.json'
 
 const authed = {
@@ -33,6 +42,7 @@ describe('POST /api/feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetRateLimits()
+    verifyTurnstileTokenMock.mockResolvedValue({ ok: true })
   })
 
   it('returns 401 when not signed in', async () => {
@@ -106,5 +116,67 @@ describe('POST /api/feedback', () => {
 
     expect(res.status).toBe(500)
     expect((await res.json()).error).toBe('Could not send your message. Please try again.')
+  })
+
+  it('verifies the Turnstile token with the client IP', async () => {
+    requireSession.mockResolvedValue(authed)
+    sendFeedbackEmail.mockResolvedValue(undefined)
+
+    const res = await POST(jsonRequest({ ...validBody, turnstileToken: 'token-123' }))
+
+    expect(res.status).toBe(200)
+    expect(verifyTurnstileTokenMock).toHaveBeenCalledWith('token-123', 'unknown')
+  })
+
+  it('returns 403 when Turnstile verification fails', async () => {
+    requireSession.mockResolvedValue(authed)
+    verifyTurnstileTokenMock.mockResolvedValue({ ok: false, reason: 'invalid' })
+
+    const res = await POST(jsonRequest(validBody))
+
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toBe('Verification failed. Please try again.')
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('returns 503 when Turnstile is unconfigured', async () => {
+    requireSession.mockResolvedValue(authed)
+    verifyTurnstileTokenMock.mockResolvedValue({ ok: false, reason: 'unconfigured' })
+
+    const res = await POST(jsonRequest(validBody))
+
+    expect(res.status).toBe(503)
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('rejects a filled honeypot without verifying Turnstile or sending', async () => {
+    requireSession.mockResolvedValue(authed)
+
+    const res = await POST(jsonRequest({ ...validBody, website: 'http://spam.example' }))
+
+    expect(res.status).toBe(400)
+    expect(verifyTurnstileTokenMock).not.toHaveBeenCalled()
+    expect(sendFeedbackEmail).not.toHaveBeenCalled()
+  })
+
+  it('rate limits to twenty messages per IP per hour across users', async () => {
+    sendFeedbackEmail.mockResolvedValue(undefined)
+
+    for (let i = 0; i < 20; i++) {
+      requireSession.mockResolvedValue({
+        session: { user: { email: `user${i}@example.com`, name: `User ${i}` } },
+        response: null,
+      })
+      const res = await POST(jsonRequest(validBody))
+      expect(res.status).toBe(200)
+    }
+
+    requireSession.mockResolvedValue({
+      session: { user: { email: 'user20@example.com', name: 'User 20' } },
+      response: null,
+    })
+    const limited = await POST(jsonRequest(validBody))
+    expect(limited.status).toBe(429)
+    expect(sendFeedbackEmail).toHaveBeenCalledTimes(20)
   })
 })

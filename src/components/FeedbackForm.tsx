@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CircleCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FeedbackSchema, FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/models/Feedback'
 import { cn } from '@/lib/utils'
 import { reportError } from '@/lib/report-error'
+import TurnstileWidget, { type TurnstileHandle } from '@/app/auth/email/_components/turnstile-widget'
 
 const SUBJECT_MAX = 120
 const DETAILS_MAX = 5000
@@ -26,15 +27,20 @@ export default function FeedbackForm() {
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('issue')
   const [subject, setSubject] = useState('')
   const [details, setDetails] = useState('')
+  // Honeypot: hidden from real users; bots that fill every field trip it.
+  const [website, setWebsite] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ subject?: string; details?: string }>({})
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const turnstileRef = useRef<TurnstileHandle>(null)
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   function reset() {
     setFeedbackType('issue')
     setSubject('')
     setDetails('')
+    setWebsite('')
     setFieldErrors({})
     setSubmitError(null)
     setSent(false)
@@ -53,15 +59,26 @@ export default function FeedbackForm() {
     setSending(true)
     setSubmitError(null)
     try {
+      // Invisible Turnstile challenge; skipped entirely when no site key is
+      // configured (local dev). The server enforces the token in production.
+      let turnstileToken: string | undefined
+      if (turnstileSiteKey) {
+        turnstileToken = (await turnstileRef.current?.execute()) ?? undefined
+        if (!turnstileToken) {
+          setSubmitError('Could not verify you are human. Please try again.')
+          return
+        }
+      }
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({ ...parsed.data, website, turnstileToken }),
       })
       if (res.status === 429) {
         setSubmitError('You have sent a few messages recently. Please wait a little while and try again.')
       } else if (!res.ok) {
-        setSubmitError('Something went wrong sending your message. Please try again.')
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        setSubmitError(body?.error ?? 'Something went wrong sending your message. Please try again.')
       } else {
         setSent(true)
       }
@@ -167,6 +184,20 @@ export default function FeedbackForm() {
           {submitError}
         </p>
       )}
+      {/* Honeypot: positioned off-screen, never focusable, ignored by assistive tech. */}
+      <div aria-hidden="true" className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0">
+        <Label htmlFor="website">Website</Label>
+        <Input
+          id="website"
+          name="website"
+          type="text"
+          autoComplete="off"
+          tabIndex={-1}
+          value={website}
+          onChange={(event) => setWebsite(event.target.value)}
+        />
+      </div>
+      {turnstileSiteKey ? <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} /> : null}
       <div>
         <Button type="submit" disabled={sending}>
           {sending ? 'Sending...' : 'Send message'}
