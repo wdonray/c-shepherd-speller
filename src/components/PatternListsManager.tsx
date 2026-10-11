@@ -83,7 +83,7 @@ export default function PatternListsManager() {
           <div className="h-10 w-28 animate-pulse rounded-2xl bg-line/60" />
         </div>
         {/* List cards: match WordListCard structure */}
-        <div className="grid gap-4" aria-hidden="true">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
           {[0, 1].map((i) => (
             <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
               <div className="h-2 w-full animate-pulse bg-line/60" />
@@ -140,7 +140,7 @@ export default function PatternListsManager() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="lists-grid">
               {lists.map((list) => (
                 <WordListCard
                   key={list.id}
