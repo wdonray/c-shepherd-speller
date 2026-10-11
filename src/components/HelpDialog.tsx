@@ -26,7 +26,7 @@ const FAQS = [
   {
     question: 'Where is my data stored?',
     answer:
-      'In your PatternSpell account. Exports download as a JSON backup file you can keep or move to another account.',
+      'In your PatternSpell account. You can save your lists to a file to share with another teacher, or keep it as a backup.',
   },
   {
     question: 'Does PatternSpell work offline?',

@@ -52,7 +52,7 @@ test.describe('mobile header menu', () => {
     await expect(menu.getByRole('link', { name: 'Present' })).toBeVisible()
     await expect(menu.getByText('Account')).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Profile' })).toBeVisible()
-    await expect(menu.getByRole('button', { name: /import \/ export/i })).toBeVisible()
+    await expect(menu.getByRole('button', { name: /share lists/i })).toBeVisible()
     await expect(menu.getByRole('button', { name: /theme:/i })).toBeVisible()
     await expect(menu.getByRole('button', { name: /get help/i })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Version' })).toBeVisible()
