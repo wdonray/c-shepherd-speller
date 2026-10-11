@@ -366,6 +366,9 @@ describe('ListEditorPage', () => {
     await waitFor(() => {
       expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ name: 'Renamed' }))
     })
+    await waitFor(() => {
+      expect(notifyListsChanged).toHaveBeenCalled()
+    })
   })
 
   it('does not save on unmount when nothing is pending', async () => {

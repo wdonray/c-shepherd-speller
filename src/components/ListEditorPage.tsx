@@ -159,11 +159,15 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           gradeLevel: pending.gradeLevel,
           color: pending.color,
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
-        }).catch((error: unknown) => {
-          // The page is gone; the save state can't be shown, but the
-          // failure is still reported.
-          reportError(error, { location: 'ListEditorPage.flushPendingSave' })
         })
+          .then(() => {
+            notifyListsChanged()
+          })
+          .catch((error: unknown) => {
+            // The page is gone; the save state can't be shown, but the
+            // failure is still reported.
+            reportError(error, { location: 'ListEditorPage.flushPendingSave' })
+          })
       }
     }
   }, [])
