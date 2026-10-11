@@ -159,11 +159,8 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
-      <div className="space-y-2">
+      <div>
         <h1 className="text-3xl font-bold">{greeting}</h1>
-        {!loading && !loadError && (
-          <p className="text-muted-foreground">Here is your spelling toolkit for this week.</p>
-        )}
       </div>
 
       {loading ? (
