@@ -7,6 +7,8 @@
 
 A login-gated web app for teachers to manage classroom spelling lists (words, sounds, spelling patterns) and store them in DynamoDB. Google OAuth and optional Cognito email/password handle sign-in.
 
+> **Why this exists:** see [docs/why-patternspell.md](docs/why-patternspell.md) for the reasoning behind PatternSpell: who it's for, what problem it solves, and why pattern-based spelling instruction works. That document is the source of truth for product positioning and should guide landing page copy, user guides, and any public description of the tool.
+
 > **Renamed:** this project was formerly called "Shepherd Speller". The repository name (`c-shepherd-speller`) and infrastructure names (DynamoDB tables, etc.) are intentionally unchanged; only the product name and branding are now PatternSpell.
 
 ## Status

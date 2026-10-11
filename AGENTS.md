@@ -3,6 +3,15 @@
 Operating notes for AI agents working in this repo. Donray is the owner;
 he decides, you execute. He verifies your work as a habit, be precise.
 
+## Product positioning
+
+**Source of truth:** `docs/why-patternspell.md` explains why PatternSpell exists, who it's for, and what problem it solves. Read it before writing any user-facing copy, landing page content, or user guides. The key points:
+
+- For elementary teachers who teach spelling through phonics patterns (any curriculum).
+- Solves slow list-building and hard classroom display.
+- Pattern chart display is the teacher-preferred format (not a tree).
+- Not a game site, not a curriculum replacement, not student-facing.
+
 ## Workflow
 
 - **One PR per task.** Small, focused PRs. Merge as soon as all required CI
