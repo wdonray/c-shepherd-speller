@@ -41,7 +41,6 @@ export default function FeedbackForm() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const turnstileRef = useRef<TurnstileHandle>(null)
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
@@ -50,9 +49,9 @@ export default function FeedbackForm() {
     setSubject('')
     setDetails('')
     setWebsite('')
+    // No need to clear the file input element: reset only runs from the
+    // success view, where the form is unmounted, so it remounts empty.
     setAttachment(null)
-    // The file input always renders, so the ref is set whenever reset runs.
-    fileInputRef.current!.value = ''
     setFieldErrors({})
     setSubmitError(null)
     setSent(false)
@@ -221,7 +220,6 @@ export default function FeedbackForm() {
         <Label htmlFor="feedback-attachment">Screenshot (optional)</Label>
         <Input
           id="feedback-attachment"
-          ref={fileInputRef}
           type="file"
           accept="image/png,image/jpeg,image/gif,image/webp"
           onChange={handleAttachmentChange}
