@@ -5,12 +5,10 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { cn } from '@/lib/utils'
-import type { WordList, PatternFrequency } from '@/models/WordList'
+import { resolveListColor, type WordList, type PatternFrequency, type ListColor } from '@/models/WordList'
 
 interface WordListCardProps {
   list: WordList
-  /** Position in the grid; picks the card's accent color. */
-  index?: number
   /** Primary action handler. Not needed when `href` makes the whole card a link. */
   onOpen?: (list: WordList) => void
   /** When provided, renders a Delete button (used by the list manager). */
@@ -29,11 +27,14 @@ interface WordListCardProps {
   href?: string
 }
 
-const ACCENTS = [
-  { bar: 'bg-leaf', fill: 'bg-leaf', soft: 'bg-leaf-soft', text: 'text-leaf-ink' },
-  { bar: 'bg-sky', fill: 'bg-sky', soft: 'bg-sky-soft', text: 'text-sky-ink' },
-  { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
-] as const
+/** Card accent classes per list color, from the app's theme tokens. */
+const ACCENTS: Record<ListColor, { bar: string; fill: string; soft: string; text: string }> = {
+  leaf: { bar: 'bg-leaf', fill: 'bg-leaf', soft: 'bg-leaf-soft', text: 'text-leaf-ink' },
+  sky: { bar: 'bg-sky', fill: 'bg-sky', soft: 'bg-sky-soft', text: 'text-sky-ink' },
+  plum: { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
+  sun: { bar: 'bg-sun', fill: 'bg-sun', soft: 'bg-sun-soft', text: 'text-sun-ink' },
+  coral: { bar: 'bg-coral', fill: 'bg-coral', soft: 'bg-coral-soft', text: 'text-coral-ink' },
+}
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
   common: 3,
@@ -44,7 +45,6 @@ const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
 /** Summary card for a pattern-based word list. */
 export default function WordListCard({
   list,
-  index = 0,
   onOpen,
   onDelete,
   showPresent = true,
@@ -54,7 +54,7 @@ export default function WordListCard({
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
-  const accent = ACCENTS[index % ACCENTS.length]
+  const accent = ACCENTS[resolveListColor(list)]
 
   return (
     <Card className="relative overflow-hidden">

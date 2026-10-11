@@ -57,17 +57,19 @@ describe('WordListCard', () => {
     expect(screen.getByText('5 patterns, 5 words')).toBeInTheDocument()
   })
 
-  it('cycles the accent color by index', () => {
+  it('uses the list color for the accent bar', () => {
     const { container, rerender } = render(
-      <WordListCard list={list} index={0} onOpen={vi.fn()} primaryLabel="Edit list" />
+      <WordListCard list={{ ...list, color: 'sky' }} onOpen={vi.fn()} primaryLabel="Edit list" />
     )
-    expect(container.querySelector('.bg-leaf.h-2')).toBeInTheDocument()
-
-    rerender(<WordListCard list={list} index={1} onOpen={vi.fn()} primaryLabel="Edit list" />)
     expect(container.querySelector('.bg-sky.h-2')).toBeInTheDocument()
 
-    rerender(<WordListCard list={list} index={2} onOpen={vi.fn()} primaryLabel="Edit list" />)
-    expect(container.querySelector('.bg-plum.h-2')).toBeInTheDocument()
+    rerender(<WordListCard list={{ ...list, color: 'coral' }} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(container.querySelector('.bg-coral.h-2')).toBeInTheDocument()
+  })
+
+  it('falls back to the default color when the list has none stored', () => {
+    const { container } = render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(container.querySelector('.bg-leaf.h-2')).toBeInTheDocument()
   })
 
   it('calls onOpen when Open is clicked', () => {

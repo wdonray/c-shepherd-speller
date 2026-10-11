@@ -17,9 +17,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
-import { generatePatternId, isPatternComplete, type WordList, type SpellingPattern } from '@/models/WordList'
+import {
+  generatePatternId,
+  isPatternComplete,
+  resolveListColor,
+  type ListColor,
+  type WordList,
+  type SpellingPattern,
+} from '@/models/WordList'
 import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-changes-guard'
 import PatternEditor from './PatternEditor'
+import ListColorPicker from './ListColorPicker'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 
@@ -149,12 +157,17 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         updateList(pending.id, {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
+          color: pending.color,
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
-        }).catch((error: unknown) => {
-          // The page is gone; the save state can't be shown, but the
-          // failure is still reported.
-          reportError(error, { location: 'ListEditorPage.flushPendingSave' })
         })
+          .then(() => {
+            notifyListsChanged()
+          })
+          .catch((error: unknown) => {
+            // The page is gone; the save state can't be shown, but the
+            // failure is still reported.
+            reportError(error, { location: 'ListEditorPage.flushPendingSave' })
+          })
       }
     }
   }, [])
@@ -177,6 +190,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       await updateList(next.id, {
         name: next.name,
         gradeLevel: next.gradeLevel,
+        color: next.color,
         patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
       })
       notifyListsChanged()
@@ -342,6 +356,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             onChange={(e) => applyChange({ ...list, gradeLevel: e.target.value || undefined })}
             placeholder="e.g. 1"
             maxLength={20}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-2 text-sm leading-none font-medium select-none">List color</span>
+          <ListColorPicker
+            value={resolveListColor(list)}
+            onChange={(color: ListColor) => applyChange({ ...list, color })}
           />
         </div>
       </div>
