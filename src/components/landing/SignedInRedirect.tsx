@@ -27,7 +27,7 @@ export function SignedInRedirect() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-paper"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-paper"
       role="status"
       aria-label="Checking sign-in status"
     >

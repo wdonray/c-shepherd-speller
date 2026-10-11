@@ -31,7 +31,7 @@ describe('SignedInRedirect', () => {
     render(<SignedInRedirect />)
     const status = screen.getByRole('status', { name: 'Checking sign-in status' })
     expect(status).toBeVisible()
-    expect(status).toHaveClass('fixed', 'inset-0')
+    expect(status).toHaveClass('fixed', 'inset-0', 'z-[60]')
     expect(mockReplace).not.toHaveBeenCalled()
   })
 })
