@@ -10,11 +10,19 @@
  * FEEDBACK_TO_EMAIL (Donray's own address, verified as an identity). After
  * production access is granted, the same code keeps working with no change.
  */
-import { SESClient, type SESClientConfig, SendEmailCommand } from '@aws-sdk/client-ses'
+import { SESClient, type SESClientConfig, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses'
+import { randomBytes } from 'node:crypto'
 import type { FeedbackType } from '@/models/Feedback'
 
 /** Minimal surface of the SDK client, so tests can inject a mock. */
 export type SesClient = Pick<SESClient, 'send'>
+
+/** One image attachment, already validated by the API route. */
+export interface FeedbackAttachment {
+  filename: string
+  contentType: string
+  data: Buffer
+}
 
 export interface FeedbackEmailInput {
   type: FeedbackType
@@ -23,6 +31,7 @@ export interface FeedbackEmailInput {
   reporterEmail: string
   reporterName?: string | null
   appVersion: string
+  attachment?: FeedbackAttachment
 }
 
 const DEFAULT_TO_EMAIL = 'donrayxwilliams@gmail.com'
@@ -71,9 +80,70 @@ function sanitizeHeaderField(value: string): string {
 }
 
 /**
+ * Strip anything that could break a MIME header line out of a filename
+ * (path segments, quotes, CR/LF). Filenames come from the user's machine,
+ * so treat them as hostile.
+ */
+function sanitizeAttachmentFilename(filename: string): string {
+  return filename
+    .replace(/[\r\n"\\]/g, '')
+    .replace(/^.*[/\\]/, '')
+    .slice(0, 100)
+}
+
+/** RFC 2047-encode a header value so non-ASCII subjects survive raw sending. */
+function encodeHeaderField(value: string): string {
+  return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`
+}
+
+/** Wrap base64 at 76 characters per line, as MIME requires. */
+function foldBase64(base64: string): string {
+  return base64.replace(/(.{1,76})/g, '$1\r\n')
+}
+
+interface RawMessageParts {
+  from: string
+  to: string
+  replyTo: string
+  subject: string
+  text: string
+  attachment: FeedbackAttachment
+}
+
+/** Build a multipart/mixed message: the text body plus one image attachment. */
+function buildRawMessage(parts: RawMessageParts): Buffer {
+  const boundary = `patternspell-feedback-${randomBytes(16).toString('hex')}`
+  const filename = sanitizeAttachmentFilename(parts.attachment.filename)
+  const lines = [
+    `From: ${parts.from}`,
+    `To: ${parts.to}`,
+    `Reply-To: ${parts.replyTo}`,
+    `Subject: ${encodeHeaderField(parts.subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    foldBase64(Buffer.from(parts.text, 'utf8').toString('base64')),
+    `--${boundary}`,
+    `Content-Type: ${parts.attachment.contentType}; name="${filename}"`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename="${filename}"`,
+    '',
+    foldBase64(parts.attachment.data.toString('base64')),
+    `--${boundary}--`,
+    '',
+  ]
+  return Buffer.from(lines.join('\r\n'), 'utf8')
+}
+
+/**
  * Email the feedback to Donray. Reply-To is the reporter's address so he can
- * answer directly. Throws when SES rejects the send; callers map that to a
- * user-facing error.
+ * answer directly. When an attachment is present the message goes out as a
+ * raw MIME email (SendEmailCommand cannot carry attachments). Throws when
+ * SES rejects the send; callers map that to a user-facing error.
  */
 export async function sendFeedbackEmail(input: FeedbackEmailInput, client: SesClient = getClient()): Promise<void> {
   const to = process.env.FEEDBACK_TO_EMAIL || DEFAULT_TO_EMAIL
@@ -91,6 +161,19 @@ export async function sendFeedbackEmail(input: FeedbackEmailInput, client: SesCl
     'Details:',
     input.details,
   ].join('\n')
+
+  if (input.attachment) {
+    const raw = buildRawMessage({
+      from,
+      to,
+      replyTo: reporterEmail,
+      subject,
+      text: body,
+      attachment: input.attachment,
+    })
+    await client.send(new SendRawEmailCommand({ RawMessage: { Data: raw } }))
+    return
+  }
 
   await client.send(
     new SendEmailCommand({

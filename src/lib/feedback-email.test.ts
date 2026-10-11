@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@aws-sdk/client-ses')
 
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
+import { SESClient, SendEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses'
 import { sendFeedbackEmail, resetFeedbackSesClient } from './feedback-email'
 
 const MockSESClient = vi.mocked(SESClient)
 const MockSendEmailCommand = vi.mocked(SendEmailCommand)
+const MockSendRawEmailCommand = vi.mocked(SendRawEmailCommand)
 
 const ENV_KEYS = [
   'FEEDBACK_TO_EMAIL',
@@ -47,6 +48,7 @@ describe('sendFeedbackEmail', () => {
   it('sends to Donray from the PatternSpell address with the expected content', async () => {
     await sendFeedbackEmail(baseInput)
 
+    expect(MockSendRawEmailCommand).not.toHaveBeenCalled()
     const input = lastCommandInput()
     expect(input.Source).toBe('PatternSpell <no-reply@patternspell.org>')
     expect(input.Destination).toEqual({ ToAddresses: ['donrayxwilliams@gmail.com'] })
@@ -132,6 +134,70 @@ describe('sendFeedbackEmail', () => {
     await sendFeedbackEmail(baseInput)
 
     expect(MockSESClient).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends attachments as a raw MIME email, not a plain email', async () => {
+    await sendFeedbackEmail({
+      ...baseInput,
+      attachment: { filename: 'shot.png', contentType: 'image/png', data: Buffer.from('fake-png-bytes') },
+    })
+
+    expect(MockSendEmailCommand).not.toHaveBeenCalled()
+    const input = MockSendRawEmailCommand.mock.calls.at(-1)?.[0] as unknown as {
+      RawMessage: { Data: Buffer }
+    }
+    const raw = input.RawMessage.Data.toString('utf8')
+    expect(raw).toContain('From: PatternSpell <no-reply@patternspell.org>')
+    expect(raw).toContain('To: donrayxwilliams@gmail.com')
+    expect(raw).toContain('Reply-To: teacher@example.com')
+    expect(raw).toContain('MIME-Version: 1.0')
+    expect(raw).toContain('Content-Type: multipart/mixed; boundary="patternspell-feedback-')
+    expect(raw).toContain('Content-Type: text/plain; charset=UTF-8')
+    expect(raw).toContain('Content-Type: image/png; name="shot.png"')
+    expect(raw).toContain('Content-Disposition: attachment; filename="shot.png"')
+    // The base64 bodies are folded at 76 chars per line; unfold to assert.
+    const unfolded = raw.replace(/\r\n/g, '')
+    expect(unfolded).toContain(Buffer.from('fake-png-bytes').toString('base64'))
+    const expectedBody = [
+      'A PatternSpell user sent feedback from the app.',
+      '',
+      'Type: Issue report',
+      'From: teacher@example.com',
+      'App version: 0.33.5',
+      '',
+      'Details:',
+      'Clicking print on the list page does nothing at all.',
+    ].join('\n')
+    expect(unfolded).toContain(Buffer.from(expectedBody, 'utf8').toString('base64'))
+  })
+
+  it('RFC 2047-encodes the subject on raw sends', async () => {
+    await sendFeedbackEmail({
+      ...baseInput,
+      subject: 'Café printer bréaks',
+      attachment: { filename: 'shot.png', contentType: 'image/png', data: Buffer.from('x') },
+    })
+
+    const input = MockSendRawEmailCommand.mock.calls.at(-1)?.[0] as unknown as {
+      RawMessage: { Data: Buffer }
+    }
+    const raw = input.RawMessage.Data.toString('utf8')
+    const expected = `Subject: =?UTF-8?B?${Buffer.from('[PatternSpell feedback] Issue report: Café printer bréaks', 'utf8').toString('base64')}?=`
+    expect(raw).toContain(expected)
+  })
+
+  it('sanitizes hostile attachment filenames', async () => {
+    await sendFeedbackEmail({
+      ...baseInput,
+      attachment: { filename: 'a/b\\c"\r\n.png', contentType: 'image/png', data: Buffer.from('x') },
+    })
+
+    const input = MockSendRawEmailCommand.mock.calls.at(-1)?.[0] as unknown as {
+      RawMessage: { Data: Buffer }
+    }
+    const raw = input.RawMessage.Data.toString('utf8')
+    expect(raw).toContain('filename="bc.png"')
+    expect(raw).not.toContain('\r\n.png')
   })
 
   it('propagates SES send failures', async () => {
