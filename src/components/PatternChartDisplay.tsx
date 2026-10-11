@@ -35,7 +35,7 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
  */
 
 /**
- * Pattern chart display mode: target sound header, one equal-width column per
+ * Pattern chart display mode: list name header, one equal-width column per
  * spelling pattern ordered by frequency (most common first), a power-bar
  * gauge in each header showing how common the spelling is, and words as
  * large tappable cards. The projector-friendly replacement for the old
@@ -52,23 +52,10 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
 
-  const { columns, targetSound, allLocked, oddDuckWords } = useMemo(() => {
+  const { columns, allLocked, oddDuckWords } = useMemo(() => {
     // The printed poster matches what is currently taught: locked patterns
     // are excluded entirely.
     const teachable = isPrint ? list.patterns.filter((p) => !p.isLocked) : list.patterns
-    // Target sound: most common sound among patterns, fallback to list name.
-    const soundCounts = new Map<string, number>()
-    for (const p of teachable) {
-      soundCounts.set(p.sound, (soundCounts.get(p.sound) ?? 0) + 1)
-    }
-    let targetSound = list.name
-    let maxCount = 0
-    for (const [sound, count] of soundCounts) {
-      if (count > maxCount) {
-        maxCount = count
-        targetSound = sound
-      }
-    }
 
     // Most common spelling first.
     const columns = [...teachable].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
@@ -80,7 +67,7 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
         if (odd.has(word)) oddDuckWords.push(word)
       }
     }
-    return { columns, targetSound, allLocked, oddDuckWords }
+    return { columns, allLocked, oddDuckWords }
   }, [list, isPrint])
 
   const openAnalysis = (word: string, pattern: SpellingPattern) => {
@@ -229,7 +216,7 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
   return (
     <div className={cn('force-light w-full rounded-[20px] bg-background p-6 sm:p-10', isPrint && 'print-chart')}>
       <div className="mb-8 text-center">
-        <p className="text-[30px] font-extrabold text-ink">{targetSound}</p>
+        <p className="text-[30px] font-extrabold text-ink">{list.name || 'Untitled list'}</p>
       </div>
 
       {columns.length === 0 ? (

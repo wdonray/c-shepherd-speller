@@ -20,18 +20,13 @@ const list: WordList = {
 }
 
 describe('PatternChartDisplay', () => {
-  it('shows the target sound header without a hear sound button', () => {
+  it('shows the list name as the header, not a sound', () => {
     render(<PatternChartDisplay list={list} />)
-    expect(screen.getByText('long a')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /hear the sound/i })).not.toBeInTheDocument()
-  })
-
-  it('falls back to the list name when patterns have no shared sound', () => {
-    render(<PatternChartDisplay list={{ ...list, patterns: [] }} />)
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('long a')).not.toBeInTheDocument()
   })
 
-  it('picks the most common sound when patterns disagree', () => {
+  it('shows the list name even when patterns disagree on sound', () => {
     const mixed: WordList = {
       ...list,
       patterns: [
@@ -41,8 +36,14 @@ describe('PatternChartDisplay', () => {
       ],
     }
     render(<PatternChartDisplay list={mixed} />)
-    expect(screen.getByText('long a')).toBeInTheDocument()
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('long a')).not.toBeInTheDocument()
     expect(screen.queryByText('short e')).not.toBeInTheDocument()
+  })
+
+  it('falls back to Untitled list when the list has no name', () => {
+    render(<PatternChartDisplay list={{ ...list, name: '' }} />)
+    expect(screen.getByText('Untitled list')).toBeInTheDocument()
   })
 
   it('renders one column per pattern, most common first, all equal width', () => {
@@ -377,9 +378,10 @@ describe('PatternChartDisplay', () => {
       expect(screen.getByText(/No patterns in this list yet/)).toBeInTheDocument()
     })
 
-    it('shows the target sound, large emoji, power bar, and frequency label per column', () => {
+    it('shows the list name, large emoji, power bar, and frequency label per column', () => {
       render(<PatternChartDisplay list={withEmoji} variant="print" />)
-      expect(screen.getByText('long a')).toBeInTheDocument()
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+      expect(screen.queryByText('long a')).not.toBeInTheDocument()
       const column = screen.getByRole('region', { name: 'Pattern a_e' })
       const emoji = within(column).getByRole('img', { name: 'Keyword image for pattern a_e' })
       expect(emoji).toHaveTextContent('🐝')
