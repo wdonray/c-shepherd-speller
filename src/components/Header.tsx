@@ -333,6 +333,12 @@ export function Header() {
                 >
                   <Link href="/analytics">Analytics</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl px-4 py-3 text-[15px] font-semibold cursor-pointer focus:bg-accent"
+                >
+                  <Link href="/feedback">Report an issue</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-line" />
                 <DropdownMenuItem
                   className="rounded-xl px-4 py-3 text-[15px] font-semibold text-coral-ink cursor-pointer focus:bg-coral-soft"
@@ -415,6 +421,11 @@ export function Header() {
                   <SheetClose asChild>
                     <Button size="lg" variant="ghost" asChild className="justify-start px-4">
                       <Link href="/analytics">Analytics</Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button size="lg" variant="ghost" asChild className="justify-start px-4">
+                      <Link href="/feedback">Report an issue</Link>
                     </Button>
                   </SheetClose>
                   <Button

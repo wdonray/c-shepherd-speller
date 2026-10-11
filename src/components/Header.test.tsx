@@ -365,13 +365,14 @@ describe('Header', () => {
     expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveAttribute('href', '/profile')
   })
 
-  it('links to version and analytics from the menu', () => {
+  it('links to version, analytics, and feedback from the menu', () => {
     mockSignedIn()
     render(<Header />)
 
     openMenu()
     expect(screen.getByRole('menuitem', { name: 'Version' })).toHaveAttribute('href', '/version')
     expect(screen.getByRole('menuitem', { name: 'Analytics' })).toHaveAttribute('href', '/analytics')
+    expect(screen.getByRole('menuitem', { name: 'Report an issue' })).toHaveAttribute('href', '/feedback')
   })
 
   it('opens and closes the help dialog from the menu', () => {
@@ -416,6 +417,15 @@ describe('Header', () => {
     const menu = within(screen.getByRole('dialog'))
     expect(menu.getByRole('link', { name: /my spelling lists/i })).toHaveAttribute('href', '/lists')
     expect(menu.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
+  })
+
+  it('links to the feedback page from the mobile menu', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    expect(menu.getByRole('link', { name: /report an issue/i })).toHaveAttribute('href', '/feedback')
   })
 
   it('closes the mobile menu with Escape', () => {
