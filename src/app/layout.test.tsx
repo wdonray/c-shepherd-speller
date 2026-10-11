@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation'
 import RootLayout from './layout'
 
 vi.mock('./globals.css', () => ({}))
-vi.mock('next/font/google', () => ({
-  Lexend: () => ({ variable: 'font-lexend' }),
+vi.mock('next/font/local', () => ({
+  default: () => ({ variable: 'font-lexend' }),
 }))
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),

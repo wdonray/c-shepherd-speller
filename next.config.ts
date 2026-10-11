@@ -3,7 +3,8 @@ import type { NextConfig } from 'next'
 // Modeled on donray.dev's header set. Notes on the CSP for this app:
 // - Google OAuth is a full-page redirect to accounts.google.com (top-level
 //   navigation, not fetch/iframe), so no Google origins are needed here.
-// - next/font/google self-hosts the font files, so no font CDN is needed.
+// - The Lexend font is vendored under src/fonts and served by next/font/local,
+//   so no font CDN is needed and the build never fetches Google Fonts.
 // - All next-auth traffic is same-origin (/api/auth/*), covered by 'self'.
 const securityHeaders = [
   {

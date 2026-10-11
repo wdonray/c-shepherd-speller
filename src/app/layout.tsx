@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Lexend } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
 import { SiteChrome } from '@/components/SiteChrome'
@@ -8,10 +8,18 @@ import AnalyticsTracker from '@/components/analytics-tracker'
 import { ErrorToaster } from '@/components/error-toaster'
 import { VersionReloadToast } from '@/components/version-reload-toast'
 
-const lexend = Lexend({
+const lexend = localFont({
   variable: '--font-lexend',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  // Vendored under src/fonts (see README there): next/font/google fetched
+  // this at build time and broke the build whenever the fetch failed.
+  src: [
+    {
+      path: '../fonts/lexend-latin-variable.woff2',
+      weight: '100 900',
+      style: 'normal',
+    },
+  ],
 })
 
 export const metadata: Metadata = {
