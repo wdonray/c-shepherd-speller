@@ -99,6 +99,12 @@ describe('VoiceRecorder', () => {
     expect(hasRecording).toHaveBeenCalledWith('cake')
   })
 
+  it('labels the recorder for a sentence', async () => {
+    render(<VoiceRecorder text="We baked a cake." kind="sentence" />)
+    expect(screen.getByText('Your voice for this sentence')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Record your voice for this sentence' })).toBeInTheDocument()
+  })
+
   it('shows play and delete when a recording exists', async () => {
     hasRecording.mockResolvedValue(true)
     render(<VoiceRecorder text="cake" kind="word" />)
