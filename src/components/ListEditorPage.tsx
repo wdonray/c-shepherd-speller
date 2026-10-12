@@ -48,6 +48,16 @@ function saveablePatterns(patterns: SpellingPattern[], unsavedIds: ReadonlySet<s
   return patterns.filter((p) => isPatternComplete(p) || !unsavedIds.has(p.id))
 }
 
+/**
+ * True when every pattern in a save payload is complete and the payload can
+ * go to the API. A pre-existing pattern the teacher is mid-edit on (a
+ * required field cleared while retyping) is not valid yet, so the save must
+ * wait instead of sending a payload the API will reject.
+ */
+function isPayloadSaveable(patterns: SpellingPattern[]): boolean {
+  return patterns.every((p) => isPatternComplete(p))
+}
+
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -176,12 +186,17 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       const pending = pendingSaveRef.current
       pendingSaveRef.current = null
       if (pending && pending.name.trim()) {
-        updateList(pending.id, {
+        const payload = {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
           color: pending.color,
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
-        })
+        }
+        // A mid-edit pattern with a cleared required field cannot be saved
+        // yet; the leave guard already warned about unsaved changes. Skip
+        // the doomed PUT instead of reporting a validation error.
+        if (!isPayloadSaveable(payload.patterns)) return
+        updateList(pending.id, payload)
           .then(() => {
             // Log the once-per-visit edit entry only now that the flush
             // actually succeeded.
@@ -213,14 +228,25 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       setSaveStatus('idle')
       return
     }
+    const payload = {
+      name: next.name,
+      gradeLevel: next.gradeLevel,
+      color: next.color,
+      patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
+    }
+    // A pre-existing pattern that is mid-edit (a required field cleared while
+    // retyping) fails API validation, so hold the save: no error toast, no
+    // error report. The pending save stays armed and the next keystroke
+    // retries; the Unsaved changes indicator stays on.
+    if (!isPayloadSaveable(payload.patterns)) {
+      pendingSaveRef.current = next
+      setHasPendingSave(true)
+      setSaveStatus('idle')
+      return
+    }
     setSaveStatus('saving')
     try {
-      await updateList(next.id, {
-        name: next.name,
-        gradeLevel: next.gradeLevel,
-        color: next.color,
-        patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
-      })
+      await updateList(next.id, payload)
       // Log the once-per-visit edit entry only now that the autosave
       // succeeded. Skipped blank-name saves and failed updates below leave
       // the activity trail alone.

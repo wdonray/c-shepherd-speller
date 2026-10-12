@@ -495,7 +495,7 @@ describe('ListEditorPage', () => {
     }
   })
 
-  it('shows a toast when clearing a saved pattern’s required field', async () => {
+  it('holds the save while a saved pattern’s required field is empty', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady({ patterns: [] })
 
@@ -503,20 +503,43 @@ describe('ListEditorPage', () => {
     fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
     fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
     await waitForSave()
-    expect(updateList).toHaveBeenCalledWith(
-      'l1',
-      expect.objectContaining({ patterns: [expect.objectContaining({ pattern: 'ai' })] })
-    )
+    const savedCalls = updateList.mock.calls.length
 
-    // Clearing the spelling re-opens the draft is not possible once saved;
-    // instead the edit is sent as-is and the API rejects it. Simulate the
-    // rejection path staying graceful (no crash, input preserved).
-    updateList.mockRejectedValueOnce(new Error('Invalid list data'))
+    // Clearing the spelling mid-edit holds the save instead of sending a
+    // payload the API would reject: no PUT, no error toast, input preserved,
+    // and the unsaved indicator stays on.
     fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: '' } })
-    await waitFor(() => {
-      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
-    })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    expect(updateList.mock.calls.length).toBe(savedCalls)
+    expect(screen.queryByText('Something went wrong. Please try again.')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Pattern spelling')).toHaveValue('')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    // Re-typing the spelling completes the pattern; the next save includes it.
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    await waitFor(() =>
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ patterns: [expect.objectContaining({ sound: 'long a', pattern: 'ai' })] })
+      )
+    )
+  })
+
+  it('does not flush a mid-edit pattern with an empty required field on unmount', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue(list)
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+
+    // Clear a saved pattern's spelling and let the debounced save fire (it
+    // holds instead of PUTting); leaving the page must not flush the doomed
+    // PUT either.
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: '' } })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    const callsBeforeUnmount = updateList.mock.calls.length
+    unmount()
+    await new Promise((r) => setTimeout(r, 100))
+    expect(updateList.mock.calls.length).toBe(callsBeforeUnmount)
   })
 
   it('confirms and deletes a pattern', async () => {
