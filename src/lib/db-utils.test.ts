@@ -123,6 +123,13 @@ describe('db-utils', () => {
       await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(newer)
     })
 
+    it('retries once when the GSI has not propagated the record yet', async () => {
+      // First query misses (eventual consistency), second hits after propagation.
+      send.mockResolvedValueOnce({ Items: [] }).mockResolvedValueOnce({ Items: [storedUser] })
+      await expect(getUserByEmail('teacher@example.com')).resolves.toEqual(storedUser)
+      expect(send).toHaveBeenCalledTimes(2)
+    })
+
     it('treats records without updatedAt as oldest when resolving duplicates', async () => {
       const noTimestamp = { ...storedUser, id: 'no-ts-user', updatedAt: undefined }
       const newer = { ...storedUser, id: 'new-user', updatedAt: '2026-10-10T00:00:00.000Z' }

@@ -93,8 +93,16 @@ export async function getUserByEmail(email: string) {
   })
 
   try {
-    const result = await docClient.send(command)
-    const items = (result.Items ?? []) as IUser[]
+    let result = await docClient.send(command)
+    let items = (result.Items ?? []) as IUser[]
+    if (items.length === 0) {
+      // The EmailIndex GSI is eventually consistent. Right after sign-in the
+      // user record may exist but not be visible yet, causing spurious 403s
+      // (Sentry #227). One short retry covers the typical propagation lag.
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      result = await docClient.send(command)
+      items = (result.Items ?? []) as IUser[]
+    }
     if (items.length > 1) {
       // Duplicate records for one email should not happen (POST /api/users is
       // idempotent), but if they do the GSI query order is not guaranteed, so
