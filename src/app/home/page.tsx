@@ -94,7 +94,7 @@ export default function HomePage() {
           <div className="h-5 w-80 animate-pulse rounded-lg bg-line/60" />
         </div>
         {/* Quick actions: matches Dashboard (3x size="lg" buttons) */}
-        <div className="flex flex-wrap gap-3" aria-hidden="true">
+        <div className="flex flex-wrap justify-end gap-3" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
           ))}
