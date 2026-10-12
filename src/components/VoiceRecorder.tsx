@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { MicIcon, PlayIcon, SquareIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { AudioPlaybackError, playAudioBlob } from '@/lib/audio-playback'
 import {
   deleteRecording,
@@ -23,16 +25,21 @@ interface VoiceRecorderProps {
   /** The exact text that will be spoken (and that the recording overrides). */
   text: string
   kind: 'word' | 'sentence'
+  /**
+   * Compact icon-button rendering for tight spaces (e.g. a table row).
+   * Matches the surrounding action buttons instead of the full card.
+   */
+  compact?: boolean
 }
 
 /**
  * Record-your-voice control for one read-aloud text. The teacher records
  * their own voice for the word or sentence; the recording then plays instead
- * of the neural or built-in voice whenever that exact text is spoken.
+ * of the built-in voice whenever that exact text is spoken.
  * Recordings stay on this device in IndexedDB and are never uploaded.
  * Renders nothing where recording is unsupported.
  */
-export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
+export default function VoiceRecorder({ text, kind, compact = false }: VoiceRecorderProps) {
   const supported = isRecordingStorageSupported() && isAudioCaptureSupported()
   const [status, setStatus] = useState<Status>('checking')
   const [session, setSession] = useState<RecordingSession | null>(null)
@@ -159,6 +166,92 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
       reportError(error, { location: 'VoiceRecorder.remove' })
       setNotice('Could not delete the recording. Try again.')
     }
+  }
+
+  if (compact) {
+    const iconButton =
+      'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60 disabled:cursor-default disabled:opacity-40'
+    const muted = 'text-muted-foreground hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft'
+    const recording = session !== null
+    return (
+      <TooltipProvider delayDuration={300}>
+        <span className="inline-flex items-center gap-3">
+          {recording ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => stopAndSave(sessionRef.current!)}
+                  aria-label="Stop recording"
+                  className={cn(iconButton, 'animate-pulse bg-coral-soft text-coral-ink')}
+                >
+                  <SquareIcon className="size-5" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Stop recording</TooltipContent>
+            </Tooltip>
+          ) : status === 'ready' ? (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={play}
+                    aria-label={`Play your recording for this ${noun}`}
+                    className={cn(iconButton, 'bg-sky-soft text-sky-ink hover:brightness-95')}
+                  >
+                    <PlayIcon className="size-5" aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Play your recording</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={remove}
+                    aria-label={`Delete your recording for this ${noun}`}
+                    className={cn(iconButton, muted)}
+                  >
+                    <Trash2Icon className="size-5" aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Delete your recording</TooltipContent>
+              </Tooltip>
+            </>
+          ) : status === 'playing' ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" onClick={stopPlayback} aria-label="Stop" className={cn(iconButton, muted)}>
+                  <SquareIcon className="size-5" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Stop</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={start}
+                  disabled={status !== 'idle'}
+                  aria-label={`Record your voice for this ${noun}`}
+                  className={cn(iconButton, muted)}
+                >
+                  <MicIcon className="size-5" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Record your voice</TooltipContent>
+            </Tooltip>
+          )}
+          {notice && (
+            <span className="sr-only" role="alert">
+              {notice}
+            </span>
+          )}
+        </span>
+      </TooltipProvider>
+    )
   }
 
   return (
