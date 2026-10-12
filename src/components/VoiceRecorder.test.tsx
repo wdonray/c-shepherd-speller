@@ -152,6 +152,27 @@ describe('VoiceRecorder', () => {
     expect(reportError).toHaveBeenCalled()
   })
 
+  it('ignores a second start while the first is still pending', async () => {
+    let resolveStart!: (session: ReturnType<typeof makeSession>) => void
+    startRecording.mockImplementation(
+      () =>
+        new Promise<ReturnType<typeof makeSession>>((resolve) => {
+          resolveStart = resolve
+        })
+    )
+    render(<VoiceRecorder text="cake" kind="word" />)
+
+    const recordButton = await screen.findByRole('button', { name: 'Record your voice for this word' })
+    fireEvent.click(recordButton)
+    fireEvent.click(recordButton)
+    expect(startRecording).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveStart(makeSession())
+    })
+    expect(await screen.findByRole('button', { name: 'Stop recording' })).toBeInTheDocument()
+  })
+
   it('shows a notice when saving fails', async () => {
     const session = makeSession()
     session.stop.mockRejectedValue(new Error('nope'))

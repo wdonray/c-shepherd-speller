@@ -39,6 +39,10 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
   const [notice, setNotice] = useState<string | null>(null)
   const sessionRef = useRef<RecordingSession | null>(null)
   const playbackRef = useRef<AbortController | null>(null)
+  // Tracks an in-flight startRecording() call so rapid double-taps cannot
+  // open two microphone sessions (the first would leak when the second
+  // replaces it via setSession).
+  const startPendingRef = useRef(false)
   // Bumped when the text changes or the component unmounts, so a
   // startRecording() promise that resolves late gets cancelled instead of
   // attaching a live mic session to stale UI (or no UI at all).
@@ -80,6 +84,8 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
   const noun = kind === 'word' ? 'word' : 'sentence'
 
   const start = async () => {
+    if (startPendingRef.current) return
+    startPendingRef.current = true
     setNotice(null)
     const generation = generationRef.current
     try {
@@ -92,10 +98,18 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
         next.cancel()
         return
       }
+      // A second start slipped in while this one was pending: the latest
+      // session wins, so cancel this one instead of leaking its mic stream.
+      if (sessionRef.current) {
+        next.cancel()
+        return
+      }
       setSession(next)
     } catch (error) {
       reportError(error, { location: 'VoiceRecorder.start' })
       setNotice('Microphone unavailable. Allow microphone access in your browser, then try again.')
+    } finally {
+      startPendingRef.current = false
     }
   }
 
