@@ -111,9 +111,9 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
     )
   }
 
-  // Simple sentence template. Teachers can read their own sentence aloud;
-  // this gives students a starting point for meaning.
-  const sentence = `The word is ${word}.`
+  // Teacher-picked example sentence for the word when one is available;
+  // otherwise the simple template gives students a starting point for meaning.
+  const sentence = pattern.sentences?.[word] ?? `The word is ${word}.`
 
   return (
     <div
@@ -176,7 +176,7 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
           </Button>
           <Button variant="secondary" onClick={() => onSpeak(sentence)}>
             <Volume2Icon className="size-4" aria-hidden="true" />
-            Say sentence
+            Read the sentence
           </Button>
         </div>
       </div>

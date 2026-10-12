@@ -103,6 +103,13 @@ describe('WordAnalysis', () => {
     expect(screen.getByText(/The word is rain\./)).toBeInTheDocument()
   })
 
+  it('shows the teacher-picked sentence when the pattern has one for the word', () => {
+    const teacherSentence = 'The rain fell on the roof.'
+    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, sentences: { rain: teacherSentence } }} />)
+    expect(screen.getByText(/The rain fell on the roof\./)).toBeInTheDocument()
+    expect(screen.queryByText(/The word is rain\./)).not.toBeInTheDocument()
+  })
+
   it('speaks the word when Say it is clicked', () => {
     const onSpeak = vi.fn()
     render(<WordAnalysis {...defaultProps} onSpeak={onSpeak} />)
@@ -110,11 +117,25 @@ describe('WordAnalysis', () => {
     expect(onSpeak).toHaveBeenCalledWith('rain')
   })
 
-  it('speaks the sentence when Say sentence is clicked', () => {
+  it('reads just the sentence when Read the sentence is clicked', () => {
     const onSpeak = vi.fn()
     render(<WordAnalysis {...defaultProps} onSpeak={onSpeak} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Say sentence' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Read the sentence' }))
     expect(onSpeak).toHaveBeenCalledWith('The word is rain.')
+  })
+
+  it('reads just the teacher-picked sentence when Read the sentence is clicked', () => {
+    const teacherSentence = 'The rain fell on the roof.'
+    const onSpeak = vi.fn()
+    render(
+      <WordAnalysis
+        {...defaultProps}
+        onSpeak={onSpeak}
+        pattern={{ ...pattern, sentences: { rain: teacherSentence } }}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Read the sentence' }))
+    expect(onSpeak).toHaveBeenCalledWith(teacherSentence)
   })
 
   it('closes when the X button is clicked', () => {
