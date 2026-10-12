@@ -167,50 +167,6 @@ describe('speakWithNeuralVoice', () => {
     await expect(speakWithNeuralVoice('hi', controller.signal)).rejects.toMatchObject({ code: 'aborted' })
     expect(FakeAudio.instances).toHaveLength(0)
   })
-
-  it('throws aborted when an in-flight fetch is cancelled', async () => {
-    const controller = new AbortController()
-    fetchMock.mockImplementation(
-      (_url: string, options: { signal: AbortSignal }) =>
-        new Promise((_resolve, reject) => {
-          options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
-        })
-    )
-    const promise = speakWithNeuralVoice('hi', controller.signal)
-    controller.abort()
-    await expect(promise).rejects.toMatchObject({ code: 'aborted' })
-    expect(FakeAudio.instances).toHaveLength(0)
-  })
-
-  it('throws unavailable when reading the audio fails without a cancel', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      blob: async (): Promise<Blob> => {
-        throw new Error('blob boom')
-      },
-    } as Response)
-    await expect(speakWithNeuralVoice('hi', new AbortController().signal)).rejects.toMatchObject({
-      name: 'NeuralTtsError',
-      code: 'unavailable',
-    })
-    expect(FakeAudio.instances).toHaveLength(0)
-  })
-
-  it('throws aborted when reading the audio fails after a cancel', async () => {
-    const controller = new AbortController()
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      blob: async (): Promise<Blob> => {
-        throw new Error('blob boom')
-      },
-    } as Response)
-    const promise = speakWithNeuralVoice('hi', controller.signal)
-    controller.abort()
-    await expect(promise).rejects.toMatchObject({ code: 'aborted' })
-    expect(FakeAudio.instances).toHaveLength(0)
-  })
 })
 
 describe('playAudioBlob', () => {

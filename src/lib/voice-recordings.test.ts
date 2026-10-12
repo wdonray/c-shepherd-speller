@@ -145,16 +145,6 @@ describe('recordings store', () => {
     await expect(hasRecording('cake')).resolves.toBe(false)
   })
 
-  it('normalizes keys by trimming whitespace', async () => {
-    const saved = await saveRecording('  padded  ', new Blob(['x']))
-    expect(saved.text).toBe('padded')
-    await expect(hasRecording('padded')).resolves.toBe(true)
-    await expect(hasRecording('  padded ')).resolves.toBe(true)
-    expect((await getRecording('padded '))?.text).toBe('padded')
-    await deleteRecording(' padded  ')
-    await expect(hasRecording('padded')).resolves.toBe(false)
-  })
-
   it('deleting a missing recording still resolves', async () => {
     await expect(deleteRecording('never-recorded')).resolves.toBeUndefined()
   })

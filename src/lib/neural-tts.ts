@@ -33,10 +33,6 @@ async function fetchNeuralAudio(text: string, signal: AbortSignal): Promise<Blob
   try {
     response = await fetch(`/api/tts?text=${encodeURIComponent(text)}`, { signal })
   } catch (error) {
-    // An intentional cancel (stopSpeaking aborts the in-flight fetch) is not
-    // a service failure: it must not fall back to the built-in voice or count
-    // toward the neural cooldown.
-    if (signal.aborted) throw new NeuralTtsError('aborted', 'Playback stopped', { cause: error })
     throw new NeuralTtsError('unavailable', 'Could not reach the voice service', { cause: error })
   }
   if (response.status === 429) {
@@ -46,13 +42,7 @@ async function fetchNeuralAudio(text: string, signal: AbortSignal): Promise<Blob
     throw new NeuralTtsError('unavailable', `Voice service returned ${response.status}`)
   }
 
-  let audio: Blob
-  try {
-    audio = await response.blob()
-  } catch (error) {
-    if (signal.aborted) throw new NeuralTtsError('aborted', 'Playback stopped', { cause: error })
-    throw new NeuralTtsError('unavailable', 'Could not read voice audio', { cause: error })
-  }
+  const audio = await response.blob()
   audioCache.set(text, audio)
   if (audioCache.size > MAX_CACHE_ENTRIES) {
     const oldest = audioCache.keys().next()

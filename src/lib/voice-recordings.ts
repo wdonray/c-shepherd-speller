@@ -2,9 +2,9 @@
  * Teacher-recorded read-aloud audio.
  *
  * Recordings are captured with the device microphone and stored per device
- * in IndexedDB, keyed by the trimmed text that was recorded. They never leave
+ * in IndexedDB, keyed by the exact text that was recorded. They never leave
  * the browser: no upload, no sync, fully offline. When the teacher taps a
- * read-aloud button, speak() plays the recording for that trimmed text when
+ * read-aloud button, speak() plays the recording for that exact text when
  * one exists, instead of the neural or built-in voice.
  *
  * Audio is stored as an ArrayBuffer (plus its MIME type) rather than a Blob:
@@ -13,7 +13,7 @@
  */
 
 export interface VoiceRecording {
-  /** The trimmed text that was recorded (this is the IndexedDB key). */
+  /** The exact text that was recorded (this is the IndexedDB key). */
   text: string
   audio: ArrayBuffer
   mimeType: string
@@ -82,12 +82,12 @@ export function __awaitRequestForTests<T>(request: IDBRequest<T>, errorMessage: 
   return awaitRequest(request, errorMessage)
 }
 
-/** The recording for text (keyed by trimmed text), or null when the teacher never recorded it. */
+/** The recording for text, or null when the teacher never recorded it. */
 export async function getRecording(text: string): Promise<VoiceRecording | null> {
   const db = await openDatabase()
   try {
     const result = await awaitRequest<VoiceRecording | undefined>(
-      db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(text.trim()),
+      db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(text),
       'Could not read the voice recording'
     )
     return result ?? null
@@ -96,17 +96,17 @@ export async function getRecording(text: string): Promise<VoiceRecording | null>
   }
 }
 
-/** True when a recording exists for the trimmed text. */
+/** True when a recording exists for the exact text. */
 export async function hasRecording(text: string): Promise<boolean> {
   return (await getRecording(text)) !== null
 }
 
-/** Save (or replace) the recording for text, keyed by trimmed text. */
+/** Save (or replace) the recording for text. */
 export async function saveRecording(text: string, audio: Blob): Promise<VoiceRecording> {
   const db = await openDatabase()
   try {
     const recording: VoiceRecording = {
-      text: text.trim(),
+      text,
       audio: await audio.arrayBuffer(),
       mimeType: audio.type || 'audio/webm',
       recordedAt: Date.now(),
@@ -121,12 +121,12 @@ export async function saveRecording(text: string, audio: Blob): Promise<VoiceRec
   }
 }
 
-/** Delete the recording for text (keyed by trimmed text). Resolves even when none exists. */
+/** Delete the recording for text. Resolves even when none exists. */
 export async function deleteRecording(text: string): Promise<void> {
   const db = await openDatabase()
   try {
     await awaitRequest(
-      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(text.trim()),
+      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(text),
       'Could not delete the voice recording'
     )
   } finally {
