@@ -573,4 +573,38 @@ describe('VoiceRecorderModal', () => {
     // No crash, no state update after unmount.
     expect(true).toBe(true)
   })
+
+  it('cancels the session if the modal unmounts during startRecording', async () => {
+    let resolveStart!: (session: RecordingSession) => void
+    const session = makeSession()
+    startRecording.mockReturnValue(new Promise((resolve) => (resolveStart = resolve)))
+    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await waitFor(() => expect(startRecording).toHaveBeenCalled())
+    unmount()
+    resolveStart(session)
+    await act(async () => {})
+    // The session is cancelled, not stored, so the mic is released.
+    expect(session.cancel).toHaveBeenCalled()
+  })
+
+  it('falls back to measured time when audio duration is Infinity', async () => {
+    const session = makeSession()
+    let resolveStop!: (blob: Blob) => void
+    session.stop.mockReturnValue(new Promise((resolve) => (resolveStop = resolve)))
+    startRecording.mockResolvedValue(session)
+    // WebM blobs can report Infinity for duration.
+    class InfinityAudio extends FakeAudio {
+      override duration = Infinity
+    }
+    vi.stubGlobal('Audio', InfinityAudio)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    resolveStop(new Blob(['audio']))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save recording' })).toBeInTheDocument())
+    // The duration falls back to elapsed time, not Infinity.
+    expect(screen.getByText(/recorded/)).toBeInTheDocument()
+  })
 })

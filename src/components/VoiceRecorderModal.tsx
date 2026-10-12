@@ -71,6 +71,13 @@ export default function VoiceRecorderModal({
   useEffect(() => {
     openRef.current = open
   }, [open])
+  // If the modal unmounts while startRecording is awaiting permission,
+  // the guard in handleRecord must see a closed modal.
+  useEffect(() => {
+    return () => {
+      openRef.current = false
+    }
+  }, [])
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const waveformCleanupRef = useRef<(() => void) | null>(null)
@@ -201,13 +208,16 @@ export default function VoiceRecorderModal({
     analyserRef.current = null
     try {
       const blob = await session.stop()
+      // WebM blobs can report Infinity for duration; fall back to measured time.
+      const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000
       recordedBlobRef.current = blob
       const url = URL.createObjectURL(blob)
       setAudioUrl(url)
       const audio = new Audio(url)
       audioRef.current = audio
       audio.addEventListener('loadedmetadata', () => {
-        setAudioDuration(audio.duration)
+        const duration = audio.duration
+        setAudioDuration(Number.isFinite(duration) ? duration : elapsedSeconds)
       })
       audio.addEventListener('ended', () => setPlaying(false))
       setPhase('review')
