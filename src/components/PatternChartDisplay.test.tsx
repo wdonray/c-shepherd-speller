@@ -171,18 +171,27 @@ describe('PatternChartDisplay', () => {
     expect(container.firstChild).toHaveClass('force-light')
   })
 
-  it('gives word cards a visible hover and matching focus-visible treatment, motion-free', () => {
+  it('gives word cards a visible hover and matching focus-visible treatment', () => {
     render(<PatternChartDisplay list={list} />)
-    const card = screen.getByRole('button', { name: 'Analyze the word cake' })
-    expect(card).toHaveClass(
+    const button = screen.getByRole('button', { name: 'Analyze the word cake' })
+    expect(button).toHaveClass(
       'hover:bg-sky-soft',
       'focus-visible:bg-sky-soft',
       'focus-visible:ring-[3px]',
       'focus-visible:ring-ring/60'
     )
-    // No hover translate/lift: it would fight the press effect and break the
-    // flat-card convention on projectors.
-    expect(card.className).not.toMatch(/hover:translate-/)
+    // Hover lift (issue #188): the card slightly grows and casts a shadow,
+    // unmistakable on a projector. Donray's call in #188 overrides the old
+    // motion-free flat-card rule; motion-reduce still disables it.
+    const card = button.closest('li')
+    expect(card).toHaveClass(
+      'relative',
+      'hover:z-10',
+      'hover:scale-[1.05]',
+      'hover:shadow-xl',
+      'motion-reduce:hover:scale-100',
+      'motion-reduce:hover:shadow-none'
+    )
   })
 
   it('renders no lock toggles when onToggleLock is absent', () => {
