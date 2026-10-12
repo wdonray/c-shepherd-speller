@@ -3,8 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import PracticeMode from './PracticeMode'
 import type { WordList } from '@/models/WordList'
 
-vi.mock('./VoicePicker', () => ({ default: () => null }))
-vi.mock('./VoiceRecorder', () => ({ default: () => null }))
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
   buildSentencePrompt: (word: string, sentence?: string) => sentence ?? `The word is ${word}. Can you spell ${word}?`,

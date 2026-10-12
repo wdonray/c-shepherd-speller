@@ -31,18 +31,18 @@ vi.mock('@/lib/voice-recordings', () => ({
   recordingToBlob,
 }))
 
-const { FakeNeuralTtsError, playAudioBlob } = vi.hoisted(() => {
-  class FakeNeuralTtsError extends Error {
+const { FakeAudioPlaybackError, playAudioBlob } = vi.hoisted(() => {
+  class FakeAudioPlaybackError extends Error {
     code: string
     constructor(code: string, message: string = code) {
       super(message)
-      this.name = 'NeuralTtsError'
+      this.name = 'AudioPlaybackError'
       this.code = code
     }
   }
-  return { FakeNeuralTtsError, playAudioBlob: vi.fn() }
+  return { FakeAudioPlaybackError, playAudioBlob: vi.fn() }
 })
-vi.mock('@/lib/neural-tts', () => ({ NeuralTtsError: FakeNeuralTtsError, playAudioBlob }))
+vi.mock('@/lib/audio-playback', () => ({ AudioPlaybackError: FakeAudioPlaybackError, playAudioBlob }))
 
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
@@ -66,8 +66,8 @@ function abortablePlayback() {
   playAudioBlob.mockImplementation(
     (_blob: unknown, signal: AbortSignal) =>
       new Promise<void>((_resolve, reject) => {
-        if (signal.aborted) reject(new FakeNeuralTtsError('aborted'))
-        else signal.addEventListener('abort', () => reject(new FakeNeuralTtsError('aborted')))
+        if (signal.aborted) reject(new FakeAudioPlaybackError('aborted'))
+        else signal.addEventListener('abort', () => reject(new FakeAudioPlaybackError('aborted')))
       })
   )
 }
@@ -221,7 +221,7 @@ describe('VoiceRecorder', () => {
   it('shows a notice when playback fails', async () => {
     hasRecording.mockResolvedValue(true)
     getRecording.mockResolvedValue({ text: 'cake' })
-    playAudioBlob.mockRejectedValue(new FakeNeuralTtsError('playback'))
+    playAudioBlob.mockRejectedValue(new FakeAudioPlaybackError('playback'))
     render(<VoiceRecorder text="cake" kind="word" />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Play your recording for this word' }))

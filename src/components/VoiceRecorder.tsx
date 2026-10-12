@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MicIcon, PlayIcon, SquareIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { NeuralTtsError, playAudioBlob } from '@/lib/neural-tts'
+import { AudioPlaybackError, playAudioBlob } from '@/lib/audio-playback'
 import {
   deleteRecording,
   getRecording,
@@ -135,7 +135,7 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
       await playAudioBlob(recordingToBlob(recording), controller.signal)
       setStatus('ready')
     } catch (error) {
-      if (!(error instanceof NeuralTtsError) || error.code !== 'aborted') {
+      if (!(error instanceof AudioPlaybackError) || error.code !== 'aborted') {
         reportError(error, { location: 'VoiceRecorder.play' })
         setNotice('Could not play the recording.')
       }
