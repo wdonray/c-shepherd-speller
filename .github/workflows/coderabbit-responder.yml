@@ -53,8 +53,12 @@ jobs:
           if [ "$COUNT" -ge 3 ]; then
             echo "Responder already ran $COUNT times on this PR; flagging for Donray."
             echo "skip=true" >> $GITHUB_OUTPUT
-            gh pr comment "$PR_NUMBER" --body "The CodeRabbit responder has run 3 times on this PR without fully resolving all threads. This needs Donray's eyes."
-            gh pr edit "$PR_NUMBER" --add-label "needs-donray"
+            if [ "$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name] | any(. == "needs-donray")')" = "true" ]; then
+              echo "needs-donray label already present; skipping repeat escalation comment."
+            else
+              gh pr comment "$PR_NUMBER" --body "The CodeRabbit responder has run 3 times on this PR without fully resolving all threads. This needs Donray's eyes."
+              gh pr edit "$PR_NUMBER" --add-label "needs-donray"
+            fi
           fi
 
       # The anomalyco/opencode/github action only supports issue_comment and
