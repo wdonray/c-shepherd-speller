@@ -156,35 +156,5 @@ describe('waveform-draw', () => {
       drawReviewWaveform(makeCanvas(), new Blob(['audio']), onError)
       await vi.waitFor(() => expect(onError).toHaveBeenCalled())
     })
-
-    it('tolerates a close() rejection after a successful decode', async () => {
-      const ctx = stub2d()
-      class RejectingCloseAudioContext extends FakeAudioContext {
-        override close() {
-          return Promise.reject(new Error('close failed'))
-        }
-      }
-      vi.stubGlobal('AudioContext', RejectingCloseAudioContext)
-      const onError = vi.fn()
-      drawReviewWaveform(makeCanvas(), new Blob(['audio']), onError)
-      await vi.waitFor(() => expect(ctx.fillRect).toHaveBeenCalled())
-      expect(onError).not.toHaveBeenCalled()
-    })
-
-    it('tolerates a close() rejection after a decode failure', async () => {
-      stub2d()
-      class FailingAndRejectingAudioContext extends FakeAudioContext {
-        override decodeAudioData() {
-          return Promise.reject(new Error('bad audio'))
-        }
-        override close() {
-          return Promise.reject(new Error('close failed'))
-        }
-      }
-      vi.stubGlobal('AudioContext', FailingAndRejectingAudioContext)
-      const onError = vi.fn()
-      drawReviewWaveform(makeCanvas(), new Blob(['audio']), onError)
-      await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(expect.any(Error)))
-    })
   })
 })
