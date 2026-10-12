@@ -39,6 +39,10 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
   const [notice, setNotice] = useState<string | null>(null)
   const sessionRef = useRef<RecordingSession | null>(null)
   const playbackRef = useRef<AbortController | null>(null)
+  // Bumped when the text changes or the component unmounts, so a
+  // startRecording() promise that resolves late gets cancelled instead of
+  // attaching a live mic session to stale UI (or no UI at all).
+  const generationRef = useRef(0)
 
   // Mirror the session into a ref so the unmount cleanup sees the latest.
   useEffect(() => {
@@ -47,6 +51,7 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
 
   useEffect(() => {
     if (!supported) return
+    generationRef.current += 1
     let cancelled = false
     setStatus('checking')
     setNotice(null)
@@ -60,6 +65,7 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
         if (!cancelled) setStatus('idle')
       })
     return () => {
+      generationRef.current += 1
       cancelled = true
       // Abandon any in-flight recording or playback on unmount or text change.
       sessionRef.current?.cancel()
@@ -75,10 +81,18 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
 
   const start = async () => {
     setNotice(null)
+    const generation = generationRef.current
     try {
       // The recording UI appears only once the mic is live, so a permission
       // prompt never looks like taped silence.
-      setSession(await startRecording())
+      const next = await startRecording()
+      if (generation !== generationRef.current) {
+        // Text changed or the component unmounted while the mic was warming
+        // up: drop the session instead of attaching it to stale UI.
+        next.cancel()
+        return
+      }
+      setSession(next)
     } catch (error) {
       reportError(error, { location: 'VoiceRecorder.start' })
       setNotice('Microphone unavailable. Allow microphone access in your browser, then try again.')

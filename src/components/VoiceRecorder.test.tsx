@@ -246,6 +246,12 @@ describe('VoiceRecorder', () => {
     expect(hasRecording).toHaveBeenCalledWith('bake')
   })
 
+  it('shows the record button when the initial check fails', async () => {
+    hasRecording.mockRejectedValue(new Error('indexeddb down'))
+    render(<VoiceRecorder text="cake" kind="word" />)
+    expect(await screen.findByRole('button', { name: 'Record your voice for this word' })).toBeInTheDocument()
+  })
+
   it('ignores a late check result after unmount', async () => {
     let resolveCheck!: (exists: boolean) => void
     hasRecording.mockImplementation(
@@ -260,6 +266,41 @@ describe('VoiceRecorder', () => {
       resolveCheck(true)
     })
     // No crash, no state update after unmount.
+  })
+
+  it('ignores a late check failure after unmount', async () => {
+    let rejectCheck!: (error: Error) => void
+    hasRecording.mockImplementation(
+      () =>
+        new Promise<boolean>((_resolve, reject) => {
+          rejectCheck = reject
+        })
+    )
+    const { unmount } = render(<VoiceRecorder text="cake" kind="word" />)
+    unmount()
+    await act(async () => {
+      rejectCheck(new Error('indexeddb down'))
+    })
+    // No crash, no state update after unmount.
+  })
+
+  it('cancels a recording that resolves after unmount instead of attaching it', async () => {
+    let resolveStart!: (session: { stop: () => Promise<Blob>; cancel: () => void }) => void
+    const session = makeSession()
+    startRecording.mockImplementation(
+      () =>
+        new Promise<{ stop: () => Promise<Blob>; cancel: () => void }>((resolve) => {
+          resolveStart = resolve
+        })
+    )
+    const { unmount } = render(<VoiceRecorder text="cake" kind="word" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for this word' }))
+    unmount()
+    await act(async () => {
+      resolveStart(session)
+    })
+    expect(session.cancel).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Stop recording' })).not.toBeInTheDocument()
   })
 
   it('cancels an in-flight recording on unmount', async () => {
