@@ -3,7 +3,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
-vi.mock('./VoiceRecorder', () => ({ default: () => null }))
+vi.mock('./VoiceRecorderModal', () => ({
+  default: ({ word, open, onOpenChange }: { word: string; open: boolean; onOpenChange: (open: boolean) => void }) =>
+    open ? (
+      <div data-testid="voice-recorder-modal">
+        <span>{word}</span>
+        <button onClick={() => onOpenChange(false)}>Close modal</button>
+      </div>
+    ) : null,
+}))
 
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
@@ -510,5 +518,20 @@ describe('PatternEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Keyword image for pattern a_e' }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, keywordImage: undefined })
+  })
+
+  it('opens the voice recorder modal for a word', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
+    expect(screen.getByTestId('voice-recorder-modal')).toHaveTextContent('cake')
+  })
+
+  it('closes the voice recorder modal', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close modal' }))
+    expect(screen.queryByTestId('voice-recorder-modal')).not.toBeInTheDocument()
   })
 })
