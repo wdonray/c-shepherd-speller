@@ -83,8 +83,23 @@ jobs:
             fi
           fi
 
+      # Never hand the agent a fork's files with a write-capable token.
+      # Fork PRs are read-only for the responder: no checkout of untrusted
+      # code, no GH_TOKEN in the agent's environment.
+      - name: Fork guard
+        id: forkguard
+        if: steps.keycheck.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number || github.event.issue.number }}"
+          if [ "$(gh pr view "$PR_NUMBER" --json isCrossRepository --jq '.isCrossRepository')" = "true" ]; then
+            echo "PR #$PR_NUMBER is from a fork; skipping responder run."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
       - uses: anomalyco/opencode/github@latest
-        if: steps.keycheck.outputs.skip != 'true' && steps.loop.outputs.skip != 'true'
+        if: steps.keycheck.outputs.skip != 'true' && steps.loop.outputs.skip != 'true' && steps.forkguard.outputs.skip != 'true'
         env:
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
