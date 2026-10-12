@@ -33,6 +33,9 @@ const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
   rare: 1,
 }
 
+/** Max patterns shown in the card preview; a "+N more" indicator covers the rest. */
+const MAX_PREVIEW_PATTERNS = 4
+
 /** Summary card for a pattern-based word list. */
 export default function WordListCard({
   list,
@@ -45,6 +48,8 @@ export default function WordListCard({
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
+  const visiblePatterns = list.patterns.slice(0, MAX_PREVIEW_PATTERNS)
+  const hiddenPatternCount = patternCount - visiblePatterns.length
   const accent = LIST_ACCENT_CLASSES[resolveListColor(list)]
 
   return (
@@ -63,14 +68,19 @@ export default function WordListCard({
           {patternCount} {patternCount === 1 ? 'pattern' : 'patterns'}, {wordCount} {wordCount === 1 ? 'word' : 'words'}
         </p>
         {showPreview && (
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
-            {list.patterns.map((pattern) => (
-              <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
-                <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
-                <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
+              {visiblePatterns.map((pattern) => (
+                <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
+                  <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
+                  <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+                </li>
+              ))}
+            </ul>
+            {hiddenPatternCount > 0 && (
+              <p className="text-xs font-medium text-muted-foreground">+{hiddenPatternCount} more</p>
+            )}
+          </>
         )}
         <div className="relative z-10 mt-auto flex flex-wrap gap-2 pt-2">
           {!href && (
