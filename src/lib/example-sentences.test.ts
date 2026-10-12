@@ -204,7 +204,7 @@ describe('fetchExampleSentences', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it('aborts the API fetch when it times out', async () => {
+  it('aborts the API fetch when it times out, then retries once', async () => {
     vi.useFakeTimers()
     try {
       const fetchMock = vi.fn(
@@ -216,13 +216,48 @@ describe('fetchExampleSentences', () => {
       vi.stubGlobal('fetch', fetchMock)
       const { fetchExampleSentences } = await load()
       const promise = fetchExampleSentences('cake')
-      await vi.advanceTimersByTimeAsync(5000)
+      // Attempt 1 times out at 10s, 1s backoff, attempt 2 times out at 10s.
+      await vi.advanceTimersByTimeAsync(21000)
       const sentences = await promise
+      expect(fetchMock).toHaveBeenCalledTimes(2)
       expect(sentences.length).toBeGreaterThan(0)
       expect(sentences[0]).toContain('cake')
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('retries once on network failure before falling back', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Load failed'))
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve(apiResponse(['We baked a cake.'])) })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const sentences = await fetchExampleSentences('cake')
+    expect(sentences).toEqual(['We baked a cake.'])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache empty results, so a transient miss can retry', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('xyzzy')).toEqual([])
+    expect(await fetchExampleSentences('xyzzy')).toEqual([])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats legacy empty cached entries as misses and refetches', async () => {
+    window.localStorage.setItem('patternspell-sentences', JSON.stringify({ cake: [] }))
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    expect(await fetchExampleSentences('cake')).toEqual(['We baked a cake.'])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('returns [] when the API returns non-array JSON', async () => {
