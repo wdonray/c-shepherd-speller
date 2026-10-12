@@ -284,7 +284,7 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-3">
-                            <VoiceRecorder kind="word" text={word} />
+                            <VoiceRecorder kind="word" text={word} compact />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button

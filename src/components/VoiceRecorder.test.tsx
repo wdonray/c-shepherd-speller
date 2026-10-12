@@ -351,4 +351,42 @@ describe('VoiceRecorder', () => {
     // The abort rejects playback; the settled component must not crash.
     await act(async () => {})
   })
+
+  describe('compact', () => {
+    it('renders an icon record button without the card', async () => {
+      const { container } = render(<VoiceRecorder text="cake" kind="word" compact />)
+      const button = await screen.findByRole('button', { name: 'Record your voice for this word' })
+      expect(button).toBeInTheDocument()
+      expect(container.querySelector('.rounded-\\[14px\\]')).not.toBeInTheDocument()
+      expect(screen.queryByText('Your voice for this word')).not.toBeInTheDocument()
+    })
+
+    it('records and stops from the icon buttons', async () => {
+      const session = { stop: vi.fn().mockResolvedValue(new ArrayBuffer(8)), cancel: vi.fn() }
+      startRecording.mockResolvedValue(session)
+      render(<VoiceRecorder text="cake" kind="word" compact />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for this word' }))
+      const stop = await screen.findByRole('button', { name: 'Stop recording' })
+      fireEvent.click(stop)
+      await screen.findByRole('button', { name: 'Play your recording for this word' })
+      expect(saveRecording).toHaveBeenCalledWith('cake', expect.any(ArrayBuffer))
+    })
+
+    it('plays and deletes from the icon buttons', async () => {
+      hasRecording.mockResolvedValue(true)
+      getRecording.mockResolvedValue({ text: 'cake' })
+      render(<VoiceRecorder text="cake" kind="word" compact />)
+      const playButton = await screen.findByRole('button', { name: 'Play your recording for this word' })
+      expect(screen.getByRole('button', { name: 'Delete your recording for this word' })).toBeInTheDocument()
+      fireEvent.click(playButton)
+      await vi.waitFor(() => expect(playAudioBlob).toHaveBeenCalled())
+    })
+
+    it('announces errors to screen readers', async () => {
+      startRecording.mockRejectedValue(new Error('denied'))
+      render(<VoiceRecorder text="cake" kind="word" compact />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for this word' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Microphone unavailable.')
+    })
+  })
 })
