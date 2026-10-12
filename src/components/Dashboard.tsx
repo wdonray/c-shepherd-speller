@@ -166,7 +166,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
       {loading ? (
         <div className="space-y-10" role="status" aria-label="Loading dashboard" aria-busy="true">
           {/* Quick actions: matches the loaded button row (3x size="lg" buttons) */}
-          <div className="flex flex-wrap gap-3" aria-hidden="true">
+          <div className="flex flex-wrap justify-end gap-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
             ))}
@@ -210,7 +210,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
         </Card>
       ) : (
         <>
-          <section aria-label="Quick actions" className="flex flex-wrap gap-3">
+          <section aria-label="Quick actions" className="flex flex-wrap justify-end gap-3">
             <Button size="lg" onClick={onNewList}>
               New list
             </Button>
