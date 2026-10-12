@@ -330,9 +330,11 @@ describe('VoiceRecorderModal', () => {
     stubPermissions('denied')
     const { onOpenChange } = renderModal()
     await screen.findByText('Microphone is blocked')
-    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
-    // The dialog also renders a corner X; the in-content Close is the wider one.
-    fireEvent.click(closeButtons[closeButtons.length - 1])
+    // The dialog X also has accessible name "Close"; exclude it via data-slot.
+    const closeButton = screen
+      .getAllByRole('button', { name: 'Close' })
+      .find((b) => b.getAttribute('data-slot') !== 'dialog-close')!
+    fireEvent.click(closeButton)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
@@ -340,8 +342,10 @@ describe('VoiceRecorderModal', () => {
     isAudioCaptureSupported.mockReturnValue(false)
     const { onOpenChange } = renderModal()
     await screen.findByText(/not supported in this browser/)
-    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
-    fireEvent.click(closeButtons[closeButtons.length - 1])
+    const closeButton = screen
+      .getAllByRole('button', { name: 'Close' })
+      .find((b) => b.getAttribute('data-slot') !== 'dialog-close')!
+    fireEvent.click(closeButton)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
@@ -383,5 +387,158 @@ describe('VoiceRecorderModal', () => {
     Object.defineProperty(navigator, 'permissions', { value: {}, configurable: true })
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('shows a notice when stopping the recording fails', async () => {
+    const session = makeSession()
+    session.stop.mockRejectedValue(new Error('stop failed'))
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(await screen.findByText('Could not finish the recording. Try again.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('handles a missing 2d context when drawing the review waveform', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Null out the context for the review draw.
+    HTMLCanvasElement.prototype.getContext = vi.fn(
+      () => null
+    ) as unknown as typeof HTMLCanvasElement.prototype.getContext
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
+  })
+
+  it('reports when the review waveform cannot be decoded', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Force decodeAudioData to reject.
+    const instances: { decodeAudioData: () => Promise<never> }[] = []
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        constructor() {
+          instances.push(this as unknown as { decodeAudioData: () => Promise<never> })
+        }
+        createMediaStreamSource() {
+          return { connect() {} }
+        }
+        createAnalyser() {
+          return {
+            fftSize: 0,
+            frequencyBinCount: 4,
+            getByteFrequencyData(a: Uint8Array) {
+              a.fill(0)
+            },
+          }
+        }
+        decodeAudioData() {
+          return Promise.reject(new Error('decode failed'))
+        }
+        close() {
+          return Promise.resolve()
+        }
+      }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
+    await waitFor(() => expect(reportError).toHaveBeenCalled())
+  })
+
+  it('stops the ended event from crashing when audio is gone', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    await screen.findByRole('button', { name: 'Play the recording' })
+    // Re-record clears the audio; the ended listener must tolerate it.
+    fireEvent.click(screen.getByRole('button', { name: 'Re-record' }))
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('handles the audio ended event', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    // Capture the audio instance to emit events.
+    let audioInstance: FakeAudio | null = null
+    const OriginalAudio = FakeAudio
+    vi.stubGlobal(
+      'Audio',
+      class extends OriginalAudio {
+        constructor(src: string) {
+          super(src)
+          audioInstance = this as unknown as FakeAudio
+        }
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    const playButton = await screen.findByRole('button', { name: 'Play the recording' })
+    fireEvent.click(playButton)
+    await screen.findByRole('button', { name: 'Pause the recording' })
+    // Simulate the audio finishing.
+    audioInstance!.emit('ended')
+    expect(await screen.findByRole('button', { name: 'Play the recording' })).toBeInTheDocument()
+  })
+
+  it('handles play() rejection', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override play(): Promise<void> {
+          return Promise.reject(new Error('play failed'))
+        }
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    const playButton = await screen.findByRole('button', { name: 'Play the recording' })
+    fireEvent.click(playButton)
+    // Playback fails, button stays in play state.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Play the recording' })).toBeInTheDocument())
+  })
+
+  it('handles permission query failure on retry', async () => {
+    const query = stubPermissions('denied')
+    renderModal()
+    await screen.findByText('Microphone is blocked')
+    query.mockRejectedValue(new Error('query failed'))
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    // Falls back to ready state.
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('ignores a second stop while the first is in flight', async () => {
+    const session = makeSession()
+    let resolveStop!: (blob: Blob) => void
+    session.stop.mockReturnValue(new Promise((resolve) => (resolveStop = resolve)))
+    startRecording.mockResolvedValue(session)
+    renderModal('cake')
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Two rapid clicks: the second sees a null session and returns early.
+    const stopButton = screen.getByRole('button', { name: 'Stop' })
+    fireEvent.click(stopButton)
+    fireEvent.click(stopButton)
+    resolveStop(new Blob(['audio']))
+    expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
+    expect(session.stop).toHaveBeenCalledTimes(1)
   })
 })

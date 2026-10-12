@@ -12,6 +12,7 @@ import {
   startRecording,
   type RecordingSession,
 } from '@/lib/voice-recordings'
+import { drawLiveWaveform, drawReviewWaveform } from '@/lib/waveform-draw'
 import { reportError } from '@/lib/report-error'
 
 /** Maximum recording length. Long enough for any single word, short enough to stay snappy. */
@@ -72,7 +73,7 @@ export default function VoiceRecorderModal({
   }, [open])
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
-  const animationRef = useRef<number>(0)
+  const waveformCleanupRef = useRef<(() => void) | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
@@ -84,7 +85,8 @@ export default function VoiceRecorderModal({
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    cancelAnimationFrame(animationRef.current)
+    waveformCleanupRef.current?.()
+    waveformCleanupRef.current = null
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {})
       audioContextRef.current = null
@@ -164,85 +166,25 @@ export default function VoiceRecorderModal({
     }
   }, [])
 
-  const drawLiveWaveform = useCallback(() => {
-    const canvas = canvasRef.current
-    const analyser = analyserRef.current
-    if (!canvas || !analyser) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const data = new Uint8Array(analyser.frequencyBinCount)
-    const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    const draw = (): void => {
-      animationRef.current = requestAnimationFrame(draw)
-      analyser.getByteFrequencyData(data)
-      const { width, height } = canvas
-      ctx.clearRect(0, 0, width, height)
-      const barCount = 48
-      const barWidth = width / barCount
-      for (let i = 0; i < barCount; i++) {
-        // Sample across the frequency bins for a lively, voice-like shape.
-        const value = data[Math.floor((i / barCount) * data.length * 0.7)] ?? 0
-        const barHeight = reducedMotion ? height * 0.2 : Math.max(3, (value / 255) * height)
-        const x = i * barWidth
-        const y = (height - barHeight) / 2
-        ctx.fillStyle = '#0e7490'
-        const gap = 2
-        ctx.fillRect(x + gap / 2, y, barWidth - gap, barHeight)
-      }
-    }
-    draw()
-  }, [])
-
   // Start the live waveform once the recording canvas has rendered.
   useEffect(() => {
-    if (phase === 'recording') drawLiveWaveform()
-  }, [phase, drawLiveWaveform])
-
-  const drawReviewWaveform = useCallback((blob: Blob) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const AudioContextClass =
-      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-    const audioContext = new AudioContextClass()
-    blob
-      .arrayBuffer()
-      .then((buffer) => audioContext.decodeAudioData(buffer))
-      .then((audioBuffer) => {
-        const channelData = audioBuffer.getChannelData(0)
-        const { width, height } = canvas
-        ctx.clearRect(0, 0, width, height)
-        ctx.fillStyle = '#0e7490'
-        const barCount = 96
-        const step = Math.floor(channelData.length / barCount)
-        for (let i = 0; i < barCount; i++) {
-          let max = 0
-          for (let j = 0; j < step; j += 10) {
-            const sample = Math.abs(channelData[i * step + j] ?? 0)
-            if (sample > max) max = sample
-          }
-          const barHeight = Math.max(3, max * height)
-          const x = (i / barCount) * width
-          const y = (height - barHeight) / 2
-          ctx.fillRect(x, y, Math.max(1, width / barCount - 2), barHeight)
-        }
-        return audioContext.close().catch(() => {})
-      })
-      .catch((error: unknown) => {
-        reportError(error, { location: 'VoiceRecorderModal.drawReviewWaveform' })
-        audioContext.close().catch(() => {})
-      })
-  }, [])
+    if (phase === 'recording') {
+      waveformCleanupRef.current = drawLiveWaveform(canvasRef.current, analyserRef.current)
+      return () => {
+        waveformCleanupRef.current?.()
+        waveformCleanupRef.current = null
+      }
+    }
+  }, [phase])
 
   // Draw the review waveform once the review canvas has rendered.
   useEffect(() => {
     if (phase === 'review' && recordedBlobRef.current) {
-      drawReviewWaveform(recordedBlobRef.current)
+      drawReviewWaveform(canvasRef.current, recordedBlobRef.current, (error) =>
+        reportError(error, { location: 'VoiceRecorderModal.drawReviewWaveform' })
+      )
     }
-  }, [phase, drawReviewWaveform])
+  }, [phase])
 
   const stopAndReview = useCallback(async () => {
     const session = sessionRef.current
@@ -252,7 +194,8 @@ export default function VoiceRecorderModal({
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    cancelAnimationFrame(animationRef.current)
+    waveformCleanupRef.current?.()
+    waveformCleanupRef.current = null
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {})
       audioContextRef.current = null
@@ -343,8 +286,10 @@ export default function VoiceRecorderModal({
   }
 
   const handleSave = async () => {
-    const blob = recordedBlobRef.current
-    if (!blob || saving) return
+    // The Save button only renders in review phase, after the blob is captured,
+    // so recordedBlobRef is non-null here. The button disables while saving
+    // to prevent double-submit.
+    const blob = recordedBlobRef.current!
     setSaving(true)
     try {
       await saveRecording(word, blob)
@@ -365,8 +310,8 @@ export default function VoiceRecorderModal({
   }
 
   const togglePlayback = () => {
-    const audio = audioRef.current
-    if (!audio) return
+    // The play button only renders in review phase, after the audio element is created.
+    const audio = audioRef.current!
     if (playing) {
       audio.pause()
       setPlaying(false)
