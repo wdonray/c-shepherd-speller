@@ -6,6 +6,11 @@ import type { WordList } from '@/models/WordList'
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
   buildSentencePrompt: (word: string, sentence?: string) => sentence ?? `The word is ${word}. Can you spell ${word}?`,
+  isTtsSupported: () => false,
+  listDeviceVoices: () => [],
+  onVoicesChanged: () => () => {},
+  getPreferredVoiceUri: () => null,
+  setPreferredVoiceUri: vi.fn(),
 }))
 const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
 vi.mock('@/lib/activity', () => ({ logActivity }))

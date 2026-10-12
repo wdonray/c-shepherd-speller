@@ -11,6 +11,8 @@ import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { OddDuck } from './OddDuck'
+import VoicePicker from './VoicePicker'
+import VoiceRecorder from './VoiceRecorder'
 
 interface PracticeModeProps {
   list: WordList
@@ -69,12 +71,14 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
 
   const reviewWords = Array.from(reviewQueue.keys())
 
+  const sentencePrompt = buildSentencePrompt(activeWord.word, activeWord.sentence)
+
   const speakWord = () => {
     speak(activeWord.word)
   }
 
   const speakSentence = () => {
-    speak(buildSentencePrompt(activeWord.word, activeWord.sentence))
+    speak(sentencePrompt)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -231,6 +235,14 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       <Button variant="secondary" onClick={speakSentence} className="mt-4">
         Hear it in a sentence
       </Button>
+      <details className="mt-6 w-full max-w-2xl rounded-[20px] border-2 border-line bg-card px-6 py-4 text-left">
+        <summary className="cursor-pointer text-[15px] font-bold text-ink">Voice options</summary>
+        <div className="mt-4 space-y-4">
+          <VoicePicker />
+          <VoiceRecorder kind="word" text={activeWord.word} />
+          <VoiceRecorder kind="sentence" text={sentencePrompt} />
+        </div>
+      </details>
     </div>
   )
 
