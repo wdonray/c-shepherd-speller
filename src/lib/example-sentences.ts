@@ -7,7 +7,9 @@
  *
  * A curated local fallback bank (src/data/example-sentences.ts) covers
  * common words when the API has no example, fails, or is unreachable.
- * Results are cached in memory and localStorage.
+ * Non-empty results are cached in memory and localStorage. Empty results
+ * are never cached, so a transient miss retries on the next request instead
+ * of becoming permanent.
  */
 
 import { FALLBACK_SENTENCES } from '@/data/example-sentences'
@@ -15,7 +17,9 @@ import { reportError } from './report-error'
 
 const STORAGE_KEY = 'patternspell-sentences'
 const MAX_CACHE_ENTRIES = 200
-const FETCH_TIMEOUT_MS = 5000
+const FETCH_TIMEOUT_MS = 10000
+const MAX_FETCH_ATTEMPTS = 2
+const RETRY_DELAY_MS = 1000
 const MAX_SENTENCE_LENGTH = 140
 const MAX_RESULTS = 3
 
@@ -50,7 +54,9 @@ function getCached(word: string): string[] | undefined {
   const key = word.toLowerCase()
   if (memoryCache.has(key)) return memoryCache.get(key)
   const stored = readStorageCache()[key]
-  if (stored) {
+  // Empty entries are never cached anymore, but treat legacy empty entries
+  // as misses so a past failure does not block a future retry.
+  if (stored && stored.length > 0) {
     memoryCache.set(key, stored)
     return stored
   }
@@ -95,7 +101,24 @@ function parseApiResponse(word: string, data: unknown): string[] {
   return sentences
 }
 
-async function fetchFromApi(word: string): Promise<string[]> {
+async function processApiResponse(word: string, res: Response): Promise<string[]> {
+  try {
+    if (!res.ok) return []
+    const data: unknown = await res.json()
+    return parseApiResponse(word, data)
+  } catch (error) {
+    reportError(error, { location: 'example-sentences.fetchFromApi', extra: { word } })
+    return []
+  }
+}
+
+/**
+ * One attempt at the Free Dictionary API. Returns the usable sentences, or
+ * null when the request failed at the network level (unreachable, timed
+ * out, aborted), which is retryable. A successful response with no usable
+ * sentences returns [] and is not retried.
+ */
+async function fetchOnce(word: string): Promise<string[] | null> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   let res: Response
@@ -107,18 +130,27 @@ async function fetchFromApi(word: string): Promise<string[]> {
     // The third-party dictionary API is unreachable (network failure,
     // timeout, abort). This is not an application error: the local fallback
     // bank covers it, so there is nothing to report to Sentry.
-    return []
+    return null
   } finally {
     clearTimeout(timeout)
   }
-  try {
-    if (!res.ok) return []
-    const data: unknown = await res.json()
-    return parseApiResponse(word, data)
-  } catch (error) {
-    reportError(error, { location: 'example-sentences.fetchFromApi', extra: { word } })
-    return []
+  return processApiResponse(word, res)
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Fetch from the API, retrying network-level failures with backoff. */
+async function fetchFromApi(word: string): Promise<string[]> {
+  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+    const result = await fetchOnce(word)
+    if (result !== null) return result
+    if (attempt < MAX_FETCH_ATTEMPTS) {
+      await delay(RETRY_DELAY_MS * 2 ** (attempt - 1))
+    }
   }
+  return []
 }
 
 function fallbackSentences(word: string): string[] {
@@ -128,8 +160,10 @@ function fallbackSentences(word: string): string[] {
 
 /**
  * Fetch up to 3 example sentences for a word. Tries the Free Dictionary API
- * first, then the local fallback bank. Results are cached. Never throws;
- * resolves to [] when nothing usable is found.
+ * first (with one retry on network failure), then the local fallback bank.
+ * Non-empty results are cached. Misses are never cached, so a transient
+ * failure retries on the next request. Never throws; resolves to [] when
+ * nothing usable is found.
  */
 export async function fetchExampleSentences(word: string): Promise<string[]> {
   const trimmed = word.trim().toLowerCase()
@@ -139,6 +173,8 @@ export async function fetchExampleSentences(word: string): Promise<string[]> {
 
   const fromApi = await fetchFromApi(trimmed)
   const sentences = fromApi.length > 0 ? fromApi : fallbackSentences(trimmed)
-  setCached(trimmed, sentences)
+  // Never cache a miss: caching [] would turn a transient API failure into
+  // a permanent "no sentences" for that word.
+  if (sentences.length > 0) setCached(trimmed, sentences)
   return sentences
 }
