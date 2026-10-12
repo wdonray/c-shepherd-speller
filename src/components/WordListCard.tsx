@@ -58,6 +58,11 @@ export default function WordListCard({
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-xl font-bold">{list.name}</h3>
+          {list.week?.trim() && (
+            <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
+              {list.week.trim()}
+            </span>
+          )}
           {list.gradeLevel && (
             <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
               Grade {list.gradeLevel}

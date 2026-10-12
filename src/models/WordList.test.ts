@@ -13,6 +13,7 @@ import {
   generateListId,
   generatePatternId,
   getListKeys,
+  getAssignedWeeks,
   isPatternComplete,
   type WordList,
 } from './WordList'
@@ -368,6 +369,93 @@ describe('WordList model', () => {
       const updated = updateWordListItem(validList, {})
       expect(updated.name).toBe(validList.name)
       expect(updated.patterns).toEqual(validList.patterns)
+    })
+  })
+
+  describe('list weeks', () => {
+    it('WordListSchema accepts lists without a week (legacy)', () => {
+      expect(WordListSchema.safeParse(validList).success).toBe(true)
+    })
+
+    it('WordListSchema accepts a week label', () => {
+      const result = WordListSchema.safeParse({ ...validList, week: '5' })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.week).toBe('5')
+      }
+    })
+
+    it('WordListSchema rejects a week over 20 characters', () => {
+      expect(WordListSchema.safeParse({ ...validList, week: 'x'.repeat(21) }).success).toBe(false)
+    })
+
+    it('CreateWordListSchema accepts an optional week', () => {
+      const result = CreateWordListSchema.safeParse({ name: 'My List', week: '5' })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.week).toBe('5')
+      }
+    })
+
+    it('UpdateWordListSchema accepts an optional week', () => {
+      const result = UpdateWordListSchema.safeParse({ week: '5' })
+      expect(result.success).toBe(true)
+    })
+
+    it('createWordListItem stores the week', () => {
+      const list = createWordListItem('u1', { name: 'Test', week: '5', patterns: [] })
+      expect(list.week).toBe('5')
+    })
+
+    it('createWordListItem trims the week', () => {
+      const list = createWordListItem('u1', { name: 'Test', week: '  5  ', patterns: [] })
+      expect(list.week).toBe('5')
+    })
+
+    it('createWordListItem omits the week when none is given', () => {
+      const list = createWordListItem('u1', { name: 'Test', patterns: [] })
+      expect(list.week).toBeUndefined()
+    })
+
+    it('updateWordListItem sets the week when provided', () => {
+      const updated = updateWordListItem(validList, { week: '5' })
+      expect(updated.week).toBe('5')
+    })
+
+    it('updateWordListItem trims the week', () => {
+      const updated = updateWordListItem(validList, { week: '  Week 5 ' })
+      expect(updated.week).toBe('Week 5')
+    })
+
+    it('updateWordListItem clears the week when given a blank value', () => {
+      const updated = updateWordListItem({ ...validList, week: '5' }, { week: '' })
+      expect(updated.week).toBe('')
+    })
+
+    it('updateWordListItem leaves the week alone when not provided', () => {
+      const updated = updateWordListItem({ ...validList, week: '5' }, { name: 'Renamed' })
+      expect(updated.week).toBe('5')
+    })
+
+    it('getAssignedWeeks returns nothing when no list has a week', () => {
+      expect(getAssignedWeeks([validList, { ...validList, id: 'list_2', week: '   ' }])).toEqual([])
+    })
+
+    it('getAssignedWeeks de-duplicates and trims', () => {
+      const lists = [
+        { ...validList, id: 'a', week: '5' },
+        { ...validList, id: 'b', week: ' 5 ' },
+        { ...validList, id: 'c', week: 'Week 5' },
+      ]
+      expect(getAssignedWeeks(lists)).toEqual(['5', 'Week 5'])
+    })
+
+    it('getAssignedWeeks sorts numerically', () => {
+      const lists = [
+        { ...validList, id: 'a', week: '10' },
+        { ...validList, id: 'b', week: '2' },
+      ]
+      expect(getAssignedWeeks(lists)).toEqual(['2', '10'])
     })
   })
 })

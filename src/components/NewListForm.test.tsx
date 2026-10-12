@@ -93,6 +93,32 @@ describe('NewListForm', () => {
     })
   })
 
+  it('sends the week when filled in', async () => {
+    createList.mockResolvedValue({ ...created, week: '7' })
+    render(<NewListForm />)
+
+    expect(screen.getByLabelText('Week (optional)')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    fireEvent.change(screen.getByLabelText('Week (optional)'), { target: { value: ' 7 ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalledWith({ name: 'Week 7', gradeLevel: undefined, week: '7', patterns: [] })
+    })
+  })
+
+  it('omits the week when left blank', async () => {
+    createList.mockResolvedValue(created)
+    render(<NewListForm />)
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalledWith({ name: 'Week 7', gradeLevel: undefined, week: undefined, patterns: [] })
+    })
+  })
+
   it('shows an inline error when creating fails', async () => {
     createList.mockRejectedValue(new Error('network down'))
     render(<NewListForm />)

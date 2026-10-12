@@ -20,6 +20,7 @@ export default function NewListForm() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [gradeLevel, setGradeLevel] = useState('')
+  const [week, setWeek] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +35,7 @@ export default function NewListForm() {
       const list = await createList({
         name: name.trim(),
         gradeLevel: gradeLevel.trim() || undefined,
+        week: week.trim() || undefined,
         patterns: [],
       })
       logActivity('created', list.name, list.id)
@@ -73,6 +75,16 @@ export default function NewListForm() {
             value={gradeLevel}
             onChange={(e) => setGradeLevel(e.target.value)}
             placeholder="e.g. 1"
+            maxLength={20}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="new-list-week">Week (optional)</Label>
+          <Input
+            id="new-list-week"
+            value={week}
+            onChange={(e) => setWeek(e.target.value)}
+            placeholder="e.g. 5"
             maxLength={20}
           />
         </div>

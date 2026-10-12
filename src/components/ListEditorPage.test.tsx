@@ -188,6 +188,34 @@ describe('ListEditorPage', () => {
     expect(screen.getByText('Saved')).toBeInTheDocument()
   })
 
+  it('shows the assigned week in the optional week field', async () => {
+    await renderReady({ week: '5' })
+
+    expect(screen.getByLabelText('Week (optional)')).toHaveValue('5')
+  })
+
+  it('auto-saves the week when edited', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    expect(screen.getByLabelText('Week (optional)')).toHaveValue('')
+    fireEvent.change(screen.getByLabelText('Week (optional)'), { target: { value: '6' } })
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ week: '6' }))
+    expect(notifyListsChanged).toHaveBeenCalled()
+  })
+
+  it('saves an empty week when the field is cleared', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ week: '5' })
+
+    fireEvent.change(screen.getByLabelText('Week (optional)'), { target: { value: '' } })
+
+    await waitForSave()
+    expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ week: '' }))
+  })
+
   it('logs one edited activity event after the first successful save of a visit', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()

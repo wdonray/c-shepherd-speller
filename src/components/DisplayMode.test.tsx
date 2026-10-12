@@ -328,4 +328,93 @@ describe('DisplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  describe('week filter chips', () => {
+    const weekFive: WordList = { ...list, id: 'w5', name: 'Week 5 list', week: '5' }
+    const weekTen: WordList = { ...list, id: 'w10', name: 'Week 10 list', week: '10' }
+    const weekTwo: WordList = { ...list, id: 'w2', name: 'Week 2 list', week: '2' }
+    const noWeek: WordList = { ...list, id: 'nw', name: 'No week list' }
+
+    it('shows All weeks plus one chip per assigned week, in numeric order', async () => {
+      getLists.mockResolvedValue([weekTen, weekTwo, weekFive])
+      render(<DisplayMode />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('group', { name: 'Filter lists by week' })).toBeInTheDocument()
+      })
+      const chips = within(screen.getByRole('group', { name: 'Filter lists by week' })).getAllByRole('button')
+      expect(chips.map((chip) => chip.textContent)).toEqual(['All weeks', '2', '5', '10'])
+      expect(screen.getByRole('button', { name: 'All weeks' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('hides the chip row when no list has a week', async () => {
+      getLists.mockResolvedValue([noWeek])
+      render(<DisplayMode />)
+
+      await waitFor(() => {
+        expect(screen.getByText('No week list')).toBeInTheDocument()
+      })
+      expect(screen.queryByRole('group', { name: 'Filter lists by week' })).not.toBeInTheDocument()
+    })
+
+    it('filters to one week and hides unassigned lists', async () => {
+      getLists.mockResolvedValue([weekFive, weekTwo, noWeek])
+      render(<DisplayMode />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: '5' }))
+
+      expect(screen.getByText('Week 5 list')).toBeInTheDocument()
+      expect(screen.queryByText('Week 2 list')).not.toBeInTheDocument()
+      expect(screen.queryByText('No week list')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '5' })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'All weeks' })).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('All weeks shows every list again', async () => {
+      getLists.mockResolvedValue([weekFive, noWeek])
+      render(<DisplayMode />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      expect(screen.queryByText('No week list')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'All weeks' }))
+
+      expect(screen.getByText('Week 5 list')).toBeInTheDocument()
+      expect(screen.getByText('No week list')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'All weeks' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('resets the filter when the selected week no longer exists', async () => {
+      getLists.mockResolvedValue([weekFive, noWeek])
+      getList.mockResolvedValue(list)
+      const { rerender } = render(<DisplayMode />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: '5' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      expect(screen.queryByText('No week list')).not.toBeInTheDocument()
+
+      // Present a chart, then come back to a list set with no week 5.
+      mockSearchParams.get.mockReturnValue('l1')
+      rerender(<DisplayMode />)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
+      })
+      getLists.mockResolvedValue([noWeek])
+      mockSearchParams.get.mockReturnValue(null)
+      rerender(<DisplayMode />)
+
+      // Stale week 5 filter is gone; the unassigned list is visible again.
+      await waitFor(() => {
+        expect(screen.getByText('No week list')).toBeInTheDocument()
+      })
+      expect(screen.queryByRole('group', { name: 'Filter lists by week' })).not.toBeInTheDocument()
+    })
+  })
 })
