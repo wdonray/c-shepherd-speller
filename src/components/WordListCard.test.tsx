@@ -39,7 +39,7 @@ describe('WordListCard', () => {
     expect(screen.getByRole('img', { name: 'Frequency: Less common' })).toBeInTheDocument()
   })
 
-  it('shows every pattern in the grid, not just the first three', () => {
+  it('shows at most four patterns with a "+N more" indicator', () => {
     const manyPatterns: WordList = {
       ...list,
       patterns: [
@@ -51,10 +51,19 @@ describe('WordListCard', () => {
       ],
     }
     render(<WordListCard list={manyPatterns} onOpen={vi.fn()} primaryLabel="Edit list" />)
-    for (const pattern of ['a_e', 'ai', 'ay', 'eigh', 'ey']) {
+    for (const pattern of ['a_e', 'ai', 'ay', 'eigh']) {
       expect(screen.getByText(pattern)).toBeInTheDocument()
     }
+    expect(screen.queryByText('ey')).not.toBeInTheDocument()
+    expect(screen.getByText('+1 more')).toBeInTheDocument()
     expect(screen.getByText('5 patterns, 5 words')).toBeInTheDocument()
+  })
+
+  it('omits the more indicator when the list has four or fewer patterns', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.getByText('a_e')).toBeInTheDocument()
+    expect(screen.getByText('ai')).toBeInTheDocument()
+    expect(screen.queryByText(/\+[0-9]+ more/)).not.toBeInTheDocument()
   })
 
   it('uses the list color for the accent bar', () => {

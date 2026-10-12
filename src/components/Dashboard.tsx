@@ -159,20 +159,16 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{greeting}</h1>
-        {!loading && !loadError && (
-          <p className="text-muted-foreground">Here is your spelling toolkit for this week.</p>
-        )}
-      </div>
-
       {loading ? (
         <div className="space-y-10" role="status" aria-label="Loading dashboard" aria-busy="true">
-          {/* Quick actions: matches the loaded button row (3x size="lg" buttons) */}
-          <div className="flex flex-wrap gap-3" aria-hidden="true">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
-            ))}
+          {/* Header: matches the loaded greeting + quick action row */}
+          <div className="flex flex-wrap items-center justify-between gap-3" aria-hidden="true">
+            <div className="h-9 w-64 animate-pulse rounded-xl bg-line/60" />
+            <div className="flex flex-wrap gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
+              ))}
+            </div>
           </div>
           {/* My word lists: matches the loaded section (h2 + card grid) */}
           <div className="space-y-4" aria-hidden="true">
@@ -213,17 +209,20 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
         </Card>
       ) : (
         <>
-          <section aria-label="Quick actions" className="flex flex-wrap gap-3">
-            <Button size="lg" onClick={onNewList}>
-              New list
-            </Button>
-            <Button size="lg" variant="sunny" asChild>
-              <Link href="/practice">Practice</Link>
-            </Button>
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/display">Present</Link>
-            </Button>
-          </section>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl font-bold">{greeting}</h1>
+            <section aria-label="Quick actions" className="flex flex-wrap gap-3">
+              <Button size="lg" onClick={onNewList}>
+                New list
+              </Button>
+              <Button size="lg" variant="sunny" asChild>
+                <Link href="/practice">Practice</Link>
+              </Button>
+              <Button size="lg" variant="secondary" asChild>
+                <Link href="/display">Present</Link>
+              </Button>
+            </section>
+          </div>
 
           <section aria-label="My word lists" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">

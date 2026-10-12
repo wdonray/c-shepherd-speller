@@ -492,6 +492,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
                   pattern={pattern}
                   onChange={(updated) => updatePattern(pattern.id, updated)}
                   onRemove={() => setDeletePatternTarget(pattern)}
+                  color={resolveListColor(list)}
                 />
               </div>
             ))}

@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { cn } from '@/lib/utils'
-import { resolveListColor, type WordList, type PatternFrequency, type ListColor } from '@/models/WordList'
+import { resolveListColor, LIST_ACCENT_CLASSES, type WordList, type PatternFrequency } from '@/models/WordList'
 
 interface WordListCardProps {
   list: WordList
@@ -27,20 +27,14 @@ interface WordListCardProps {
   href?: string
 }
 
-/** Card accent classes per list color, from the app's theme tokens. */
-const ACCENTS: Record<ListColor, { bar: string; fill: string; soft: string; text: string }> = {
-  leaf: { bar: 'bg-leaf', fill: 'bg-leaf', soft: 'bg-leaf-soft', text: 'text-leaf-ink' },
-  sky: { bar: 'bg-sky', fill: 'bg-sky', soft: 'bg-sky-soft', text: 'text-sky-ink' },
-  plum: { bar: 'bg-plum', fill: 'bg-plum', soft: 'bg-plum-soft', text: 'text-plum-ink' },
-  sun: { bar: 'bg-sun', fill: 'bg-sun', soft: 'bg-sun-soft', text: 'text-sun-ink' },
-  coral: { bar: 'bg-coral', fill: 'bg-coral', soft: 'bg-coral-soft', text: 'text-coral-ink' },
-}
-
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
   common: 3,
   'less-common': 2,
   rare: 1,
 }
+
+/** Max patterns shown in the card preview; a "+N more" indicator covers the rest. */
+const MAX_PREVIEW_PATTERNS = 4
 
 /** Summary card for a pattern-based word list. */
 export default function WordListCard({
@@ -54,7 +48,9 @@ export default function WordListCard({
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
-  const accent = ACCENTS[resolveListColor(list)]
+  const visiblePatterns = list.patterns.slice(0, MAX_PREVIEW_PATTERNS)
+  const hiddenPatternCount = patternCount - visiblePatterns.length
+  const accent = LIST_ACCENT_CLASSES[resolveListColor(list)]
 
   return (
     <Card className="relative overflow-hidden">
@@ -72,14 +68,19 @@ export default function WordListCard({
           {patternCount} {patternCount === 1 ? 'pattern' : 'patterns'}, {wordCount} {wordCount === 1 ? 'word' : 'words'}
         </p>
         {showPreview && (
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
-            {list.patterns.map((pattern) => (
-              <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
-                <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
-                <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
+              {visiblePatterns.map((pattern) => (
+                <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
+                  <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
+                  <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+                </li>
+              ))}
+            </ul>
+            {hiddenPatternCount > 0 && (
+              <p className="text-xs font-medium text-muted-foreground">+{hiddenPatternCount} more</p>
+            )}
+          </>
         )}
         <div className="relative z-10 mt-auto flex flex-wrap gap-2 pt-2">
           {!href && (

@@ -58,13 +58,14 @@ const list: WordList = {
 
 async function renderReady(overrides: Partial<WordList> = {}) {
   getList.mockResolvedValue({ ...list, ...overrides })
-  render(
+  const result = render(
     <>
       <ListEditorPage listId="l1" />
       <ErrorToaster />
     </>
   )
   await screen.findByRole('heading', { name: 'Week 5: Long A' })
+  return result
 }
 
 /** Wait for the 500ms auto-save debounce plus the mocked save round-trip. */
@@ -650,6 +651,20 @@ describe('ListEditorPage', () => {
     await renderReady({ color: 'coral' })
 
     expect(screen.getByRole('radio', { name: 'Red' })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('updates every pattern top bar when the list color changes', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    const { container } = await renderReady()
+
+    expect(container.querySelector('.bg-leaf.h-2')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Blue' }))
+
+    await waitFor(() => {
+      expect(container.querySelector('.bg-sky.h-2')).toBeInTheDocument()
+    })
+    expect(container.querySelector('.bg-leaf.h-2')).not.toBeInTheDocument()
   })
 
   it('hides the Saved indicator after two seconds', async () => {
