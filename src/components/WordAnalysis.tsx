@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Volume2Icon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SpellingPattern } from '@/models/WordList'
+import VoiceRecorder from './VoiceRecorder'
 
 interface WordAnalysisProps {
   word: string
@@ -178,6 +179,10 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
             <Volume2Icon className="size-4" aria-hidden="true" />
             Read the sentence
           </Button>
+        </div>
+        <div className="space-y-3">
+          <VoiceRecorder kind="word" text={word} />
+          <VoiceRecorder kind="sentence" text={sentence} />
         </div>
       </div>
     </div>

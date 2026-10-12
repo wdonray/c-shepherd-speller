@@ -24,9 +24,16 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+vi.mock('@/components/VoicePicker', () => ({ default: () => null }))
+vi.mock('@/components/VoiceRecorder', () => ({ default: () => null }))
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
   buildSentencePrompt: (word: string) => `The word is ${word}. Can you spell ${word}?`,
+  isTtsSupported: () => false,
+  listDeviceVoices: () => [],
+  onVoicesChanged: () => () => {},
+  getPreferredVoiceUri: () => null,
+  setPreferredVoiceUri: vi.fn(),
 }))
 const { logActivity } = vi.hoisted(() => ({ logActivity: vi.fn() }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
