@@ -71,7 +71,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
 
   const reviewWords = Array.from(reviewQueue.keys())
 
-  const sentencePrompt = buildSentencePrompt(activeWord.word, activeWord.sentence)
+  const sentencePrompt = activeWord ? buildSentencePrompt(activeWord.word, activeWord.sentence) : ''
 
   const speakWord = () => {
     speak(activeWord.word)
@@ -221,7 +221,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     </div>
   )
 
-  const hearBlock = (
+  const hearBlock = () => (
     <div className="flex flex-col items-center">
       <button
         type="button"
@@ -415,7 +415,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
         </div>
       )}
 
-      {phase === 'prompt' && hearBlock}
+      {phase === 'prompt' && hearBlock()}
 
       {phase === 'prompt' && answerForm('default')}
       {phase === 'correct' && answerForm('correct')}
