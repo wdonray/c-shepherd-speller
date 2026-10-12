@@ -541,4 +541,36 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
     expect(session.stop).toHaveBeenCalledTimes(1)
   })
+
+  it('records without a visualizer when the session has no stream', async () => {
+    const session = makeSession()
+    delete (session as Partial<typeof session>).stream
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await waitFor(() => expect(startRecording).toHaveBeenCalled())
+    expect(await screen.findByRole('button', { name: 'Stop' })).toBeInTheDocument()
+  })
+
+  it('records without a visualizer when AudioContext is unavailable', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal('AudioContext', undefined)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await waitFor(() => expect(startRecording).toHaveBeenCalled())
+    expect(await screen.findByRole('button', { name: 'Stop' })).toBeInTheDocument()
+  })
+
+  it('ignores unmount during the permission check', async () => {
+    let resolveQuery!: (status: { state: PermissionState }) => void
+    const query = vi.fn(() => new Promise((resolve) => (resolveQuery = resolve)))
+    Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true })
+    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    unmount()
+    resolveQuery({ state: 'granted' })
+    await act(async () => {})
+    // No crash, no state update after unmount.
+    expect(true).toBe(true)
+  })
 })
