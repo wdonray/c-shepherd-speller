@@ -189,6 +189,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         const payload = {
           name: pending.name,
           gradeLevel: pending.gradeLevel,
+          week: pending.week,
           color: pending.color,
           patterns: saveablePatterns(pending.patterns, unsavedPatternIdsRef.current),
         }
@@ -231,6 +232,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     const payload = {
       name: next.name,
       gradeLevel: next.gradeLevel,
+      week: next.week,
       color: next.color,
       patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
     }
@@ -461,6 +463,16 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             value={list.gradeLevel ?? ''}
             onChange={(e) => applyChange({ ...list, gradeLevel: e.target.value || undefined })}
             placeholder="e.g. 1"
+            maxLength={20}
+          />
+        </div>
+        <div className="w-36 space-y-1.5">
+          <Label htmlFor="list-week">Week (optional)</Label>
+          <Input
+            id="list-week"
+            value={list.week ?? ''}
+            onChange={(e) => applyChange({ ...list, week: e.target.value })}
+            placeholder="e.g. 5"
             maxLength={20}
           />
         </div>

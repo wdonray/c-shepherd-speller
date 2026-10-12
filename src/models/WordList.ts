@@ -107,6 +107,12 @@ export const WordListSchema = z.object({
   /** Display name, e.g. "Week 5: Long A" */
   name: z.string().min(1).max(100),
   gradeLevel: z.string().max(20).optional(),
+  /**
+   * Optional teacher-assigned week label, e.g. "5" or "Week 5". Powers the
+   * Present page's week filter. Absent (or blank) on legacy lists and for
+   * teachers who do not think in weeks; never required.
+   */
+  week: z.string().max(20).optional(),
   /** Accent color key; absent on legacy lists, which use the default. */
   color: ListColorSchema.optional(),
   patterns: z.array(SpellingPatternSchema).max(20),
@@ -119,6 +125,7 @@ export type WordList = z.infer<typeof WordListSchema>
 export const CreateWordListSchema = z.object({
   name: z.string().min(1).max(100),
   gradeLevel: z.string().max(20).optional(),
+  week: z.string().max(20).optional(),
   color: ListColorSchema.optional(),
   patterns: z
     .array(SpellingPatternSchema.omit({ id: true }))
@@ -131,6 +138,7 @@ export type CreateWordListInput = z.infer<typeof CreateWordListSchema>
 export const UpdateWordListSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   gradeLevel: z.string().max(20).optional(),
+  week: z.string().max(20).optional(),
   color: ListColorSchema.optional(),
   patterns: z.array(SpellingPatternSchema).max(20).optional(),
 })
@@ -169,6 +177,7 @@ export function createWordListItem(userId: string, input: CreateWordListInput): 
     name: input.name,
     gradeLevel: input.gradeLevel,
     color: input.color ?? DEFAULT_LIST_COLOR,
+    ...(input.week !== undefined ? { week: input.week.trim() } : {}),
     patterns: input.patterns.map((p) => ({ ...p, id: generatePatternId() })),
     createdAt: now,
     updatedAt: now,
@@ -181,8 +190,23 @@ export function updateWordListItem(list: WordList, input: UpdateWordListInput): 
     ...list,
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.gradeLevel !== undefined ? { gradeLevel: input.gradeLevel } : {}),
+    ...(input.week !== undefined ? { week: input.week.trim() } : {}),
     ...(input.color !== undefined ? { color: input.color } : {}),
     ...(input.patterns !== undefined ? { patterns: input.patterns } : {}),
     updatedAt: new Date().toISOString(),
   }
+}
+
+/**
+ * Weeks assigned to at least one list, de-duplicated and sorted in natural
+ * (numeric-aware) order. Powers the Present page's week filter chips: lists
+ * with no week (absent or blank) never produce a chip.
+ */
+export function getAssignedWeeks(lists: WordList[]): string[] {
+  const weeks = new Set<string>()
+  for (const list of lists) {
+    const week = list.week?.trim()
+    if (week) weeks.add(week)
+  }
+  return [...weeks].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
 }

@@ -126,6 +126,18 @@ describe('WordListCard', () => {
     expect(screen.queryByText(/Grade/)).not.toBeInTheDocument()
   })
 
+  it('shows the week pill when the list has a week', () => {
+    render(<WordListCard list={{ ...list, week: ' 5 ' }} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('omits the week pill when the list has no week', () => {
+    const { rerender } = render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.queryByText('5')).not.toBeInTheDocument()
+    rerender(<WordListCard list={{ ...list, week: '   ' }} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.queryByText('5')).not.toBeInTheDocument()
+  })
+
   it('uses singular wording for one pattern and one word', () => {
     const single: WordList = {
       ...list,

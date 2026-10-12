@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getList, getLists, updateList } from '@/lib/lists-api'
-import type { WordList } from '@/models/WordList'
+import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
 import SortActivity from './SortActivity'
@@ -31,6 +31,25 @@ function DisplayModeInner() {
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
+  /** Selected week chip; null means "All weeks" (every list). */
+  const [weekFilter, setWeekFilter] = useState<string | null>(null)
+
+  // Weeks actually assigned to lists; drives the filter chips.
+  const assignedWeeks = useMemo(() => getAssignedWeeks(allLists), [allLists])
+
+  // Lists shown by the picker: every list under "All weeks", only the
+  // matching week's lists under a week chip. Unassigned lists are hidden
+  // under a specific week, since teachers who do not think in weeks never
+  // have to assign one.
+  const visibleLists = weekFilter === null ? allLists : allLists.filter((l) => l.week?.trim() === weekFilter)
+
+  // A selected week that no longer exists (a list was unassigned or
+  // deleted) falls back to "All weeks" instead of showing an empty picker.
+  useEffect(() => {
+    if (weekFilter !== null && !assignedWeeks.includes(weekFilter)) {
+      setWeekFilter(null)
+    }
+  }, [assignedWeeks, weekFilter])
 
   // Back to the app always goes home.
   const backToApp = useCallback(() => {
@@ -153,6 +172,29 @@ function DisplayModeInner() {
           <p className="text-[15px] text-muted-foreground">
             Choose a list to show its pattern chart on the big screen.
           </p>
+          {assignedWeeks.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter lists by week">
+              <Button
+                size="sm"
+                variant={weekFilter === null ? 'default' : 'secondary'}
+                onClick={() => setWeekFilter(null)}
+                aria-pressed={weekFilter === null}
+              >
+                All weeks
+              </Button>
+              {assignedWeeks.map((week) => (
+                <Button
+                  key={week}
+                  size="sm"
+                  variant={weekFilter === week ? 'default' : 'secondary'}
+                  onClick={() => setWeekFilter(week)}
+                  aria-pressed={weekFilter === week}
+                >
+                  {week}
+                </Button>
+              ))}
+            </div>
+          )}
           {allLists.length === 0 ? (
             <div className="rounded-[20px] border-2 border-line bg-card p-12 text-center">
               <p className="text-xl font-bold text-ink">No word lists yet</p>
@@ -163,7 +205,7 @@ function DisplayModeInner() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allLists.map((l) => (
+              {visibleLists.map((l) => (
                 <WordListCard
                   key={l.id}
                   list={l}
