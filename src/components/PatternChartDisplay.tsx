@@ -200,7 +200,10 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
       <li
         key={key}
         className={cn(
-          'flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 bg-card p-1.5 transition-colors hover:border-sky-deep focus-within:border-sky-deep',
+          // Hover lift (issue #188): the card slightly grows and casts a
+          // shadow so hover is unmistakable on a projector. motion-reduce
+          // keeps the flat card for users who asked for no motion.
+          'relative flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 bg-card p-1.5 transition duration-200 ease-out hover:z-10 hover:scale-[1.05] hover:border-sky-deep hover:shadow-xl focus-within:border-sky-deep motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none',
           isOddDuck ? 'border-plum bg-plum-soft' : 'border-line'
         )}
       >
