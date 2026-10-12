@@ -98,12 +98,6 @@ export default function VoiceRecorder({ text, kind }: VoiceRecorderProps) {
         next.cancel()
         return
       }
-      // A second start slipped in while this one was pending: the latest
-      // session wins, so cancel this one instead of leaking its mic stream.
-      if (sessionRef.current) {
-        next.cancel()
-        return
-      }
       setSession(next)
     } catch (error) {
       reportError(error, { location: 'VoiceRecorder.start' })
