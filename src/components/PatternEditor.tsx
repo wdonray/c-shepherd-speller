@@ -10,6 +10,7 @@ import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-reac
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import SentencePicker from './SentencePicker'
 import KeywordImagePicker from './KeywordImagePicker'
+import VoiceRecorder from './VoiceRecorder'
 import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
@@ -283,6 +284,7 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-3">
+                            <VoiceRecorder kind="word" text={word} />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button

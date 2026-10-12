@@ -24,8 +24,6 @@ vi.mock('next/link', () => ({
   ),
 }))
 
-vi.mock('@/components/VoicePicker', () => ({ default: () => null }))
-vi.mock('@/components/VoiceRecorder', () => ({ default: () => null }))
 vi.mock('@/lib/tts', () => ({
   speak: vi.fn(),
   buildSentencePrompt: (word: string) => `The word is ${word}. Can you spell ${word}?`,

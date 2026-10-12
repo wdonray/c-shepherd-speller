@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
+vi.mock('./VoiceRecorder', () => ({ default: () => null }))
+
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))

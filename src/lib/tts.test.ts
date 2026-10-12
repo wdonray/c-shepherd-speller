@@ -7,22 +7,21 @@ const { getRecording, isRecordingStorageSupported, recordingToBlob } = vi.hoiste
 }))
 vi.mock('./voice-recordings', () => ({ getRecording, isRecordingStorageSupported, recordingToBlob }))
 
-const { FakeNeuralTtsError, playAudioBlob, speakWithNeuralVoice } = vi.hoisted(() => {
-  class FakeNeuralTtsError extends Error {
+const { FakeAudioPlaybackError, playAudioBlob } = vi.hoisted(() => {
+  class FakeAudioPlaybackError extends Error {
     code: string
     constructor(code: string, message: string = code) {
       super(message)
-      this.name = 'NeuralTtsError'
+      this.name = 'AudioPlaybackError'
       this.code = code
     }
   }
   return {
-    FakeNeuralTtsError,
+    FakeAudioPlaybackError,
     playAudioBlob: vi.fn(),
-    speakWithNeuralVoice: vi.fn(),
   }
 })
-vi.mock('./neural-tts', () => ({ NeuralTtsError: FakeNeuralTtsError, playAudioBlob, speakWithNeuralVoice }))
+vi.mock('./audio-playback', () => ({ AudioPlaybackError: FakeAudioPlaybackError, playAudioBlob }))
 
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('./report-error', () => ({ reportError }))
@@ -30,12 +29,10 @@ vi.mock('./report-error', () => ({ reportError }))
 import {
   __resetTtsState,
   buildSentencePrompt,
-  getPreferredVoiceUri,
   isTtsSupported,
   listDeviceVoices,
   onVoicesChanged,
   pickVoice,
-  setPreferredVoiceUri,
   speak,
   stopSpeaking,
 } from './tts'
@@ -79,24 +76,13 @@ function removeSpeechSynthesis() {
   delete (globalThis as Record<string, unknown>)['speechSynthesis']
 }
 
-/** Neural voice mock that rejects with "aborted" when its signal fires. */
-function abortableNeuralVoice() {
-  speakWithNeuralVoice.mockImplementation(
-    (_text: string, signal: AbortSignal) =>
-      new Promise<void>((_resolve, reject) => {
-        if (signal.aborted) reject(new FakeNeuralTtsError('aborted'))
-        else signal.addEventListener('abort', () => reject(new FakeNeuralTtsError('aborted')))
-      })
-  )
-}
-
 /** Recording playback mock that rejects with "aborted" when its signal fires. */
 function abortablePlayback() {
   playAudioBlob.mockImplementation(
     (_blob: unknown, signal: AbortSignal) =>
       new Promise<void>((_resolve, reject) => {
-        if (signal.aborted) reject(new FakeNeuralTtsError('aborted'))
-        else signal.addEventListener('abort', () => reject(new FakeNeuralTtsError('aborted')))
+        if (signal.aborted) reject(new FakeAudioPlaybackError('aborted'))
+        else signal.addEventListener('abort', () => reject(new FakeAudioPlaybackError('aborted')))
       })
   )
 }
@@ -111,7 +97,6 @@ describe('tts', () => {
     vi.clearAllMocks()
     isRecordingStorageSupported.mockReturnValue(false)
     getRecording.mockResolvedValue(null)
-    speakWithNeuralVoice.mockResolvedValue(undefined)
     playAudioBlob.mockResolvedValue(undefined)
     reportError.mockClear()
   })
@@ -143,16 +128,6 @@ describe('tts', () => {
 
     it('returns undefined when no voice is English', () => {
       expect(pickVoice([fakeVoice('Google francais', 'fr-FR')])).toBeUndefined()
-    })
-
-    it('prefers the teacher-picked voice when it is still installed', () => {
-      const voices = [fakeVoice('Google US English', 'en-US'), fakeVoice('Daniel', 'en-GB', 'picked-uri')]
-      expect(pickVoice(voices, 'picked-uri')).toBe(voices[1])
-    })
-
-    it('falls through when the picked voice is gone', () => {
-      const voices = [fakeVoice('Google US English', 'en-US')]
-      expect(pickVoice(voices, 'gone-uri')).toBe(voices[0])
     })
 
     it('prefers natural/neural voices', () => {
@@ -228,36 +203,6 @@ describe('tts', () => {
     })
   })
 
-  describe('preferred voice persistence', () => {
-    it('returns null when nothing is stored', () => {
-      expect(getPreferredVoiceUri()).toBeNull()
-    })
-
-    it('round-trips the picked voice URI', () => {
-      setPreferredVoiceUri('voice-1')
-      expect(getPreferredVoiceUri()).toBe('voice-1')
-      setPreferredVoiceUri(null)
-      expect(getPreferredVoiceUri()).toBeNull()
-    })
-
-    it('reports and returns null when storage throws on read', () => {
-      vi.spyOn(window.localStorage.__proto__, 'getItem').mockImplementationOnce(() => {
-        throw new Error('denied')
-      })
-      expect(getPreferredVoiceUri()).toBeNull()
-      expect(reportError).toHaveBeenCalled()
-    })
-
-    it('reports when storage throws on write', () => {
-      vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementationOnce(() => {
-        throw new Error('denied')
-      })
-      setPreferredVoiceUri('voice-1')
-      expect(reportError).toHaveBeenCalled()
-      expect(getPreferredVoiceUri()).toBeNull()
-    })
-  })
-
   describe('speak', () => {
     it('does nothing for empty or whitespace-only text', async () => {
       const synth = makeSynth()
@@ -266,16 +211,26 @@ describe('tts', () => {
       await speak('   ')
 
       expect(synth.cancel).not.toHaveBeenCalled()
-      expect(speakWithNeuralVoice).not.toHaveBeenCalled()
       expect(createdUtterances).toHaveLength(0)
     })
 
     it('does not throw when nothing can speak', async () => {
       await expect(speak('hello')).resolves.toBeUndefined()
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('hello', expect.any(AbortSignal))
     })
 
-    it('plays the teacher recording instead of any voice', async () => {
+    it('speaks with the built-in voice', async () => {
+      const synth = makeSynth()
+      stubSpeechSynthesis(synth)
+
+      await speak('  cake  ')
+
+      expect(synth.cancel).toHaveBeenCalled()
+      expect(synth.speak).toHaveBeenCalledTimes(1)
+      expect(createdUtterances).toHaveLength(1)
+      expect(createdUtterances[0]).toMatchObject({ text: 'cake', lang: 'en-US', rate: 0.9 })
+    })
+
+    it('plays the teacher recording instead of the built-in voice', async () => {
       const synth = makeSynth()
       stubSpeechSynthesis(synth)
       isRecordingStorageSupported.mockReturnValue(true)
@@ -287,33 +242,35 @@ describe('tts', () => {
       expect(getRecording).toHaveBeenCalledWith('cake')
       expect(recordingToBlob).toHaveBeenCalledWith(recording)
       expect(playAudioBlob).toHaveBeenCalled()
-      expect(speakWithNeuralVoice).not.toHaveBeenCalled()
       expect(synth.speak).not.toHaveBeenCalled()
     })
 
-    it('falls through to the neural voice when the recording lookup fails', async () => {
-      stubSpeechSynthesis(makeSynth())
+    it('falls through to the built-in voice when the recording lookup fails', async () => {
+      const synth = makeSynth()
+      stubSpeechSynthesis(synth)
       isRecordingStorageSupported.mockReturnValue(true)
       getRecording.mockRejectedValue(new Error('idb down'))
 
       await speak('cake')
 
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('cake', expect.any(AbortSignal))
+      expect(synth.speak).toHaveBeenCalledTimes(1)
     })
 
-    it('falls through to the neural voice when the recording cannot play', async () => {
-      stubSpeechSynthesis(makeSynth())
+    it('falls through to the built-in voice when the recording cannot play', async () => {
+      const synth = makeSynth()
+      stubSpeechSynthesis(synth)
       isRecordingStorageSupported.mockReturnValue(true)
       getRecording.mockResolvedValue({ text: 'cake' })
-      playAudioBlob.mockRejectedValue(new FakeNeuralTtsError('playback'))
+      playAudioBlob.mockRejectedValue(new FakeAudioPlaybackError('playback'))
 
       await speak('cake')
 
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('cake', expect.any(AbortSignal))
+      expect(synth.speak).toHaveBeenCalledTimes(1)
     })
 
     it('stops a recording in flight without falling back when superseded', async () => {
-      stubSpeechSynthesis(makeSynth())
+      const synth = makeSynth()
+      stubSpeechSynthesis(synth)
       isRecordingStorageSupported.mockReturnValue(true)
       getRecording.mockImplementation(async (text: string) => (text === 'first' ? { text } : null))
       abortablePlayback()
@@ -322,114 +279,22 @@ describe('tts', () => {
       await speak('second')
 
       await expect(first).resolves.toBeUndefined()
-      // The aborted recording never fell back to the neural voice...
-      expect(speakWithNeuralVoice).toHaveBeenCalledTimes(1)
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('second', expect.any(AbortSignal))
-    })
-
-    it('uses the neural voice and resets the failure count on success', async () => {
-      const synth = makeSynth()
-      stubSpeechSynthesis(synth)
-
-      await speak('cake')
-
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('cake', expect.any(AbortSignal))
-      expect(synth.speak).not.toHaveBeenCalled()
-    })
-
-    it('falls back to the built-in voice when the neural voice fails', async () => {
-      const synth = makeSynth()
-      stubSpeechSynthesis(synth)
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
-
-      await speak('  cake  ')
-
-      expect(synth.cancel).toHaveBeenCalled()
+      // The aborted recording never fell back to the built-in voice.
       expect(synth.speak).toHaveBeenCalledTimes(1)
-      expect(createdUtterances).toHaveLength(1)
-      expect(createdUtterances[0]).toMatchObject({ text: 'cake', lang: 'en-US', rate: 0.9 })
     })
 
-    it('uses the teacher-picked device voice for the fallback', async () => {
-      const voices = [fakeVoice('Google US English', 'en-US'), fakeVoice('Daniel', 'en-GB', 'picked-uri')]
-      const synth = makeSynth({ getVoices: () => voices })
-      stubSpeechSynthesis(synth)
-      setPreferredVoiceUri('picked-uri')
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
-
-      await speak('cake')
-
-      expect(createdUtterances[0]?.voice).toBe(voices[1])
-    })
-
-    it('retries the neural voice after a single failure', async () => {
-      stubSpeechSynthesis(makeSynth())
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
-
-      await speak('one')
-      await speak('two')
-
-      expect(speakWithNeuralVoice).toHaveBeenCalledTimes(2)
-    })
-
-    it('cools down the neural voice after two consecutive failures', async () => {
+    it('does not fall back when the recording is aborted', async () => {
       const synth = makeSynth()
       stubSpeechSynthesis(synth)
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
-
-      await speak('one')
-      await speak('two')
-      await speak('three')
-
-      expect(speakWithNeuralVoice).toHaveBeenCalledTimes(2)
-      expect(synth.speak).toHaveBeenCalledTimes(3)
-    })
-
-    it('tries the neural voice again after the cooldown expires', async () => {
-      stubSpeechSynthesis(makeSynth())
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
-      let now = 1_000_000
-      const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now)
-
-      try {
-        await speak('one')
-        await speak('two')
-        expect(speakWithNeuralVoice).toHaveBeenCalledTimes(2)
-
-        now += 10 * 60 * 1000 + 1
-        await speak('three')
-        expect(speakWithNeuralVoice).toHaveBeenCalledTimes(3)
-      } finally {
-        dateNow.mockRestore()
-      }
-    })
-
-    it('does not fall back when the neural voice is aborted', async () => {
-      const synth = makeSynth()
-      stubSpeechSynthesis(synth)
-      abortableNeuralVoice()
+      isRecordingStorageSupported.mockReturnValue(true)
+      getRecording.mockResolvedValue({ text: 'cake' })
+      abortablePlayback()
 
       const pending = speak('cake')
       stopSpeaking()
       await expect(pending).resolves.toBeUndefined()
 
       expect(synth.speak).not.toHaveBeenCalled()
-    })
-
-    it('clears in-flight state when stopped externally', async () => {
-      stubSpeechSynthesis(makeSynth())
-      abortableNeuralVoice()
-
-      const pending = speak('cake')
-      // stopSpeaking nulls the in-flight playback; the abort rejects the
-      // neural voice, and the finally block must tolerate the null.
-      stopSpeaking()
-      await expect(pending).resolves.toBeUndefined()
-
-      // A later speak starts clean: nothing is aborted underneath it.
-      speakWithNeuralVoice.mockResolvedValue(undefined)
-      await speak('bake')
-      expect(speakWithNeuralVoice).toHaveBeenCalledWith('bake', expect.any(AbortSignal))
     })
 
     it('reports when the built-in voice throws', async () => {
@@ -440,14 +305,12 @@ describe('tts', () => {
           }),
         })
       )
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
 
       await expect(speak('cake')).resolves.toBeUndefined()
       expect(reportError).toHaveBeenCalled()
     })
 
-    it('is a no-op fallback when TTS is unsupported', async () => {
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
+    it('is a no-op when TTS is unsupported', async () => {
       await expect(speak('cake')).resolves.toBeUndefined()
     })
 
@@ -461,7 +324,6 @@ describe('tts', () => {
         },
       })
       stubSpeechSynthesis(synth)
-      speakWithNeuralVoice.mockRejectedValue(new FakeNeuralTtsError('unavailable'))
 
       await speak('one')
       expect(createdUtterances[0]?.voice).toBeUndefined()
