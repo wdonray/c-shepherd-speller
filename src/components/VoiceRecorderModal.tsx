@@ -190,10 +190,8 @@ export default function VoiceRecorderModal({
     const session = sessionRef.current
     if (!session) return
     sessionRef.current = null
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    clearInterval(timerRef.current!)
+    timerRef.current = null
     waveformCleanupRef.current?.()
     waveformCleanupRef.current = null
     if (audioContextRef.current) {
