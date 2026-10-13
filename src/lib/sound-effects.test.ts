@@ -173,4 +173,31 @@ describe('sound-effects', () => {
     expect(() => setSoundEnabled(false)).not.toThrow()
     vi.restoreAllMocks()
   })
+
+  it('plays a single short blip for pickup', async () => {
+    const { playPickupSound } = await loadModule()
+    playPickupSound()
+    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(1)
+    const [first] = mock.oscillators
+    expect(first.frequency.value).toBe(660)
+  })
+
+  it('plays a soft thock for drop settle', async () => {
+    const { playDropSound } = await loadModule()
+    playDropSound()
+    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(1)
+    const [first] = mock.oscillators
+    expect(first.frequency.value).toBe(220)
+  })
+
+  it('plays an ascending arpeggio for win fanfare', async () => {
+    const { playWinFanfare } = await loadModule()
+    playWinFanfare()
+    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(4)
+    const [c, e, g, highC] = mock.oscillators
+    expect(c.frequency.value).toBe(523.25)
+    expect(e.frequency.value).toBe(659.25)
+    expect(g.frequency.value).toBe(783.99)
+    expect(highC.frequency.value).toBe(1046.5)
+  })
 })
