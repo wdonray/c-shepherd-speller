@@ -129,7 +129,11 @@ export default function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
           <section>
             <h3 className="text-lg font-bold text-ink">Contact</h3>
             <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
-              Still stuck? Contact support at [SUPPORT CONTACT TBD].
+              Still stuck? Contact support at{' '}
+              <a className="underline" href="mailto:donrayxwilliams@gmail.com">
+                donrayxwilliams@gmail.com
+              </a>
+              .
             </p>
           </section>
         </div>

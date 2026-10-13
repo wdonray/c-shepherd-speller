@@ -70,9 +70,12 @@ describe('HelpDialog', () => {
     expect(screen.getByText(/Signed out unexpectedly?/)).toBeInTheDocument()
   })
 
-  it('shows the support contact placeholder', () => {
+  it('shows the support contact email', () => {
     render(<HelpDialog isOpen onClose={vi.fn()} />)
-    expect(screen.getByText(/\[SUPPORT CONTACT TBD\]/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'donrayxwilliams@gmail.com' })).toHaveAttribute(
+      'href',
+      'mailto:donrayxwilliams@gmail.com'
+    )
   })
 
   it('does not show the old administrator dead-end line', () => {
