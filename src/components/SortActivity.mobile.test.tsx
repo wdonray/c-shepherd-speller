@@ -231,6 +231,44 @@ describe('SortActivity on mobile', () => {
     expect(document.querySelectorAll('svg[aria-label="Correct"]')).toHaveLength(3)
   })
 
+  it('cancels the win when the board is reset before the cascade fires', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    // Reset before the 300ms win delay elapses.
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    // Wait past the win delay: no dialog may appear and no fanfare plays.
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).not.toHaveBeenCalled()
+  })
+
+  it('does not win when the list has no sortable words', async () => {
+    const emptyList: WordList = { ...list, patterns: [] }
+    render(<SortActivity list={emptyList} onExit={vi.fn()} />)
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).not.toHaveBeenCalled()
+  })
+
+  it('does not re-win after the dialog is dismissed', async () => {
+    const { rerender } = render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Skip for now' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // A parent re-render (new list object, same content) must not re-arm the win.
+    rerender(<SortActivity list={{ ...list }} onExit={vi.fn()} />)
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).toHaveBeenCalledTimes(1)
+  })
+
   it('try again returns all words to the bank and clears the selection', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     placeViaBar('cake', 'a_e')

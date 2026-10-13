@@ -38,7 +38,9 @@ export function getPatternUnderlineRanges(word: string, pattern: string): Underl
     const last = stripped[stripped.length - 1]
     const firstIndex = lowered.indexOf(first)
     const lastIndex = lowered.lastIndexOf(last)
-    if (firstIndex === -1 || lastIndex === -1) {
+    // The first letter must come before the last letter; otherwise the
+    // ranges would be reversed and the renderer would garble the word.
+    if (firstIndex === -1 || lastIndex === -1 || firstIndex >= lastIndex) {
       return []
     }
     return [

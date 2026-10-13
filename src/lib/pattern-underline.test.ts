@@ -78,6 +78,11 @@ describe('getPatternUnderlineRanges', () => {
       expect(getPatternUnderlineRanges('cat', 'a_e')).toEqual([])
     })
 
+    it('returns an empty array when the split pattern letters are out of order', () => {
+      // 'each' contains 'a' after 'e'; reversed ranges would garble the render.
+      expect(getPatternUnderlineRanges('each', 'a_e')).toEqual([])
+    })
+
     it('returns an empty array for an empty word', () => {
       expect(getPatternUnderlineRanges('', 'ee')).toEqual([])
       expect(getPatternUnderlineRanges('', 'a_e')).toEqual([])

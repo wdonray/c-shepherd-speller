@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -477,25 +477,23 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     [patterns]
   )
 
-  /**
-   * Win check shared by drag-and-drop and tap-to-place: when every sortable
-   * word is placed and every placement is correct, trigger the win cascade.
-   */
-  const checkWin = useCallback(
-    (entryId: string, patternId: string) => {
-      setPlacements((currentPlacements) => {
-        const newPlacements = { ...currentPlacements, [entryId]: patternId }
-        const allPlaced = bank.every((w) => newPlacements[w.id])
-        const allCorrect = bank.every((w) => newPlacements[w.id] === w.patternId)
-        if (allPlaced && allCorrect) {
-          // Trigger win cascade.
-          setTimeout(() => setWon(true), 300)
-        }
-        return newPlacements
-      })
-    },
-    [bank]
-  )
+  // Win cascade trigger: when every sortable word is placed and correct,
+  // wait a beat, then celebrate. The timer cancels if the board changes
+  // (a word moved back, Try again) before it fires. The win fires once per
+  // completion: dismissing the dialog does not re-arm it, only breaking and
+  // re-completing the board does.
+  const winCelebrated = useRef(false)
+  useEffect(() => {
+    const complete = bank.length > 0 && bank.every((w) => placements[w.id] && placements[w.id] === w.patternId)
+    if (!complete) {
+      winCelebrated.current = false
+      return
+    }
+    if (winCelebrated.current) return
+    winCelebrated.current = true
+    const timer = window.setTimeout(() => setWon(true), 300)
+    return () => window.clearTimeout(timer)
+  }, [bank, placements])
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -539,10 +537,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           playIncorrectSound()
           announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
         }
-        checkWin(entry.id, result.id)
       }
     },
-    [bank, placeWord, announce, checkWin]
+    [bank, placeWord, announce]
   )
 
   const handleMobileWordTap = useCallback(
@@ -581,10 +578,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           playIncorrectSound()
           announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
         }
-        checkWin(entry.id, result.id)
       }
     },
-    [placeWord, announce, checkWin]
+    [placeWord, announce]
   )
 
   const handleTryAgain = useCallback(() => {
