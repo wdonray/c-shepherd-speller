@@ -133,3 +133,15 @@ export const SOUND_TYPE_BORDER: Record<SoundType, string> = {
   consonant: 'border-coral',
   bossyR: 'border-sky',
 }
+
+/**
+ * Raw underline color by sound type, for inline styles (the sort feedback
+ * underlines the pattern letters inside correctly placed word tiles).
+ * Uses the theme tokens so the color follows the active theme; the sort
+ * surface renders force-light.
+ */
+export const SOUND_TYPE_UNDERLINE_COLOR: Record<SoundType, string> = {
+  vowel: 'var(--leaf)',
+  consonant: 'var(--coral)',
+  bossyR: 'var(--sky)',
+}

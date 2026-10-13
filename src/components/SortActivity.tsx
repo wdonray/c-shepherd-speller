@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -18,13 +18,26 @@ import {
 import { XIcon, CheckIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { LIFT_TRANSITION, PICKUP_SHADOW, prefersReducedMotion, settleTransition } from '@/lib/sort-motion'
+import {
+  LIFT_TRANSITION,
+  PICKUP_SHADOW,
+  feedbackAnimate,
+  prefersReducedMotion,
+  settleTransition,
+} from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
-import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
+import {
+  playCorrectSound,
+  playIncorrectSound,
+  playDropSound,
+  playPickupSound,
+  playWinFanfare,
+} from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
+import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { OddDuck } from './OddDuck'
-import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
+import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import { useMediaQuery } from '@/lib/use-media-query'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -103,7 +116,60 @@ function WordTray({ isOver, children }: { isOver: boolean; children: React.React
   )
 }
 
-function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checked: boolean; correct: boolean | null }) {
+/**
+ * Renders a word with its spelling-pattern letters underlined for correct
+ * placements. Shared by the desktop draggable card and the mobile
+ * tap-to-place card so the pattern underline shows on both.
+ */
+function renderWordWithUnderline(
+  word: string,
+  pattern: SpellingPattern | undefined,
+  correct: boolean | null
+): React.ReactNode {
+  // No underline without a correctness state or a destination pattern.
+  // The early return also narrows pattern for the sound lookup below.
+  if (!correct || !pattern) return word
+  const underlineRanges = getPatternUnderlineRanges(word, pattern.pattern)
+  if (underlineRanges.length === 0) return word
+  // Build the word with underlined segments.
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  // Get the underline color based on sound type.
+  const soundType = getSoundType(pattern.pattern)
+  const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType]
+  underlineRanges.forEach((range, i) => {
+    if (range.start > lastIndex) {
+      parts.push(<span key={`t${i}`}>{word.slice(lastIndex, range.start)}</span>)
+    }
+    parts.push(
+      <span
+        key={`u${i}`}
+        style={{
+          borderBottom: `4px solid ${underlineColor}`,
+          borderRadius: '2px',
+          paddingBottom: '2px',
+        }}
+      >
+        {word.slice(range.start, range.end)}
+      </span>
+    )
+    lastIndex = range.end
+  })
+  if (lastIndex < word.length) {
+    parts.push(<span key="t-end">{word.slice(lastIndex)}</span>)
+  }
+  return <>{parts}</>
+}
+
+function SortableWordCard({
+  entry,
+  correct,
+  pattern,
+}: {
+  entry: BankWord
+  correct: boolean | null
+  pattern?: SpellingPattern
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
   return (
     <li>
@@ -116,6 +182,7 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
         aria-label={`Drag the word ${entry.word}`}
         layout
         transition={settleTransition()}
+        animate={feedbackAnimate(correct)}
         className={cn(
           'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
@@ -123,13 +190,13 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
           // The DragOverlay renders the floating copy; hide the original
           // so it does not shift layout or get clipped by scroll containers.
           isDragging && 'invisible',
-          checked && correct && 'border-leaf bg-leaf-soft',
-          checked && correct === false && 'border-coral bg-coral-soft'
+          correct && 'border-leaf bg-leaf-soft',
+          correct === false && 'border-coral bg-coral-soft'
         )}
       >
-        {entry.word}
-        {checked && correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
-        {checked && correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
+        {renderWordWithUnderline(entry.word, pattern, correct)}
+        {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
+        {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </motion.button>
     </li>
   )
@@ -207,16 +274,16 @@ function DropColumn({
 /** Word button for the mobile tap-to-place layout. */
 function MobileWordCard({
   entry,
-  checked,
   correct,
   selected,
   onSelect,
+  pattern,
 }: {
   entry: BankWord
-  checked: boolean
   correct: boolean | null
   selected: boolean
   onSelect: () => void
+  pattern?: SpellingPattern
 }) {
   return (
     <li>
@@ -230,13 +297,13 @@ function MobileWordCard({
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60',
           selected && 'border-sky-deep bg-sky-soft',
-          checked && correct && 'border-leaf bg-leaf-soft',
-          checked && correct === false && 'border-coral bg-coral-soft'
+          correct && 'border-leaf bg-leaf-soft',
+          correct === false && 'border-coral bg-coral-soft'
         )}
       >
-        {entry.word}
-        {checked && correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
-        {checked && correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
+        {renderWordWithUnderline(entry.word, pattern, correct)}
+        {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
+        {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </button>
     </li>
   )
@@ -351,13 +418,12 @@ function MobilePlaceBar({
 export default function SortActivity({ list, onExit }: SortActivityProps) {
   const bank = useMemo(() => buildWordBank(list), [list])
   const [placements, setPlacements] = useState<Record<string, string>>({})
-  const [checked, setChecked] = useState(false)
   const [results, setResults] = useState<Record<string, boolean>>({})
-  const [score, setScore] = useState<{ correct: number; total: number } | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [overId, setOverId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<BankWord | null>(null)
+  const [won, setWon] = useState(false)
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const patterns = useMemo(() => {
@@ -382,6 +448,14 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     setAnnouncement(message)
   }, [])
 
+  // Play fanfare and announce win when the win state is reached.
+  useEffect(() => {
+    if (won) {
+      playWinFanfare()
+      announce('Every word is sorted.')
+    }
+  }, [won, announce])
+
   /**
    * Shared placement logic for drag-and-drop and tap-to-place. Moves the
    * word to the destination pattern column, or back to the word bank.
@@ -395,21 +469,38 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           delete next[entry.id]
           return next
         })
-        setChecked(false)
         return 'bank'
       }
       const pattern = patterns.find((p) => p.id === destination)
       if (!pattern) return null
       setPlacements((prev) => ({ ...prev, [entry.id]: destination }))
-      setChecked(false)
       return pattern
     },
     [patterns]
   )
 
+  // Win cascade trigger: when every sortable word is placed and correct,
+  // wait a beat, then celebrate. The timer cancels if the board changes
+  // (a word moved back, Try again) before it fires. The win fires once per
+  // completion: dismissing the dialog does not re-arm it, only breaking and
+  // re-completing the board does.
+  const winCelebrated = useRef(false)
+  useEffect(() => {
+    const complete = bank.length > 0 && bank.every((w) => placements[w.id] && placements[w.id] === w.patternId)
+    if (!complete) {
+      winCelebrated.current = false
+      return
+    }
+    if (winCelebrated.current) return
+    winCelebrated.current = true
+    const timer = window.setTimeout(() => setWon(true), 300)
+    return () => window.clearTimeout(timer)
+  }, [bank, placements])
+
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       setActiveId(String(event.active.id))
+      playPickupSound()
       const entry = bank.find((w) => w.id === event.active.id)
       if (entry) announce(`Picked up '${entry.word}'`)
     },
@@ -430,9 +521,24 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
       const result = placeWord(entry, String(over.id))
       if (result === null) return
       if (result === 'bank') {
+        // Clearing the result when returning to the bank.
+        setResults((prev) => {
+          const next = { ...prev }
+          delete next[entry.id]
+          return next
+        })
         announce(`Put '${entry.word}' back in the word bank`)
       } else {
-        announce(`Dropped '${entry.word}' in column ${result.pattern}`)
+        playDropSound()
+        const isCorrect = entry.patternId === result.id
+        setResults((prev) => ({ ...prev, [entry.id]: isCorrect }))
+        if (isCorrect) {
+          playCorrectSound()
+          announce(`${entry.word} is correct in ${result.pattern}.`)
+        } else {
+          playIncorrectSound()
+          announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
+        }
       }
     },
     [bank, placeWord, announce]
@@ -457,35 +563,33 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
       const result = placeWord(entry, destination === 'bank' ? WORD_BANK_ID : destination.id)!
       setSelectedEntry(null)
       if (result === 'bank') {
+        setResults((prev) => {
+          const next = { ...prev }
+          delete next[entry.id]
+          return next
+        })
         announce(`Moved '${entry.word}' back to the word bank.`)
       } else {
-        announce(`Placed '${entry.word}' in ${result.pattern}.`)
+        playDropSound()
+        const isCorrect = entry.patternId === result.id
+        setResults((prev) => ({ ...prev, [entry.id]: isCorrect }))
+        if (isCorrect) {
+          playCorrectSound()
+          announce(`${entry.word} is correct in ${result.pattern}.`)
+        } else {
+          playIncorrectSound()
+          announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
+        }
       }
     },
     [placeWord, announce]
   )
 
-  const handleCheck = useCallback(() => {
-    const { results: graded, correct, total } = checkPlacements(bank, placements)
-    const map: Record<string, boolean> = {}
-    for (const r of graded) map[r.wordId] = r.correct
-    setResults(map)
-    setChecked(true)
-    setScore({ correct, total })
-    announce(`${correct} of ${total} in the right column.`)
-    if (correct === total) {
-      playCorrectSound()
-    } else {
-      playIncorrectSound()
-    }
-  }, [bank, placements, announce])
-
   const handleTryAgain = useCallback(() => {
     setPlacements({})
-    setChecked(false)
     setResults({})
-    setScore(null)
     setSelectedEntry(null)
+    setWon(false)
     announce('All words returned to the word bank. Try again.')
   }, [announce])
 
@@ -535,17 +639,16 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             <section aria-label="Word bank" className="mb-8 rounded-2xl border-2 border-line bg-card p-4">
               <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
               {bankWords.length === 0 ? (
-                <p className="py-4 text-center text-[15px] text-muted-foreground">
-                  All words placed. Check answers or tap a word to move it.
-                </p>
+                <p className="py-4 text-center text-[15px] text-muted-foreground">All words are placed.</p>
               ) : (
                 <ul className="space-y-3">
                   {bankWords.map((entry) => (
                     <MobileWordCard
                       key={entry.id}
                       entry={entry}
-                      checked={checked}
-                      correct={checked ? results[entry.id]! : null}
+                      // Bank words have no correctness state; results are
+                      // cleared whenever a word returns to the bank.
+                      correct={null}
                       selected={selectedEntry?.id === entry.id}
                       onSelect={() => handleMobileWordTap(entry)}
                     />
@@ -563,8 +666,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                       <MobileWordCard
                         key={entry.id}
                         entry={entry}
-                        checked={checked}
-                        correct={checked ? results[entry.id]! : null}
+                        // Placed words always have a result: every column
+                        // drop sets results[entry.id] alongside placements.
+                        correct={results[entry.id]}
+                        pattern={pattern}
                         selected={selectedEntry?.id === entry.id}
                         onSelect={() => handleMobileWordTap(entry)}
                       />
@@ -603,8 +708,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                       <SortableWordCard
                         key={entry.id}
                         entry={entry}
-                        checked={checked}
-                        correct={checked ? results[entry.id]! : null}
+                        // Placed words always have a result: every column
+                        // drop sets results[entry.id] alongside placements.
+                        correct={results[entry.id]}
+                        pattern={pattern}
                       />
                     ))}
                     {columnWords.length === 0 && (
@@ -621,12 +728,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
               ) : (
                 <ul className="flex flex-wrap justify-center gap-3">
                   {bankWords.map((entry) => (
-                    <SortableWordCard
-                      key={entry.id}
-                      entry={entry}
-                      checked={checked}
-                      correct={checked ? results[entry.id]! : null}
-                    />
+                    <SortableWordCard key={entry.id} entry={entry} correct={null} />
                   ))}
                 </ul>
               )}
@@ -647,22 +749,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
         )}
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          {!checked ? (
-            <Button onClick={handleCheck} disabled={Object.keys(placements).length === 0}>
-              Check answers
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={handleTryAgain}>
-              Try again
-            </Button>
-          )}
+          <Button variant="secondary" onClick={handleTryAgain}>
+            Try again
+          </Button>
         </div>
-
-        {score && (
-          <p aria-live="polite" className="mt-4 text-center text-xl font-bold text-ink">
-            {score.correct} of {score.total} in the right column.
-          </p>
-        )}
       </div>
       <DragOverlay dropAnimation={null} style={{ zIndex: 100 }}>
         {activeId
@@ -672,6 +762,30 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             })()
           : null}
       </DragOverlay>
+      {won && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="max-w-md rounded-2xl bg-card p-8 text-center shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="win-title"
+          >
+            <h2 id="win-title" className="text-2xl font-extrabold text-ink">
+              Every word is sorted.
+            </h2>
+            <p className="mt-2 text-[15px] text-muted-foreground">Nice work. Now, what did the class figure out?</p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button onClick={() => setWon(false)}>Tell the rule</Button>
+              <Button variant="ghost" onClick={() => setWon(false)}>
+                Skip for now
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </DndContext>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import SortActivity, { expandRectForMagnet, magneticCollision } from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
@@ -41,6 +41,9 @@ const { playCorrectSound, playIncorrectSound } = vi.hoisted(() => ({
 vi.mock('@/lib/sound-effects', () => ({
   playCorrectSound,
   playIncorrectSound,
+  playPickupSound: vi.fn(),
+  playDropSound: vi.fn(),
+  playWinFanfare: vi.fn(),
   isSoundEnabled: () => true,
   setSoundEnabled: vi.fn(),
 }))
@@ -113,11 +116,6 @@ describe('SortActivity', () => {
     expect(screen.getByText(/Keyboard: Space to pick up a word/)).toBeInTheDocument()
   })
 
-  it('disables Check answers until a word is placed', () => {
-    render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
-  })
-
   it('calls onExit when Exit sort is clicked', () => {
     const onExit = vi.fn()
     render(<SortActivity list={list} onExit={onExit} />)
@@ -162,7 +160,6 @@ describe('SortActivity', () => {
     await waitFor(() => {
       expect(live?.textContent).toContain('back in the word bank')
     })
-    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
   })
 
   it('removes placement when a word is dropped back in the word bank', async () => {
@@ -170,7 +167,7 @@ describe('SortActivity', () => {
     dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
     const live = document.querySelector('[aria-live="polite"][role="status"]')
     await waitFor(() => {
-      expect(live?.textContent).toContain("Dropped 'cake' in column a_e")
+      expect(live?.textContent).toContain('cake is correct in a_e')
     })
     dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'word-bank' } })
     await waitFor(() => {
@@ -178,7 +175,70 @@ describe('SortActivity', () => {
     })
   })
 
-  it('plays the correct sound when all answers are right', async () => {
+  it('plays the correct sound on every correct drop', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p1' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('plays the incorrect sound on every incorrect drop', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p2' } })
+    })
+    await waitFor(() => {
+      expect(playIncorrectSound).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('renders an underline that starts at the first letter', async () => {
+    const apeList: WordList = {
+      ...list,
+      patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['ape'] }],
+    }
+    render(<SortActivity list={apeList} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:ape' }, over: { id: 'p1' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+    // "ape" underlines "a" and "e" with no leading plain text.
+    const wordButton = screen.getByRole('button', { name: 'Drag the word ape' })
+    const underlined = within(wordButton).getAllByText('a')
+    expect(underlined.length).toBeGreaterThanOrEqual(1)
+    expect(within(wordButton).getByText('p')).toBeInTheDocument()
+    expect(within(wordButton).getByText('e')).toBeInTheDocument()
+  })
+
+  it('renders non-pattern text around the underline, including trailing text', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+    // "rain" underlines "ai"; the leading "r" and trailing "n" stay plain text.
+    const column = screen.getByLabelText('Pattern ai drop column')
+    const wordButton = within(column).getByRole('button', { name: 'Drag the word rain' })
+    expect(within(wordButton).getByText('r')).toBeInTheDocument()
+    expect(within(wordButton).getByText('n')).toBeInTheDocument()
+    const underlined = within(wordButton).getByText('ai')
+    expect(underlined.getAttribute('style')).toContain('border-bottom')
+  })
+
+  it('shows an all-placed message in the tray when every word is sorted', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     act(() => {
       dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
@@ -186,29 +246,10 @@ describe('SortActivity', () => {
       dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
       dndHandlers.onDragEnd?.({ active: { id: 'p3:said' }, over: { id: 'p3' } })
     })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-
+    const tray = screen.getByLabelText('Word tray')
     await waitFor(() => {
-      expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
+      expect(within(tray).getByText('All words are placed.')).toBeInTheDocument()
     })
-    expect(playCorrectSound).toHaveBeenCalledTimes(1)
-    expect(playIncorrectSound).not.toHaveBeenCalled()
-  })
-
-  it('plays the incorrect sound when any answer is wrong', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} />)
-    act(() => {
-      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p2' } })
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-
-    await waitFor(() => {
-      expect(screen.getAllByText('0 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
-    })
-    expect(playIncorrectSound).toHaveBeenCalledTimes(1)
-    expect(playCorrectSound).not.toHaveBeenCalled()
   })
 
   it('try again returns all words to the word bank', async () => {
@@ -218,11 +259,6 @@ describe('SortActivity', () => {
       dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p2' } })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    })
-
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     await waitFor(() => {
@@ -230,9 +266,7 @@ describe('SortActivity', () => {
       expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
     })
-    // Placements cleared, so Check answers is disabled again and the score is gone.
-    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
-    expect(screen.queryByText(/in the right column\./)).not.toBeInTheDocument()
+
     const live = document.querySelector('[aria-live="polite"][role="status"]')
     expect(live?.textContent).toContain('All words returned to the word bank')
   })

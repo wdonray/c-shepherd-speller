@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import SortActivity from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
@@ -31,13 +31,19 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
   }
 })
 
-const { playCorrectSound, playIncorrectSound } = vi.hoisted(() => ({
+const { playCorrectSound, playIncorrectSound, playPickupSound, playDropSound, playWinFanfare } = vi.hoisted(() => ({
   playCorrectSound: vi.fn(),
   playIncorrectSound: vi.fn(),
+  playPickupSound: vi.fn(),
+  playDropSound: vi.fn(),
+  playWinFanfare: vi.fn(),
 }))
 vi.mock('@/lib/sound-effects', () => ({
   playCorrectSound,
   playIncorrectSound,
+  playPickupSound,
+  playDropSound,
+  playWinFanfare,
   isSoundEnabled: () => true,
   setSoundEnabled: vi.fn(),
 }))
@@ -60,6 +66,9 @@ describe('SortActivity on mobile', () => {
     mockMobileViewport()
     playCorrectSound.mockClear()
     playIncorrectSound.mockClear()
+    playPickupSound.mockClear()
+    playDropSound.mockClear()
+    playWinFanfare.mockClear()
   })
 
   afterEach(() => {
@@ -116,7 +125,7 @@ describe('SortActivity on mobile', () => {
     expect(liveRegion()?.textContent).toContain('Choose where it goes.')
   })
 
-  it('places a word in a column via the bar and closes the bar', () => {
+  it('places a word in a column via the bar and closes the bar', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
     fireEvent.click(screen.getByRole('button', { name: 'Put cake in the a_e column' }))
@@ -126,9 +135,12 @@ describe('SortActivity on mobile', () => {
     const column = screen.getByLabelText('Pattern a_e column')
     expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
-    expect(liveRegion()?.textContent).toContain("Placed 'cake' in a_e")
-    // Check answers is now enabled.
-    expect(screen.getByRole('button', { name: 'Check answers' })).not.toBeDisabled()
+    // The pattern underline renders on tap-to-place too.
+    const placedButton = within(column).getByRole('button', { name: 'Select the word cake' })
+    expect(within(placedButton).getByText('a').getAttribute('style')).toContain('border-bottom')
+    await waitFor(() => {
+      expect(liveRegion()?.textContent).toContain('cake is correct in a_e')
+    })
   })
 
   it('cancels placement without moving the word', () => {
@@ -160,7 +172,9 @@ describe('SortActivity on mobile', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Put cake in the ai column' }))
     const aiColumn = screen.getByLabelText('Pattern ai column')
     expect(within(aiColumn).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
-    expect(liveRegion()?.textContent).toContain("Placed 'cake' in ai")
+    // Cake belongs to a_e, so the drop gives immediate incorrect feedback.
+    expect(liveRegion()?.textContent).toContain('cake does not go with ai. Try another column.')
+    expect(playIncorrectSound).toHaveBeenCalled()
   })
 
   it('switches selection to another word while the bar is open', () => {
@@ -171,41 +185,100 @@ describe('SortActivity on mobile', () => {
     expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
   })
 
-  it('checks answers, shows the score, and plays the correct sound', () => {
+  it('announces each correct drop and shows the win overlay when every word is correct', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    expect(liveRegion()?.textContent).toContain('cake is correct in a_e.')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    expect(playCorrectSound).toHaveBeenCalledTimes(4)
+    expect(playIncorrectSound).not.toHaveBeenCalled()
+    // All words placed and correct: the win cascade fires the overlay.
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Every word is sorted.')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(liveRegion()?.textContent).toContain('Every word is sorted.')
+    })
+    // The win effect plays the fanfare before announcing.
+    expect(playWinFanfare).toHaveBeenCalled()
+    // "Tell the rule" dismisses the overlay (rule capture lands in a later phase).
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // Win again and dismiss with the other action.
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     placeViaBar('cake', 'a_e')
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-    // The score text appears in both the live region and the score paragraph.
-    expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
-    expect(playCorrectSound).toHaveBeenCalled()
-    expect(playIncorrectSound).not.toHaveBeenCalled()
+    const secondDialog = await screen.findByRole('dialog')
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Skip for now' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('plays the incorrect sound when any word is wrong', () => {
+  it('plays the incorrect sound on a wrong drop and the correct sound on right drops', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     placeViaBar('cake', 'ai') // wrong column
+    expect(playIncorrectSound).toHaveBeenCalled()
+    expect(liveRegion()?.textContent).toContain('cake does not go with ai. Try another column.')
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
-    expect(playIncorrectSound).toHaveBeenCalled()
-    expect(playCorrectSound).not.toHaveBeenCalled()
+    // Each correct drop plays the correct sound immediately.
+    expect(playCorrectSound).toHaveBeenCalledTimes(3)
     // One word marked incorrect, three marked correct.
     expect(document.querySelectorAll('svg[aria-label="Incorrect"]')).toHaveLength(1)
     expect(document.querySelectorAll('svg[aria-label="Correct"]')).toHaveLength(3)
   })
 
+  it('cancels the win when the board is reset before the cascade fires', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    // Reset before the 300ms win delay elapses.
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    // Wait past the win delay: no dialog may appear and no fanfare plays.
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).not.toHaveBeenCalled()
+  })
+
+  it('does not win when the list has no sortable words', async () => {
+    const emptyList: WordList = { ...list, patterns: [] }
+    render(<SortActivity list={emptyList} onExit={vi.fn()} />)
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).not.toHaveBeenCalled()
+  })
+
+  it('does not re-win after the dialog is dismissed', async () => {
+    const { rerender } = render(<SortActivity list={list} onExit={vi.fn()} />)
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Skip for now' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // A parent re-render (new list object, same content) must not re-arm the win.
+    rerender(<SortActivity list={{ ...list }} onExit={vi.fn()} />)
+    await new Promise((resolve) => setTimeout(resolve, 450))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(playWinFanfare).toHaveBeenCalledTimes(1)
+  })
+
   it('try again returns all words to the bank and clears the selection', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     placeViaBar('cake', 'a_e')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(screen.getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Select the word bake' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
+    // Correctness marks are cleared and no win overlay is showing.
+    expect(document.querySelectorAll('svg[aria-label="Correct"]')).toHaveLength(0)
+    expect(document.querySelectorAll('svg[aria-label="Incorrect"]')).toHaveLength(0)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(liveRegion()?.textContent).toContain('All words returned to the word bank')
   })
 

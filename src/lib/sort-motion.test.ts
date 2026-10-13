@@ -6,6 +6,7 @@ import {
   PICKUP_SHADOW,
   prefersReducedMotion,
   settleTransition,
+  feedbackAnimate,
 } from './sort-motion'
 
 describe('sort-motion', () => {
@@ -52,5 +53,35 @@ describe('sort-motion', () => {
   it('uses the spring otherwise', () => {
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
     expect(settleTransition()).toBe(SORT_SPRING)
+  })
+
+  describe('feedbackAnimate', () => {
+    it('returns no animation when reduced motion is preferred', () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+      expect(feedbackAnimate(true)).toEqual({})
+      expect(feedbackAnimate(false)).toEqual({})
+      expect(feedbackAnimate(null)).toEqual({})
+    })
+
+    it('returns no animation without a correctness state', () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+      expect(feedbackAnimate(null)).toEqual({})
+    })
+
+    it('returns a 240ms scale pulse for a correct drop', () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+      expect(feedbackAnimate(true)).toEqual({
+        scale: [1, 1.18, 1],
+        transition: { duration: 0.24, ease: 'easeOut' },
+      })
+    })
+
+    it('returns a 400ms shake for an incorrect drop', () => {
+      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }))
+      expect(feedbackAnimate(false)).toEqual({
+        rotate: [-4, 4, -2, 0],
+        transition: { duration: 0.4, ease: 'easeInOut' },
+      })
+    })
   })
 })

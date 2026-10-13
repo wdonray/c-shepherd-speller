@@ -98,3 +98,23 @@ export function playIncorrectSound(): void {
     { frequency: 196, startOffset: 0.15, duration: 0.15 }, // G3
   ])
 }
+
+/** Single short blip for pickup. Quiet. */
+export function playPickupSound(): void {
+  playTones([{ frequency: 660, startOffset: 0, duration: 0.06 }])
+}
+
+/** Soft thock for drop settle. */
+export function playDropSound(): void {
+  playTones([{ frequency: 220, startOffset: 0, duration: 0.08 }])
+}
+
+/** Ascending arpeggio for win cascade. */
+export function playWinFanfare(): void {
+  playTones([
+    { frequency: 523.25, startOffset: 0, duration: 0.12 }, // C5
+    { frequency: 659.25, startOffset: 0.12, duration: 0.12 }, // E5
+    { frequency: 783.99, startOffset: 0.24, duration: 0.12 }, // G5
+    { frequency: 1046.5, startOffset: 0.36, duration: 0.2 }, // C6
+  ])
+}
