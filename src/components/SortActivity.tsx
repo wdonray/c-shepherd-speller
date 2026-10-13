@@ -126,11 +126,11 @@ function renderWordWithUnderline(
   pattern: SpellingPattern | undefined,
   correct: boolean | null
 ): React.ReactNode {
-  // Compute underline ranges for correct placements.
-  const underlineRanges = correct && pattern ? getPatternUnderlineRanges(word, pattern.pattern) : []
-  // The !pattern check is unreachable at runtime (non-empty ranges imply a
-  // pattern), but it narrows the type for the sound lookup below.
-  if (underlineRanges.length === 0 || !pattern) return word
+  // No underline without a correctness state or a destination pattern.
+  // The early return also narrows pattern for the sound lookup below.
+  if (!correct || !pattern) return word
+  const underlineRanges = getPatternUnderlineRanges(word, pattern.pattern)
+  if (underlineRanges.length === 0) return word
   // Build the word with underlined segments.
   const parts: React.ReactNode[] = []
   let lastIndex = 0
