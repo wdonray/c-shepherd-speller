@@ -222,6 +222,22 @@ describe('VoiceRecorderModal', () => {
     expect(true).toBe(true)
   })
 
+  it('ignores a denied permission request after unmount', async () => {
+    stubPermissions('prompt')
+    let rejectPermission!: (error: unknown) => void
+    const getUserMedia = vi.fn(() => new Promise((_resolve, reject) => (rejectPermission = reject)))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    unmount()
+    rejectPermission(new DOMException('denied', 'NotAllowedError'))
+    await act(async () => {})
+    expect(true).toBe(true)
+  })
+
   it('retries the permission check', async () => {
     const query = stubPermissions('denied')
     renderModal()
