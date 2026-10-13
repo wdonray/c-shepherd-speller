@@ -115,6 +115,24 @@ describe('SortActivity', () => {
     })
   })
 
+  it('wraps placed words in a flow inside each column instead of stacking vertically', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    })
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p1' } })
+    })
+    const column = screen.getByLabelText('Pattern a_e drop column')
+    const wordList = within(column).getByRole('list')
+    expect(wordList).toHaveClass('flex', 'flex-wrap')
+    // The placed tiles keep their feedback state in the wrapped flow.
+    const cake = within(column).getByRole('button', { name: 'Drag the word cake' })
+    expect(within(cake).getByLabelText('Correct')).toBeInTheDocument()
+    const bake = within(column).getByRole('button', { name: 'Drag the word bake' })
+    expect(within(bake).getByLabelText('Correct')).toBeInTheDocument()
+  })
+
   it('shows keyboard instructions for screen readers', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     expect(screen.getByText(/Keyboard: Space to pick up a word/)).toBeInTheDocument()
