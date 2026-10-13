@@ -190,14 +190,22 @@ describe('sound-effects', () => {
     expect(first.frequency.value).toBe(220)
   })
 
-  it('plays an ascending arpeggio for win fanfare', async () => {
+  it('plays a victory fanfare clearly bigger than the correct chime', async () => {
     const { playWinFanfare } = await loadModule()
     playWinFanfare()
-    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(4)
-    const [c, e, g, highC] = mock.oscillators
-    expect(c.frequency.value).toBe(523.25)
-    expect(e.frequency.value).toBe(659.25)
-    expect(g.frequency.value).toBe(783.99)
-    expect(highC.frequency.value).toBe(1046.5)
+    // Six-note ascending run into a three-note held chord: nine oscillators,
+    // versus two for the single-drop correct chime.
+    expect(mock.ctx.createOscillator).toHaveBeenCalledTimes(9)
+    const [c5, e5, g5, c6, e6, g6, chordC, chordE, chordG] = mock.oscillators
+    expect(c5.frequency.value).toBe(523.25)
+    expect(e5.frequency.value).toBe(659.25)
+    expect(g5.frequency.value).toBe(783.99)
+    expect(c6.frequency.value).toBe(1046.5)
+    expect(e6.frequency.value).toBe(1318.5)
+    expect(g6.frequency.value).toBe(1568.0)
+    // The final C-major chord lands together.
+    expect(chordC.frequency.value).toBe(1046.5)
+    expect(chordE.frequency.value).toBe(1318.5)
+    expect(chordG.frequency.value).toBe(1568.0)
   })
 })

@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import confetti from 'canvas-confetti'
-import { fireWinConfetti } from './confetti'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 
-vi.mock('canvas-confetti', () => ({ default: vi.fn() }))
+const { fireMock, createMock } = vi.hoisted(() => {
+  const fireMock = vi.fn()
+  const createMock = vi.fn(() => fireMock)
+  return { fireMock, createMock }
+})
 
-const mockedConfetti = vi.mocked(confetti)
+vi.mock('canvas-confetti', () => ({ default: { create: createMock } }))
+
 const originalMatchMedia = window.matchMedia
 
 function mockReducedMotion(matches: boolean) {
@@ -21,16 +24,42 @@ function mockReducedMotion(matches: boolean) {
 }
 
 describe('fireWinConfetti', () => {
+  let fireWinConfetti: () => void
+
+  beforeEach(async () => {
+    // Fresh module state per test so the lazy cannon singleton does not
+    // leak across tests.
+    vi.resetModules()
+    ;({ fireWinConfetti } = await import('./confetti'))
+  })
+
   afterEach(() => {
     window.matchMedia = originalMatchMedia
     vi.clearAllMocks()
   })
 
+  it('renders on the main thread: the app CSP blocks the blob worker', () => {
+    // Regression: canvas-confetti defaults to a Web Worker, but the app's
+    // Content-Security-Policy has no worker-src directive, so the worker is
+    // blocked and confetti silently never renders.
+    mockReducedMotion(false)
+    fireWinConfetti()
+    expect(createMock).toHaveBeenCalledWith(undefined, { useWorker: false, resize: true })
+  })
+
+  it('reuses the cannon across wins', () => {
+    mockReducedMotion(false)
+    fireWinConfetti()
+    fireWinConfetti()
+    expect(createMock).toHaveBeenCalledTimes(1)
+    expect(fireMock).toHaveBeenCalledTimes(2)
+  })
+
   it('fires a restrained burst in brand colors from the top of the win overlay', () => {
     mockReducedMotion(false)
     fireWinConfetti()
-    expect(mockedConfetti).toHaveBeenCalledTimes(1)
-    const options = mockedConfetti.mock.calls[0]![0]!
+    expect(fireMock).toHaveBeenCalledTimes(1)
+    const options = fireMock.mock.calls[0]![0]!
     // Restrained: 24-32 pieces per the design spec.
     expect(options.particleCount).toBeGreaterThanOrEqual(24)
     expect(options.particleCount).toBeLessThanOrEqual(32)
@@ -45,6 +74,7 @@ describe('fireWinConfetti', () => {
   it('does not fire under prefers-reduced-motion', () => {
     mockReducedMotion(true)
     fireWinConfetti()
-    expect(mockedConfetti).not.toHaveBeenCalled()
+    expect(fireMock).not.toHaveBeenCalled()
+    expect(createMock).not.toHaveBeenCalled()
   })
 })
