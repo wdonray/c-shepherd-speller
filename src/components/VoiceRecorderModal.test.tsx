@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import type { RecordingSession } from '@/lib/voice-recordings'
 
 const { startRecording, saveRecording, isRecordingStorageSupported, isAudioCaptureSupported } = vi.hoisted(() => ({
   startRecording: vi.fn(),
