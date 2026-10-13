@@ -31,7 +31,7 @@ import {
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { OddDuck } from './OddDuck'
-import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
+import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import { useMediaQuery } from '@/lib/use-media-query'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 
@@ -130,7 +130,7 @@ function SortableWordCard({
     let lastIndex = 0
     // Get the underline color based on sound type.
     const soundType = getSoundType(pattern.pattern)
-    const underlineColor = SOUND_TYPE_BORDER[soundType] ?? '#2e6510'
+    const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType] ?? '#2e6510'
     underlineRanges.forEach((range, i) => {
       if (range.start > lastIndex) {
         parts.push(<span key={`t${i}`}>{entry.word.slice(lastIndex, range.start)}</span>)

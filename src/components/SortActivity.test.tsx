@@ -210,10 +210,12 @@ describe('SortActivity', () => {
       expect(playCorrectSound).toHaveBeenCalledTimes(1)
     })
     // "rain" underlines "ai"; the leading "r" and trailing "n" stay plain text.
-    const column = screen.getByLabelText('Pattern ai column')
-    expect(within(column).getByText('r')).toBeInTheDocument()
-    expect(within(column).getByText('n')).toBeInTheDocument()
-    expect(within(column).getByText('ai')).toBeInTheDocument()
+    const column = screen.getByLabelText('Pattern ai drop column')
+    const wordButton = within(column).getByRole('button', { name: 'Drag the word rain' })
+    expect(within(wordButton).getByText('r')).toBeInTheDocument()
+    expect(within(wordButton).getByText('n')).toBeInTheDocument()
+    const underlined = within(wordButton).getByText('ai')
+    expect(underlined.getAttribute('style')).toContain('border-bottom')
   })
 
   it('try again returns all words to the word bank', async () => {
