@@ -417,4 +417,39 @@ describe('DisplayMode', () => {
       expect(screen.queryByRole('group', { name: 'Filter lists by week' })).not.toBeInTheDocument()
     })
   })
+
+  it('adds presenting guidance under the picker intro', async () => {
+    getLists.mockResolvedValue([list])
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Present a list' })).toBeInTheDocument()
+    })
+    expect(screen.getByText(/One column per pattern, all words visible at once/)).toBeInTheDocument()
+    expect(screen.getByText(/try Sort words to turn the chart into a class sorting activity/)).toBeInTheDocument()
+  })
+
+  it('shows the presenting tips bar on the chart view', async () => {
+    window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Presenting tips' })).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Press the fullscreen button for the biggest chart/)).toBeInTheDocument()
+  })
+
+  it('shows the "Why this chart?" button next to the list name', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Why this chart?' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Why this chart?' }))
+    expect(screen.getByRole('dialog', { name: 'Why this chart?' })).toBeInTheDocument()
+  })
 })

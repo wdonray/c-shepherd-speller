@@ -143,6 +143,7 @@ describe('ListEditorPage', () => {
     await screen.findByRole('heading', { name: 'Week 5: Long A' })
     expect(screen.getByText('Grade 1')).toBeInTheDocument()
     expect(screen.getByText('Spelling patterns (1)')).toBeInTheDocument()
+    expect(screen.getByText(/so the pattern jumps out at a glance/)).toBeInTheDocument()
   })
 
   it('shows a not-found page for an unknown list id', async () => {

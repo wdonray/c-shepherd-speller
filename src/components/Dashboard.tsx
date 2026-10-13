@@ -46,8 +46,9 @@ function GettingStarted() {
     <section aria-label="Getting started guide" className="space-y-4">
       <h2 className="text-2xl font-bold">Getting started with pattern-based spelling</h2>
       <p className="max-w-3xl text-muted-foreground">
-        Instead of memorizing flat word lists, group words by the spelling pattern for a target sound. Research shows
-        this helps students learn the pattern, not just the words.
+        One pattern learned is dozens of words spelled. When students see words grouped by a shared spelling pattern,
+        they learn the rule behind the words and can spell new words they have never seen. PatternSpell works with the
+        program you already teach: CKLA, Fundations, UFLI, Words Their Way, or your own sequence.
       </p>
       <ol className="grid gap-4 md:grid-cols-3">
         {GETTING_STARTED_STEPS.map((step, i) => (

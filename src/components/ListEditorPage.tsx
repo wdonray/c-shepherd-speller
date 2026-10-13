@@ -489,7 +489,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         <div className="space-y-2">
           <h2 className="text-[22px] font-bold">Spelling patterns ({list.patterns.length})</h2>
           <p className="text-sm text-muted-foreground">
-            One column per spelling. Column width follows frequency: common spellings get the widest column.
+            One column per spelling pattern, so the pattern jumps out at a glance. Wider columns are the more common
+            spellings, which tells students which spelling to try first.
           </p>
         </div>
         <Button onClick={addPattern} className="shrink-0">

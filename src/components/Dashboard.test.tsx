@@ -112,6 +112,8 @@ describe('Dashboard', () => {
     })
     expect(screen.getAllByRole('button', { name: 'Create your first list' })).toHaveLength(2)
     expect(screen.getByText(/Getting started with pattern-based spelling/)).toBeInTheDocument()
+    expect(screen.getByText(/One pattern learned is dozens of words spelled/)).toBeInTheDocument()
+    expect(screen.getByText(/PatternSpell works with the program you already teach/)).toBeInTheDocument()
     expect(screen.getByText('Create a list')).toBeInTheDocument()
     expect(screen.getByText('Add patterns')).toBeInTheDocument()
     expect(screen.getByText('Present and practice')).toBeInTheDocument()
