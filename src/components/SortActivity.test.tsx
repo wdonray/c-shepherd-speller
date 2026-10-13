@@ -62,11 +62,10 @@ describe('SortActivity', () => {
     playIncorrectSound.mockClear()
   })
 
-  it('starts with all sortable words in the bank and empty columns', () => {
+  it('starts with all sortable words in the tray and empty columns', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.getByText('Sort the words')).toBeInTheDocument()
-    expect(screen.getByText('Word bank')).toBeInTheDocument()
-    // All 3 sortable words in the bank.
+    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // All 3 sortable words in the tray.
     expect(screen.getByRole('button', { name: 'Drag the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
@@ -99,20 +98,15 @@ describe('SortActivity', () => {
 
   it('renders sort columns at equal widths regardless of pattern frequency', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    // Columns are the flex children with inline sizing (common, common, rare).
-    const columns = Array.from(document.querySelectorAll('div[style]')).filter((el) =>
-      (el as HTMLElement).style.cssText.includes('flex:')
-    )
+    // Columns are flex-1 with equal sizing (common, common, rare).
+    const columns = screen.getAllByLabelText(/Pattern .* drop column/)
     expect(columns).toHaveLength(3)
-    const flexValues = new Set(columns.map((el) => (el as HTMLElement).style.flex))
-    // All three columns share one flex value: no frequency-proportional sizing.
-    expect(flexValues.size).toBe(1)
     columns.forEach((col) => {
-      expect((col as HTMLElement).style.minWidth).toBe('220px')
+      expect(col.className).toContain('flex-1')
     })
   })
 
-  it('shows keyboard instructions', () => {
+  it('shows keyboard instructions for screen readers', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     expect(screen.getByText(/Keyboard: Space to pick up a word/)).toBeInTheDocument()
   })
@@ -149,12 +143,12 @@ describe('SortActivity', () => {
     })
   })
 
-  it('highlights the word bank when dragging over it', async () => {
+  it('highlights the word tray when dragging over it', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
     dndHandlers.onDragOver?.({ over: { id: 'word-bank' } })
     await waitFor(() => {
-      const bank = screen.getByLabelText('Word bank drop area')
+      const bank = screen.getByLabelText('Word tray')
       expect(bank.className).toContain('border-sky-deep')
     })
   })
