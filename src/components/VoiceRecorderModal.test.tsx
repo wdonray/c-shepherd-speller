@@ -206,6 +206,33 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
   })
 
+  it('shows the unavailable help when the mic request fails for another reason', async () => {
+    stubPermissions('prompt')
+    const getUserMedia = vi.fn().mockRejectedValue(new DOMException('no device', 'NotFoundError'))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    const { onOpenChange } = renderModal()
+    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
+    // The dialog X renders after the content, so index 0 is the panel Close.
+    fireEvent.click(closeButtons[0])
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('shows the unavailable help when the mic request rejects without a DOMException', async () => {
+    stubPermissions('prompt')
+    const getUserMedia = vi.fn().mockRejectedValue(new Error('boom'))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    renderModal()
+    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+  })
+
   it('ignores unmount during the on-open permission request', async () => {
     stubPermissions('prompt')
     let resolvePermission!: (stream: unknown) => void

@@ -22,7 +22,7 @@ const WARNING_SECONDS_REMAINING = 30
 /** Recordings shorter than this are almost certainly an accidental tap. */
 const MIN_RECORDING_SECONDS = 2
 
-type Phase = 'checking' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 'recording' | 'review'
+type Phase = 'checking' | 'requesting' | 'ready' | 'denied' | 'unavailable' | 'unsupported' | 'recording' | 'review'
 
 interface VoiceRecorderModalProps {
   /** The word being recorded. */
@@ -124,6 +124,48 @@ export default function VoiceRecorderModal({
     cleanupAudioRef.current = cleanupAudio
   })
 
+  // Cancellation flag for the async permission flow, shared by the open
+  // effect and the Try again retry so a late rejection never updates state.
+  const permissionCancelledRef = useRef(false)
+
+  const checkMicrophonePermission = useCallback(() => {
+    const permissions = navigator.permissions as Permissions | undefined
+    if (typeof permissions?.query !== 'function') {
+      setPhase('ready')
+      return
+    }
+    permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then((status) => {
+        if (permissionCancelledRef.current) return
+        if (status.state === 'denied') {
+          setPhase('denied')
+          return
+        }
+        if (status.state === 'granted') {
+          setPhase('ready')
+          return
+        }
+        setPhase('requesting')
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            stream.getTracks().forEach((track) => track.stop())
+            if (!permissionCancelledRef.current) setPhase('ready')
+          })
+          .catch((error: unknown) => {
+            if (permissionCancelledRef.current) return
+            // Only permission denials get the blocked help UI. Other
+            // failures (no mic hardware, mic in use) get their own message.
+            const name = error instanceof DOMException ? error.name : ''
+            setPhase(name === 'NotAllowedError' ? 'denied' : 'unavailable')
+          })
+      })
+      .catch(() => {
+        if (!permissionCancelledRef.current) setPhase('ready')
+      })
+  }, [])
+
   // Reset everything when the modal opens; clean up when it closes.
   useEffect(() => {
     if (!open) {
@@ -147,42 +189,12 @@ export default function VoiceRecorderModal({
     // Check the cached permission state. If the mic is already denied,
     // show the help UI. If permission is undecided, request it now so the
     // browser prompt appears on open; recording still waits for Record.
-    const permissions = navigator.permissions as Permissions | undefined
-    if (typeof permissions?.query !== 'function') {
-      setPhase('ready')
-      return
-    }
-    let cancelled = false
-    permissions
-      .query({ name: 'microphone' as PermissionName })
-      .then((status) => {
-        if (cancelled) return
-        if (status.state === 'denied') {
-          setPhase('denied')
-          return
-        }
-        if (status.state === 'granted') {
-          setPhase('ready')
-          return
-        }
-        setPhase('requesting')
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            stream.getTracks().forEach((track) => track.stop())
-            if (!cancelled) setPhase('ready')
-          })
-          .catch(() => {
-            if (!cancelled) setPhase('denied')
-          })
-      })
-      .catch(() => {
-        if (!cancelled) setPhase('ready')
-      })
+    permissionCancelledRef.current = false
+    checkMicrophonePermission()
     return () => {
-      cancelled = true
+      permissionCancelledRef.current = true
     }
-  }, [open])
+  }, [open, checkMicrophonePermission])
 
   // Full cleanup on unmount.
   useEffect(() => {
@@ -353,15 +365,8 @@ export default function VoiceRecorderModal({
 
   const handleRetryPermission = () => {
     setPhase('checking')
-    const permissions = navigator.permissions as Permissions | undefined
-    if (typeof permissions?.query !== 'function') {
-      setPhase('ready')
-      return
-    }
-    permissions
-      .query({ name: 'microphone' as PermissionName })
-      .then((status) => setPhase(status.state === 'denied' ? 'denied' : 'ready'))
-      .catch(() => setPhase('ready'))
+    permissionCancelledRef.current = false
+    checkMicrophonePermission()
   }
 
   const secondsLeft = Math.max(0, Math.ceil(maxSeconds - elapsed))
@@ -434,6 +439,31 @@ export default function VoiceRecorderModal({
               <li>Change it to Allow.</li>
               <li>Come back here and tap Try again.</li>
             </ol>
+            <div className="flex gap-2">
+              <Button onClick={handleRetryPermission} className="flex-1">
+                Try again
+              </Button>
+              <Button variant="secondary" onClick={() => onOpenChange(false)} className="flex-1">
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {phase === 'unavailable' && (
+          <div className="space-y-4 py-2">
+            <div className="flex items-start gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-coral-soft text-coral-ink">
+                <MicOffIcon className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="font-bold text-ink">No microphone found</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  PatternSpell could not reach a microphone. Make sure one is connected and not in use by another app,
+                  then try again.
+                </p>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleRetryPermission} className="flex-1">
                 Try again
