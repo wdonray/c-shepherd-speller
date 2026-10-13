@@ -123,7 +123,7 @@ function SortableWordCard({
   // Compute underline ranges for correct placements.
   const underlineRanges = correct && pattern ? getPatternUnderlineRanges(entry.word, pattern.pattern) : []
   const renderWord = () => {
-    if (underlineRanges.length === 0) return entry.word
+    if (underlineRanges.length === 0 || !pattern) return entry.word
     // Build the word with underlined segments.
     const parts: React.ReactNode[] = []
     let lastIndex = 0
@@ -282,8 +282,8 @@ function MobileWordCard({
         )}
       >
         {entry.word}
-        {checked && correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
-        {checked && correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
+        {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
+        {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </button>
     </li>
   )
