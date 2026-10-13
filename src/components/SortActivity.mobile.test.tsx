@@ -194,10 +194,11 @@ describe('SortActivity on mobile', () => {
     // All words placed and correct: the win cascade fires the overlay.
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Every word is sorted.')).toBeInTheDocument()
-    expect(playWinFanfare).toHaveBeenCalled()
     await waitFor(() => {
       expect(liveRegion()?.textContent).toContain('Every word is sorted.')
     })
+    // The win effect plays the fanfare before announcing.
+    expect(playWinFanfare).toHaveBeenCalled()
     // "Tell the rule" dismisses the overlay (rule capture lands in a later phase).
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
