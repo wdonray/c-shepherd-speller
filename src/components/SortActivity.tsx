@@ -61,19 +61,17 @@ export function expandRectForMagnet<T extends { left: number; right: number; top
 }
 
 export const magneticCollision: CollisionDetection = (args) => {
-  const { droppableContainers } = args
-  const expanded = droppableContainers.map((container) => {
-    const rect = container.rect.current
-    if (!rect) return container
-    return {
-      ...container,
-      rect: {
-        ...container.rect,
-        current: expandRectForMagnet(rect),
-      },
+  const { droppableContainers, droppableRects } = args
+  // Expand each droppable's rect by the magnetic radius so columns glow
+  // and show the ghost preview before the pointer crosses their boundary.
+  const expandedRects = new Map(droppableRects)
+  for (const container of droppableContainers) {
+    const rect = droppableRects.get(container.id)
+    if (rect) {
+      expandedRects.set(container.id, expandRectForMagnet(rect))
     }
-  })
-  return pointerWithin({ ...args, droppableContainers: expanded })
+  }
+  return pointerWithin({ ...args, droppableRects: expandedRects })
 }
 
 // Below Tailwind's md breakpoint the drag-and-drop sort is replaced with

@@ -302,17 +302,21 @@ describe('SortActivity', () => {
   it('magneticCollision expands rects and delegates to pointerWithin', async () => {
     const { pointerWithin } = await import('@dnd-kit/core')
     const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
-    const container = { id: 'p1', rect: { current: rect } }
-    const noRectContainer = { id: 'p2', rect: { current: null } }
+    const container = { id: 'p1' }
+    const missingContainer = { id: 'p2' }
+    const droppableRects = new Map([['p1', rect]])
     magneticCollision({
       active: { id: 'word1' },
-      droppableContainers: [container, noRectContainer],
+      droppableContainers: [container, missingContainer],
+      droppableRects,
     } as never)
     expect(pointerWithin).toHaveBeenCalled()
-    const passedContainers = (pointerWithin as ReturnType<typeof vi.fn>).mock.calls[0][0].droppableContainers
-    // Container with rect got expanded bounds.
-    expect(passedContainers[0].rect.current.left).toBe(40)
-    // Container without rect passes through unchanged.
-    expect(passedContainers[1].rect.current).toBeNull()
+    const passedRects = (pointerWithin as ReturnType<typeof vi.fn>).mock.calls[0][0].droppableRects
+    // Existing rect got expanded bounds.
+    expect(passedRects.get('p1')).toMatchObject({ left: 40, right: 260, top: 40, bottom: 260 })
+    // Container without a rect is skipped (no entry added).
+    expect(passedRects.has('p2')).toBe(false)
+    // Original map is not mutated.
+    expect(droppableRects.get('p1')).toMatchObject({ left: 100, right: 200 })
   })
 })
