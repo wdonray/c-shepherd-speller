@@ -38,6 +38,13 @@ export const SpellingPatternSchema = z.object({
   isOddDuck: z.boolean().optional(),
   /** True when the teacher has locked this pattern; hidden until taught */
   isLocked: z.boolean().optional(),
+  /**
+   * Unscoped spelling rule for this pattern, e.g. "ai comes in the middle
+   * of a word, ay at the end." Shown when sorting without a class (labeled
+   * "The rule:"); a class's own rule takes precedence when one is active.
+   * Optional for backward compatibility with legacy lists.
+   */
+  rule: z.string().min(1).max(300).optional(),
   /** Teacher-picked keyword anchor emoji, e.g. bee for "ee" */
   keywordEmoji: z.string().min(1).max(20).optional(),
   /**
