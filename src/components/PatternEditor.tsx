@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
-import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
+import { XIcon, InfoIcon, Trash2Icon, LockIcon, LockOpenIcon, MicIcon } from 'lucide-react'
 import FrequencyHelpDialog from './FrequencyHelpDialog'
 import SentencePicker from './SentencePicker'
 import KeywordImagePicker from './KeywordImagePicker'
-import VoiceRecorder from './VoiceRecorder'
+import VoiceRecorderModal from './VoiceRecorderModal'
 import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
@@ -59,6 +59,7 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
+  const [recordingWord, setRecordingWord] = useState<string | null>(null)
   const isLocked = pattern.isLocked ?? false
 
   const accent = LIST_ACCENT_CLASSES[color]
@@ -284,7 +285,19 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-3">
-                            <VoiceRecorder kind="word" text={word} compact />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => setRecordingWord(word)}
+                                  aria-label={`Record your voice for ${word}`}
+                                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-muted-foreground outline-none transition hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                                >
+                                  <MicIcon className="size-5" aria-hidden="true" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Record your voice</TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
@@ -425,6 +438,15 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
           onClose={() => setIsFrequencyHelpOpen(false)}
           accentFill={accent.fill}
         />
+        {recordingWord && (
+          <VoiceRecorderModal
+            word={recordingWord}
+            open={recordingWord !== null}
+            onOpenChange={(open) => {
+              if (!open) setRecordingWord(null)
+            }}
+          />
+        )}
       </section>
     </TooltipProvider>
   )

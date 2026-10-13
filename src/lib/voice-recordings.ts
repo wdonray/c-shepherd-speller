@@ -25,6 +25,8 @@ export interface RecordingSession {
   stop: () => Promise<Blob>
   /** Abandon the recording without saving anything. */
   cancel: () => void
+  /** The live microphone stream, for visualizations. Set by startRecording. */
+  stream?: MediaStream
 }
 
 const DB_NAME = 'patternspell'
@@ -154,6 +156,7 @@ export async function startRecording(): Promise<RecordingSession> {
   }
   recorder.start()
   return {
+    stream,
     stop: () =>
       new Promise<Blob>((resolve, reject) => {
         recorder.onstop = () => {
