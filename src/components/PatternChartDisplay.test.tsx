@@ -521,5 +521,30 @@ describe('PatternChartDisplay', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save' }))
       expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the rule.')
     })
+
+    it('deletes a rule from the chart header after confirming', async () => {
+      const onDeleteRule = vi.fn().mockResolvedValue(undefined)
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={vi.fn()} onDeleteRule={onDeleteRule} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      expect(screen.getByText('Delete this rule?')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+      await vi.waitFor(() => {
+        expect(onDeleteRule).toHaveBeenCalledWith('p1')
+      })
+    })
+
+    it('cancels rule deletion without calling onDeleteRule', () => {
+      const onDeleteRule = vi.fn()
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={vi.fn()} onDeleteRule={onDeleteRule} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(onDeleteRule).not.toHaveBeenCalled()
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+
+    it('hides the Delete button when onDeleteRule is not provided', () => {
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={vi.fn()} />)
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    })
   })
 })

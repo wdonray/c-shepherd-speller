@@ -15,8 +15,10 @@ interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
-  /** When provided, each column header shows its rule with an edit affordance. */
+  /** When provided, each column header shows its rule with edit and delete affordances. */
   onSaveRule?: (patternId: string, rule: string) => Promise<void>
+  /** When provided, each column header rule gets a delete affordance with a confirm step. */
+  onDeleteRule?: (patternId: string) => Promise<void>
   /**
    * 'present' is the interactive projector chart. 'print' renders a
    * non-interactive poster: locked patterns are excluded entirely, words are
@@ -55,6 +57,7 @@ export default function PatternChartDisplay({
   list,
   onToggleLock,
   onSaveRule,
+  onDeleteRule,
   variant = 'present',
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
@@ -201,6 +204,7 @@ export default function PatternChartDisplay({
                   setSavingRuleId(null)
                 }
               }}
+              onDelete={onDeleteRule ? () => onDeleteRule(pattern.id) : undefined}
             />
           )}
         </div>

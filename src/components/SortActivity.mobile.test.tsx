@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
 import SortActivity, { touchDragLiftModifier, TOUCH_DRAG_LIFT } from './SortActivity'
 import type { WordList } from '@/models/WordList'
+import type { ClientRect } from '@dnd-kit/core'
 
 // Force the mobile layout: match the max-width query, nothing else.
 const originalMatchMedia = window.matchMedia
@@ -67,6 +68,13 @@ vi.mock('@/lib/sound-effects', () => ({
   playWinFanfare,
   isSoundEnabled: () => true,
   setSoundEnabled: vi.fn(),
+}))
+
+const { fireWinConfetti } = vi.hoisted(() => ({
+  fireWinConfetti: vi.fn(),
+}))
+vi.mock('@/lib/confetti', () => ({
+  fireWinConfetti,
 }))
 
 const list: WordList = {
@@ -224,6 +232,8 @@ describe('SortActivity on mobile', () => {
     })
     // The win effect plays the fanfare before announcing.
     expect(playWinFanfare).toHaveBeenCalled()
+    // Confetti fires alongside the fanfare.
+    expect(fireWinConfetti).toHaveBeenCalledTimes(1)
     // "Tell the rule" dismisses the win overlay and opens rule capture.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
     expect(within(screen.getByRole('dialog')).getByText('What rule did you discover?')).toBeInTheDocument()
@@ -444,6 +454,70 @@ describe('touchDragLiftModifier', () => {
   it('leaves the transform alone without an activator event', () => {
     const result = touchDragLiftModifier({ ...baseArgs, activatorEvent: null, transform })
     expect(result).toBe(transform)
+  })
+
+  it('keeps the grabbed point under the pointer for touch drags', () => {
+    // Grabbed 20px from the left and 10px from the top of a 200x56 tile.
+    const rect = { left: 100, top: 200, width: 200, height: 56 } as unknown as ClientRect
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activeNodeRect: rect,
+      activatorEvent: { pointerType: 'touch', clientX: 120, clientY: 210 } as unknown as Event,
+      transform: { x: 50, y: 30, scaleX: 1, scaleY: 1 },
+    })
+    // Compensation for the 1.15 overlay scale about the tile center:
+    // dx = (1 - 1.15) * (20 - 100) = 12, dy = (1 - 1.15) * (10 - 28) = 2.7,
+    // then the 64px touch lift.
+    expect(result.x).toBeCloseTo(62)
+    expect(result.y).toBeCloseTo(30 + 2.7 - TOUCH_DRAG_LIFT)
+    expect(result.scaleX).toBe(1)
+    expect(result.scaleY).toBe(1)
+  })
+
+  it('compensates the overlay scale for mouse drags without lifting', () => {
+    // Grabbed near the right edge: the scale would push the tile left.
+    const rect = { left: 100, top: 200, width: 200, height: 56 } as unknown as ClientRect
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activeNodeRect: rect,
+      activatorEvent: { pointerType: 'mouse', clientX: 280, clientY: 220 } as unknown as Event,
+      transform: { x: 50, y: 30, scaleX: 1, scaleY: 1 },
+    })
+    // dx = (1 - 1.15) * (180 - 100) = -12, dy = (1 - 1.15) * (20 - 28) = 1.2.
+    expect(result.x).toBeCloseTo(38)
+    expect(result.y).toBeCloseTo(31.2)
+  })
+
+  it('reads touch coordinates from a TouchEvent', () => {
+    const rect = { left: 100, top: 200, width: 200, height: 56 } as unknown as ClientRect
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activeNodeRect: rect,
+      activatorEvent: {
+        pointerType: 'touch',
+        touches: [{ clientX: 150, clientY: 205 }],
+      } as unknown as Event,
+      transform: { x: 50, y: 30, scaleX: 1, scaleY: 1 },
+    })
+    // Grabbed at (50, 5): dx = (1 - 1.15) * (50 - 100) = 7.5,
+    // dy = (1 - 1.15) * (5 - 28) = 3.45, then the touch lift.
+    expect(result.x).toBeCloseTo(57.5)
+    expect(result.y).toBeCloseTo(30 + 3.45 - TOUCH_DRAG_LIFT)
+  })
+
+  it('falls back to changedTouches when touches is empty', () => {
+    const rect = { left: 100, top: 200, width: 200, height: 56 } as unknown as ClientRect
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activeNodeRect: rect,
+      activatorEvent: {
+        pointerType: 'touch',
+        changedTouches: [{ clientX: 150, clientY: 205 }],
+      } as unknown as Event,
+      transform: { x: 50, y: 30, scaleX: 1, scaleY: 1 },
+    })
+    expect(result.x).toBeCloseTo(57.5)
+    expect(result.y).toBeCloseTo(30 + 3.45 - TOUCH_DRAG_LIFT)
   })
 })
 

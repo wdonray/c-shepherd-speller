@@ -37,6 +37,7 @@ import {
 } from '@/lib/sound-effects'
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
+import { fireWinConfetti } from '@/lib/confetti'
 import { OddDuck } from './OddDuck'
 import RuleCaptureDialog from './RuleCaptureDialog'
 import RuleCard from './RuleCard'
@@ -109,19 +110,53 @@ export function expandRectForMagnet<T extends { left: number; right: number; top
 }
 
 /**
+ * Scale applied to the floating drag tile (see DraggingWordCard). The tile
+ * scales about its own center, which would move the grabbed point away from
+ * the pointer (up to ~25px on full-width mobile tiles); the drag modifier
+ * below compensates so the grab point stays pinned to the pointer.
+ */
+export const DRAG_TILE_SCALE = 1.15
+
+/** Pointer coordinates from a pointer or touch activator event, if any. */
+function activatorPoint(event: Event | null): { x: number; y: number } | null {
+  if (!event) return null
+  if ('clientX' in event) {
+    const pointer = event as PointerEvent
+    return { x: pointer.clientX, y: pointer.clientY }
+  }
+  const touchEvent = event as TouchEvent
+  const touch = touchEvent.touches?.[0] ?? touchEvent.changedTouches?.[0]
+  return touch ? { x: touch.clientX, y: touch.clientY } : null
+}
+
+/**
  * Touch drag lift: on touch pointers the floating tile renders 64px above
  * the fingertip so the finger never covers the word (Block Blast pattern).
- * Mouse drags keep the tile under the cursor. A pure transform shift, so it
- * never affects layout.
+ * Mouse drags keep the tile under the cursor.
+ *
+ * Also compensates for the overlay tile's lift scale: because the floating
+ * tile scales up about its center, the grabbed point would otherwise drift
+ * away from the pointer. Shifting the overlay by (1 - scale) times the grab
+ * offset from center keeps the grabbed point exactly under the pointer.
+ * Pure transform shifts, so neither affects layout.
  */
 export const TOUCH_DRAG_LIFT = 64
 
-export const touchDragLiftModifier: Modifier = ({ activatorEvent, transform }) => {
+export const touchDragLiftModifier: Modifier = ({ activatorEvent, activeNodeRect, transform }) => {
+  let { x, y } = transform
+  const point = activatorPoint(activatorEvent)
+  if (point && activeNodeRect) {
+    const grabX = point.x - activeNodeRect.left
+    const grabY = point.y - activeNodeRect.top
+    x += (1 - DRAG_TILE_SCALE) * (grabX - activeNodeRect.width / 2)
+    y += (1 - DRAG_TILE_SCALE) * (grabY - activeNodeRect.height / 2)
+  }
   const pointerType = (activatorEvent as PointerEvent | null)?.pointerType
   if (pointerType === 'touch') {
-    return { ...transform, y: transform.y - TOUCH_DRAG_LIFT }
+    y -= TOUCH_DRAG_LIFT
   }
-  return transform
+  if (x === transform.x && y === transform.y) return transform
+  return { ...transform, x, y }
 }
 
 export const magneticCollision: CollisionDetection = (args) => {
@@ -262,7 +297,7 @@ function SortableWordCard({
         transition={settleTransition()}
         animate={feedbackAnimate(correct)}
         className={cn(
-          'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
+          'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:cursor-grabbing',
           // The DragOverlay renders the floating copy; hide the original
@@ -286,10 +321,12 @@ function DraggingWordCard({ entry }: { entry: BankWord }) {
     <motion.div
       data-testid="drag-ghost"
       initial={{ scale: 1 }}
-      animate={{ scale: 1.15 }}
+      // Matches DRAG_TILE_SCALE; the drag modifier compensates for this
+      // scale so the grabbed point stays under the pointer.
+      animate={{ scale: DRAG_TILE_SCALE }}
       transition={LIFT_TRANSITION}
       style={{ boxShadow: PICKUP_SHADOW }}
-      className="flex min-h-[56px] min-w-[120px] cursor-grabbing items-center justify-center rounded-[14px] border-2 border-sky-deep bg-sky-soft px-4 py-3 text-[24px] font-bold text-ink"
+      className="flex min-h-[56px] min-w-[120px] cursor-grabbing items-center justify-center rounded-[14px] border-2 border-sky-deep bg-sky-soft px-4 py-3 text-[24px] font-bold text-ink select-none [-webkit-user-select:none]"
     >
       {entry.word}
     </motion.div>
@@ -303,9 +340,6 @@ function DropColumn({
   ghostEntry,
   rule,
   ruleLabel,
-  savingRule,
-  saveRuleError,
-  onSaveRule,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
@@ -313,9 +347,6 @@ function DropColumn({
   ghostEntry: BankWord | null
   rule: string | null
   ruleLabel: string
-  savingRule: boolean
-  saveRuleError: string | null
-  onSaveRule: (patternText: string, rule: string) => Promise<void>
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -339,15 +370,7 @@ function DropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {rule && (
-          <RuleCard
-            rule={rule}
-            label={ruleLabel}
-            saving={savingRule}
-            saveError={saveRuleError}
-            onSave={(newRule) => onSaveRule(pattern.pattern, newRule)}
-          />
-        )}
+        {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
       </div>
       <ul className="space-y-3">
         {children}
@@ -401,7 +424,7 @@ function MobileWordCard({
         aria-pressed={selected}
         aria-label={`${selected ? 'Deselect' : 'Select'} the word ${entry.word}`}
         className={cn(
-          'flex min-h-[56px] w-full items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
+          'flex min-h-[56px] w-full items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60',
           // The DragOverlay renders the floating copy; hide the original
@@ -432,18 +455,12 @@ function MobileDropColumn({
   isOver,
   rule,
   ruleLabel,
-  savingRule,
-  saveRuleError,
-  onSaveRule,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
   isOver: boolean
   rule: string | null
   ruleLabel: string
-  savingRule: boolean
-  saveRuleError: string | null
-  onSaveRule: (patternText: string, rule: string) => Promise<void>
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -460,15 +477,7 @@ function MobileDropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {rule && (
-          <RuleCard
-            rule={rule}
-            label={ruleLabel}
-            saving={savingRule}
-            saveError={saveRuleError}
-            onSave={(newRule) => onSaveRule(pattern.pattern, newRule)}
-          />
-        )}
+        {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
       </div>
       <ul className="space-y-3">{children}</ul>
     </section>
@@ -594,10 +603,11 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
     setAnnouncement(message)
   }, [])
 
-  // Play fanfare and announce win when the win state is reached.
+  // Play fanfare, confetti, and announce win when the win state is reached.
   useEffect(() => {
     if (won) {
       playWinFanfare()
+      fireWinConfetti()
       announce('Every word is sorted.')
     }
   }, [won, announce])
@@ -708,58 +718,6 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
     }
     return map
   }, [activeClass, list, unscopedRuleOverrides])
-
-  // Per-column rule editing state, keyed by pattern text so one column's
-  // save does not disable or error the others.
-  const [savingRulePattern, setSavingRulePattern] = useState<string | null>(null)
-  const [ruleSaveError, setRuleSaveError] = useState<{ pattern: string; message: string } | null>(null)
-
-  /**
-   * Save a single pattern's rule from the column header card.
-   * Writes to the active class when one is selected, otherwise to the
-   * list's unscoped pattern rule.
-   */
-  const handleSaveSingleRule = useCallback(
-    async (patternText: string, rule: string) => {
-      setSavingRulePattern(patternText)
-      setRuleSaveError(null)
-      try {
-        if (classId) {
-          const res = await fetch(`/api/classes/${classId}/rules`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rules: { [patternText]: { rule } } }),
-          })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const body = await res.json()
-          setActiveClass((prev) => applySavedClassRules(prev, classId, body.rules))
-        } else {
-          // Start from the effective rules (including this session's edits)
-          // so earlier saves are not overwritten.
-          const merged = { ...unscopedRuleOverrides, [patternText]: rule }
-          const updatedPatterns = list.patterns.map((p) => {
-            const override = merged[p.pattern]
-            if (override === undefined) return p
-            return override === '' ? { ...p, rule: undefined } : { ...p, rule: override }
-          })
-          const res = await fetch(`/api/lists/${list.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patterns: updatedPatterns }),
-          })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          setUnscopedRuleOverrides(merged)
-        }
-        announce('Rule saved.')
-      } catch {
-        setRuleSaveError({ pattern: patternText, message: 'Could not save the rule. Try again.' })
-        throw new Error('Failed to save rule')
-      } finally {
-        setSavingRulePattern(null)
-      }
-    },
-    [classId, list, announce, unscopedRuleOverrides]
-  )
 
   /**
    * Shared placement logic for drag-and-drop and tap-to-place. Moves the
@@ -990,9 +948,6 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
                     isOver={overId === pattern.id}
                     rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
-                    savingRule={savingRulePattern === pattern.pattern}
-                    saveRuleError={ruleSaveError?.pattern === pattern.pattern ? ruleSaveError.message : null}
-                    onSaveRule={handleSaveSingleRule}
                   >
                     {columnWords.map((entry) => (
                       <MobileWordCard
@@ -1042,9 +997,6 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
                     ghostEntry={ghostEntry}
                     rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
-                    savingRule={savingRulePattern === pattern.pattern}
-                    saveRuleError={ruleSaveError?.pattern === pattern.pattern ? ruleSaveError.message : null}
-                    onSaveRule={handleSaveSingleRule}
                   >
                     {columnWords.map((entry) => (
                       <SortableWordCard

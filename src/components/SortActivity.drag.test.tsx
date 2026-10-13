@@ -46,6 +46,10 @@ vi.mock('@/lib/sound-effects', () => ({
   setSoundEnabled: vi.fn(),
 }))
 
+vi.mock('@/lib/confetti', () => ({
+  fireWinConfetti: vi.fn(),
+}))
+
 const list: WordList = {
   id: 'l1',
   userId: 'u1',
