@@ -463,12 +463,15 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
         <div aria-live="polite" className="sr-only" role="status">
           {announcement}
         </div>
-        <p className="sr-only">
-          Keyboard: Space to pick up a word, Left and Right to choose a column, Space to drop, Escape to cancel.
-        </p>
+        {!isMobile && (
+          <p className="sr-only">
+            Keyboard: Space to pick up a word, Left and Right to choose a column, Space to drop, Escape to cancel.
+          </p>
+        )}
 
         {isMobile ? (
           <>
+            <p className="sr-only">Tap a word, then choose where it goes. Tap a placed word to move it.</p>
             <section aria-label="Word bank" className="mb-8 rounded-2xl border-2 border-line bg-card p-4">
               <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
               {bankWords.length === 0 ? (
