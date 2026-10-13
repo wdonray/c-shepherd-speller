@@ -290,6 +290,17 @@ describe('SortActivity', () => {
     })
   })
 
+  it('shows no ghost when the dragged word is not in the bank', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'nonexistent' } })
+    dndHandlers.onDragOver?.({ over: { id: 'p1' } })
+    await waitFor(() => {
+      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      // No ghost rendered for unknown word.
+      expect(ghosts.length).toBe(0)
+    })
+  })
+
   it('expands droppable bounds for magnetic collision', () => {
     const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
     const expanded = expandRectForMagnet(rect)
