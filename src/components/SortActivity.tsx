@@ -514,7 +514,9 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const body = await res.json()
           // activeClass is non-null here (checked above), so the update is direct.
-          setActiveClass({ ...activeClass, rules: body.rules })
+          // The API returns the merged rules; fall back to the current rules
+          // if the response is malformed.
+          setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
         } else {
           // Unscoped: store the rule on each pattern of this list.
           const updatedPatterns = list.patterns.map((p) => {

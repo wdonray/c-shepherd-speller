@@ -70,7 +70,7 @@ describe('SortActivity rule capture', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation((url: string) => {
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
         if (url === '/api/classes/c1') {
           return Promise.resolve({
             ok: true,
@@ -80,6 +80,15 @@ describe('SortActivity rule capture', () => {
                 name: 'Period 2',
                 rules: { a_e: { rule: 'Magic e.' } },
               },
+            }),
+          })
+        }
+        if (String(url).includes('/api/classes/c1/rules') && init?.method === 'PUT') {
+          const payload = JSON.parse(String(init.body))
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              rules: { a_e: { rule: 'Magic e.' }, ...payload.rules },
             }),
           })
         }
@@ -142,9 +151,11 @@ describe('SortActivity rule capture', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
     })
-    const body = JSON.parse(
-      (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) => String(c[0]).includes('/api/classes/c1/rules'))[1].body
+    const putCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) =>
+      String(c[0]).includes('/api/classes/c1/rules')
     )
+    expect(putCall).toBeDefined()
+    const body = JSON.parse(String(putCall![1].body))
     expect(body.rules).toEqual({ ai: { rule: 'ai never ends a word.' } })
   })
 
@@ -187,6 +198,33 @@ describe('SortActivity rule capture', () => {
     expect(await within(capture).findByRole('alert')).toHaveTextContent('Could not save the rules.')
   })
 
+  it('keeps the current rules when the save response is malformed', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    placeViaBar('cake', 'a_e')
+    placeViaBar('bake', 'a_e')
+    placeViaBar('rain', 'ai')
+    placeViaBar('said', 'odd')
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
+    const capture = screen.getByRole('dialog')
+    await waitFor(() => {
+      expect(within(capture).getByLabelText(/Pattern a_e/)).toHaveValue('Magic e.')
+    })
+    // PUT succeeds but returns no rules: the component must not crash.
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.resolve({ ok: true, json: async () => ({}) })
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
+    fireEvent.change(within(capture).getByLabelText(/Pattern ai/), {
+      target: { value: 'ai never ends a word.' },
+    })
+    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
   it('omits cleared rules from the class payload', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
     placeViaBar('cake', 'a_e')
@@ -205,9 +243,11 @@ describe('SortActivity rule capture', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
     })
-    const body = JSON.parse(
-      (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) => String(c[0]).includes('/api/classes/c1/rules'))[1].body
+    const putCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) =>
+      String(c[0]).includes('/api/classes/c1/rules')
     )
+    expect(putCall).toBeDefined()
+    const body = JSON.parse(String(putCall![1].body))
     expect(body.rules).toEqual({})
   })
 
