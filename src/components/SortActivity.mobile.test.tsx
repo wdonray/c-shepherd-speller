@@ -202,8 +202,11 @@ describe('SortActivity on mobile', () => {
     })
     // The win effect plays the fanfare before announcing.
     expect(playWinFanfare).toHaveBeenCalled()
-    // "Tell the rule" dismisses the overlay (rule capture lands in a later phase).
+    // "Tell the rule" dismisses the win overlay and opens rule capture.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
+    expect(within(screen.getByRole('dialog')).getByText('What rule did you discover?')).toBeInTheDocument()
+    // Skip the capture form to return to the board.
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     // Win again and dismiss with the other action.
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))

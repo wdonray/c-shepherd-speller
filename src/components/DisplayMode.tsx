@@ -10,6 +10,7 @@ import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
 import SortActivity from './SortActivity'
+import ClassPickerDialog from './ClassPickerDialog'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
 import WhyChartPopover from './WhyChartPopover'
@@ -33,6 +34,8 @@ function DisplayModeInner() {
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
+  const [classPickerOpen, setClassPickerOpen] = useState(false)
+  const [activeClassId, setActiveClassId] = useState<string | null>(null)
   /** Selected week chip; null means "All weeks" (every list). */
   const [weekFilter, setWeekFilter] = useState<string | null>(null)
 
@@ -249,7 +252,7 @@ function DisplayModeInner() {
               </Link>
             </Button>
             {!sortMode && (
-              <Button size="sm" onClick={() => setSortMode(true)}>
+              <Button size="sm" onClick={() => setClassPickerOpen(true)}>
                 Sort words
               </Button>
             )}
@@ -271,10 +274,26 @@ function DisplayModeInner() {
           </div>
         )}
         {sortMode ? (
-          <SortActivity list={list} onExit={() => setSortMode(false)} />
+          <SortActivity
+            list={list}
+            classId={activeClassId}
+            onExit={() => {
+              setSortMode(false)
+              setActiveClassId(null)
+            }}
+          />
         ) : (
           <PatternChartDisplay list={list} onToggleLock={(patternId) => handleToggleLock(patternId, list)} />
         )}
+        <ClassPickerDialog
+          open={classPickerOpen}
+          onSelect={(classId) => {
+            setActiveClassId(classId)
+            setClassPickerOpen(false)
+            setSortMode(true)
+          }}
+          onClose={() => setClassPickerOpen(false)}
+        />
       </main>
     </div>
   )
