@@ -150,7 +150,7 @@ describe('DisplayMode', () => {
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    expect(screen.getByText('Sort the words')).toBeInTheDocument()
+    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))

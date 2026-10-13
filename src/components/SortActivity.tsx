@@ -15,7 +15,7 @@ import {
 import { XIcon, CheckIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { LIFT_TRANSITION, PICKUP_SHADOW, settleTransition } from '@/lib/sort-motion'
+import { LIFT_TRANSITION, PICKUP_SHADOW, prefersReducedMotion, settleTransition } from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
@@ -45,18 +45,18 @@ const WORD_BANK_ID = 'word-bank'
 // touchscreens keep the working drag-and-drop layout.
 const MOBILE_QUERY = '(max-width: 767px)'
 
-function WordBank({ isOver, children }: { isOver: boolean; children: React.ReactNode }) {
+function WordTray({ isOver, children }: { isOver: boolean; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id: WORD_BANK_ID })
   return (
     <div
       ref={setNodeRef}
-      aria-label="Word bank drop area"
+      aria-label="Word tray"
       className={cn(
-        'mb-8 overflow-x-auto rounded-2xl border-2 border-line bg-card p-4 transition-colors',
+        'fixed inset-x-0 bottom-0 z-40 max-h-[40vh] overflow-y-auto border-t-2 border-line bg-card px-4 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-colors',
         isOver && 'border-sky-deep bg-sky-soft'
       )}
     >
-      {children}
+      <div className="mx-auto max-w-6xl">{children}</div>
     </div>
   )
 }
@@ -120,14 +120,17 @@ function DropColumn({
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
+  const reduceMotion = prefersReducedMotion()
   return (
-    <section
+    <motion.section
       ref={setNodeRef}
       aria-label={`Pattern ${pattern.pattern} drop column`}
+      animate={isOver || reduceMotion ? { scale: 1 } : { scale: [1, 1.015, 1] }}
+      transition={isOver || reduceMotion ? undefined : { duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
       className={cn(
-        'min-h-[200px] rounded-2xl border-[3px] border-dashed bg-card p-5 outline-none transition-colors',
+        'min-h-[240px] flex-1 rounded-2xl border-[3px] border-dashed bg-card p-5 outline-none transition-colors',
         border,
-        isOver && 'bg-sky-soft'
+        isOver && 'border-solid bg-sky-soft'
       )}
     >
       <div className="mb-4 text-center">
@@ -138,7 +141,7 @@ function DropColumn({
         </div>
       </div>
       <ul className="space-y-3">{children}</ul>
-    </section>
+    </motion.section>
   )
 }
 
@@ -441,34 +444,34 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     >
       <div
         className={cn(
-          'force-light w-full rounded-[20px] bg-background p-6 sm:p-10',
+          'force-light w-full rounded-[20px] bg-background p-6 pb-56 sm:p-10 sm:pb-60',
           isMobile && selectedEntry && 'pb-64'
         )}
       >
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-extrabold text-ink">Sort the words</h2>
-          {isMobile ? (
-            <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted-foreground">
-              Tap a word, then choose where it goes. Tap a placed word to move it.
-            </p>
-          ) : (
-            <>
-              <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted-foreground">
-                Invite students up to the board. Drag each word into the column whose spelling it uses.
-              </p>
-              <p className="mx-auto mt-1 max-w-xl text-sm text-muted-foreground">
-                Keyboard: Space to pick up a word, Left and Right to choose a column, Space to drop, Escape to cancel.
-              </p>
-            </>
-          )}
+        <div className="mb-4 flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onExit}
+            aria-label="Exit sort"
+            className="opacity-60 hover:opacity-100"
+          >
+            <XIcon className="size-5" aria-hidden="true" />
+          </Button>
         </div>
 
         <div aria-live="polite" className="sr-only" role="status">
           {announcement}
         </div>
+        {!isMobile && (
+          <p className="sr-only">
+            Keyboard: Space to pick up a word, Left and Right to choose a column, Space to drop, Escape to cancel.
+          </p>
+        )}
 
         {isMobile ? (
           <>
+            <p className="sr-only">Tap a word, then choose where it goes. Tap a placed word to move it.</p>
             <section aria-label="Word bank" className="mb-8 rounded-2xl border-2 border-line bg-card p-4">
               <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
               {bankWords.length === 0 ? (
@@ -529,14 +532,32 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           </>
         ) : (
           <>
-            <WordBank isOver={overId === WORD_BANK_ID}>
-              <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+              {patterns.map((pattern) => {
+                const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
+                return (
+                  <DropColumn key={pattern.id} pattern={pattern} isOver={overId === pattern.id}>
+                    {columnWords.map((entry) => (
+                      <SortableWordCard
+                        key={entry.id}
+                        entry={entry}
+                        checked={checked}
+                        correct={checked ? results[entry.id]! : null}
+                      />
+                    ))}
+                    {columnWords.length === 0 && (
+                      <li className="py-8 text-center text-sm text-muted-foreground">Drop words here</li>
+                    )}
+                  </DropColumn>
+                )
+              })}
+            </div>
+
+            <WordTray isOver={overId === WORD_BANK_ID}>
               {bankWords.length === 0 ? (
-                <p className="py-4 text-center text-[15px] text-muted-foreground">
-                  All words placed. Check answers or drag words between columns to change them.
-                </p>
+                <p className="py-4 text-center text-[15px] text-muted-foreground">All words are placed.</p>
               ) : (
-                <ul className="flex gap-3 overflow-x-auto pb-2">
+                <ul className="flex flex-wrap justify-center gap-3">
                   {bankWords.map((entry) => (
                     <SortableWordCard
                       key={entry.id}
@@ -547,32 +568,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                   ))}
                 </ul>
               )}
-            </WordBank>
-
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-              {patterns.map((pattern) => {
-                const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
-                return (
-                  <div key={pattern.id} style={{ flex: '1 1 0', minWidth: 220 }} className="flex">
-                    <div className="w-full">
-                      <DropColumn pattern={pattern} isOver={overId === pattern.id}>
-                        {columnWords.map((entry) => (
-                          <SortableWordCard
-                            key={entry.id}
-                            entry={entry}
-                            checked={checked}
-                            correct={checked ? results[entry.id]! : null}
-                          />
-                        ))}
-                        {columnWords.length === 0 && (
-                          <li className="py-8 text-center text-sm text-muted-foreground">Drop words here</li>
-                        )}
-                      </DropColumn>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            </WordTray>
           </>
         )}
 
@@ -598,9 +594,6 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
               Try again
             </Button>
           )}
-          <Button variant="secondary" onClick={onExit}>
-            Exit sort
-          </Button>
         </div>
 
         {score && (
