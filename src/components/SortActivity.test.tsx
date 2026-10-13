@@ -30,6 +30,7 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
     },
     DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     pointerWithin: vi.fn(() => []),
+    rectIntersection: vi.fn(() => []),
   }
 })
 
@@ -311,7 +312,7 @@ describe('SortActivity', () => {
   })
 
   it('magneticCollision expands rects and delegates to pointerWithin', async () => {
-    const { pointerWithin } = await import('@dnd-kit/core')
+    const { pointerWithin, rectIntersection } = await import('@dnd-kit/core')
     const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
     const container = { id: 'p1' }
     const missingContainer = { id: 'p2' }
@@ -320,6 +321,7 @@ describe('SortActivity', () => {
       active: { id: 'word1' },
       droppableContainers: [container, missingContainer],
       droppableRects,
+      pointerCoordinates: { x: 155, y: 155 },
     } as never)
     expect(pointerWithin).toHaveBeenCalled()
     const passedRects = (pointerWithin as ReturnType<typeof vi.fn>).mock.calls[0][0].droppableRects
@@ -329,5 +331,17 @@ describe('SortActivity', () => {
     expect(passedRects.has('p2')).toBe(false)
     // Original map is not mutated.
     expect(droppableRects.get('p1')).toMatchObject({ left: 100, right: 200 })
+  })
+
+  it('magneticCollision falls back to rectIntersection for keyboard drags', async () => {
+    const { pointerWithin, rectIntersection } = await import('@dnd-kit/core')
+    magneticCollision({
+      active: { id: 'word1' },
+      droppableContainers: [],
+      droppableRects: new Map(),
+      pointerCoordinates: null,
+    } as never)
+    expect(rectIntersection).toHaveBeenCalled()
+    expect(pointerWithin).not.toHaveBeenCalled()
   })
 })

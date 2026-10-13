@@ -7,6 +7,7 @@ import {
   PointerSensor,
   KeyboardSensor,
   pointerWithin,
+  rectIntersection,
   useDraggable,
   useDroppable,
   type CollisionDetection,
@@ -61,6 +62,11 @@ export function expandRectForMagnet<T extends { left: number; right: number; top
 }
 
 export const magneticCollision: CollisionDetection = (args) => {
+  // KeyboardSensor provides no pointer coordinates, so pointerWithin would
+  // return no collisions. Fall back to rectIntersection for keyboard drags.
+  if (!args.pointerCoordinates) {
+    return rectIntersection(args)
+  }
   const { droppableContainers, droppableRects } = args
   // Expand each droppable's rect by the magnetic radius so columns glow
   // and show the ghost preview before the pointer crosses their boundary.
