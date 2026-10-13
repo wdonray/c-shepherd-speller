@@ -154,6 +154,26 @@ describe('SortActivity on mobile', () => {
     expect(liveRegion()?.textContent).toContain('Choose where it goes.')
   })
 
+  it('wraps placed words inside mobile columns while bank tiles stay full width', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    // Bank tiles stay full width for the tap-to-place flow.
+    const bankSection = screen.getByRole('region', { name: 'Word bank' })
+    expect(within(bankSection).getByRole('button', { name: 'Select the word cake' })).toHaveClass('w-full')
+    // Place two words in the a_e column.
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Put cake in the a_e column' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word bake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Put bake in the a_e column' }))
+    const column = screen.getByLabelText('Pattern a_e column')
+    const wordList = within(column).getByRole('list')
+    expect(wordList).toHaveClass('flex', 'flex-wrap')
+    // Column tiles are content width so they wrap, not full width.
+    const placed = within(column).getByRole('button', { name: 'Select the word cake' })
+    expect(placed).not.toHaveClass('w-full')
+    expect(placed).toHaveClass('min-w-[120px]')
+    expect(within(placed).getByLabelText('Correct')).toBeInTheDocument()
+  })
+
   it('places a word in a column via the bar and closes the bar', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))

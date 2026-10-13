@@ -378,7 +378,7 @@ function DropColumn({
         </div>
         {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
       </div>
-      <ul className="space-y-3">
+      <ul className="flex flex-wrap items-start gap-3">
         {children}
         {isOver && ghostEntry && (
           <li aria-hidden="true">
@@ -410,12 +410,15 @@ function MobileWordCard({
   selected,
   onSelect,
   pattern,
+  fillWidth = true,
 }: {
   entry: BankWord
   correct: boolean | null
   selected: boolean
   onSelect: () => void
   pattern?: SpellingPattern
+  /** Full-width in the word bank; content-width when wrapped inside a column. */
+  fillWidth?: boolean
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
   return (
@@ -430,7 +433,8 @@ function MobileWordCard({
         aria-pressed={selected}
         aria-label={`${selected ? 'Deselect' : 'Select'} the word ${entry.word}`}
         className={cn(
-          'flex min-h-[56px] w-full items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
+          'flex min-h-[56px] items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
+          fillWidth ? 'w-full' : 'min-w-[120px]',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60',
           // The DragOverlay renders the floating copy; hide the original
@@ -485,7 +489,7 @@ function MobileDropColumn({
         </div>
         {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
       </div>
-      <ul className="space-y-3">{children}</ul>
+      <ul className="flex flex-wrap items-start gap-3">{children}</ul>
     </section>
   )
 }
@@ -968,10 +972,11 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
                         pattern={pattern}
                         selected={selectedEntry?.id === entry.id}
                         onSelect={() => handleMobileWordTap(entry)}
+                        fillWidth={false}
                       />
                     ))}
                     {columnWords.length === 0 && (
-                      <li className="py-8 text-center text-sm text-muted-foreground">No words here yet.</li>
+                      <li className="w-full py-8 text-center text-sm text-muted-foreground">No words here yet.</li>
                     )}
                   </MobileDropColumn>
                 )
@@ -1018,7 +1023,7 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
                       />
                     ))}
                     {columnWords.length === 0 && (
-                      <li className="py-8 text-center text-sm text-muted-foreground">Drop words here</li>
+                      <li className="w-full py-8 text-center text-sm text-muted-foreground">Drop words here</li>
                     )}
                   </DropColumn>
                 )
