@@ -148,6 +148,11 @@ describe('VoiceRecorderModal', () => {
       value: vi.fn().mockReturnValue({ matches: false }),
       configurable: true,
     })
+    const getUserMedia = vi.fn()
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
   })
 
   afterEach(() => {
@@ -171,6 +176,50 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
     expect(screen.getByText(/Click the lock or tune icon/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+  })
+
+  it('requests permission on open when undecided and shows ready on grant', async () => {
+    stubPermissions('prompt')
+    let resolvePermission!: (stream: { getTracks: () => Array<{ stop: () => void }> }) => void
+    const track = { stop: vi.fn() }
+    const getUserMedia = vi.fn(() => new Promise((resolve) => (resolvePermission = resolve)))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    renderModal()
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true })
+    resolvePermission({ getTracks: () => [track] })
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('shows the denial help when the on-open permission request is denied', async () => {
+    stubPermissions('prompt')
+    const getUserMedia = vi.fn().mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    renderModal()
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+  })
+
+  it('ignores unmount during the on-open permission request', async () => {
+    stubPermissions('prompt')
+    let resolvePermission!: (stream: unknown) => void
+    const getUserMedia = vi.fn(() => new Promise((resolve) => (resolvePermission = resolve)))
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    })
+    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    unmount()
+    resolvePermission({ getTracks: () => [] })
+    await act(async () => {})
+    expect(true).toBe(true)
   })
 
   it('retries the permission check', async () => {

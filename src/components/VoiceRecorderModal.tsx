@@ -22,7 +22,7 @@ const WARNING_SECONDS_REMAINING = 30
 /** Recordings shorter than this are almost certainly an accidental tap. */
 const MIN_RECORDING_SECONDS = 2
 
-type Phase = 'checking' | 'ready' | 'denied' | 'unsupported' | 'recording' | 'review'
+type Phase = 'checking' | 'requesting' | 'ready' | 'denied' | 'unsupported' | 'recording' | 'review'
 
 interface VoiceRecorderModalProps {
   /** The word being recorded. */
@@ -144,8 +144,9 @@ export default function VoiceRecorderModal({
       setPhase('unsupported')
       return
     }
-    // Check the cached permission state so a denied mic shows the help
-    // UI immediately instead of a prompt that will never appear.
+    // Check the cached permission state. If the mic is already denied,
+    // show the help UI. If permission is undecided, request it now so the
+    // browser prompt appears on open; recording still waits for Record.
     const permissions = navigator.permissions as Permissions | undefined
     if (typeof permissions?.query !== 'function') {
       setPhase('ready')
@@ -155,7 +156,25 @@ export default function VoiceRecorderModal({
     permissions
       .query({ name: 'microphone' as PermissionName })
       .then((status) => {
-        if (!cancelled) setPhase(status.state === 'denied' ? 'denied' : 'ready')
+        if (cancelled) return
+        if (status.state === 'denied') {
+          setPhase('denied')
+          return
+        }
+        if (status.state === 'granted') {
+          setPhase('ready')
+          return
+        }
+        setPhase('requesting')
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            stream.getTracks().forEach((track) => track.stop())
+            if (!cancelled) setPhase('ready')
+          })
+          .catch(() => {
+            if (!cancelled) setPhase('denied')
+          })
       })
       .catch(() => {
         if (!cancelled) setPhase('ready')
@@ -376,6 +395,12 @@ export default function VoiceRecorderModal({
 
         {phase === 'checking' && (
           <p className="py-6 text-center text-sm text-muted-foreground">Checking the microphone.</p>
+        )}
+
+        {phase === 'requesting' && (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Requesting microphone access. Allow access in the browser prompt to continue.
+          </p>
         )}
 
         {phase === 'unsupported' && (
