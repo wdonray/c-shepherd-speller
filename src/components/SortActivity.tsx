@@ -10,6 +10,8 @@ import {
   rectIntersection,
   useDraggable,
   useDroppable,
+  useSensor,
+  useSensors,
   type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
@@ -184,6 +186,10 @@ export const magneticCollision: CollisionDetection = (args) => {
 // type) is the signal, because the failure mode is layout size: large
 // touchscreens keep the working drag-and-drop layout.
 const MOBILE_QUERY = '(max-width: 767px)'
+
+// Module scope keeps the options object identity stable across renders, so
+// the pointer sensor descriptor is not rebuilt on every render.
+const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 8 } }
 
 function WordTray({ isOver, children }: { isOver: boolean; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id: WORD_BANK_ID })
@@ -859,14 +865,17 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
     announce('All words returned to the word bank. Try again.')
   }, [announce])
 
-  const sensors = useMemo(() => {
-    const pointer = { sensor: PointerSensor, options: { activationConstraint: { distance: 8 } } }
-    return [pointer, { sensor: KeyboardSensor }]
-  }, [])
+  // useSensor normalizes a missing options argument to {}, which the
+  // KeyboardSensor requires: its handleKeyDown destructures options, and an
+  // undefined options object crashes with "Cannot read properties of
+  // undefined (reading 'keyboardCodes')" (sentry #255).
+  const pointerSensor = useSensor(PointerSensor, POINTER_SENSOR_OPTIONS)
+  const keyboardSensor = useSensor(KeyboardSensor)
+  const sensors = useSensors(pointerSensor, keyboardSensor)
 
   return (
     <DndContext
-      sensors={sensors as never}
+      sensors={sensors}
       collisionDetection={magneticCollision}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
