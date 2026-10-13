@@ -536,9 +536,23 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
       const result = placeWord(entry, destination === 'bank' ? WORD_BANK_ID : destination.id)!
       setSelectedEntry(null)
       if (result === 'bank') {
+        setResults((prev) => {
+          const next = { ...prev }
+          delete next[entry.id]
+          return next
+        })
         announce(`Moved '${entry.word}' back to the word bank.`)
       } else {
-        announce(`Placed '${entry.word}' in ${result.pattern}.`)
+        playDropSound()
+        const isCorrect = entry.patternId === result.id
+        setResults((prev) => ({ ...prev, [entry.id]: isCorrect }))
+        if (isCorrect) {
+          playCorrectSound()
+          announce(`${entry.word} is correct in ${result.pattern}.`)
+        } else {
+          playIncorrectSound()
+          announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
+        }
       }
     },
     [placeWord, announce]

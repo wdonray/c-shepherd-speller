@@ -116,7 +116,7 @@ describe('SortActivity on mobile', () => {
     expect(liveRegion()?.textContent).toContain('Choose where it goes.')
   })
 
-  it('places a word in a column via the bar and closes the bar', () => {
+  it('places a word in a column via the bar and closes the bar', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
     fireEvent.click(screen.getByRole('button', { name: 'Put cake in the a_e column' }))
@@ -126,9 +126,9 @@ describe('SortActivity on mobile', () => {
     const column = screen.getByLabelText('Pattern a_e column')
     expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
-    expect(liveRegion()?.textContent).toContain("Placed 'cake' in a_e")
-    // Check answers is now enabled.
-    expect(screen.getByRole('button', { name: 'Check answers' })).not.toBeDisabled()
+    await waitFor(() => {
+      expect(liveRegion()?.textContent).toContain('cake is correct in a_e')
+    })
   })
 
   it('cancels placement without moving the word', () => {
@@ -177,7 +177,6 @@ describe('SortActivity on mobile', () => {
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     // The score text appears in both the live region and the score paragraph.
     expect(screen.getAllByText('4 of 4 in the right column.').length).toBeGreaterThanOrEqual(1)
     expect(playCorrectSound).toHaveBeenCalled()
@@ -190,7 +189,6 @@ describe('SortActivity on mobile', () => {
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     expect(playIncorrectSound).toHaveBeenCalled()
     expect(playCorrectSound).not.toHaveBeenCalled()
     // One word marked incorrect, three marked correct.
@@ -201,7 +199,6 @@ describe('SortActivity on mobile', () => {
   it('try again returns all words to the bank and clears the selection', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     placeViaBar('cake', 'a_e')
-    fireEvent.click(screen.getByRole('button', { name: 'Check answers' }))
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(screen.getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Select the word bake' })).toBeInTheDocument()
