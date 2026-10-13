@@ -482,4 +482,44 @@ describe('PatternChartDisplay', () => {
       }
     })
   })
+
+  describe('rule display', () => {
+    const listWithRule: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'], rule: 'Magic e.' },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+      ],
+    }
+
+    it('shows the rule under the chart header when onSaveRule is provided', () => {
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={vi.fn()} />)
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+
+    it('hides rules when onSaveRule is not provided', () => {
+      render(<PatternChartDisplay list={listWithRule} />)
+      expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    })
+
+    it('edits a rule from the chart header', async () => {
+      const onSaveRule = vi.fn().mockResolvedValue(undefined)
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={onSaveRule} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: 'Magic e updated.' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await vi.waitFor(() => {
+        expect(onSaveRule).toHaveBeenCalledWith('p1', 'Magic e updated.')
+      })
+    })
+
+    it('shows an error when the chart rule save fails', async () => {
+      const onSaveRule = vi.fn().mockRejectedValue(new Error('down'))
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={onSaveRule} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the rule.')
+    })
+  })
 })

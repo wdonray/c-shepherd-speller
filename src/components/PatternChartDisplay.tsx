@@ -8,12 +8,15 @@ import { OddDuck } from './OddDuck'
 import { Volume2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
+import RuleCard from './RuleCard'
 import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
 
 interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
+  /** When provided, each column header shows its rule with an edit affordance. */
+  onSaveRule?: (patternId: string, rule: string) => Promise<void>
   /**
    * 'present' is the interactive projector chart. 'print' renders a
    * non-interactive poster: locked patterns are excluded entirely, words are
@@ -48,9 +51,18 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
  * printing: locked patterns are excluded entirely, words are plain text,
  * and all buttons and the caption are hidden.
  */
-export default function PatternChartDisplay({ list, onToggleLock, variant = 'present' }: PatternChartDisplayProps) {
+export default function PatternChartDisplay({
+  list,
+  onToggleLock,
+  onSaveRule,
+  variant = 'present',
+}: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
+  // Per-column rule editing state, keyed by pattern id so one column's
+  // save does not disable or error the others.
+  const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
+  const [ruleError, setRuleError] = useState<{ id: string; message: string } | null>(null)
 
   const { columns, allLocked, oddDuckWords } = useMemo(() => {
     // The printed poster matches what is currently taught: locked patterns
@@ -171,6 +183,26 @@ export default function PatternChartDisplay({ list, onToggleLock, variant = 'pre
             <PowerBar level={level} filledClassName="bg-ink" />
             <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
           </div>
+          {onSaveRule && pattern.rule && !isPrint && (
+            <RuleCard
+              rule={pattern.rule}
+              label="The rule:"
+              saving={savingRuleId === pattern.id}
+              saveError={ruleError?.id === pattern.id ? ruleError.message : null}
+              onSave={async (newRule) => {
+                setSavingRuleId(pattern.id)
+                setRuleError(null)
+                try {
+                  await onSaveRule(pattern.id, newRule)
+                } catch {
+                  setRuleError({ id: pattern.id, message: 'Could not save the rule. Try again.' })
+                  throw new Error('Failed to save rule')
+                } finally {
+                  setSavingRuleId(null)
+                }
+              }}
+            />
+          )}
         </div>
         <ul className="space-y-3">
           {pattern.words.map((word) => renderWordCard(word, pattern, `${pattern.id}-${word}`))}

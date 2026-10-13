@@ -266,6 +266,58 @@ describe('DisplayMode', () => {
     expect(mockPush).not.toHaveBeenCalledWith('/display')
   })
 
+  it('saves a rule edit from the chart header via updateList', async () => {
+    const listWithRule = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithRule)
+    updateList.mockImplementation(async (_id: string, input: { patterns: unknown[] }) => ({
+      ...listWithRule,
+      patterns: input.patterns,
+    }))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: 'Magic e updated.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([expect.objectContaining({ pattern: 'a_e', rule: 'Magic e updated.' })]),
+        })
+      )
+    })
+  })
+
+  it('restores the list when a chart rule save fails', async () => {
+    const listWithRule: WordList = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithRule)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+    // Set the rejection after the initial render is confirmed.
+    updateList.mockRejectedValueOnce(new Error('down'))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: 'Changed.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the rule.')
+    // Cancel the edit: the original rule is restored (the failed save rolled back).
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+  })
+
   it('locks a pattern optimistically and persists via updateList', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(twoPatternList)

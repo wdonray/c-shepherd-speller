@@ -81,6 +81,18 @@ function DisplayModeInner() {
     }
   }, [])
 
+  const handleSaveRule = useCallback(async (patternId: string, rule: string, current: WordList) => {
+    const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule } : p))
+    setList({ ...current, patterns: nextPatterns })
+    try {
+      const saved = await updateList(current.id, { patterns: nextPatterns })
+      setList(saved)
+    } catch {
+      setList(current)
+      throw new Error('Failed to save rule')
+    }
+  }, [])
+
   // Escape never navigates. When the browser is in full screen, Escape exits
   // full screen natively; the app takes no action on Escape at all.
 
@@ -283,7 +295,11 @@ function DisplayModeInner() {
             }}
           />
         ) : (
-          <PatternChartDisplay list={list} onToggleLock={(patternId) => handleToggleLock(patternId, list)} />
+          <PatternChartDisplay
+            list={list}
+            onToggleLock={(patternId) => handleToggleLock(patternId, list)}
+            onSaveRule={(patternId, rule) => handleSaveRule(patternId, rule, list)}
+          />
         )}
         <ClassPickerDialog
           open={classPickerOpen}
