@@ -57,6 +57,29 @@ interface SortActivityProps {
   onReopenClassPicker?: () => void
 }
 
+/** A class loaded for rule recall, with its per-pattern rules. */
+export interface ActiveClass {
+  id: string
+  name: string
+  rules: Record<string, { rule: string }>
+}
+
+/**
+ * Merges freshly saved class rules into state, but only when the class
+ * hasn't changed underneath the save (e.g. the teacher picked another
+ * class while the save was in flight). Otherwise the current state is kept
+ * and the class-load effect's fresh fetch owns it, so a stale response can
+ * never resurrect the previous class or overwrite the new one.
+ */
+export function applySavedClassRules(
+  prev: ActiveClass | null,
+  classId: string,
+  rules: Record<string, { rule: string }> | undefined
+): ActiveClass | null {
+  if (!prev || prev.id !== classId) return prev
+  return { ...prev, rules: rules ?? prev.rules }
+}
+
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
   common: 3,
   'less-common': 2,
@@ -546,11 +569,7 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
   const [savingRules, setSavingRules] = useState(false)
   const [saveRulesError, setSaveRulesError] = useState<string | null>(null)
-  const [activeClass, setActiveClass] = useState<{
-    id: string
-    name: string
-    rules: Record<string, { rule: string }>
-  } | null>(null)
+  const [activeClass, setActiveClass] = useState<ActiveClass | null>(null)
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const patterns = useMemo(() => {
@@ -584,11 +603,14 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
   }, [won, announce])
 
   // Load the active class (if any) for rule recall and rule capture.
+  // The previous class is cleared while the new one loads so the pill,
+  // recalled rules, and rule saves can never act on a stale class.
   useEffect(() => {
     if (!classId) {
       setActiveClass(null)
       return
     }
+    setActiveClass(null)
     let cancelled = false
     fetch(`/api/classes/${classId}`)
       .then((res) => {
@@ -613,29 +635,30 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
 
   /**
    * Save captured rules: to the active class when one is selected, otherwise
-   * as the unscoped rule on each of the list's patterns.
+   * as the unscoped rule on each of the list's patterns. Keyed off the
+   * selected classId (not the loaded class) so a save started while the
+   * class is still loading writes to the right class.
    */
   const handleSaveRules = useCallback(
     async (rules: Record<string, string>) => {
       setSavingRules(true)
       setSaveRulesError(null)
       try {
-        if (activeClass) {
+        if (classId) {
           const payload: Record<string, { rule: string }> = {}
           for (const [patternText, rule] of Object.entries(rules)) {
             if (rule !== '') payload[patternText] = { rule }
           }
-          const res = await fetch(`/api/classes/${activeClass.id}/rules`, {
+          const res = await fetch(`/api/classes/${classId}/rules`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rules: payload }),
           })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const body = await res.json()
-          // activeClass is non-null here (checked above), so the update is direct.
-          // The API returns the merged rules; fall back to the current rules
-          // if the response is malformed.
-          setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
+          // Guarded: if the teacher switched classes mid-save, the class-load
+          // effect's fresh fetch owns the state, not this stale response.
+          setActiveClass((prev) => applySavedClassRules(prev, classId, body.rules))
         } else {
           // Unscoped: store the rule on each pattern of this list, starting
           // from the effective rules (including this session's edits) so
@@ -665,7 +688,7 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
         setSavingRules(false)
       }
     },
-    [activeClass, list, announce, unscopedRuleOverrides]
+    [classId, list, announce, unscopedRuleOverrides]
   )
 
   // Existing rules for the capture form and column headers: the class's
@@ -701,15 +724,15 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
       setSavingRulePattern(patternText)
       setRuleSaveError(null)
       try {
-        if (activeClass) {
-          const res = await fetch(`/api/classes/${activeClass.id}/rules`, {
+        if (classId) {
+          const res = await fetch(`/api/classes/${classId}/rules`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rules: { [patternText]: { rule } } }),
           })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const body = await res.json()
-          setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
+          setActiveClass((prev) => applySavedClassRules(prev, classId, body.rules))
         } else {
           // Start from the effective rules (including this session's edits)
           // so earlier saves are not overwritten.
@@ -735,7 +758,7 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
         setSavingRulePattern(null)
       }
     },
-    [activeClass, list, announce, unscopedRuleOverrides]
+    [classId, list, announce, unscopedRuleOverrides]
   )
 
   /**

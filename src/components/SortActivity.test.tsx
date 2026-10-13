@@ -437,11 +437,53 @@ describe('SortActivity class pill', () => {
     expect(screen.queryByRole('button', { name: /Change class/ })).not.toBeInTheDocument()
   })
 
+  it('clears the pill while a newly selected class loads', async () => {
+    const onReopenClassPicker = vi.fn()
+    const { rerender } = render(
+      <SortActivity list={classList} onExit={vi.fn()} classId="c1" onReopenClassPicker={onReopenClassPicker} />
+    )
+    await screen.findByRole('button', { name: 'Change class, currently Period 2' })
+    // Switch to another class whose fetch stays pending: the stale pill
+    // must not linger while the new class loads.
+    rerender(<SortActivity list={classList} onExit={vi.fn()} classId="c2" onReopenClassPicker={onReopenClassPicker} />)
+    expect(screen.queryByRole('button', { name: /Change class/ })).not.toBeInTheDocument()
+  })
+
   it('keeps the word tray pinned to the bottom of the viewport', () => {
     render(<SortActivity list={classList} onExit={vi.fn()} />)
     const tray = screen.getByLabelText('Word tray')
     expect(tray.className).toContain('fixed')
     expect(tray.className).toContain('inset-x-0')
     expect(tray.className).toContain('bottom-0')
+  })
+})
+
+describe('applySavedClassRules', () => {
+  const rules = { a_e: { rule: 'Magic e.' } }
+
+  it('merges saved rules into the matching class', async () => {
+    const { applySavedClassRules } = await import('./SortActivity')
+    const prev = { id: 'c1', name: 'Period 2', rules: {} }
+    expect(applySavedClassRules(prev, 'c1', rules)).toEqual({ id: 'c1', name: 'Period 2', rules })
+  })
+
+  it('falls back to the current rules when the response is malformed', async () => {
+    const { applySavedClassRules } = await import('./SortActivity')
+    const prev = { id: 'c1', name: 'Period 2', rules }
+    expect(applySavedClassRules(prev, 'c1', undefined)).toEqual(prev)
+  })
+
+  it('ignores the response when no class is loaded', async () => {
+    const { applySavedClassRules } = await import('./SortActivity')
+    expect(applySavedClassRules(null, 'c1', rules)).toBeNull()
+  })
+
+  it('ignores a stale response after the teacher switched classes', async () => {
+    const { applySavedClassRules } = await import('./SortActivity')
+    const prev = { id: 'c1', name: 'Period 2', rules: {} }
+    // The save was for c1, but c2 is active now: keep c2's state.
+    const current = { id: 'c2', name: 'Period 3', rules }
+    expect(applySavedClassRules(current, 'c1', { a_e: { rule: 'Other.' } })).toBe(current)
+    expect(applySavedClassRules(prev, 'c2', rules)).toBe(prev)
   })
 })
