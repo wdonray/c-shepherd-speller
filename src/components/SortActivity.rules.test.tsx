@@ -351,4 +351,167 @@ describe('SortActivity rule capture', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(fetch).not.toHaveBeenCalledWith('/api/lists/list-1', expect.anything())
   })
+
+  it('shows the class rule under the desktop column header', async () => {
+    // Desktop layout: restore the real matchMedia.
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e drop column')
+    expect(within(column).getByText('Your class decided:')).toBeInTheDocument()
+    expect(within(column).getByText('Magic e.')).toBeInTheDocument()
+  })
+
+  it('shows the class rule under the column header with the class label', async () => {
+    // Desktop layout: restore the real matchMedia.
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e drop column')
+    expect(within(column).getByText('Your class decided:')).toBeInTheDocument()
+    expect(within(column).getByText('Magic e.')).toBeInTheDocument()
+  })
+
+  it('edits a class rule from the desktop column header', async () => {
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e drop column')
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(column).getByLabelText('Edit rule'), {
+      target: { value: 'Desktop edited rule.' },
+    })
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    await waitFor(() => {
+      expect(within(column).getByText('Desktop edited rule.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows the class rule under the column header with the class label', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    expect(within(column).getByText('Your class decided:')).toBeInTheDocument()
+    expect(within(column).getByText('Magic e.')).toBeInTheDocument()
+  })
+
+  it('shows the unscoped rule under the column header with the default label', async () => {
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    expect(within(column).getByText('The rule:')).toBeInTheDocument()
+    expect(within(column).getByText('ai never ends a word.')).toBeInTheDocument()
+  })
+
+  it('edits a class rule from the column header', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    // The rules PUT returns the merged rules.
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({ rules: { a_e: { rule: 'Magic e makes the vowel say its name.' } } }),
+          })
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(column).getByLabelText('Edit rule'), {
+      target: { value: 'Magic e makes the vowel say its name.' },
+    })
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    // The updated rule displays immediately.
+    await waitFor(() => {
+      expect(within(column).getByText('Magic e makes the vowel say its name.')).toBeInTheDocument()
+    })
+  })
+
+  it('edits an unscoped rule from the column header', async () => {
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(column).getByLabelText('Edit rule'), {
+      target: { value: 'ai is in the middle.' },
+    })
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/lists/list-1', expect.objectContaining({ method: 'PUT' }))
+    })
+    await waitFor(() => {
+      expect(within(column).getByText('ai is in the middle.')).toBeInTheDocument()
+    })
+  })
+
+  it('keeps the current rules when the column save response is malformed', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    // PUT succeeds but returns no rules: the component must not crash.
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.resolve({ ok: true, json: async () => ({}) })
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(column).getByLabelText('Edit rule'), {
+      target: { value: 'Updated rule.' },
+    })
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    // The original rule is kept (fallback), no crash. The card stays in
+    // edit mode; cancel to see the restored rule.
+    fireEvent.click(within(column).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => {
+      expect(within(column).getByText('Magic e.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error when saving a column rule fails', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.reject(new Error('down'))
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    expect(await within(column).findByRole('alert')).toHaveTextContent('Could not save the rule.')
+  })
+
+  it('shows an error when the column rule save returns an error status', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.resolve({ ok: false, status: 500 })
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    expect(await within(column).findByRole('alert')).toHaveTextContent('Could not save the rule.')
+  })
+
+  it('shows an error when the unscoped column rule save returns an error status', async () => {
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    ;(fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500 })
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    expect(await within(column).findByRole('alert')).toHaveTextContent('Could not save the rule.')
+  })
 })
