@@ -13,7 +13,9 @@ import {
   type DragOverEvent,
 } from '@dnd-kit/core'
 import { XIcon, CheckIcon } from 'lucide-react'
+import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { LIFT_TRANSITION, PICKUP_SHADOW, settleTransition } from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
@@ -63,13 +65,15 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
   return (
     <li>
-      <button
+      <motion.button
         ref={setNodeRef}
         type="button"
         {...listeners}
         {...attributes}
         style={{ touchAction: 'none' }}
         aria-label={`Drag the word ${entry.word}`}
+        layout
+        transition={settleTransition()}
         className={cn(
           'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
@@ -84,7 +88,7 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
         {entry.word}
         {checked && correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
         {checked && correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
-      </button>
+      </motion.button>
     </li>
   )
 }
@@ -92,9 +96,15 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
 /** Floating copy of the dragged word, rendered in a portal above everything. */
 function DraggingWordCard({ entry }: { entry: BankWord }) {
   return (
-    <div className="flex min-h-[56px] min-w-[120px] cursor-grabbing items-center justify-center rounded-[14px] border-2 border-sky-deep bg-sky-soft px-4 py-3 text-[24px] font-bold text-ink shadow-lg">
+    <motion.div
+      initial={{ scale: 1 }}
+      animate={{ scale: 1.15 }}
+      transition={LIFT_TRANSITION}
+      style={{ boxShadow: PICKUP_SHADOW }}
+      className="flex min-h-[56px] min-w-[120px] cursor-grabbing items-center justify-center rounded-[14px] border-2 border-sky-deep bg-sky-soft px-4 py-3 text-[24px] font-bold text-ink"
+    >
       {entry.word}
-    </div>
+    </motion.div>
   )
 }
 
