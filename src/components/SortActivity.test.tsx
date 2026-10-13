@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import SortActivity from './SortActivity'
+import SortActivity, { expandRectForMagnet, magneticCollision } from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
 const dndHandlers: {
@@ -29,6 +29,8 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
       return <>{children}</>
     },
     DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    pointerWithin: vi.fn(() => []),
+    rectIntersection: vi.fn(() => []),
   }
 })
 
@@ -264,5 +266,82 @@ describe('SortActivity', () => {
         expect(seg).toHaveClass('bg-ink')
       }
     })
+  })
+
+  it('shows a ghost preview of the dragged word in the hovered column', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    dndHandlers.onDragOver?.({ over: { id: 'p1' } })
+    await waitFor(() => {
+      // Ghost is aria-hidden and shows the dragged word.
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
+      const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
+      expect(ghostTexts).toContain('cake')
+    })
+  })
+
+  it('hides the ghost preview when not dragging over a column', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    dndHandlers.onDragOver?.({ over: null })
+    await waitFor(() => {
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
+      const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
+      expect(ghostTexts).not.toContain('cake')
+    })
+  })
+
+  it('shows no ghost when the dragged word is not in the bank', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'nonexistent' } })
+    dndHandlers.onDragOver?.({ over: { id: 'p1' } })
+    await waitFor(() => {
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
+      // No ghost rendered for unknown word.
+      expect(ghosts.length).toBe(0)
+    })
+  })
+
+  it('expands droppable bounds for magnetic collision', () => {
+    const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
+    const expanded = expandRectForMagnet(rect)
+    expect(expanded).toMatchObject({ left: 40, right: 260, top: 40, bottom: 260 })
+    // Preserves other rect properties.
+    expect(expanded.width).toBe(100)
+    expect(expanded.height).toBe(100)
+  })
+
+  it('magneticCollision expands rects and delegates to pointerWithin', async () => {
+    const { pointerWithin, rectIntersection } = await import('@dnd-kit/core')
+    const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
+    const container = { id: 'p1' }
+    const missingContainer = { id: 'p2' }
+    const droppableRects = new Map([['p1', rect]])
+    magneticCollision({
+      active: { id: 'word1' },
+      droppableContainers: [container, missingContainer],
+      droppableRects,
+      pointerCoordinates: { x: 155, y: 155 },
+    } as never)
+    expect(pointerWithin).toHaveBeenCalled()
+    const passedRects = (pointerWithin as ReturnType<typeof vi.fn>).mock.calls[0][0].droppableRects
+    // Existing rect got expanded bounds.
+    expect(passedRects.get('p1')).toMatchObject({ left: 40, right: 260, top: 40, bottom: 260 })
+    // Container without a rect is skipped (no entry added).
+    expect(passedRects.has('p2')).toBe(false)
+    // Original map is not mutated.
+    expect(droppableRects.get('p1')).toMatchObject({ left: 100, right: 200 })
+  })
+
+  it('magneticCollision falls back to rectIntersection for keyboard drags', async () => {
+    const { pointerWithin, rectIntersection } = await import('@dnd-kit/core')
+    magneticCollision({
+      active: { id: 'word1' },
+      droppableContainers: [],
+      droppableRects: new Map(),
+      pointerCoordinates: null,
+    } as never)
+    expect(rectIntersection).toHaveBeenCalled()
+    expect(pointerWithin).not.toHaveBeenCalled()
   })
 })

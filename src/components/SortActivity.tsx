@@ -6,8 +6,11 @@ import {
   DragOverlay,
   PointerSensor,
   KeyboardSensor,
+  pointerWithin,
+  rectIntersection,
   useDraggable,
   useDroppable,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   type DragOverEvent,
@@ -37,6 +40,45 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
 }
 
 const WORD_BANK_ID = 'word-bank'
+
+/**
+ * Magnetic collision detection: expands each droppable's rect by the magnetic
+ * radius so columns glow and show the ghost preview before the pointer
+ * crosses their boundary. Forgives sloppy smartboard aim.
+ */
+const MAGNETIC_RADIUS = 60
+
+/** Expands a rect by the magnetic radius on all sides. */
+export function expandRectForMagnet<T extends { left: number; right: number; top: number; bottom: number }>(
+  rect: T
+): T {
+  return {
+    ...rect,
+    left: rect.left - MAGNETIC_RADIUS,
+    right: rect.right + MAGNETIC_RADIUS,
+    top: rect.top - MAGNETIC_RADIUS,
+    bottom: rect.bottom + MAGNETIC_RADIUS,
+  }
+}
+
+export const magneticCollision: CollisionDetection = (args) => {
+  // KeyboardSensor provides no pointer coordinates, so pointerWithin would
+  // return no collisions. Fall back to rectIntersection for keyboard drags.
+  if (!args.pointerCoordinates) {
+    return rectIntersection(args)
+  }
+  const { droppableContainers, droppableRects } = args
+  // Expand each droppable's rect by the magnetic radius so columns glow
+  // and show the ghost preview before the pointer crosses their boundary.
+  const expandedRects = new Map(droppableRects)
+  for (const container of droppableContainers) {
+    const rect = droppableRects.get(container.id)
+    if (rect) {
+      expandedRects.set(container.id, expandRectForMagnet(rect))
+    }
+  }
+  return pointerWithin({ ...args, droppableRects: expandedRects })
+}
 
 // Below Tailwind's md breakpoint the drag-and-drop sort is replaced with
 // tap-to-place: small viewports cannot scroll horizontally to reach every
@@ -97,6 +139,7 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
 function DraggingWordCard({ entry }: { entry: BankWord }) {
   return (
     <motion.div
+      data-testid="drag-ghost"
       initial={{ scale: 1 }}
       animate={{ scale: 1.15 }}
       transition={LIFT_TRANSITION}
@@ -112,10 +155,12 @@ function DropColumn({
   pattern,
   children,
   isOver,
+  ghostEntry,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
   isOver: boolean
+  ghostEntry: BankWord | null
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -140,7 +185,21 @@ function DropColumn({
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
       </div>
-      <ul className="space-y-3">{children}</ul>
+      <ul className="space-y-3">
+        {children}
+        {isOver && ghostEntry && (
+          <li aria-hidden="true">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 0.45, scale: 1 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="flex min-h-[56px] min-w-[120px] items-center justify-center rounded-[14px] border-2 border-dashed border-line px-4 py-3 text-[24px] font-bold text-ink"
+            >
+              {ghostEntry.word}
+            </motion.div>
+          </li>
+        )}
+      </ul>
     </motion.section>
   )
 }
@@ -438,6 +497,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   return (
     <DndContext
       sensors={sensors as never}
+      collisionDetection={magneticCollision}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -535,8 +595,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
               {patterns.map((pattern) => {
                 const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
+                const ghostEntry =
+                  overId === pattern.id && activeId ? (bank.find((w) => w.id === activeId) ?? null) : null
                 return (
-                  <DropColumn key={pattern.id} pattern={pattern} isOver={overId === pattern.id}>
+                  <DropColumn key={pattern.id} pattern={pattern} isOver={overId === pattern.id} ghostEntry={ghostEntry}>
                     {columnWords.map((entry) => (
                       <SortableWordCard
                         key={entry.id}
@@ -603,7 +665,12 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
         )}
       </div>
       <DragOverlay dropAnimation={null} style={{ zIndex: 100 }}>
-        {activeId ? <DraggingWordCard entry={bank.find((w) => w.id === activeId)!} /> : null}
+        {activeId
+          ? (() => {
+              const ghostEntry = bank.find((w) => w.id === activeId)
+              return ghostEntry ? <DraggingWordCard entry={ghostEntry} /> : null
+            })()
+          : null}
       </DragOverlay>
     </DndContext>
   )
