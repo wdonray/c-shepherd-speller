@@ -14,8 +14,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   type DragOverEvent,
+  type Modifier,
 } from '@dnd-kit/core'
-import { XIcon, CheckIcon } from 'lucide-react'
+import { XIcon, CheckIcon, UsersIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import {
@@ -48,6 +49,12 @@ interface SortActivityProps {
   onExit: () => void
   /** Active class id, or null/undefined when sorting without a class. */
   classId?: string | null
+  /**
+   * Re-opens the class picker (provided by the host page). When set and a
+   * class is active, a pill with the class name renders top-left; tapping
+   * it calls this to let the teacher switch classes mid-sort.
+   */
+  onReopenClassPicker?: () => void
 }
 
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
@@ -76,6 +83,22 @@ export function expandRectForMagnet<T extends { left: number; right: number; top
     top: rect.top - MAGNETIC_RADIUS,
     bottom: rect.bottom + MAGNETIC_RADIUS,
   }
+}
+
+/**
+ * Touch drag lift: on touch pointers the floating tile renders 64px above
+ * the fingertip so the finger never covers the word (Block Blast pattern).
+ * Mouse drags keep the tile under the cursor. A pure transform shift, so it
+ * never affects layout.
+ */
+export const TOUCH_DRAG_LIFT = 64
+
+export const touchDragLiftModifier: Modifier = ({ activatorEvent, transform }) => {
+  const pointerType = (activatorEvent as PointerEvent | null)?.pointerType
+  if (pointerType === 'touch') {
+    return { ...transform, y: transform.y - TOUCH_DRAG_LIFT }
+  }
+  return transform
 }
 
 export const magneticCollision: CollisionDetection = (args) => {
@@ -121,6 +144,28 @@ function WordTray({ isOver, children }: { isOver: boolean; children: React.React
 }
 
 /**
+ * Word bank for the mobile tap-to-place layout. A droppable target so
+ * touch-dragged words can be dropped back into the bank; highlighted while
+ * a dragged word hovers it.
+ */
+function MobileWordBank({ isOver, children }: { isOver: boolean; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: WORD_BANK_ID })
+  return (
+    <section
+      ref={setNodeRef}
+      aria-label="Word bank"
+      className={cn(
+        'mb-8 rounded-2xl border-2 bg-card p-4 transition-colors',
+        isOver ? 'border-sky-deep bg-sky-soft' : 'border-line'
+      )}
+    >
+      <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
+      {children}
+    </section>
+  )
+}
+
+/**
  * Renders a word with its spelling-pattern letters underlined for correct
  * placements. Shared by the desktop draggable card and the mobile
  * tap-to-place card so the pattern underline shows on both.
@@ -149,9 +194,15 @@ function renderWordWithUnderline(
       <span
         key={`u${i}`}
         style={{
-          borderBottom: `4px solid ${underlineColor}`,
-          borderRadius: '2px',
-          paddingBottom: '2px',
+          // text-decoration paints the underline without changing the
+          // box: border-bottom + padding-bottom made underlined segments
+          // taller than plain ones, shifting the word up and breaking
+          // letter alignment inside the flex word tile.
+          textDecorationLine: 'underline',
+          textDecorationColor: underlineColor,
+          textDecorationThickness: '4px',
+          textUnderlineOffset: '4px',
+          textDecorationSkipInk: 'none',
         }}
       >
         {word.slice(range.start, range.end)}
@@ -294,7 +345,13 @@ function DropColumn({
   )
 }
 
-/** Word button for the mobile tap-to-place layout. */
+/**
+ * Word button for the mobile tap-to-place layout. Doubles as the touch
+ * drag source: a tap (no pointer movement) selects the word and opens the
+ * placement bar, while a real finger drag picks the tile up via dnd-kit
+ * (PointerSensor's distance constraint keeps the two gestures distinct).
+ * `touch-action: none` lets the drag start reliably on touch screens.
+ */
 function MobileWordCard({
   entry,
   correct,
@@ -308,10 +365,15 @@ function MobileWordCard({
   onSelect: () => void
   pattern?: SpellingPattern
 }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
   return (
     <li>
       <button
+        ref={setNodeRef}
         type="button"
+        {...listeners}
+        {...attributes}
+        style={{ touchAction: 'none' }}
         onClick={onSelect}
         aria-pressed={selected}
         aria-label={`${selected ? 'Deselect' : 'Select'} the word ${entry.word}`}
@@ -319,6 +381,9 @@ function MobileWordCard({
           'flex min-h-[56px] w-full items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60',
+          // The DragOverlay renders the floating copy; hide the original
+          // so it does not double-render while dragging.
+          isDragging && 'invisible',
           selected && 'border-sky-deep bg-sky-soft',
           correct && 'border-leaf bg-leaf-soft',
           correct === false && 'border-coral bg-coral-soft'
@@ -333,13 +398,15 @@ function MobileWordCard({
 }
 
 /**
- * Column for the mobile tap-to-place layout: stacked full-width. Words are
- * placed via the sticky bottom placement bar, so the column itself is
- * display-only.
+ * Column for the mobile tap-to-place layout: stacked full-width. A droppable
+ * target for touch drags (highlighted while a dragged word hovers it);
+ * words can also be placed via the sticky bottom placement bar, so the
+ * column doubles as the display for tap-to-place.
  */
 function MobileDropColumn({
   pattern,
   children,
+  isOver,
   rule,
   ruleLabel,
   savingRule,
@@ -348,18 +415,21 @@ function MobileDropColumn({
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
+  isOver: boolean
   rule: string | null
   ruleLabel: string
   savingRule: boolean
   saveRuleError: string | null
   onSaveRule: (patternText: string, rule: string) => Promise<void>
 }) {
+  const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
   return (
     <section
+      ref={setNodeRef}
       aria-label={`Pattern ${pattern.pattern} column`}
-      className={cn('rounded-2xl border-[3px] bg-card p-5', border)}
+      className={cn('rounded-2xl border-[3px] bg-card p-5 transition-colors', border, isOver && 'bg-sky-soft')}
     >
       <div className="mb-4 text-center">
         <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
@@ -463,7 +533,7 @@ function MobilePlaceBar({
  * destinations come to the thumb instead of making the student scroll to
  * find them.
  */
-export default function SortActivity({ list, onExit, classId = null }: SortActivityProps) {
+export default function SortActivity({ list, onExit, classId = null, onReopenClassPicker }: SortActivityProps) {
   const bank = useMemo(() => buildWordBank(list), [list])
   const [placements, setPlacements] = useState<Record<string, string>>({})
   const [results, setResults] = useState<Record<string, boolean>>({})
@@ -728,6 +798,9 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
       const { active, over } = event
       setOverId(null)
       setActiveId(null)
+      // A completed drag replaces the tap-to-place selection: the word is
+      // where the finger put it, so the placement bar must not linger.
+      setSelectedEntry(null)
       const entry = bank.find((w) => w.id === active.id)
       if (!over || !entry) return
       const result = placeWord(entry, String(over.id))
@@ -824,7 +897,23 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           isMobile && selectedEntry && 'pb-64'
         )}
       >
-        <div className="mb-4 flex items-center justify-end">
+        <div
+          className={cn(
+            'mb-4 flex items-center',
+            activeClass && onReopenClassPicker ? 'justify-between' : 'justify-end'
+          )}
+        >
+          {activeClass && onReopenClassPicker && (
+            <button
+              type="button"
+              onClick={onReopenClassPicker}
+              aria-label={`Change class, currently ${activeClass.name}`}
+              className="flex items-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-1.5 text-sm font-bold text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            >
+              <UsersIcon className="size-4" aria-hidden="true" />
+              {activeClass.name}
+            </button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -848,8 +937,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
         {isMobile ? (
           <>
             <p className="sr-only">Tap a word, then choose where it goes. Tap a placed word to move it.</p>
-            <section aria-label="Word bank" className="mb-8 rounded-2xl border-2 border-line bg-card p-4">
-              <p className="mb-3 text-sm font-bold text-muted-foreground">Word bank</p>
+            <MobileWordBank isOver={overId === WORD_BANK_ID}>
               {bankWords.length === 0 ? (
                 <p className="py-4 text-center text-[15px] text-muted-foreground">All words are placed.</p>
               ) : (
@@ -867,7 +955,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                   ))}
                 </ul>
               )}
-            </section>
+            </MobileWordBank>
 
             <div className="flex flex-col gap-6">
               {patterns.map((pattern) => {
@@ -876,6 +964,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                   <MobileDropColumn
                     key={pattern.id}
                     pattern={pattern}
+                    isOver={overId === pattern.id}
                     rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
                     savingRule={savingRulePattern === pattern.pattern}
@@ -984,7 +1073,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           </Button>
         </div>
       </div>
-      <DragOverlay dropAnimation={null} style={{ zIndex: 100 }}>
+      <DragOverlay dropAnimation={null} modifiers={[touchDragLiftModifier]} style={{ zIndex: 100 }}>
         {activeId
           ? (() => {
               const ghostEntry = bank.find((w) => w.id === activeId)

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import SortActivity, { expandRectForMagnet, magneticCollision } from './SortActivity'
 import type { WordList } from '@/models/WordList'
@@ -235,7 +235,10 @@ describe('SortActivity', () => {
     expect(within(wordButton).getByText('r')).toBeInTheDocument()
     expect(within(wordButton).getByText('n')).toBeInTheDocument()
     const underlined = within(wordButton).getByText('ai')
-    expect(underlined.getAttribute('style')).toContain('border-bottom')
+    // The underline paints via text-decoration so it never changes the
+    // box: no layout shift when it appears.
+    expect(underlined.getAttribute('style')).toContain('text-decoration')
+    expect(underlined.getAttribute('style')).not.toContain('border-bottom')
   })
 
   it('shows an all-placed message in the tray when every word is sorted', async () => {
@@ -377,5 +380,68 @@ describe('SortActivity', () => {
     } as never)
     expect(rectIntersection).toHaveBeenCalled()
     expect(pointerWithin).not.toHaveBeenCalled()
+  })
+})
+
+describe('SortActivity class pill', () => {
+  const classList: WordList = {
+    id: 'l1',
+    userId: 'u1',
+    name: 'Week 5',
+    patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] }],
+    createdAt: '2026-10-06T00:00:00.000Z',
+    updatedAt: '2026-10-06T00:00:00.000Z',
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/classes/c1') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }),
+          })
+        }
+        return Promise.resolve({ ok: false, status: 404, json: async () => ({}) })
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows the class pill top-left after a class is selected', async () => {
+    const onReopenClassPicker = vi.fn()
+    render(<SortActivity list={classList} onExit={vi.fn()} classId="c1" onReopenClassPicker={onReopenClassPicker} />)
+    const pill = await screen.findByRole('button', { name: 'Change class, currently Period 2' })
+    expect(pill).toHaveTextContent('Period 2')
+    fireEvent.click(pill)
+    expect(onReopenClassPicker).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows nothing top-left when sorting without a class', () => {
+    render(<SortActivity list={classList} onExit={vi.fn()} onReopenClassPicker={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /Change class/ })).not.toBeInTheDocument()
+    // The Exit control is still there, right-aligned.
+    expect(screen.getByRole('button', { name: 'Exit sort' })).toBeInTheDocument()
+  })
+
+  it('shows no pill when the host does not provide a picker opener', async () => {
+    render(<SortActivity list={classList} onExit={vi.fn()} classId="c1" />)
+    // Wait for the class load to settle so the pill would have rendered.
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/classes/c1')
+    })
+    expect(screen.queryByRole('button', { name: /Change class/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps the word tray pinned to the bottom of the viewport', () => {
+    render(<SortActivity list={classList} onExit={vi.fn()} />)
+    const tray = screen.getByLabelText('Word tray')
+    expect(tray.className).toContain('fixed')
+    expect(tray.className).toContain('inset-x-0')
+    expect(tray.className).toContain('bottom-0')
   })
 })

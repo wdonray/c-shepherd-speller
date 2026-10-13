@@ -525,3 +525,90 @@ describe('DisplayMode', () => {
     expect(screen.getByRole('dialog', { name: 'Why this chart?' })).toBeInTheDocument()
   })
 })
+
+describe('DisplayMode sort-mode chrome', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockSearchParams.get.mockReturnValue(null)
+  })
+
+  it('hides the present header and tips bar while sorting', async () => {
+    window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Presenting tips' })).toBeInTheDocument()
+    })
+    // The chart header shows the list name and the Sort words entry point.
+    expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
+
+    // Sort mode: the sort surface fills the area, no header, no subheader.
+    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Week 5' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Presenting tips' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Print chart' })).not.toBeInTheDocument()
+    // The sort surface brings its own Exit control.
+    expect(screen.getByRole('button', { name: 'Exit sort' })).toBeInTheDocument()
+  })
+
+  it('re-opens the class picker from the class pill', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/classes') {
+          return Promise.resolve({ ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) })
+        }
+        if (url === '/api/classes/c1') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }),
+          })
+        }
+        return Promise.resolve({ ok: false, status: 404, json: async () => ({}) })
+      })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    // Pick the class from the picker.
+    fireEvent.click(await screen.findByRole('button', { name: 'Period 2' }))
+    // Sort mode shows the class pill top-left.
+    const pill = await screen.findByRole('button', { name: 'Change class, currently Period 2' })
+    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // Tapping the pill re-opens the picker.
+    fireEvent.click(pill)
+    expect(await screen.findByText('Who is sorting?')).toBeInTheDocument()
+    vi.unstubAllGlobals()
+  })
+
+  it('restores the present header and tips bar after exiting sort', async () => {
+    window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
+    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
+    })
+    expect(screen.getByRole('region', { name: 'Presenting tips' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
+  })
+})
