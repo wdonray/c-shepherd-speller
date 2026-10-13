@@ -140,7 +140,7 @@ describe('DisplayMode', () => {
     expect(printLink).toHaveAttribute('href', '/lists/l1/print')
   })
 
-  it('enters sort mode from the Sort words button and exits back', async () => {
+  it('opens the class picker from the Sort words button and enters sort mode', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)
     render(<DisplayMode />)
@@ -150,6 +150,11 @@ describe('DisplayMode', () => {
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    // The class picker opens instead of entering sort mode directly.
+    expect(screen.getByText('Who is sorting?')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Word tray')).not.toBeInTheDocument()
+    // Continue without a class enters sort mode.
+    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
 
@@ -158,6 +163,21 @@ describe('DisplayMode', () => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
+  })
+
+  it('cancels the class picker without entering sort mode', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
+    expect(screen.getByText('Who is sorting?')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Word tray')).not.toBeInTheDocument()
   })
 
   it('shows a full screen button in the chart header when supported', async () => {

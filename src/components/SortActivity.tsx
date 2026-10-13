@@ -37,6 +37,7 @@ import {
 import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activity'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { OddDuck } from './OddDuck'
+import RuleCaptureDialog from './RuleCaptureDialog'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import { useMediaQuery } from '@/lib/use-media-query'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
@@ -44,6 +45,8 @@ import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordL
 interface SortActivityProps {
   list: WordList
   onExit: () => void
+  /** Active class id, or null/undefined when sorting without a class. */
+  classId?: string | null
 }
 
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
@@ -415,7 +418,7 @@ function MobilePlaceBar({
  * destinations come to the thumb instead of making the student scroll to
  * find them.
  */
-export default function SortActivity({ list, onExit }: SortActivityProps) {
+export default function SortActivity({ list, onExit, classId = null }: SortActivityProps) {
   const bank = useMemo(() => buildWordBank(list), [list])
   const [placements, setPlacements] = useState<Record<string, string>>({})
   const [results, setResults] = useState<Record<string, boolean>>({})
@@ -424,6 +427,15 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<BankWord | null>(null)
   const [won, setWon] = useState(false)
+  // Rule capture state.
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
+  const [savingRules, setSavingRules] = useState(false)
+  const [saveRulesError, setSaveRulesError] = useState<string | null>(null)
+  const [activeClass, setActiveClass] = useState<{
+    id: string
+    name: string
+    rules: Record<string, { rule: string }>
+  } | null>(null)
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const patterns = useMemo(() => {
@@ -455,6 +467,96 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
       announce('Every word is sorted.')
     }
   }, [won, announce])
+
+  // Load the active class (if any) for rule recall and rule capture.
+  useEffect(() => {
+    if (!classId) {
+      setActiveClass(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/classes/${classId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((body) => {
+        if (!cancelled) setActiveClass(body.class)
+      })
+      .catch(() => {
+        // A missing class must not block the sort; rules just won't recall.
+        if (!cancelled) setActiveClass(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [classId])
+
+  /**
+   * Save captured rules: to the active class when one is selected, otherwise
+   * as the unscoped rule on each of the list's patterns.
+   */
+  const handleSaveRules = useCallback(
+    async (rules: Record<string, string>) => {
+      setSavingRules(true)
+      setSaveRulesError(null)
+      try {
+        if (activeClass) {
+          const payload: Record<string, { rule: string }> = {}
+          for (const [patternText, rule] of Object.entries(rules)) {
+            if (rule !== '') payload[patternText] = { rule }
+          }
+          const res = await fetch(`/api/classes/${activeClass.id}/rules`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rules: payload }),
+          })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const body = await res.json()
+          // activeClass is non-null here (checked above), so the update is direct.
+          // The API returns the merged rules; fall back to the current rules
+          // if the response is malformed.
+          setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
+        } else {
+          // Unscoped: store the rule on each pattern of this list.
+          const updatedPatterns = list.patterns.map((p) => {
+            const rule = rules[p.pattern]
+            if (rule === undefined) return p
+            return rule === '' ? { ...p, rule: undefined } : { ...p, rule }
+          })
+          const res = await fetch(`/api/lists/${list.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patterns: updatedPatterns }),
+          })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        }
+        setRuleDialogOpen(false)
+        announce('Rules saved.')
+      } catch {
+        setSaveRulesError('Could not save the rules. Try again.')
+      } finally {
+        setSavingRules(false)
+      }
+    },
+    [activeClass, list, announce]
+  )
+
+  // Existing rules for the capture form: the class's rules when a class is
+  // active, otherwise the unscoped rules on the list's patterns.
+  const existingRules = useMemo(() => {
+    const map: Record<string, string> = {}
+    if (activeClass) {
+      for (const [patternText, rule] of Object.entries(activeClass.rules)) {
+        map[patternText] = rule.rule
+      }
+    } else {
+      for (const p of list.patterns) {
+        if (p.rule) map[p.pattern] = p.rule
+      }
+    }
+    return map
+  }, [activeClass, list])
 
   /**
    * Shared placement logic for drag-and-drop and tap-to-place. Moves the
@@ -778,7 +880,14 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             </h2>
             <p className="mt-2 text-[15px] text-muted-foreground">Nice work. Now, what did the class figure out?</p>
             <div className="mt-6 flex justify-center gap-3">
-              <Button onClick={() => setWon(false)}>Tell the rule</Button>
+              <Button
+                onClick={() => {
+                  setWon(false)
+                  setRuleDialogOpen(true)
+                }}
+              >
+                Tell the rule
+              </Button>
               <Button variant="ghost" onClick={() => setWon(false)}>
                 Skip for now
               </Button>
@@ -786,6 +895,16 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           </motion.div>
         </div>
       )}
+      <RuleCaptureDialog
+        open={ruleDialogOpen}
+        patterns={list.patterns.map((p) => ({ id: p.id, pattern: p.pattern }))}
+        existingRules={existingRules}
+        className={activeClass?.name ?? null}
+        saving={savingRules}
+        saveError={saveRulesError}
+        onSave={handleSaveRules}
+        onSkip={() => setRuleDialogOpen(false)}
+      />
     </DndContext>
   )
 }
