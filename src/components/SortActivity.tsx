@@ -116,6 +116,49 @@ function WordTray({ isOver, children }: { isOver: boolean; children: React.React
   )
 }
 
+/**
+ * Renders a word with its spelling-pattern letters underlined for correct
+ * placements. Shared by the desktop draggable card and the mobile
+ * tap-to-place card so the pattern underline shows on both.
+ */
+function renderWordWithUnderline(
+  word: string,
+  pattern: SpellingPattern | undefined,
+  correct: boolean | null
+): React.ReactNode {
+  // Compute underline ranges for correct placements.
+  const underlineRanges = correct && pattern ? getPatternUnderlineRanges(word, pattern.pattern) : []
+  if (underlineRanges.length === 0) return word
+  // Build the word with underlined segments.
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  // Get the underline color based on sound type.
+  const soundType = getSoundType(pattern.pattern)
+  const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType]
+  underlineRanges.forEach((range, i) => {
+    if (range.start > lastIndex) {
+      parts.push(<span key={`t${i}`}>{word.slice(lastIndex, range.start)}</span>)
+    }
+    parts.push(
+      <span
+        key={`u${i}`}
+        style={{
+          borderBottom: `4px solid ${underlineColor}`,
+          borderRadius: '2px',
+          paddingBottom: '2px',
+        }}
+      >
+        {word.slice(range.start, range.end)}
+      </span>
+    )
+    lastIndex = range.end
+  })
+  if (lastIndex < word.length) {
+    parts.push(<span key="t-end">{word.slice(lastIndex)}</span>)
+  }
+  return <>{parts}</>
+}
+
 function SortableWordCard({
   entry,
   correct,
@@ -126,39 +169,6 @@ function SortableWordCard({
   pattern?: SpellingPattern
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
-  // Compute underline ranges for correct placements.
-  const underlineRanges = correct && pattern ? getPatternUnderlineRanges(entry.word, pattern.pattern) : []
-  const renderWord = () => {
-    if (underlineRanges.length === 0 || !pattern) return entry.word
-    // Build the word with underlined segments.
-    const parts: React.ReactNode[] = []
-    let lastIndex = 0
-    // Get the underline color based on sound type.
-    const soundType = getSoundType(pattern.pattern)
-    const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType]
-    underlineRanges.forEach((range, i) => {
-      if (range.start > lastIndex) {
-        parts.push(<span key={`t${i}`}>{entry.word.slice(lastIndex, range.start)}</span>)
-      }
-      parts.push(
-        <span
-          key={`u${i}`}
-          style={{
-            borderBottom: `4px solid ${underlineColor}`,
-            borderRadius: '2px',
-            paddingBottom: '2px',
-          }}
-        >
-          {entry.word.slice(range.start, range.end)}
-        </span>
-      )
-      lastIndex = range.end
-    })
-    if (lastIndex < entry.word.length) {
-      parts.push(<span key="t-end">{entry.word.slice(lastIndex)}</span>)
-    }
-    return parts
-  }
   return (
     <li>
       <motion.button
@@ -182,7 +192,7 @@ function SortableWordCard({
           correct === false && 'border-coral bg-coral-soft'
         )}
       >
-        {renderWord()}
+        {renderWordWithUnderline(entry.word, pattern, correct)}
         {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
         {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </motion.button>
@@ -265,11 +275,13 @@ function MobileWordCard({
   correct,
   selected,
   onSelect,
+  pattern,
 }: {
   entry: BankWord
   correct: boolean | null
   selected: boolean
   onSelect: () => void
+  pattern?: SpellingPattern
 }) {
   return (
     <li>
@@ -287,7 +299,7 @@ function MobileWordCard({
           correct === false && 'border-coral bg-coral-soft'
         )}
       >
-        {entry.word}
+        {renderWordWithUnderline(entry.word, pattern, correct)}
         {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
         {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}
       </button>
@@ -659,6 +671,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                         // Placed words always have a result: every column
                         // drop sets results[entry.id] alongside placements.
                         correct={results[entry.id]}
+                        pattern={pattern}
                         selected={selectedEntry?.id === entry.id}
                         onSelect={() => handleMobileWordTap(entry)}
                       />

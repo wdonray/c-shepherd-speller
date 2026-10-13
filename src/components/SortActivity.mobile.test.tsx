@@ -135,6 +135,9 @@ describe('SortActivity on mobile', () => {
     const column = screen.getByLabelText('Pattern a_e column')
     expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
+    // The pattern underline renders on tap-to-place too.
+    const placedButton = within(column).getByRole('button', { name: 'Select the word cake' })
+    expect(within(placedButton).getByText('a').getAttribute('style')).toContain('border-bottom')
     await waitFor(() => {
       expect(liveRegion()?.textContent).toContain('cake is correct in a_e')
     })
