@@ -636,7 +636,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                     <MobileWordCard
                       key={entry.id}
                       entry={entry}
-                      correct={results[entry.id] ?? null}
+                      // Bank words have no correctness state; results are
+                      // cleared whenever a word returns to the bank.
+                      correct={null}
                       selected={selectedEntry?.id === entry.id}
                       onSelect={() => handleMobileWordTap(entry)}
                     />
@@ -654,7 +656,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                       <MobileWordCard
                         key={entry.id}
                         entry={entry}
-                        correct={results[entry.id] ?? null}
+                        // Placed words always have a result: every column
+                        // drop sets results[entry.id] alongside placements.
+                        correct={results[entry.id]}
                         selected={selectedEntry?.id === entry.id}
                         onSelect={() => handleMobileWordTap(entry)}
                       />
@@ -693,7 +697,9 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
                       <SortableWordCard
                         key={entry.id}
                         entry={entry}
-                        correct={results[entry.id] ?? null}
+                        // Placed words always have a result: every column
+                        // drop sets results[entry.id] alongside placements.
+                        correct={results[entry.id]}
                         pattern={pattern}
                       />
                     ))}

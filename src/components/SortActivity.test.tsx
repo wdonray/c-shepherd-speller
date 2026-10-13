@@ -201,6 +201,26 @@ describe('SortActivity', () => {
     })
   })
 
+  it('renders an underline that starts at the first letter', async () => {
+    const apeList: WordList = {
+      ...list,
+      patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['ape'] }],
+    }
+    render(<SortActivity list={apeList} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:ape' }, over: { id: 'p1' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+    // "ape" underlines "a" and "e" with no leading plain text.
+    const wordButton = screen.getByRole('button', { name: 'Drag the word ape' })
+    const underlined = within(wordButton).getAllByText('a')
+    expect(underlined.length).toBeGreaterThanOrEqual(1)
+    expect(within(wordButton).getByText('p')).toBeInTheDocument()
+    expect(within(wordButton).getByText('e')).toBeInTheDocument()
+  })
+
   it('renders non-pattern text around the underline, including trailing text', async () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     act(() => {
@@ -216,6 +236,20 @@ describe('SortActivity', () => {
     expect(within(wordButton).getByText('n')).toBeInTheDocument()
     const underlined = within(wordButton).getByText('ai')
     expect(underlined.getAttribute('style')).toContain('border-bottom')
+  })
+
+  it('shows an all-placed message in the tray when every word is sorted', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:bake' }, over: { id: 'p1' } })
+      dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
+      dndHandlers.onDragEnd?.({ active: { id: 'p3:said' }, over: { id: 'p3' } })
+    })
+    const tray = screen.getByLabelText('Word tray')
+    await waitFor(() => {
+      expect(within(tray).getByText('All words are placed.')).toBeInTheDocument()
+    })
   })
 
   it('try again returns all words to the word bank', async () => {
