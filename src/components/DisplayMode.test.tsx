@@ -318,6 +318,62 @@ describe('DisplayMode', () => {
     expect(screen.getByText('Magic e.')).toBeInTheDocument()
   })
 
+  it('deletes a rule from the chart header via updateList', async () => {
+    const listWithRule = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithRule)
+    updateList.mockImplementation(async (_id: string, input: { patterns: unknown[] }) => ({
+      ...listWithRule,
+      patterns: input.patterns,
+    }))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([expect.objectContaining({ pattern: 'a_e', rule: undefined })]),
+        })
+      )
+    })
+    // The rule card is gone after deletion.
+    await waitFor(() => {
+      expect(screen.queryByText('Magic e.')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows an error when a chart rule delete fails', async () => {
+    const listWithRule: WordList = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithRule)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
+    updateList.mockRejectedValueOnce(new Error('down'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the rule. Try again.')
+    // Still on the confirm step: the teacher can retry or cancel.
+    expect(screen.getByText('Delete this rule?')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    // The rule was never removed: it is still displayed intact.
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    expect(updateList).toHaveBeenCalledTimes(1)
+  })
+
   it('locks a pattern optimistically and persists via updateList', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(twoPatternList)

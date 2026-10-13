@@ -66,4 +66,75 @@ describe('RuleCard', () => {
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
   })
+
+  it('hides the Edit button when editable is false', () => {
+    renderCard({ editable: false })
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Edit button when no onSave is provided', () => {
+    render(<RuleCard rule="Magic e." label="Your class decided:" />)
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Delete button when no onDelete is provided', () => {
+    renderCard()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+  })
+
+  it('asks for confirmation before deleting', () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined)
+    renderCard({ onDelete })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getByText('Delete this rule?')).toBeInTheDocument()
+    expect(onDelete).not.toHaveBeenCalled()
+    // Cancelling goes back to the rule display.
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    expect(onDelete).not.toHaveBeenCalled()
+  })
+
+  it('deletes the rule on confirm', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined)
+    renderCard({ onDelete })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(() => {
+      expect(onDelete).toHaveBeenCalledTimes(1)
+    })
+    await waitFor(() => {
+      expect(screen.queryByText('Delete this rule?')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows an error and stays in the confirm step when deletion fails', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new Error('down'))
+    renderCard({ onDelete })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the rule. Try again.')
+    // Still confirming: the teacher can retry or cancel.
+    expect(screen.getByRole('button', { name: 'Yes, delete' })).toBeInTheDocument()
+  })
+
+  it('disables the confirm buttons while deleting', async () => {
+    let resolveDelete: () => void = () => {}
+    const onDelete = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve
+        })
+    )
+    renderCard({ onDelete })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    expect(screen.getByRole('button', { name: 'Deleting…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    resolveDelete()
+    await waitFor(() => {
+      expect(screen.queryByText('Delete this rule?')).not.toBeInTheDocument()
+    })
+  })
 })

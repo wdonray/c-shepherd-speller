@@ -93,6 +93,19 @@ function DisplayModeInner() {
     }
   }, [])
 
+  const handleDeleteRule = useCallback(async (patternId: string, current: WordList) => {
+    const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule: undefined } : p))
+    // Not optimistic: removing the rule up front would unmount the rule
+    // card, swallowing a save failure before its error could display.
+    // The card's own "Deleting…" state covers the wait instead.
+    try {
+      const saved = await updateList(current.id, { patterns: nextPatterns })
+      setList(saved)
+    } catch {
+      throw new Error('Failed to delete rule')
+    }
+  }, [])
+
   // Escape never navigates. When the browser is in full screen, Escape exits
   // full screen natively; the app takes no action on Escape at all.
 
@@ -302,6 +315,7 @@ function DisplayModeInner() {
             list={list}
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
             onSaveRule={(patternId, rule) => handleSaveRule(patternId, rule, list)}
+            onDeleteRule={(patternId) => handleDeleteRule(patternId, list)}
           />
         )}
         <ClassPickerDialog
