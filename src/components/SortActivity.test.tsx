@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import SortActivity, { expandRectForMagnet, magneticCollision } from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
@@ -199,6 +199,21 @@ describe('SortActivity', () => {
     await waitFor(() => {
       expect(playIncorrectSound).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('renders non-pattern text around the underline, including trailing text', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p2:rain' }, over: { id: 'p2' } })
+    })
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+    // "rain" underlines "ai"; the leading "r" and trailing "n" stay plain text.
+    const column = screen.getByLabelText('Pattern ai column')
+    expect(within(column).getByText('r')).toBeInTheDocument()
+    expect(within(column).getByText('n')).toBeInTheDocument()
+    expect(within(column).getByText('ai')).toBeInTheDocument()
   })
 
   it('try again returns all words to the word bank', async () => {
