@@ -6,8 +6,10 @@ import {
   DragOverlay,
   PointerSensor,
   KeyboardSensor,
+  pointerWithin,
   useDraggable,
   useDroppable,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
   type DragOverEvent,
@@ -37,6 +39,35 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
 }
 
 const WORD_BANK_ID = 'word-bank'
+
+/**
+ * Magnetic collision detection: expands each droppable's rect by the magnetic
+ * radius so columns glow and show the ghost preview before the pointer
+ * crosses their boundary. Forgives sloppy smartboard aim.
+ */
+const MAGNETIC_RADIUS = 60
+
+const magneticCollision: CollisionDetection = (args) => {
+  const { droppableContainers } = args
+  const expanded = droppableContainers.map((container) => {
+    const rect = container.rect.current
+    if (!rect) return container
+    return {
+      ...container,
+      rect: {
+        ...container.rect,
+        current: {
+          ...rect,
+          left: rect.left - MAGNETIC_RADIUS,
+          right: rect.right + MAGNETIC_RADIUS,
+          top: rect.top - MAGNETIC_RADIUS,
+          bottom: rect.bottom + MAGNETIC_RADIUS,
+        },
+      },
+    }
+  })
+  return pointerWithin({ ...args, droppableContainers: expanded })
+}
 
 // Below Tailwind's md breakpoint the drag-and-drop sort is replaced with
 // tap-to-place: small viewports cannot scroll horizontally to reach every
@@ -112,10 +143,12 @@ function DropColumn({
   pattern,
   children,
   isOver,
+  ghostEntry,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
   isOver: boolean
+  ghostEntry: BankWord | null
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -140,7 +173,21 @@ function DropColumn({
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
       </div>
-      <ul className="space-y-3">{children}</ul>
+      <ul className="space-y-3">
+        {children}
+        {isOver && ghostEntry && (
+          <li aria-hidden="true">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 0.45, scale: 1 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="flex min-h-[56px] min-w-[120px] items-center justify-center rounded-[14px] border-2 border-dashed border-line px-4 py-3 text-[24px] font-bold text-ink"
+            >
+              {ghostEntry.word}
+            </motion.div>
+          </li>
+        )}
+      </ul>
     </motion.section>
   )
 }
@@ -438,6 +485,7 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
   return (
     <DndContext
       sensors={sensors as never}
+      collisionDetection={magneticCollision}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -535,8 +583,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
               {patterns.map((pattern) => {
                 const columnWords = bank.filter((w) => placements[w.id] === pattern.id)
+                const ghostEntry =
+                  overId === pattern.id && activeId ? (bank.find((w) => w.id === activeId) ?? null) : null
                 return (
-                  <DropColumn key={pattern.id} pattern={pattern} isOver={overId === pattern.id}>
+                  <DropColumn key={pattern.id} pattern={pattern} isOver={overId === pattern.id} ghostEntry={ghostEntry}>
                     {columnWords.map((entry) => (
                       <SortableWordCard
                         key={entry.id}

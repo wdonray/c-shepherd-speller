@@ -265,4 +265,27 @@ describe('SortActivity', () => {
       }
     })
   })
+
+  it('shows a ghost preview of the dragged word in the hovered column', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    dndHandlers.onDragOver?.({ over: { id: 'p1' } })
+    await waitFor(() => {
+      // Ghost is aria-hidden and shows the dragged word.
+      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
+      expect(ghostTexts).toContain('cake')
+    })
+  })
+
+  it('hides the ghost preview when not dragging over a column', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
+    dndHandlers.onDragOver?.({ over: null })
+    await waitFor(() => {
+      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
+      expect(ghostTexts).not.toContain('cake')
+    })
+  })
 })
