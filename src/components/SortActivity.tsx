@@ -120,6 +120,7 @@ function SortableWordCard({
   pattern?: SpellingPattern
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
+  const reduceMotion = prefersReducedMotion()
   // Compute underline ranges for correct placements.
   const underlineRanges = correct && pattern ? getPatternUnderlineRanges(entry.word, pattern.pattern) : []
   const renderWord = () => {
@@ -164,7 +165,17 @@ function SortableWordCard({
         aria-label={`Drag the word ${entry.word}`}
         layout
         transition={settleTransition()}
-        animate={correct === false ? { rotate: [-4, 4, -2, 0] } : correct ? { scale: [1, 1.18, 1] } : {}}
+        // Multi-keyframe feedback pulses need tween transitions: motion
+        // springs only support two keyframes and throw otherwise. The pop
+        // is a 240ms scale pulse per the design spec; the wiggle is a
+        // 400ms shake. Both are skipped under reduced motion.
+        animate={
+          reduceMotion || correct === null
+            ? {}
+            : correct
+              ? { scale: [1, 1.18, 1], transition: { duration: 0.24, ease: 'easeOut' } }
+              : { rotate: [-4, 4, -2, 0], transition: { duration: 0.4, ease: 'easeInOut' } }
+        }
         className={cn(
           'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
@@ -459,6 +470,26 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
     [patterns]
   )
 
+  /**
+   * Win check shared by drag-and-drop and tap-to-place: when every sortable
+   * word is placed and every placement is correct, trigger the win cascade.
+   */
+  const checkWin = useCallback(
+    (entryId: string, patternId: string) => {
+      setPlacements((currentPlacements) => {
+        const newPlacements = { ...currentPlacements, [entryId]: patternId }
+        const allPlaced = bank.every((w) => newPlacements[w.id])
+        const allCorrect = bank.every((w) => newPlacements[w.id] === w.patternId)
+        if (allPlaced && allCorrect) {
+          // Trigger win cascade.
+          setTimeout(() => setWon(true), 300)
+        }
+        return newPlacements
+      })
+    },
+    [bank]
+  )
+
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       setActiveId(String(event.active.id))
@@ -501,20 +532,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           playIncorrectSound()
           announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
         }
-        // Check win condition: all placed and all correct.
-        setPlacements((currentPlacements) => {
-          const newPlacements = { ...currentPlacements, [entry.id]: result.id }
-          const allPlaced = bank.every((w) => newPlacements[w.id])
-          const allCorrect = bank.every((w) => newPlacements[w.id] === w.patternId)
-          if (allPlaced && allCorrect) {
-            // Trigger win cascade.
-            setTimeout(() => setWon(true), 300)
-          }
-          return newPlacements
-        })
+        checkWin(entry.id, result.id)
       }
     },
-    [bank, placeWord, announce]
+    [bank, placeWord, announce, checkWin]
   )
 
   const handleMobileWordTap = useCallback(
@@ -553,9 +574,10 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
           playIncorrectSound()
           announce(`${entry.word} does not go with ${result.pattern}. Try another column.`)
         }
+        checkWin(entry.id, result.id)
       }
     },
-    [placeWord, announce]
+    [placeWord, announce, checkWin]
   )
 
   const handleTryAgain = useCallback(() => {
