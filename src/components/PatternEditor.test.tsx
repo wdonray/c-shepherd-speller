@@ -9,6 +9,7 @@ vi.mock('./VoiceRecorderModal', () => ({
       <div data-testid="voice-recorder-modal">
         <span>{word}</span>
         <button onClick={() => onOpenChange(false)}>Close modal</button>
+        <button onClick={() => onOpenChange(true)}>Reopen modal</button>
       </div>
     ) : null,
 }))
@@ -533,5 +534,12 @@ describe('PatternEditor', () => {
     expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close modal' }))
     expect(screen.queryByTestId('voice-recorder-modal')).not.toBeInTheDocument()
+  })
+
+  it('keeps the voice recorder modal open when onOpenChange fires with true', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen modal' }))
+    expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
   })
 })

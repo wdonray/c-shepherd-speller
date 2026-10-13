@@ -608,4 +608,82 @@ describe('VoiceRecorderModal', () => {
     // The duration falls back to elapsed time, not Infinity.
     expect(screen.getByText(/recorded/)).toBeInTheDocument()
   })
+
+  it('ignores a rejected permission query after unmount', async () => {
+    let rejectQuery!: (error: unknown) => void
+    const query = vi.fn(() => new Promise((_resolve, reject) => (rejectQuery = reject)))
+    Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true })
+    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    unmount()
+    rejectQuery(new Error('query torn down'))
+    await act(async () => {})
+    // No crash, no state update after unmount.
+    expect(query).toHaveBeenCalled()
+  })
+
+  it('stays on the denied screen when retry reports denied', async () => {
+    const query = stubPermissions('denied')
+    renderModal()
+    await screen.findByText('Microphone is blocked')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(query).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Microphone is blocked')).toBeInTheDocument()
+  })
+
+  it('warns about a very short recording and disables save', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override duration = 1
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(await screen.findByText(/very short/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save recording' })).toBeDisabled()
+  })
+
+  it('tolerates AudioContext close failure when stopping', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'AudioContext',
+      class extends FakeAudioContext {
+        override close(): Promise<void> {
+          this.closed = true
+          return Promise.reject(new Error('close failed'))
+        }
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    // The close rejection is swallowed; review still renders.
+    expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
+  })
+
+  it('tolerates AudioContext close failure when the modal closes mid-recording', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'AudioContext',
+      class extends FakeAudioContext {
+        override close(): Promise<void> {
+          this.closed = true
+          return Promise.reject(new Error('close failed'))
+        }
+      }
+    )
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={() => {}} />)
+    await act(async () => {})
+    expect(session.cancel).toHaveBeenCalled()
+  })
 })
