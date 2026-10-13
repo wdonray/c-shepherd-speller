@@ -18,7 +18,13 @@ import {
 import { XIcon, CheckIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { LIFT_TRANSITION, PICKUP_SHADOW, prefersReducedMotion, settleTransition } from '@/lib/sort-motion'
+import {
+  LIFT_TRANSITION,
+  PICKUP_SHADOW,
+  feedbackAnimate,
+  prefersReducedMotion,
+  settleTransition,
+} from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import {
@@ -120,7 +126,6 @@ function SortableWordCard({
   pattern?: SpellingPattern
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: entry.id })
-  const reduceMotion = prefersReducedMotion()
   // Compute underline ranges for correct placements.
   const underlineRanges = correct && pattern ? getPatternUnderlineRanges(entry.word, pattern.pattern) : []
   const renderWord = () => {
@@ -130,7 +135,7 @@ function SortableWordCard({
     let lastIndex = 0
     // Get the underline color based on sound type.
     const soundType = getSoundType(pattern.pattern)
-    const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType] ?? '#2e6510'
+    const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType]
     underlineRanges.forEach((range, i) => {
       if (range.start > lastIndex) {
         parts.push(<span key={`t${i}`}>{entry.word.slice(lastIndex, range.start)}</span>)
@@ -165,17 +170,7 @@ function SortableWordCard({
         aria-label={`Drag the word ${entry.word}`}
         layout
         transition={settleTransition()}
-        // Multi-keyframe feedback pulses need tween transitions: motion
-        // springs only support two keyframes and throw otherwise. The pop
-        // is a 240ms scale pulse per the design spec; the wiggle is a
-        // 400ms shake. Both are skipped under reduced motion.
-        animate={
-          reduceMotion || correct === null
-            ? {}
-            : correct
-              ? { scale: [1, 1.18, 1], transition: { duration: 0.24, ease: 'easeOut' } }
-              : { rotate: [-4, 4, -2, 0], transition: { duration: 0.4, ease: 'easeInOut' } }
-        }
+        animate={feedbackAnimate(correct)}
         className={cn(
           'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',

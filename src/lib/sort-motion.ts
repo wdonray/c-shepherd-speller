@@ -7,6 +7,7 @@
  * prefers-reduced-motion.
  */
 import type { Transition } from 'motion/react'
+import type { TargetAndTransition } from 'motion/react'
 
 /** The one shared spring: stiffness 170, damping 14. */
 export const SORT_SPRING: Transition = {
@@ -45,4 +46,18 @@ export function prefersReducedMotion(): boolean {
  */
 export function settleTransition(): Transition {
   return prefersReducedMotion() ? CROSSFADE_TRANSITION : SORT_SPRING
+}
+
+/**
+ * Feedback animation for a placed word tile: a 240ms scale pulse on a
+ * correct drop, a 400ms shake on an incorrect drop. Multi-keyframe pulses
+ * need tween transitions because motion springs only support two keyframes
+ * (they throw otherwise). Skipped entirely under reduced motion and while
+ * the word has no correctness state yet.
+ */
+export function feedbackAnimate(correct: boolean | null): TargetAndTransition {
+  if (prefersReducedMotion() || correct === null) return {}
+  return correct
+    ? { scale: [1, 1.18, 1], transition: { duration: 0.24, ease: 'easeOut' } }
+    : { rotate: [-4, 4, -2, 0], transition: { duration: 0.4, ease: 'easeInOut' } }
 }
