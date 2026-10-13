@@ -69,6 +69,32 @@ export default function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
           </section>
 
           <section>
+            <h3 className="text-lg font-bold text-ink">Why teach by pattern?</h3>
+            <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
+              One pattern learned is dozens of words spelled. When students see words grouped by a shared spelling
+              pattern, they learn the rule behind the words and can spell new words they have never seen. Memorizing a
+              list only teaches the listed words. PatternSpell is not a curriculum. It is the list-building and display
+              layer that sits on top of the sequence you already teach.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-ink">What PatternSpell is not</h3>
+            <ul className="mt-2 list-disc space-y-2 pl-6 text-[15px] leading-6 text-ink">
+              <li>
+                <strong>Not a game site.</strong> There is nothing here for students to click through.
+              </li>
+              <li>
+                <strong>Not a replacement</strong> for your phonics curriculum.
+              </li>
+              <li>
+                <strong>Not an app students log into.</strong> You build the lists and display the chart. Your students
+                learn from what you show.
+              </li>
+            </ul>
+          </section>
+
+          <section>
             <h3 className="text-lg font-bold text-ink">Frequently asked questions</h3>
             <div className="mt-2 space-y-2">
               {FAQS.map((faq) => (

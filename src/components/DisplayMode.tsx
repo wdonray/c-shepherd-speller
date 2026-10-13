@@ -11,6 +11,8 @@ import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
+import PresentingTipsBar from './PresentingTipsBar'
+import WhyChartPopover from './WhyChartPopover'
 import { reportError } from '@/lib/report-error'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
@@ -172,6 +174,10 @@ function DisplayModeInner() {
           <p className="text-[15px] text-muted-foreground">
             Choose a list to show its pattern chart on the big screen.
           </p>
+          <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">
+            One column per pattern, all words visible at once. Use the fullscreen button for the biggest readable chart,
+            lock patterns you want to hold back, and try Sort words to turn the chart into a class sorting activity.
+          </p>
           {assignedWeeks.length > 0 && (
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter lists by week">
               <Button
@@ -234,6 +240,7 @@ function DisplayModeInner() {
             </Link>
           </Button>
           <h1 className="text-xl font-bold text-ink">{list.name}</h1>
+          <WhyChartPopover />
           <div className="ml-auto flex items-center gap-2">
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/lists/${list.id}/print`}>
@@ -251,6 +258,7 @@ function DisplayModeInner() {
         </div>
       </div>
       <main className="flex-1 px-4 py-6 sm:px-8">
+        <PresentingTipsBar />
         {toggleError && (
           <div
             role="alert"

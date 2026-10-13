@@ -16,12 +16,26 @@ describe('HelpDialog', () => {
     expect(screen.getByText(/Quick answers for the classroom/)).toBeInTheDocument()
   })
 
-  it('renders all four help sections', () => {
+  it('renders all six help sections', () => {
     render(<HelpDialog isOpen onClose={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'Quick start' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Why teach by pattern?' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'What PatternSpell is not' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Frequently asked questions' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Troubleshooting' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Contact' })).toBeInTheDocument()
+  })
+
+  it('explains the pattern rationale', () => {
+    render(<HelpDialog isOpen onClose={vi.fn()} />)
+    expect(screen.getByText(/One pattern learned is dozens of words spelled/)).toBeInTheDocument()
+    expect(screen.getByText(/list-building and display layer/)).toBeInTheDocument()
+  })
+
+  it('states what PatternSpell is not', () => {
+    render(<HelpDialog isOpen onClose={vi.fn()} />)
+    expect(screen.getByText(/nothing here for students to click through/)).toBeInTheDocument()
+    expect(screen.getByText(/You build the lists and display the chart/)).toBeInTheDocument()
   })
 
   it('shows the quick start steps', () => {

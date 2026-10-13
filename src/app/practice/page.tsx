@@ -106,7 +106,8 @@ function PracticeInner() {
             </BackLink>
             <h1 className="mt-2 text-[30px] leading-tight font-bold">Choose a list to practice</h1>
             <p className="mt-1 text-[15px] text-muted-foreground">
-              Pick a spelling list, listen to each word, and type the spelling.
+              Pick a spelling list, listen to each word, and type the spelling. Practice is teacher-led: students answer
+              on the classroom device while you guide the review queue.
             </p>
           </div>
           {allLists.length === 0 ? (
