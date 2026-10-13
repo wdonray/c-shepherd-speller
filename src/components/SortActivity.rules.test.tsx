@@ -468,12 +468,50 @@ describe('SortActivity rule capture', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
     })
-    // The original rule is kept (fallback), no crash. The card stays in
-    // edit mode; cancel to see the restored rule.
-    fireEvent.click(within(column).getByRole('button', { name: 'Cancel' }))
+    // The original rule is kept (fallback), no crash. The editor closes
+    // on success, revealing the restored rule.
     await waitFor(() => {
       expect(within(column).getByText('Magic e.')).toBeInTheDocument()
     })
+  })
+
+  it('preserves earlier unscoped edits when saving a second rule', async () => {
+    const listWithRules = {
+      ...list,
+      patterns: list.patterns.map((p) =>
+        p.pattern === 'ai'
+          ? { ...p, rule: 'ai never ends a word.' }
+          : p.pattern === 'a_e'
+            ? { ...p, rule: 'Magic e.' }
+            : p
+      ),
+    } as unknown as WordList
+    render(<SortActivity list={listWithRules} onExit={vi.fn()} />)
+    // Edit the ai rule first.
+    const aiColumn = await screen.findByLabelText('Pattern ai column')
+    fireEvent.click(within(aiColumn).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(aiColumn).getByLabelText('Edit rule'), {
+      target: { value: 'ai is in the middle.' },
+    })
+    fireEvent.click(within(aiColumn).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/lists/list-1', expect.objectContaining({ method: 'PUT' }))
+    })
+    // Now edit the a_e rule: the PUT must carry the updated ai rule, not the stale one.
+    const aeColumn = await screen.findByLabelText('Pattern a_e column')
+    fireEvent.click(within(aeColumn).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(aeColumn).getByLabelText('Edit rule'), {
+      target: { value: 'Magic e updated.' },
+    })
+    fireEvent.click(within(aeColumn).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+    const secondBody = JSON.parse(String((fetch as ReturnType<typeof vi.fn>).mock.calls[1][1].body))
+    const aiPattern = secondBody.patterns.find((p: { pattern: string }) => p.pattern === 'ai')
+    const aePattern = secondBody.patterns.find((p: { pattern: string }) => p.pattern === 'a_e')
+    expect(aiPattern.rule).toBe('ai is in the middle.')
+    expect(aePattern.rule).toBe('Magic e updated.')
   })
 
   it('shows an error when saving a column rule fails', async () => {
@@ -510,6 +548,38 @@ describe('SortActivity rule capture', () => {
     render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
     const column = await screen.findByLabelText('Pattern ai column')
     ;(fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 500 })
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    expect(await within(column).findByRole('alert')).toHaveTextContent('Could not save the rule.')
+  })
+
+  it('clears an unscoped rule from the column header', async () => {
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
+    fireEvent.change(within(column).getByLabelText('Edit rule'), { target: { value: '' } })
+    fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/lists/list-1', expect.objectContaining({ method: 'PUT' }))
+    })
+    const body = JSON.parse(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body))
+    const aiPattern = body.patterns.find((p: { pattern: string }) => p.pattern === 'ai')
+    expect(aiPattern.rule).toBeUndefined()
+  })
+
+  it('shows an error on the desktop column when the save fails', async () => {
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e drop column')
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      String(url).includes('/rules')
+        ? Promise.reject(new Error('down'))
+        : Promise.resolve({ ok: true, json: async () => ({}) })
+    )
     fireEvent.click(within(column).getByRole('button', { name: 'Edit' }))
     fireEvent.click(within(column).getByRole('button', { name: 'Save' }))
     expect(await within(column).findByRole('alert')).toHaveTextContent('Could not save the rule.')

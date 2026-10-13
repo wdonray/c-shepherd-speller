@@ -59,9 +59,10 @@ export default function PatternChartDisplay({
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
-  // Per-column rule editing state.
-  const [savingRule, setSavingRule] = useState(false)
-  const [ruleError, setRuleError] = useState<string | null>(null)
+  // Per-column rule editing state, keyed by pattern id so one column's
+  // save does not disable or error the others.
+  const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
+  const [ruleError, setRuleError] = useState<{ id: string; message: string } | null>(null)
 
   const { columns, allLocked, oddDuckWords } = useMemo(() => {
     // The printed poster matches what is currently taught: locked patterns
@@ -186,17 +187,18 @@ export default function PatternChartDisplay({
             <RuleCard
               rule={pattern.rule}
               label="The rule:"
-              saving={savingRule}
-              saveError={ruleError}
+              saving={savingRuleId === pattern.id}
+              saveError={ruleError?.id === pattern.id ? ruleError.message : null}
               onSave={async (newRule) => {
-                setSavingRule(true)
+                setSavingRuleId(pattern.id)
                 setRuleError(null)
                 try {
                   await onSaveRule(pattern.id, newRule)
                 } catch {
-                  setRuleError('Could not save the rule. Try again.')
+                  setRuleError({ id: pattern.id, message: 'Could not save the rule. Try again.' })
+                  throw new Error('Failed to save rule')
                 } finally {
-                  setSavingRule(false)
+                  setSavingRuleId(null)
                 }
               }}
             />

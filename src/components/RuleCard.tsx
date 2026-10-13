@@ -20,10 +20,18 @@ export default function RuleCard({
   label: string
   saving: boolean
   saveError: string | null
-  onSave: (rule: string) => void
+  onSave: (rule: string) => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(rule)
+
+  const handleSave = () => {
+    // The parent reports failures via saveError; close on success.
+    onSave(draft.trim()).then(
+      () => setEditing(false),
+      () => {}
+    )
+  }
 
   if (editing) {
     return (
@@ -59,7 +67,7 @@ export default function RuleCard({
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={() => onSave(draft.trim())} disabled={saving}>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>

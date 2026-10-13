@@ -241,7 +241,7 @@ function DropColumn({
   ruleLabel: string
   savingRule: boolean
   saveRuleError: string | null
-  onSaveRule: (patternText: string, rule: string) => void
+  onSaveRule: (patternText: string, rule: string) => Promise<void>
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -352,7 +352,7 @@ function MobileDropColumn({
   ruleLabel: string
   savingRule: boolean
   saveRuleError: string | null
-  onSaveRule: (patternText: string, rule: string) => void
+  onSaveRule: (patternText: string, rule: string) => Promise<void>
 }) {
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
@@ -537,6 +537,10 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
     }
   }, [classId])
 
+  // Local overrides for unscoped rules edited in this session (the list prop
+  // is owned by the parent, so edits merge here for immediate display).
+  const [unscopedRuleOverrides, setUnscopedRuleOverrides] = useState<Record<string, string>>({})
+
   /**
    * Save captured rules: to the active class when one is selected, otherwise
    * as the unscoped rule on each of the list's patterns.
@@ -563,11 +567,17 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           // if the response is malformed.
           setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
         } else {
-          // Unscoped: store the rule on each pattern of this list.
+          // Unscoped: store the rule on each pattern of this list, starting
+          // from the effective rules (including this session's edits) so
+          // earlier saves are not overwritten.
+          const merged = { ...unscopedRuleOverrides }
+          for (const [patternText, r] of Object.entries(rules)) {
+            merged[patternText] = r
+          }
           const updatedPatterns = list.patterns.map((p) => {
-            const rule = rules[p.pattern]
-            if (rule === undefined) return p
-            return rule === '' ? { ...p, rule: undefined } : { ...p, rule }
+            const override = merged[p.pattern]
+            if (override === undefined) return p
+            return override === '' ? { ...p, rule: undefined } : { ...p, rule: override }
           })
           const res = await fetch(`/api/lists/${list.id}`, {
             method: 'PUT',
@@ -575,6 +585,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
             body: JSON.stringify({ patterns: updatedPatterns }),
           })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          setUnscopedRuleOverrides(merged)
         }
         setRuleDialogOpen(false)
         announce('Rules saved.')
@@ -584,13 +595,12 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
         setSavingRules(false)
       }
     },
-    [activeClass, list, announce]
+    [activeClass, list, announce, unscopedRuleOverrides]
   )
 
   // Existing rules for the capture form and column headers: the class's
   // rules when a class is active, otherwise the unscoped rules on the
   // list's patterns merged with this session's edits.
-  const [unscopedRuleOverrides, setUnscopedRuleOverrides] = useState<Record<string, string>>({})
   const existingRules = useMemo(() => {
     const map: Record<string, string> = {}
     if (activeClass) {
@@ -606,9 +616,10 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
     return map
   }, [activeClass, list, unscopedRuleOverrides])
 
-  // Per-column rule editing state.
-  const [savingSingleRule, setSavingSingleRule] = useState(false)
-  const [singleRuleError, setSingleRuleError] = useState<string | null>(null)
+  // Per-column rule editing state, keyed by pattern text so one column's
+  // save does not disable or error the others.
+  const [savingRulePattern, setSavingRulePattern] = useState<string | null>(null)
+  const [ruleSaveError, setRuleSaveError] = useState<{ pattern: string; message: string } | null>(null)
 
   /**
    * Save a single pattern's rule from the column header card.
@@ -617,8 +628,8 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
    */
   const handleSaveSingleRule = useCallback(
     async (patternText: string, rule: string) => {
-      setSavingSingleRule(true)
-      setSingleRuleError(null)
+      setSavingRulePattern(patternText)
+      setRuleSaveError(null)
       try {
         if (activeClass) {
           const res = await fetch(`/api/classes/${activeClass.id}/rules`, {
@@ -630,23 +641,31 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           const body = await res.json()
           setActiveClass({ ...activeClass, rules: body.rules ?? activeClass.rules })
         } else {
-          const updatedPatterns = list.patterns.map((p) => (p.pattern === patternText ? { ...p, rule } : p))
+          // Start from the effective rules (including this session's edits)
+          // so earlier saves are not overwritten.
+          const merged = { ...unscopedRuleOverrides, [patternText]: rule }
+          const updatedPatterns = list.patterns.map((p) => {
+            const override = merged[p.pattern]
+            if (override === undefined) return p
+            return override === '' ? { ...p, rule: undefined } : { ...p, rule: override }
+          })
           const res = await fetch(`/api/lists/${list.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ patterns: updatedPatterns }),
           })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          setUnscopedRuleOverrides((prev) => ({ ...prev, [patternText]: rule }))
+          setUnscopedRuleOverrides(merged)
         }
         announce('Rule saved.')
       } catch {
-        setSingleRuleError('Could not save the rule. Try again.')
+        setRuleSaveError({ pattern: patternText, message: 'Could not save the rule. Try again.' })
+        throw new Error('Failed to save rule')
       } finally {
-        setSavingSingleRule(false)
+        setSavingRulePattern(null)
       }
     },
-    [activeClass, list, announce]
+    [activeClass, list, announce, unscopedRuleOverrides]
   )
 
   /**
@@ -859,8 +878,8 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     pattern={pattern}
                     rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
-                    savingRule={savingSingleRule}
-                    saveRuleError={singleRuleError}
+                    savingRule={savingRulePattern === pattern.pattern}
+                    saveRuleError={ruleSaveError?.pattern === pattern.pattern ? ruleSaveError.message : null}
                     onSaveRule={handleSaveSingleRule}
                   >
                     {columnWords.map((entry) => (
@@ -911,8 +930,8 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     ghostEntry={ghostEntry}
                     rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
-                    savingRule={savingSingleRule}
-                    saveRuleError={singleRuleError}
+                    savingRule={savingRulePattern === pattern.pattern}
+                    saveRuleError={ruleSaveError?.pattern === pattern.pattern ? ruleSaveError.message : null}
                     onSaveRule={handleSaveSingleRule}
                   >
                     {columnWords.map((entry) => (

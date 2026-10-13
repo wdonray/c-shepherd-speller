@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import RuleCard from './RuleCard'
 
 function renderCard(overrides: Partial<Parameters<typeof RuleCard>[0]> = {}) {
@@ -8,7 +8,7 @@ function renderCard(overrides: Partial<Parameters<typeof RuleCard>[0]> = {}) {
     label: 'Your class decided:',
     saving: false,
     saveError: null,
-    onSave: vi.fn(),
+    onSave: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
   render(<RuleCard {...props} />)
@@ -28,12 +28,24 @@ describe('RuleCard', () => {
     expect(screen.getByLabelText('Edit rule')).toHaveValue('Magic e.')
   })
 
-  it('saves the trimmed draft', () => {
+  it('saves the trimmed draft and closes the editor on success', async () => {
     const { onSave } = renderCard()
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: '  ai never ends a word.  ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(onSave).toHaveBeenCalledWith('ai never ends a word.')
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Edit rule')).not.toBeInTheDocument()
+    })
+  })
+
+  it('stays in edit mode when the save fails', async () => {
+    renderCard({ onSave: vi.fn().mockRejectedValue(new Error('down')) })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Edit rule')).toBeInTheDocument()
+    })
   })
 
   it('cancels editing and restores the draft', () => {
