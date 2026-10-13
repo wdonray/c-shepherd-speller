@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import SortActivity from './SortActivity'
+import { playCorrectSound, playIncorrectSound } from '@/lib/sound-effects'
 import type { WordList } from '@/models/WordList'
 
 // Capture the DndContext handlers so tests can drive the drag flow directly.
@@ -35,12 +36,9 @@ vi.mock('@dnd-kit/utilities', () => ({
   CSS: { Translate: { toString: () => '' } },
 }))
 
-const playCorrectSound = vi.fn()
-const playIncorrectSound = vi.fn()
-
 vi.mock('@/lib/sound-effects', () => ({
-  playCorrectSound,
-  playIncorrectSound,
+  playCorrectSound: vi.fn(),
+  playIncorrectSound: vi.fn(),
   playPickupSound: vi.fn(),
   playDropSound: vi.fn(),
   playWinFanfare: vi.fn(),
