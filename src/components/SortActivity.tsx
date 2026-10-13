@@ -52,7 +52,7 @@ function WordTray({ isOver, children }: { isOver: boolean; children: React.React
       ref={setNodeRef}
       aria-label="Word tray"
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-card px-4 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-colors',
+        'fixed inset-x-0 bottom-0 z-40 max-h-[40vh] overflow-y-auto border-t-2 border-line bg-card px-4 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-colors',
         isOver && 'border-sky-deep bg-sky-soft'
       )}
     >
