@@ -109,12 +109,23 @@ export function playDropSound(): void {
   playTones([{ frequency: 220, startOffset: 0, duration: 0.08 }])
 }
 
-/** Ascending arpeggio for win cascade. */
+/**
+ * Victory fanfare for a completed sort: a bright ascending run climbing two
+ * octaves into a held C-major chord. Deliberately much bigger than the
+ * single-drop correct chime (two tones under 350ms) so the win moment reads
+ * as a celebration, not another drop. About 1.2 seconds total.
+ */
 export function playWinFanfare(): void {
   playTones([
-    { frequency: 523.25, startOffset: 0, duration: 0.12 }, // C5
-    { frequency: 659.25, startOffset: 0.12, duration: 0.12 }, // E5
-    { frequency: 783.99, startOffset: 0.24, duration: 0.12 }, // G5
-    { frequency: 1046.5, startOffset: 0.36, duration: 0.2 }, // C6
+    { frequency: 523.25, startOffset: 0, duration: 0.11 }, // C5
+    { frequency: 659.25, startOffset: 0.1, duration: 0.11 }, // E5
+    { frequency: 783.99, startOffset: 0.2, duration: 0.11 }, // G5
+    { frequency: 1046.5, startOffset: 0.3, duration: 0.13 }, // C6
+    { frequency: 1318.5, startOffset: 0.41, duration: 0.13 }, // E6
+    { frequency: 1568.0, startOffset: 0.52, duration: 0.16 }, // G6
+    // Held C-major chord to land the celebration.
+    { frequency: 1046.5, startOffset: 0.66, duration: 0.55 }, // C6
+    { frequency: 1318.5, startOffset: 0.66, duration: 0.55 }, // E6
+    { frequency: 1568.0, startOffset: 0.66, duration: 0.55 }, // G6
   ])
 }
