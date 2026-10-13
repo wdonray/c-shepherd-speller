@@ -244,36 +244,38 @@ function DisplayModeInner() {
   }
 
   // Show the pattern chart.
+  // In sort mode the sort surface fills the available area: no header, no
+  // subheader. SortActivity brings its own Exit control and class pill.
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/display" aria-label="Choose a different list">
-              <ChevronLeftIcon className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline-block">Lists</span>
-            </Link>
-          </Button>
-          <h1 className="text-xl font-bold text-ink">{list.name}</h1>
-          <WhyChartPopover />
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="secondary" size="sm" asChild>
-              <Link href={`/lists/${list.id}/print`}>
-                <PrinterIcon className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline-block">Print chart</span>
+      {!sortMode && (
+        <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/display" aria-label="Choose a different list">
+                <ChevronLeftIcon className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline-block">Lists</span>
               </Link>
             </Button>
-            {!sortMode && (
+            <h1 className="text-xl font-bold text-ink">{list.name}</h1>
+            <WhyChartPopover />
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="secondary" size="sm" asChild>
+                <Link href={`/lists/${list.id}/print`}>
+                  <PrinterIcon className="size-4" aria-hidden="true" />
+                  <span className="hidden sm:inline-block">Print chart</span>
+                </Link>
+              </Button>
               <Button size="sm" onClick={() => setClassPickerOpen(true)}>
                 Sort words
               </Button>
-            )}
-            <FullscreenButton />
+              <FullscreenButton />
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <main className="flex-1 px-4 py-6 sm:px-8">
-        <PresentingTipsBar />
+        {!sortMode && <PresentingTipsBar />}
         {toggleError && (
           <div
             role="alert"
@@ -289,6 +291,7 @@ function DisplayModeInner() {
           <SortActivity
             list={list}
             classId={activeClassId}
+            onReopenClassPicker={() => setClassPickerOpen(true)}
             onExit={() => {
               setSortMode(false)
               setActiveClassId(null)

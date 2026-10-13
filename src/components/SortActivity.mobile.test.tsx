@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
-import SortActivity from './SortActivity'
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
+import SortActivity, { touchDragLiftModifier, TOUCH_DRAG_LIFT } from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
 // Force the mobile layout: match the max-width query, nothing else.
@@ -22,11 +22,32 @@ function mockMobileViewport() {
   })
 }
 
+const dndHandlers: {
+  onDragStart?: (e: { active: { id: string } }) => void
+  onDragOver?: (e: { over: { id: string } | null }) => void
+  onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
+} = {}
+
 vi.mock('@dnd-kit/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@dnd-kit/core')>()
   return {
     ...actual,
-    DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    DndContext: ({
+      children,
+      onDragStart,
+      onDragOver,
+      onDragEnd,
+    }: {
+      children: React.ReactNode
+      onDragStart?: (e: { active: { id: string } }) => void
+      onDragOver?: (e: { over: { id: string } | null }) => void
+      onDragEnd?: (e: { active: { id: string }; over: { id: string } | null }) => void
+    }) => {
+      dndHandlers.onDragStart = onDragStart
+      dndHandlers.onDragOver = onDragOver
+      dndHandlers.onDragEnd = onDragEnd
+      return <>{children}</>
+    },
     DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   }
 })
@@ -137,7 +158,8 @@ describe('SortActivity on mobile', () => {
     expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
     // The pattern underline renders on tap-to-place too.
     const placedButton = within(column).getByRole('button', { name: 'Select the word cake' })
-    expect(within(placedButton).getByText('a').getAttribute('style')).toContain('border-bottom')
+    expect(within(placedButton).getByText('a').getAttribute('style')).toContain('text-decoration')
+    expect(within(placedButton).getByText('a').getAttribute('style')).not.toContain('border-bottom')
     await waitFor(() => {
       expect(liveRegion()?.textContent).toContain('cake is correct in a_e')
     })
@@ -298,5 +320,155 @@ describe('SortActivity on mobile', () => {
     render(<SortActivity list={list} onExit={onExit} />)
     fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))
     expect(onExit).toHaveBeenCalled()
+  })
+})
+
+describe('SortActivity touch drag', () => {
+  beforeEach(() => {
+    mockMobileViewport()
+    playCorrectSound.mockClear()
+    playIncorrectSound.mockClear()
+    playDropSound.mockClear()
+  })
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia
+  })
+
+  it('makes word tiles draggable on touch layouts', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const wordButton = screen.getByRole('button', { name: 'Select the word cake' })
+    // dnd-kit draggable wiring: announced as draggable and touch-action none
+    // so a finger drag starts the drag instead of scrolling.
+    expect(wordButton.getAttribute('aria-roledescription')).toBe('draggable')
+    expect(wordButton.style.touchAction).toBe('none')
+  })
+
+  it('drops a dragged word into a column with immediate feedback', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    })
+    const column = screen.getByLabelText('Pattern a_e column')
+    expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(playCorrectSound).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('drags a placed word back to the word bank', async () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    })
+    const column = screen.getByLabelText('Pattern a_e column')
+    expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'word-bank' } })
+    })
+    const bank = screen.getByRole('region', { name: 'Word bank' })
+    expect(within(bank).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+    expect(within(column).queryByRole('button', { name: 'Select the word cake' })).not.toBeInTheDocument()
+  })
+
+  it('highlights the column and bank under the dragged word', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const column = screen.getByLabelText('Pattern a_e column')
+    const bank = screen.getByRole('region', { name: 'Word bank' })
+    expect(column.className).not.toContain('bg-sky-soft')
+    act(() => {
+      dndHandlers.onDragOver?.({ over: { id: 'p1' } })
+    })
+    expect(column.className).toContain('bg-sky-soft')
+    act(() => {
+      dndHandlers.onDragOver?.({ over: { id: 'word-bank' } })
+    })
+    expect(column.className).not.toContain('bg-sky-soft')
+    expect(bank.className).toContain('bg-sky-soft')
+  })
+
+  it('closes the placement bar when a drag completes', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
+    expect(screen.getByRole('region', { name: 'Choose where to put cake' })).toBeInTheDocument()
+    act(() => {
+      dndHandlers.onDragEnd?.({ active: { id: 'p1:cake' }, over: { id: 'p1' } })
+    })
+    expect(screen.queryByRole('region', { name: 'Choose where to put cake' })).not.toBeInTheDocument()
+  })
+
+  it('keeps tap-to-place working alongside drag', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    // A tap (no drag) still selects the word and opens the placement bar.
+    fireEvent.click(screen.getByRole('button', { name: 'Select the word cake' }))
+    expect(screen.getByRole('region', { name: 'Choose where to put cake' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Put cake in the a_e column' }))
+    const column = screen.getByLabelText('Pattern a_e column')
+    expect(within(column).getByRole('button', { name: 'Select the word cake' })).toBeInTheDocument()
+  })
+})
+
+describe('touchDragLiftModifier', () => {
+  const baseArgs = {
+    active: null,
+    activeNodeRect: null,
+    draggingNodeRect: null,
+    containerNodeRect: null,
+    over: null,
+    overlayNodeRect: null,
+    scrollableAncestors: [],
+    scrollableAncestorRects: [],
+    windowRect: null,
+  }
+  const transform = { x: 10, y: 100, scaleX: 1, scaleY: 1 }
+
+  it('lifts the overlay above the fingertip for touch drags', () => {
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activatorEvent: { pointerType: 'touch' } as unknown as Event,
+      transform,
+    })
+    expect(result.y).toBe(100 - TOUCH_DRAG_LIFT)
+    expect(result.x).toBe(10)
+  })
+
+  it('leaves mouse drags under the cursor', () => {
+    const result = touchDragLiftModifier({
+      ...baseArgs,
+      activatorEvent: { pointerType: 'mouse' } as unknown as Event,
+      transform,
+    })
+    expect(result).toBe(transform)
+  })
+
+  it('leaves the transform alone without an activator event', () => {
+    const result = touchDragLiftModifier({ ...baseArgs, activatorEvent: null, transform })
+    expect(result).toBe(transform)
+  })
+})
+
+describe('SortActivity mobile drag visuals', () => {
+  beforeEach(() => {
+    mockMobileViewport()
+  })
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia
+    vi.restoreAllMocks()
+  })
+
+  it('hides the original tile while it is being dragged', async () => {
+    const dndKit = await import('@dnd-kit/core')
+    const spy = vi.spyOn(dndKit, 'useDraggable').mockImplementation((() => ({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      transform: null,
+      isDragging: true,
+    })) as never)
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const wordButton = screen.getByRole('button', { name: 'Select the word cake' })
+    expect(wordButton.className).toContain('invisible')
+    spy.mockRestore()
   })
 })
