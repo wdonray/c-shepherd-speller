@@ -47,7 +47,20 @@ const WORD_BANK_ID = 'word-bank'
  */
 const MAGNETIC_RADIUS = 60
 
-const magneticCollision: CollisionDetection = (args) => {
+/** Expands a rect by the magnetic radius on all sides. */
+export function expandRectForMagnet<T extends { left: number; right: number; top: number; bottom: number }>(
+  rect: T
+): T {
+  return {
+    ...rect,
+    left: rect.left - MAGNETIC_RADIUS,
+    right: rect.right + MAGNETIC_RADIUS,
+    top: rect.top - MAGNETIC_RADIUS,
+    bottom: rect.bottom + MAGNETIC_RADIUS,
+  }
+}
+
+export const magneticCollision: CollisionDetection = (args) => {
   const { droppableContainers } = args
   const expanded = droppableContainers.map((container) => {
     const rect = container.rect.current
@@ -56,13 +69,7 @@ const magneticCollision: CollisionDetection = (args) => {
       ...container,
       rect: {
         ...container.rect,
-        current: {
-          ...rect,
-          left: rect.left - MAGNETIC_RADIUS,
-          right: rect.right + MAGNETIC_RADIUS,
-          top: rect.top - MAGNETIC_RADIUS,
-          bottom: rect.bottom + MAGNETIC_RADIUS,
-        },
+        current: expandRectForMagnet(rect),
       },
     }
   })

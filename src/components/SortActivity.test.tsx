@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import SortActivity from './SortActivity'
+import SortActivity, { expandRectForMagnet, magneticCollision } from './SortActivity'
 import type { WordList } from '@/models/WordList'
 
 const dndHandlers: {
@@ -29,6 +29,7 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
       return <>{children}</>
     },
     DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    pointerWithin: vi.fn(() => []),
   }
 })
 
@@ -287,5 +288,31 @@ describe('SortActivity', () => {
       const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
       expect(ghostTexts).not.toContain('cake')
     })
+  })
+
+  it('expands droppable bounds for magnetic collision', () => {
+    const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
+    const expanded = expandRectForMagnet(rect)
+    expect(expanded).toMatchObject({ left: 40, right: 260, top: 40, bottom: 260 })
+    // Preserves other rect properties.
+    expect(expanded.width).toBe(100)
+    expect(expanded.height).toBe(100)
+  })
+
+  it('magneticCollision expands rects and delegates to pointerWithin', async () => {
+    const { pointerWithin } = await import('@dnd-kit/core')
+    const rect = { left: 100, right: 200, top: 100, bottom: 200, width: 100, height: 100 }
+    const container = { id: 'p1', rect: { current: rect } }
+    const noRectContainer = { id: 'p2', rect: { current: null } }
+    magneticCollision({
+      active: { id: 'word1' },
+      droppableContainers: [container, noRectContainer],
+    } as never)
+    expect(pointerWithin).toHaveBeenCalled()
+    const passedContainers = (pointerWithin as ReturnType<typeof vi.fn>).mock.calls[0][0].droppableContainers
+    // Container with rect got expanded bounds.
+    expect(passedContainers[0].rect.current.left).toBe(40)
+    // Container without rect passes through unchanged.
+    expect(passedContainers[1].rect.current).toBeNull()
   })
 })
