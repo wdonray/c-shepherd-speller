@@ -273,7 +273,7 @@ describe('SortActivity', () => {
     dndHandlers.onDragOver?.({ over: { id: 'p1' } })
     await waitFor(() => {
       // Ghost is aria-hidden and shows the dragged word.
-      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
       const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
       expect(ghostTexts).toContain('cake')
     })
@@ -284,7 +284,7 @@ describe('SortActivity', () => {
     dndHandlers.onDragStart?.({ active: { id: 'p1:cake' } })
     dndHandlers.onDragOver?.({ over: null })
     await waitFor(() => {
-      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
       const ghostTexts = Array.from(ghosts).map((g) => g.textContent)
       expect(ghostTexts).not.toContain('cake')
     })
@@ -295,7 +295,7 @@ describe('SortActivity', () => {
     dndHandlers.onDragStart?.({ active: { id: 'nonexistent' } })
     dndHandlers.onDragOver?.({ over: { id: 'p1' } })
     await waitFor(() => {
-      const ghosts = document.querySelectorAll('[aria-hidden="true"]')
+      const ghosts = document.querySelectorAll('[data-testid="drag-ghost"]')
       // No ghost rendered for unknown word.
       expect(ghosts.length).toBe(0)
     })

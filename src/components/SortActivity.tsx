@@ -133,6 +133,7 @@ function SortableWordCard({ entry, checked, correct }: { entry: BankWord; checke
 function DraggingWordCard({ entry }: { entry: BankWord }) {
   return (
     <motion.div
+      data-testid="drag-ghost"
       initial={{ scale: 1 }}
       animate={{ scale: 1.15 }}
       transition={LIFT_TRANSITION}
@@ -658,7 +659,12 @@ export default function SortActivity({ list, onExit }: SortActivityProps) {
         )}
       </div>
       <DragOverlay dropAnimation={null} style={{ zIndex: 100 }}>
-        {activeId ? <DraggingWordCard entry={bank.find((w) => w.id === activeId)!} /> : null}
+        {activeId
+          ? (() => {
+              const ghostEntry = bank.find((w) => w.id === activeId)
+              return ghostEntry ? <DraggingWordCard entry={ghostEntry} /> : null
+            })()
+          : null}
       </DragOverlay>
     </DndContext>
   )
