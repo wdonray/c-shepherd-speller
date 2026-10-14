@@ -144,3 +144,43 @@ describe('ProfileClassesSection', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the classroom. Try again.')
   })
 })
+
+describe('ProfileClassesSection clear default', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('clears the explicit default', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'PUT') {
+        expect(JSON.parse(init.body as string)).toEqual({ defaultClassId: null })
+        return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }
+      }
+      if (String(url).includes('/api/users/')) {
+        return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: 'c1' } }) }
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ProfileClassesSection userId="u1" />)
+    await screen.findByText('Period 2')
+    expect(screen.getByText('Default')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear default' }))
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/users/u1', expect.objectContaining({ method: 'PUT' }))
+    })
+    // No explicit default and two classes: no Default badge.
+    await waitFor(() => {
+      expect(screen.queryByText('Default')).not.toBeInTheDocument()
+    })
+  })
+})
