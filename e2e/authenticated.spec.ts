@@ -48,7 +48,8 @@ test.describe('authenticated flows', () => {
     await expect(page.getByText('cake')).toBeVisible()
 
     // Edits auto-save; wait for the confirmation, then go back.
-    await expect(page.getByText('Saved')).toBeVisible({ timeout: 15000 })
+    // Exact match only: the pattern card's "Unsaved" badge is a substring match.
+    await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15000 })
     await page.getByRole('link', { name: 'My lists' }).click()
     await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
