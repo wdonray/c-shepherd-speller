@@ -114,6 +114,22 @@ describe('DialogContent', () => {
     )
     expect(document.querySelector('[data-slot="dialog-content"]')).toHaveClass('custom-content')
   })
+
+  it('keeps 16px mobile side margins even when a caller overrides max-width', () => {
+    // VoiceRecorderModal, PatternEditor, and FrequencyHelpDialog pass
+    // className="max-w-md"; cn() merges that over the base max-w, so the
+    // width itself must carry the margin (regression test for #272).
+    render(
+      <Dialog open>
+        <DialogContent className="max-w-md">
+          <DialogTitle>Narrow modal</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const content = document.querySelector('[data-slot="dialog-content"]')
+    expect(content).toHaveClass('w-[calc(100%-2rem)]')
+    expect(content).toHaveClass('max-w-md')
+  })
 })
 
 describe('DialogClose', () => {
