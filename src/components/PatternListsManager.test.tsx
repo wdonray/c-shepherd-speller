@@ -710,6 +710,25 @@ describe('sorting (issue #275)', () => {
     expect(screen.getByRole('button', { name: 'Sort: Recently modified' })).toBeInTheDocument()
   })
 
+  it('initializes custom order from all lists even while searching', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    updateList.mockResolvedValue({ ...listA, sortOrder: 0 })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    // Start a search, then pick Custom order.
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
+    await screen.findByText(/1 result for/)
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Custom order' }))
+
+    // Both lists get a sortOrder, not just the search result.
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('a', { sortOrder: 0 })
+      expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 1 })
+    })
+  })
+
   it('rolls back when initializing custom order fails', async () => {
     getLists.mockResolvedValue([listA, listB])
     updateList.mockRejectedValue(new Error('network down'))
@@ -824,6 +843,23 @@ describe('search (issue #275)', () => {
       .filter((t) => !t?.startsWith('My word lists'))
     expect(titles).toEqual(['Week 6: Long E'])
     expect(screen.getByText('1 result for "long e".')).toBeInTheDocument()
+  })
+
+  it('lets the teacher search from the Favorites tab', async () => {
+    const starred = { ...listA, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    // The search input is available on the Favorites tab too.
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
+    await waitFor(() => {
+      expect(screen.getByText('1 result for "cake".')).toBeInTheDocument()
+    })
+    // Tabs hide while searching; results span all lists.
+    expect(screen.queryByRole('tab', { name: 'All' })).not.toBeInTheDocument()
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
   })
 
   it('spans favorites even when they would be on another tab', async () => {

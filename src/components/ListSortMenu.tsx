@@ -48,11 +48,15 @@ export default function ListSortMenu({ sort, onSortChange }: ListSortMenuProps) 
             Sort: {activeLabel}
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="rounded-t-[20px]">
-          <SheetHeader>
+        <SheetContent side="bottom" className="gap-0 rounded-t-[20px] px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {/* iOS-style grabber, centered at the top of the sheet. */}
+          <div className="flex justify-center pt-3" aria-hidden="true">
+            <div className="h-[5px] w-9 rounded-full bg-line-deep" />
+          </div>
+          <SheetHeader className="px-0 pb-2 pt-2">
             <SheetTitle>Sort lists</SheetTitle>
           </SheetHeader>
-          <div className="flex flex-col gap-2 pb-4 pt-2">
+          <div className="flex flex-col gap-2">
             {LIST_SORT_OPTIONS.map((option) => (
               <button
                 key={option.value}

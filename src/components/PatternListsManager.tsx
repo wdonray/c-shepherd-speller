@@ -187,7 +187,9 @@ export default function PatternListsManager() {
       }
       // Entering custom order: the arrangement starts as the order on
       // screen, then persists so it survives reloads.
-      const ordered = initializeCustomOrder(visibleLists)
+      // Build the custom order from the full All view, not the visible
+      // (possibly searched) subset, so every list gets a sortOrder.
+      const ordered = initializeCustomOrder(sortLists(lists, sort))
       const previousSort = sort
       const orderMap = new Map(ordered.map((l) => [l.id, l.sortOrder] as const))
       setLists((prev) => prev.map((l) => ({ ...l, sortOrder: orderMap.get(l.id) })))
@@ -315,11 +317,15 @@ export default function PatternListsManager() {
               </div>
             )}
 
-            {(effectiveView === 'all' || searching) && lists.length > 0 && (
+            {lists.length > 0 && (
               <div className="flex flex-wrap items-center gap-3">
-                <ListSortMenu sort={sort} onSortChange={handleSortChange} />
-                {sort === 'custom' && !searching && (
-                  <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
+                {(effectiveView === 'all' || searching) && (
+                  <>
+                    <ListSortMenu sort={sort} onSortChange={handleSortChange} />
+                    {sort === 'custom' && !searching && (
+                      <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
+                    )}
+                  </>
                 )}
                 <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
                   <SearchIcon
