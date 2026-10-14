@@ -95,6 +95,17 @@ describe('DisplayMode', () => {
     expect(screen.getByRole('link', { name: 'Present chart: Week 5' })).toHaveAttribute('href', '/display?list=l1')
   })
 
+  it('gives picker cards the hover lift (issue #268)', async () => {
+    getLists.mockResolvedValue([list])
+    const { container } = render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5')).toBeInTheDocument()
+    })
+    const card = container.querySelector('[data-slot="card"]')
+    expect(card).toHaveClass('hover:scale-[1.05]', 'hover:shadow-xl')
+  })
+
   it('shows an empty state when there are no lists', async () => {
     getLists.mockResolvedValue([])
     render(<DisplayMode />)

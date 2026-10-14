@@ -25,6 +25,13 @@ interface WordListCardProps {
    * Delete) stay interactive above the link overlay.
    */
   href?: string
+  /**
+   * Adds the hover lift animation (card slightly grows and casts a shadow) to
+   * the card. Used by the display-mode list picker (issue #268) so teachers
+   * can see which list they are about to present. Off everywhere else: the
+   * design system keeps cards flat, and motion-reduce disables the lift.
+   */
+  hoverLift?: boolean
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -45,6 +52,7 @@ export default function WordListCard({
   primaryLabel,
   showPreview = true,
   href,
+  hoverLift = false,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -53,7 +61,16 @@ export default function WordListCard({
   const accent = LIST_ACCENT_CLASSES[resolveListColor(list)]
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card
+      className={cn(
+        'relative overflow-hidden',
+        hoverLift &&
+          // Hover lift (issue #268): moved here from present-mode word cards
+          // so the list to present is unmistakable on hover. motion-reduce
+          // keeps the flat card for users who asked for no motion.
+          'transition duration-200 ease-out hover:z-10 hover:scale-[1.05] hover:border-sky-deep hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none'
+      )}
+    >
       <div className={cn('h-2 w-full', accent.bar)} aria-hidden="true" />
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">

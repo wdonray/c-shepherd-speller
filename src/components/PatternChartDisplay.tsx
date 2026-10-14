@@ -236,10 +236,11 @@ export default function PatternChartDisplay({
       <li
         key={key}
         className={cn(
-          // Hover lift (issue #188): the card slightly grows and casts a
-          // shadow so hover is unmistakable on a projector. motion-reduce
-          // keeps the flat card for users who asked for no motion.
-          'relative flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 bg-card p-1.5 transition duration-200 ease-out hover:z-10 hover:scale-[1.05] hover:border-sky-deep hover:shadow-xl focus-within:border-sky-deep motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none',
+          // No hover lift on present-mode word cards: the hover lift moved to
+          // the list picker in issue #268, so hover stays flat on the
+          // projector here. The flat card still highlights on keyboard
+          // focus-within.
+          'flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 bg-card p-1.5 transition-colors focus-within:border-sky-deep',
           isOddDuck ? 'border-plum bg-plum-soft' : 'border-line'
         )}
       >
