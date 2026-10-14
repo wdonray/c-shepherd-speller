@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import type { RecordingSession } from '@/lib/voice-recordings'
+import type { RecordingSession, MicrophoneRequest } from '@/lib/voice-recordings'
 
 const { requestMicrophoneStream, startRecording, saveRecording, isRecordingStorageSupported, isAudioCaptureSupported } =
   vi.hoisted(() => ({
@@ -35,8 +35,8 @@ function fakeMicStream() {
 }
 
 /** An opener-started permission request, as passed via the microphoneRequest prop. */
-function fakeMicRequest(promise: Promise<unknown>) {
-  return { promise, cancel: vi.fn() }
+function fakeMicRequest(promise: Promise<unknown>): MicrophoneRequest {
+  return { promise: promise as Promise<MediaStream>, cancel: vi.fn() }
 }
 
 function stubPermissions(state: PermissionState) {
