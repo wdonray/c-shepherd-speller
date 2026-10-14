@@ -399,6 +399,56 @@ describe('WordList model', () => {
       expect(updated.isFavorite).toBe(true)
       expect(updated.updatedAt).not.toBe(validList.updatedAt)
     })
+
+    it('assigns a classroom without refreshing updatedAt', () => {
+      const updated = updateWordListItem(validList, { classId: 'class_1' })
+      expect(updated.classId).toBe('class_1')
+      expect(updated.updatedAt).toBe(validList.updatedAt)
+    })
+
+    it('clears the classroom with null, dropping the attribute', () => {
+      const assigned = { ...validList, classId: 'class_1' }
+      const updated = updateWordListItem(assigned, { classId: null })
+      expect('classId' in updated).toBe(false)
+      expect(updated.updatedAt).toBe(validList.updatedAt)
+    })
+
+    it('leaves the classroom alone when not provided', () => {
+      const assigned = { ...validList, classId: 'class_1' }
+      const updated = updateWordListItem(assigned, { name: 'Renamed' })
+      expect(updated.classId).toBe('class_1')
+    })
+  })
+
+  describe('list classroom', () => {
+    it('WordListSchema accepts lists without a class (legacy)', () => {
+      expect(WordListSchema.safeParse(validList).success).toBe(true)
+    })
+
+    it('WordListSchema accepts a class id', () => {
+      const result = WordListSchema.safeParse({ ...validList, classId: 'class_1' })
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data.classId).toBe('class_1')
+    })
+
+    it('WordListSchema rejects an empty class id', () => {
+      const result = WordListSchema.safeParse({ ...validList, classId: '' })
+      expect(result.success).toBe(false)
+    })
+
+    it('UpdateWordListSchema accepts a class id and null', () => {
+      expect(UpdateWordListSchema.safeParse({ classId: 'class_1' }).success).toBe(true)
+      expect(UpdateWordListSchema.safeParse({ classId: null }).success).toBe(true)
+    })
+
+    it('UpdateWordListSchema rejects an empty class id', () => {
+      expect(UpdateWordListSchema.safeParse({ classId: '' }).success).toBe(false)
+    })
+
+    it('CreateWordListSchema accepts a class id', () => {
+      const result = CreateWordListSchema.safeParse({ name: 'Week 1', classId: 'class_1' })
+      expect(result.success).toBe(true)
+    })
   })
 
   describe('list favorites', () => {

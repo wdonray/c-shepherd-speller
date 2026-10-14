@@ -28,6 +28,13 @@ export interface IUser {
   schoolName?: string
   classroomSize?: number
   preferredName?: string // How they want to be addressed by students
+  /**
+   * The teacher's default classroom (a Class id). New lists inherit it;
+   * the teacher can override per list. Absent until set. Teachers with
+   * exactly one class get that class as the effective default without
+   * storing it (see resolveDefaultClassId).
+   */
+  defaultClassId?: string
 }
 
 export const USER_TABLE_NAME = process.env.USER_TABLE_NAME || 'c-shepherd-users'

@@ -57,13 +57,21 @@ export async function updateUser(
     classroomSize?: number
     preferredName?: string
     image?: string
+    defaultClassId?: string | null
   }
 ) {
   const user = await getUserById(userId)
   if (!user) {
     throw new Error('User not found')
   }
-  const updatedUser = updateUserItem(user, userData)
+  // updateUserItem types against Partial<IUser>; keep the null out of the
+  // merge and drop the attribute below instead.
+  const { defaultClassId, ...rest } = userData
+  const updatedUser = updateUserItem(user, rest)
+  if (defaultClassId !== undefined) {
+    if (defaultClassId) updatedUser.defaultClassId = defaultClassId
+    else delete updatedUser.defaultClassId
+  }
   const keys = getUserKeys(userId)
 
   const command = new PutCommand({

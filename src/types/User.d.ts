@@ -6,4 +6,6 @@ export interface UpdateUserBody {
   classroomSize?: number
   preferredName?: string
   image?: string
+  /** Set to a Class id to change the default, or null to clear it. */
+  defaultClassId?: string | null
 }
