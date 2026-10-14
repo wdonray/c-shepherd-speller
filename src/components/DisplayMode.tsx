@@ -247,6 +247,7 @@ function DisplayModeInner() {
                   primaryLabel="Present chart"
                   showPresent={false}
                   showPreview={false}
+                  hoverLift
                 />
               ))}
             </div>

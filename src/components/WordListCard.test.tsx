@@ -190,4 +190,31 @@ describe('WordListCard', () => {
     render(<WordListCard list={list} primaryLabel="Edit list" />)
     expect(() => fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))).not.toThrow()
   })
+
+  it('keeps the card flat on hover by default', () => {
+    const { container } = render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    const card = container.querySelector('[data-slot="card"]')
+    expect(card).not.toHaveClass('hover:scale-[1.05]', 'hover:shadow-xl')
+  })
+
+  it('lifts the card on hover when hoverLift is set (issue #268)', () => {
+    const { container } = render(
+      <WordListCard
+        list={list}
+        primaryLabel="Present chart"
+        showPresent={false}
+        showPreview={false}
+        href="/display?list=l1"
+        hoverLift
+      />
+    )
+    expect(container.querySelector('[data-slot="card"]')).toHaveClass(
+      'hover:z-10',
+      'hover:scale-[1.05]',
+      'hover:border-sky-deep',
+      'hover:shadow-xl',
+      'motion-reduce:hover:scale-100',
+      'motion-reduce:hover:shadow-none'
+    )
+  })
 })

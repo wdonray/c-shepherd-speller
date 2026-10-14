@@ -171,7 +171,7 @@ describe('PatternChartDisplay', () => {
     expect(container.firstChild).toHaveClass('force-light')
   })
 
-  it('gives word cards a visible hover and matching focus-visible treatment', () => {
+  it('keeps word cards flat on hover with matching focus-visible treatment', () => {
     render(<PatternChartDisplay list={list} />)
     const button = screen.getByRole('button', { name: 'Analyze the word cake' })
     expect(button).toHaveClass(
@@ -180,12 +180,10 @@ describe('PatternChartDisplay', () => {
       'focus-visible:ring-[3px]',
       'focus-visible:ring-ring/60'
     )
-    // Hover lift (issue #188): the card slightly grows and casts a shadow,
-    // unmistakable on a projector. Donray's call in #188 overrides the old
-    // motion-free flat-card rule; motion-reduce still disables it.
+    // Issue #268 moved the hover lift from present-mode word cards to the
+    // list picker, so the card no longer grows or casts a shadow on hover.
     const card = button.closest('li')
-    expect(card).toHaveClass(
-      'relative',
+    expect(card).not.toHaveClass(
       'hover:z-10',
       'hover:scale-[1.05]',
       'hover:shadow-xl',
