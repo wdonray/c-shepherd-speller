@@ -102,6 +102,15 @@ describe('PUT /api/lists/[id]', () => {
     expect(updateList).toHaveBeenCalledWith('u1', 'l1', { name: 'Renamed' })
   })
 
+  it('accepts favorite and order updates', async () => {
+    requireUser.mockResolvedValue(authed)
+    updateList.mockResolvedValue({ ...stored, isFavorite: true, favoriteOrder: 0 })
+
+    const res = await PUT(jsonRequest({ isFavorite: true, favoriteOrder: 0 }), params)
+    expect(res.status).toBe(200)
+    expect(updateList).toHaveBeenCalledWith('u1', 'l1', { isFavorite: true, favoriteOrder: 0 })
+  })
+
   it('returns 404 when the list does not exist', async () => {
     requireUser.mockResolvedValue(authed)
     updateList.mockRejectedValue(new Error('List not found'))
