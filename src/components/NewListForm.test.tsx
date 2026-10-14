@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import NewListForm from './NewListForm'
 import type { WordList } from '@/models/WordList'
@@ -36,6 +36,18 @@ const created: WordList = {
 describe('NewListForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // The form inherits the teacher's default classroom; default to none.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ defaultClassId: null }),
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('renders the form with a back link to the lists page', () => {
@@ -154,5 +166,54 @@ describe('NewListForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(mockPush).toHaveBeenCalledWith('/lists')
+  })
+
+  it('inherits the default classroom on create', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ defaultClassId: 'c1' }),
+      })
+    )
+    createList.mockResolvedValue({ id: 'l9', name: 'Week 7' })
+    render(<NewListForm />)
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    // Wait for the default to load before submitting.
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/classes/default'))
+    await waitFor(() => new Promise((r) => setTimeout(r, 0)))
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalledWith(expect.objectContaining({ name: 'Week 7', classId: 'c1' }))
+    })
+  })
+
+  it('creates without a classroom when there is no default', async () => {
+    createList.mockResolvedValue({ id: 'l9', name: 'Week 7' })
+    render(<NewListForm />)
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalledWith({ name: 'Week 7', gradeLevel: undefined, patterns: [] })
+    })
+    expect(createList.mock.calls[0][0]).not.toHaveProperty('classId')
+  })
+
+  it('creates without a classroom when the default lookup fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+    createList.mockResolvedValue({ id: 'l9', name: 'Week 7' })
+    render(<NewListForm />)
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalled()
+    })
+    expect(createList.mock.calls[0][0]).not.toHaveProperty('classId')
   })
 })
