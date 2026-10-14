@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import { wordMatchesPattern } from '@/lib/word-pattern-match'
+import { useMediaQuery } from '@/lib/use-media-query'
 import {
   MICROPHONE_REQUEST_TIMEOUT_MS,
   isAudioCaptureSupported,
@@ -61,6 +62,9 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
   rare: 'Rare',
 }
 
+/** Below this width the words table becomes stacked cards. */
+const MOBILE_QUERY = '(max-width: 767px)'
+
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({ pattern, onChange, onRemove, color = DEFAULT_LIST_COLOR }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
@@ -92,6 +96,7 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
   const isLocked = pattern.isLocked ?? false
 
   const accent = LIST_ACCENT_CLASSES[color]
+  const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const update = (updates: Partial<SpellingPattern>) => {
     onChange({ ...pattern, ...updates })
@@ -163,6 +168,64 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
     // always adds. Uses the same dedupe-safe update shape as addWord.
     update({ words: [...pattern.words, word] })
   }
+
+  // The word actions render identically in the desktop table and the mobile stacked cards.
+  const renderWordActions = (word: string) => (
+    <div className="flex items-center justify-end gap-3">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => handleMicClick(word)}
+            aria-label={`Record your voice for ${word}`}
+            className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-muted-foreground outline-none transition hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            <MicIcon className="size-5" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Record your voice</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => toggleWordOddDuck(word)}
+            aria-pressed={pattern.oddDucks?.includes(word) ?? false}
+            aria-label={pattern.oddDucks?.includes(word) ? `Unmark ${word} as odd duck` : `Mark ${word} as odd duck`}
+            className={cn(
+              'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+              pattern.oddDucks?.includes(word)
+                ? 'bg-plum-soft text-plum hover:brightness-95 focus-visible:brightness-95'
+                : 'text-muted-foreground hover:bg-plum-soft hover:text-plum focus-visible:bg-plum-soft focus-visible:text-plum'
+            )}
+          >
+            <OddDuck className="size-5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Mark as odd duck</TooltipContent>
+      </Tooltip>
+      <SentencePicker
+        word={word}
+        patternId={pattern.id}
+        currentSentence={pattern.sentences?.[word]}
+        onSelect={(s) => setWordSentence(word, s)}
+        variant="pencil"
+      />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => handleRemoveClick(word)}
+            aria-label={`Remove ${word}`}
+            className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-coral-ink outline-none transition hover:bg-coral-soft focus-visible:bg-coral-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            <XIcon className="size-5" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Remove word</TooltipContent>
+      </Tooltip>
+    </div>
+  )
 
   // Suggest words only on exact sound+pattern match (case-insensitive, trimmed).
   // Words already in the list are filtered out.
@@ -297,99 +360,62 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
               ))}
             </div>
           )}
-          {pattern.words.length > 0 && (
-            <div className="mt-2 overflow-x-auto rounded-2xl border-2 border-line">
-              <table className="w-full text-left text-[15px]">
-                <thead>
-                  <tr className="border-b-2 border-line bg-muted/50">
-                    <th scope="col" className="px-4 py-3 font-bold text-ink">
-                      Word
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-bold text-ink">
-                      Example sentence
-                    </th>
-                    <th scope="col" className="w-[120px] px-4 py-3 text-right font-bold text-ink">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pattern.words.map((word) => {
-                    const sentence = pattern.sentences?.[word]
-                    return (
-                      <tr key={word} className="border-b border-line last:border-0">
-                        <td className="px-4 py-2 font-semibold text-ink">{word}</td>
-                        <td className="max-w-[300px] truncate px-4 py-2 text-muted-foreground">
-                          {sentence ?? <span aria-hidden="true">—</span>}
-                          {!sentence && <span className="sr-only">No example sentence</span>}
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="flex items-center justify-end gap-3">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMicClick(word)}
-                                  aria-label={`Record your voice for ${word}`}
-                                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-muted-foreground outline-none transition hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                                >
-                                  <MicIcon className="size-5" aria-hidden="true" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>Record your voice</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleWordOddDuck(word)}
-                                  aria-pressed={pattern.oddDucks?.includes(word) ?? false}
-                                  aria-label={
-                                    pattern.oddDucks?.includes(word)
-                                      ? `Unmark ${word} as odd duck`
-                                      : `Mark ${word} as odd duck`
-                                  }
-                                  className={cn(
-                                    'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                                    pattern.oddDucks?.includes(word)
-                                      ? 'bg-plum-soft text-plum hover:brightness-95 focus-visible:brightness-95'
-                                      : 'text-muted-foreground hover:bg-plum-soft hover:text-plum focus-visible:bg-plum-soft focus-visible:text-plum'
-                                  )}
-                                >
-                                  <OddDuck className="size-5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>Mark as odd duck</TooltipContent>
-                            </Tooltip>
-                            <SentencePicker
-                              word={word}
-                              patternId={pattern.id}
-                              currentSentence={sentence}
-                              onSelect={(s) => setWordSentence(word, s)}
-                              variant="pencil"
-                            />
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveClick(word)}
-                                  aria-label={`Remove ${word}`}
-                                  className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-coral-ink outline-none transition hover:bg-coral-soft focus-visible:bg-coral-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                                >
-                                  <XIcon className="size-5" aria-hidden="true" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>Remove word</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {pattern.words.length > 0 &&
+            (isMobile ? (
+              // Stacked cards on mobile: the word is the card heading, the
+              // example sentence sits below it as a labeled field.
+              <ul className="mt-2 space-y-3">
+                {pattern.words.map((word) => {
+                  const sentence = pattern.sentences?.[word]
+                  return (
+                    <li key={word} className="rounded-2xl border-2 border-line bg-card p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h5 className="min-w-0 flex-1 truncate text-[17px] font-bold text-ink">{word}</h5>
+                        {renderWordActions(word)}
+                      </div>
+                      <p className="mt-2 text-[13px] font-semibold text-muted-foreground">Example sentence</p>
+                      <p className="mt-1 text-[15px] text-muted-foreground">
+                        {sentence ?? <span aria-hidden="true">—</span>}
+                        {!sentence && <span className="sr-only">No example sentence</span>}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <div className="mt-2 overflow-x-auto rounded-2xl border-2 border-line">
+                <table className="w-full text-left text-[15px]">
+                  <thead>
+                    <tr className="border-b-2 border-line bg-muted/50">
+                      <th scope="col" className="px-4 py-3 font-bold text-ink">
+                        Word
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-bold text-ink">
+                        Example sentence
+                      </th>
+                      <th scope="col" className="w-[120px] px-4 py-3 text-right font-bold text-ink">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pattern.words.map((word) => {
+                      const sentence = pattern.sentences?.[word]
+                      return (
+                        <tr key={word} className="border-b border-line last:border-0">
+                          <td className="px-4 py-2 font-semibold text-ink">{word}</td>
+                          <td className="max-w-[300px] truncate px-4 py-2 text-muted-foreground">
+                            {sentence ?? <span aria-hidden="true">—</span>}
+                            {!sentence && <span className="sr-only">No example sentence</span>}
+                          </td>
+                          <td className="px-4 py-2">{renderWordActions(word)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ))}
           <div className="mt-3 flex max-w-md gap-2">
             <Input
               value={newWord}
