@@ -137,11 +137,92 @@ export async function deleteRecording(text: string): Promise<void> {
 }
 
 /**
+ * How long to wait for the browser to answer a microphone permission
+ * request before treating it as stuck. The getUserMedia promise is supposed
+ * to settle once the teacher answers the permission prompt, but browsers
+ * can leave it pending forever when the prompt cannot be shown (a
+ * previously dismissed prompt is one known trigger). The timeout turns that
+ * dead end into a TimeoutError the caller can explain, instead of a UI that
+ * hangs forever.
+ */
+export const MICROPHONE_REQUEST_TIMEOUT_MS = 15000
+
+/**
+ * Ask the browser for microphone access, rejecting with a TimeoutError when
+ * the browser never answers within `timeoutMs`.
+ *
+ * Call this directly from a user gesture (a button click). Browsers only
+ * show the permission prompt for requests made in a gesture; requests made
+ * from effects or promise callbacks are silently dropped, with no prompt
+ * and no rejection.
+ *
+ * When the wait is abandoned (timeout or `signal` abort) but the browser
+ * grants access afterwards, the late stream's tracks are stopped at once so
+ * the microphone indicator does not linger.
+ */
+export function requestMicrophoneStream(timeoutMs: number, signal?: AbortSignal): Promise<MediaStream> {
+  return new Promise<MediaStream>((resolve, reject) => {
+    let done = false
+    const settle = (outcome: { stream?: MediaStream; error?: unknown }): void => {
+      if (done) {
+        // The wait was already abandoned; release a late-arriving stream.
+        outcome.stream?.getTracks().forEach((track) => track.stop())
+        return
+      }
+      done = true
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      if (outcome.error !== undefined) reject(outcome.error)
+      else resolve(outcome.stream as MediaStream)
+    }
+    const timer = setTimeout(() => {
+      settle({ error: new DOMException('Microphone request timed out', 'TimeoutError') })
+    }, timeoutMs)
+    const onAbort = (): void => {
+      settle({ error: new DOMException('Microphone request was cancelled', 'AbortError') })
+    }
+    if (signal?.aborted) {
+      onAbort()
+      return
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => settle({ stream }))
+      .catch((error: unknown) => settle({ error }))
+  })
+}
+
+/** An in-flight microphone permission request the UI can await and cancel. */
+export interface MicrophoneRequest {
+  /** Resolves with the microphone stream once the browser grants access. */
+  promise: Promise<MediaStream>
+  /** Abandon the wait; a late-arriving stream is stopped on arrival. */
+  cancel: () => void
+}
+
+/**
+ * Start a cancellable microphone permission request. The caller must invoke
+ * this directly from a user gesture (see requestMicrophoneStream) and hand
+ * the returned request to the UI that awaits the answer.
+ */
+export function requestMicrophoneAccess(timeoutMs: number): MicrophoneRequest {
+  const controller = new AbortController()
+  return {
+    promise: requestMicrophoneStream(timeoutMs, controller.signal),
+    cancel: () => controller.abort(),
+  }
+}
+
+/**
  * Start capturing microphone audio. Recording begins immediately; the
  * teacher taps stop when done. Rejects when microphone access is denied.
+ *
+ * Pass a pre-authorized stream (from requestMicrophoneStream) to record
+ * from an already-granted permission without asking the browser twice.
  */
-export async function startRecording(): Promise<RecordingSession> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+export async function startRecording(existingStream?: MediaStream): Promise<RecordingSession> {
+  const stream = existingStream ?? (await navigator.mediaDevices.getUserMedia({ audio: true }))
   const stopTracks = (): void => {
     for (const track of stream.getTracks()) track.stop()
   }

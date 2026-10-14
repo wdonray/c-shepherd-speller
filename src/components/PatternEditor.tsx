@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import { wordMatchesPattern } from '@/lib/word-pattern-match'
+import {
+  MICROPHONE_REQUEST_TIMEOUT_MS,
+  isAudioCaptureSupported,
+  requestMicrophoneAccess,
+  type MicrophoneRequest,
+} from '@/lib/voice-recordings'
 import type { SpellingPattern, PatternFrequency, ListColor } from '@/models/WordList'
 import { LIST_ACCENT_CLASSES, DEFAULT_LIST_COLOR } from '@/models/WordList'
 
@@ -62,6 +68,27 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
   const [mismatchedWord, setMismatchedWord] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
+  /**
+   * In-flight microphone permission request for the word being recorded.
+   * Started here, in the mic button's click handler: browsers only show the
+   * permission prompt for requests made directly from a user gesture, so
+   * the modal cannot ask for it from its own open effect. The modal awaits
+   * this request and records from the granted stream.
+   */
+  const micRequestRef = useRef<MicrophoneRequest | null>(null)
+
+  const handleMicClick = (word: string) => {
+    if (isAudioCaptureSupported()) {
+      const request = requestMicrophoneAccess(MICROPHONE_REQUEST_TIMEOUT_MS)
+      // The modal observes the outcome; keep an unobserved rejection from
+      // surfacing as an unhandled rejection.
+      request.promise.catch(() => {})
+      micRequestRef.current = request
+    } else {
+      micRequestRef.current = null
+    }
+    setRecordingWord(word)
+  }
   const isLocked = pattern.isLocked ?? false
 
   const accent = LIST_ACCENT_CLASSES[color]
@@ -302,7 +329,7 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
                               <TooltipTrigger asChild>
                                 <button
                                   type="button"
-                                  onClick={() => setRecordingWord(word)}
+                                  onClick={() => handleMicClick(word)}
                                   aria-label={`Record your voice for ${word}`}
                                   className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-muted-foreground outline-none transition hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
                                 >
@@ -477,8 +504,13 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
           <VoiceRecorderModal
             word={recordingWord}
             open={recordingWord !== null}
+            microphoneRequest={micRequestRef.current}
             onOpenChange={(open) => {
-              if (!open) setRecordingWord(null)
+              if (!open) {
+                micRequestRef.current?.cancel()
+                micRequestRef.current = null
+                setRecordingWord(null)
+              }
             }}
           />
         )}

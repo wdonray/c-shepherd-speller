@@ -1,17 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
 vi.mock('./VoiceRecorderModal', () => ({
-  default: ({ word, open, onOpenChange }: { word: string; open: boolean; onOpenChange: (open: boolean) => void }) =>
+  default: ({
+    word,
+    open,
+    onOpenChange,
+    microphoneRequest,
+  }: {
+    word: string
+    open: boolean
+    onOpenChange: (open: boolean) => void
+    microphoneRequest?: unknown
+  }) =>
     open ? (
-      <div data-testid="voice-recorder-modal">
+      <div data-testid="voice-recorder-modal" data-has-mic-request={microphoneRequest ? 'yes' : 'no'}>
         <span>{word}</span>
         <button onClick={() => onOpenChange(false)}>Close modal</button>
         <button onClick={() => onOpenChange(true)}>Reopen modal</button>
       </div>
     ) : null,
+}))
+
+const { requestMicrophoneAccess, isAudioCaptureSupported } = vi.hoisted(() => ({
+  requestMicrophoneAccess: vi.fn(),
+  isAudioCaptureSupported: vi.fn(),
+}))
+vi.mock('@/lib/voice-recordings', () => ({
+  MICROPHONE_REQUEST_TIMEOUT_MS: 15000,
+  requestMicrophoneAccess,
+  isAudioCaptureSupported,
 }))
 
 vi.mock('@/lib/example-sentences', () => ({
@@ -45,6 +65,11 @@ function renderEditor(overrides: Partial<SpellingPattern> = {}) {
 describe('PatternEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    isAudioCaptureSupported.mockReturnValue(true)
+    requestMicrophoneAccess.mockReturnValue({
+      promise: Promise.resolve({ getTracks: () => [] }),
+      cancel: vi.fn(),
+    })
   })
 
   it('renders the pattern name, sound, frequency, and words', () => {
@@ -590,6 +615,50 @@ describe('PatternEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
     expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
     expect(screen.getByTestId('voice-recorder-modal')).toHaveTextContent('cake')
+  })
+
+  it('requests microphone access from the mic button tap and hands it to the modal', () => {
+    const cancel = vi.fn()
+    const promise = Promise.resolve({ getTracks: () => [] })
+    const request = { promise, cancel }
+    requestMicrophoneAccess.mockReturnValue(request)
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    // Asked from the click gesture, which is what browsers require to show
+    // the permission prompt.
+    expect(requestMicrophoneAccess).toHaveBeenCalledWith(15000)
+    expect(screen.getByTestId('voice-recorder-modal')).toHaveAttribute('data-has-mic-request', 'yes')
+  })
+
+  it('cancels the in-flight microphone request when the modal closes', () => {
+    const cancel = vi.fn()
+    requestMicrophoneAccess.mockReturnValue({ promise: new Promise(() => {}), cancel })
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close modal' }))
+    expect(cancel).toHaveBeenCalled()
+  })
+
+  it('opens the modal without a microphone request when capture is unsupported', () => {
+    isAudioCaptureSupported.mockReturnValue(false)
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    expect(requestMicrophoneAccess).not.toHaveBeenCalled()
+    expect(screen.getByTestId('voice-recorder-modal')).toHaveAttribute('data-has-mic-request', 'no')
+  })
+
+  it('keeps a rejected microphone request from surfacing as unhandled', async () => {
+    const cancel = vi.fn()
+    requestMicrophoneAccess.mockReturnValue({
+      promise: Promise.reject(new DOMException('denied', 'NotAllowedError')),
+      cancel,
+    })
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
+    expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
+    // Let the rejection settle; the noop catch in handleMicClick absorbs it.
+    await act(async () => {})
+    expect(cancel).not.toHaveBeenCalled()
   })
 
   it('closes the voice recorder modal', () => {
