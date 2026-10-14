@@ -716,16 +716,20 @@ describe('sorting (issue #275)', () => {
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
 
-    // Start a search, then pick Custom order.
+    // Start a search (filters to one list), then pick Custom order.
     fireEvent.change(screen.getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
-    await screen.findByText(/1 result for/)
+    // Wait for the search to filter (Week 6 disappears from the list).
+    await waitFor(() => {
+      expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
+    })
     await openSortMenu()
     fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Custom order' }))
 
     // Both lists get a sortOrder, not just the search result.
+    // (B is more recently modified, so it sorts first.)
     await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith('a', { sortOrder: 0 })
-      expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 1 })
+      expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 0 })
+      expect(updateList).toHaveBeenCalledWith('a', { sortOrder: 1 })
     })
   })
 
