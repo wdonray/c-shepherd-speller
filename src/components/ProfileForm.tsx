@@ -306,9 +306,12 @@ export default function ProfileForm() {
         <CardContent className="space-y-5">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Full name
-              </Label>
+              {/* Reserve the Optional badge row height so the inputs stay aligned on desktop. */}
+              <div className="flex min-h-7 items-center">
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Full name
+                </Label>
+              </div>
               <Input
                 id="name"
                 type="text"
