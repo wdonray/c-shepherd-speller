@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import ProfileForm, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import { ErrorToaster } from './error-toaster'
@@ -141,6 +141,20 @@ describe('ProfileForm', () => {
     })
     expect(screen.getByRole('heading', { name: 'Personal information' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Teaching information' })).toBeInTheDocument()
+  })
+
+  it('reserves the same label-row height for the required Full name field as the optional fields', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ user }) }))
+    renderForm()
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    const fullNameLabelRow = screen.getByText('Full name').parentElement
+    const preferredNameLabelRow = screen.getByText('Preferred name').parentElement
+
+    // The Full name label has no Optional badge, so its row reserves the badge row's
+    // height (min-h-7) to keep both inputs aligned on desktop.
+    expect(fullNameLabelRow).toHaveClass('min-h-7')
+    expect(within(preferredNameLabelRow!).getByText('Optional')).toBeInTheDocument()
   })
 
   it('opens the file picker from the Change photo button', async () => {
