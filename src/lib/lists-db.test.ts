@@ -30,18 +30,38 @@ describe('lists-db', () => {
 
   describe('createList', () => {
     it('puts a new list item and returns it', async () => {
-      send.mockResolvedValue({})
+      send.mockResolvedValueOnce({ Items: [] }).mockResolvedValueOnce({})
       const list = await createList('u1', { name: 'Week 5', patterns: [] })
 
       expect(list.userId).toBe('u1')
       expect(list.name).toBe('Week 5')
       expect(list.id.startsWith('list_')).toBe(true)
-      expect(send).toHaveBeenCalledTimes(1)
-      const command = send.mock.calls[0][0]
+      expect(list.sortOrder).toBe(1)
+      expect(send).toHaveBeenCalledTimes(2)
+      const command = send.mock.calls[1][0]
       expect(command.input.TableName).toBe('shepherd-speller-lists')
       expect(command.input.Item.PK).toBe(`USER#u1`)
       expect(command.input.Item.SK).toBe(`LIST#${list.id}`)
+      expect(command.input.Item.sortOrder).toBe(1)
       expect(command.input.ConditionExpression).toBe('attribute_not_exists(PK)')
+    })
+
+    it('appends the new list after the highest existing sort order', async () => {
+      send.mockResolvedValueOnce({ Items: [{ ...storedList, sortOrder: 4 }] }).mockResolvedValueOnce({})
+      const list = await createList('u1', { name: 'Week 6', patterns: [] })
+
+      expect(list.sortOrder).toBe(5)
+      const command = send.mock.calls[1][0]
+      expect(command.input.Item.sortOrder).toBe(5)
+    })
+
+    it('treats legacy lists without a sort order as order 0', async () => {
+      const legacy = { ...storedList }
+      delete (legacy as { sortOrder?: number }).sortOrder
+      send.mockResolvedValueOnce({ Items: [legacy] }).mockResolvedValueOnce({})
+      const list = await createList('u1', { name: 'Week 6', patterns: [] })
+
+      expect(list.sortOrder).toBe(1)
     })
   })
 

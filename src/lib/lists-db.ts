@@ -25,16 +25,23 @@ export async function createList(userId: string, input: CreateWordListInput): Pr
   const list = createWordListItem(userId, input)
   const keys = getListKeys(userId, list.id)
 
+  // New lists append to the end of the teacher's custom order. Existing
+  // lists without an explicit order fall back to creation order, so the
+  // max over stored orders (defaulting to 0) is a safe baseline.
+  const existing = await getListsByUser(userId)
+  const maxOrder = existing.reduce((max, l) => Math.max(max, l.sortOrder ?? 0), 0)
+  const ordered = { ...list, sortOrder: maxOrder + 1 }
+
   await docClient.send(
     new PutCommand({
       TableName: LISTS_TABLE_NAME,
-      Item: { ...keys, ...list },
+      Item: { ...keys, ...ordered },
       // Don't overwrite an existing list with the same ID (shouldn't happen,
       // but guards against ID collision).
       ConditionExpression: 'attribute_not_exists(PK)',
     })
   )
-  return list
+  return ordered
 }
 
 /** Get a single list by ID. Returns undefined if not found or not owned. */

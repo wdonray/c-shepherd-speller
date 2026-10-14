@@ -15,6 +15,7 @@ import {
   getListKeys,
   getAssignedWeeks,
   isPatternComplete,
+  isListFavorite,
   type WordList,
 } from './WordList'
 
@@ -369,6 +370,63 @@ describe('WordList model', () => {
       const updated = updateWordListItem(validList, {})
       expect(updated.name).toBe(validList.name)
       expect(updated.patterns).toEqual(validList.patterns)
+    })
+
+    it('stars a list without refreshing updatedAt', () => {
+      const before = validList.updatedAt
+      const updated = updateWordListItem(validList, { isFavorite: true, favoriteOrder: 1 })
+      expect(updated.isFavorite).toBe(true)
+      expect(updated.favoriteOrder).toBe(1)
+      expect(updated.updatedAt).toBe(before)
+    })
+
+    it('unstars a list without refreshing updatedAt', () => {
+      const starred = { ...validList, isFavorite: true, favoriteOrder: 1 }
+      const updated = updateWordListItem(starred, { isFavorite: false })
+      expect(updated.isFavorite).toBe(false)
+      expect(updated.updatedAt).toBe(validList.updatedAt)
+    })
+
+    it('updates sort order without refreshing updatedAt', () => {
+      const updated = updateWordListItem(validList, { sortOrder: 7 })
+      expect(updated.sortOrder).toBe(7)
+      expect(updated.updatedAt).toBe(validList.updatedAt)
+    })
+
+    it('refreshes updatedAt when content changes alongside favorite fields', () => {
+      const updated = updateWordListItem(validList, { name: 'Renamed', isFavorite: true })
+      expect(updated.name).toBe('Renamed')
+      expect(updated.isFavorite).toBe(true)
+      expect(updated.updatedAt).not.toBe(validList.updatedAt)
+    })
+  })
+
+  describe('list favorites', () => {
+    it('WordListSchema accepts lists without favorite fields (legacy)', () => {
+      expect(WordListSchema.safeParse(validList).success).toBe(true)
+    })
+
+    it('WordListSchema accepts favorite fields', () => {
+      const result = WordListSchema.safeParse({ ...validList, isFavorite: true, favoriteOrder: 2, sortOrder: 5 })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.isFavorite).toBe(true)
+        expect(result.data.favoriteOrder).toBe(2)
+        expect(result.data.sortOrder).toBe(5)
+      }
+    })
+
+    it('UpdateWordListSchema accepts favorite and order fields', () => {
+      const result = UpdateWordListSchema.safeParse({ isFavorite: true, favoriteOrder: 0, sortOrder: 3 })
+      expect(result.success).toBe(true)
+    })
+
+    it('isListFavorite is false for legacy lists without the flag', () => {
+      expect(isListFavorite(validList)).toBe(false)
+    })
+
+    it('isListFavorite is true for starred lists', () => {
+      expect(isListFavorite({ ...validList, isFavorite: true })).toBe(true)
     })
   })
 

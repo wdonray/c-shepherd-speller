@@ -122,6 +122,23 @@ export const WordListSchema = z.object({
   week: z.string().max(20).optional(),
   /** Accent color key; absent on legacy lists, which use the default. */
   color: ListColorSchema.optional(),
+  /**
+   * Whether the teacher starred this list. Absent on legacy lists and on
+   * lists never starred; treated as false. Favorite-only changes never bump
+   * updatedAt, so starring does not disturb "recently modified" sorts.
+   */
+  isFavorite: z.boolean().optional(),
+  /**
+   * Manual position among the teacher's favorites, assigned when starred
+   * (max + 1) and rewritten on favorite reorder. Absent until starred.
+   */
+  favoriteOrder: z.number().int().optional(),
+  /**
+   * Manual position for the "custom order" list sort, rewritten on drag
+   * reorder. Absent until the teacher first uses custom order; falls back
+   * to creation order.
+   */
+  sortOrder: z.number().int().optional(),
   patterns: z.array(SpellingPatternSchema).max(20),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -148,6 +165,9 @@ export const UpdateWordListSchema = z.object({
   week: z.string().max(20).optional(),
   color: ListColorSchema.optional(),
   patterns: z.array(SpellingPatternSchema).max(20).optional(),
+  isFavorite: z.boolean().optional(),
+  favoriteOrder: z.number().int().optional(),
+  sortOrder: z.number().int().optional(),
 })
 export type UpdateWordListInput = z.infer<typeof UpdateWordListSchema>
 
@@ -191,8 +211,22 @@ export function createWordListItem(userId: string, input: CreateWordListInput): 
   }
 }
 
-/** Apply an update to a list, refreshing updatedAt. */
+/**
+ * Whether the teacher starred this list. Legacy lists and never-starred
+ * lists have no flag stored; they read as not favorite.
+ */
+export function isListFavorite(list: WordList): boolean {
+  return list.isFavorite === true
+}
+
+/** Apply an update to a list. updatedAt refreshes only for content changes. */
 export function updateWordListItem(list: WordList, input: UpdateWordListInput): WordList {
+  const contentChanged =
+    input.name !== undefined ||
+    input.gradeLevel !== undefined ||
+    input.week !== undefined ||
+    input.color !== undefined ||
+    input.patterns !== undefined
   return {
     ...list,
     ...(input.name !== undefined ? { name: input.name } : {}),
@@ -200,7 +234,12 @@ export function updateWordListItem(list: WordList, input: UpdateWordListInput): 
     ...(input.week !== undefined ? { week: input.week.trim() } : {}),
     ...(input.color !== undefined ? { color: input.color } : {}),
     ...(input.patterns !== undefined ? { patterns: input.patterns } : {}),
-    updatedAt: new Date().toISOString(),
+    ...(input.isFavorite !== undefined ? { isFavorite: input.isFavorite } : {}),
+    ...(input.favoriteOrder !== undefined ? { favoriteOrder: input.favoriteOrder } : {}),
+    ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
+    // Starring or reordering a list is organization, not editing: it must not
+    // disturb "recently modified" sorts.
+    ...(contentChanged ? { updatedAt: new Date().toISOString() } : {}),
   }
 }
 
