@@ -24,6 +24,8 @@ interface ListsOverviewCardProps {
   onOpen: (list: WordList) => void
   onDelete: (list: WordList) => void
   onToggleFavorite: (list: WordList) => void
+  /** Search query for bolding matched substrings. */
+  highlightQuery?: string
 }
 
 /**
@@ -40,6 +42,7 @@ export default function ListsOverviewCard({
   onOpen,
   onDelete,
   onToggleFavorite,
+  highlightQuery = '',
 }: ListsOverviewCardProps) {
   const {
     attributes,
@@ -114,6 +117,7 @@ export default function ListsOverviewCard({
             primaryLabel="Edit list"
             isFavorite={isListFavorite(list)}
             onToggleFavorite={onToggleFavorite}
+            highlightQuery={highlightQuery}
           />
         </div>
       </div>

@@ -785,3 +785,133 @@ describe('sorting (issue #275)', () => {
     })
   })
 })
+
+describe('search (issue #275)', () => {
+  const listA: WordList = {
+    id: 'a',
+    userId: 'u1',
+    name: 'Week 5: Long A',
+    patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] }],
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-10T00:00:00.000Z',
+  }
+  const listB: WordList = {
+    id: 'b',
+    userId: 'u1',
+    name: 'Week 6: Long E',
+    patterns: [],
+    createdAt: '2026-10-03T00:00:00.000Z',
+    updatedAt: '2026-10-12T00:00:00.000Z',
+  }
+
+  function searchInput() {
+    return screen.getByRole('textbox', { name: 'Search lists' })
+  }
+
+  it('filters lists as the teacher types', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.change(searchInput(), { target: { value: 'long e' } })
+    const titles = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+      .filter((t) => !t?.startsWith('My word lists'))
+    expect(titles).toEqual(['Week 6: Long E'])
+    expect(screen.getByText('1 result for "long e".')).toBeInTheDocument()
+  })
+
+  it('spans favorites even when they would be on another tab', async () => {
+    const starred = { ...listA, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    // Search finds the favorite by a word in its patterns.
+    fireEvent.change(searchInput(), { target: { value: 'cake' } })
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('Week 6: Long E')).not.toBeInTheDocument()
+    // Tabs are hidden while searching.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+  })
+
+  it('applies the active sort within results', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    window.localStorage.setItem('patternspell:lists-sort', 'name')
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.change(searchInput(), { target: { value: 'week' } })
+    const titles = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+      .filter((t) => !t?.startsWith('My word lists'))
+    // Name A-Z: Week 5 before Week 6.
+    expect(titles).toEqual(['Week 5: Long A', 'Week 6: Long E'])
+  })
+
+  it('bolds matched substrings in result names', async () => {
+    getLists.mockResolvedValue([listA])
+    const { container } = render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    fireEvent.change(searchInput(), { target: { value: 'long' } })
+    const bold = container.querySelector('.font-extrabold')
+    expect(bold?.textContent).toBe('Long')
+  })
+
+  it('clears the search with the X button', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.change(searchInput(), { target: { value: 'long e' } })
+    expect(screen.queryByText('Week 5: Long A')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }))
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.getByText('Week 6: Long E')).toBeInTheDocument()
+  })
+
+  it('shows a no-results message', async () => {
+    getLists.mockResolvedValue([listA])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    fireEvent.change(searchInput(), { target: { value: 'xyz' } })
+    expect(screen.getByText('No lists match "xyz".')).toBeInTheDocument()
+    expect(screen.queryByTestId('lists-grid')).toBeInTheDocument()
+  })
+
+  it('focuses search when / is pressed', async () => {
+    getLists.mockResolvedValue([listA])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    fireEvent.keyDown(window, { key: '/' })
+    expect(searchInput()).toHaveFocus()
+  })
+
+  it('ignores / while typing in a field', async () => {
+    getLists.mockResolvedValue([listA])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    const input = searchInput()
+    input.focus()
+    fireEvent.keyDown(input, { key: '/' })
+    // No error and focus stays; the keystroke is left for the field.
+    expect(input).toHaveFocus()
+  })
+
+  it('disables drag reorder while searching', async () => {
+    const starred = { ...listA, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    fireEvent.change(searchInput(), { target: { value: 'week' } })
+    expect(screen.queryByRole('button', { name: /Drag to reorder/ })).not.toBeInTheDocument()
+  })
+})
