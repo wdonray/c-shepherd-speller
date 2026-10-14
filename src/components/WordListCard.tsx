@@ -7,6 +7,7 @@ import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { cn } from '@/lib/utils'
 import { resolveListColor, LIST_ACCENT_CLASSES, type WordList, type PatternFrequency } from '@/models/WordList'
 import { StarIcon } from 'lucide-react'
+import HighlightedText from './HighlightedText'
 
 interface WordListCardProps {
   list: WordList
@@ -40,6 +41,11 @@ interface WordListCardProps {
   isFavorite?: boolean
   /** Called when the teacher toggles the favorite star. */
   onToggleFavorite?: (list: WordList) => void
+  /**
+   * Search query for bolding matched substrings in the name and badges.
+   * Used by the lists overview search (issue #275); empty elsewhere.
+   */
+  highlightQuery?: string
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -63,6 +69,7 @@ export default function WordListCard({
   hoverLift = false,
   isFavorite = false,
   onToggleFavorite,
+  highlightQuery = '',
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -84,15 +91,17 @@ export default function WordListCard({
       <div className={cn('h-2 w-full', accent.bar)} aria-hidden="true" />
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-xl font-bold">{list.name}</h3>
+          <h3 className="text-xl font-bold">
+            <HighlightedText text={list.name} query={highlightQuery} />
+          </h3>
           {list.week?.trim() && (
             <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
-              {list.week.trim()}
+              <HighlightedText text={list.week.trim()} query={highlightQuery} />
             </span>
           )}
           {list.gradeLevel && (
             <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
-              Grade {list.gradeLevel}
+              <HighlightedText text={`Grade ${list.gradeLevel}`} query={highlightQuery} />
             </span>
           )}
           {onToggleFavorite && (

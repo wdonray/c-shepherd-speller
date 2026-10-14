@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { getLists, deleteList, updateList, notifyListsChanged } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
 import { type WordList, isListFavorite } from '@/models/WordList'
@@ -30,6 +31,7 @@ import {
   LIST_SORT_STORAGE_KEY,
   type ListSort,
 } from '@/lib/list-organize'
+import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
 import { OddDuck } from './OddDuck'
@@ -58,6 +60,21 @@ export default function PatternListsManager() {
   // True while an order persist is in flight; reordering stays disabled
   // until it lands so concurrent saves cannot interleave (review feedback).
   const [savingOrder, setSavingOrder] = useState(false)
+  const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // "/" focuses search on desktop (ignored while typing in a field).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      event.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const loadLists = useCallback(async () => {
     setLoading(true)
@@ -88,9 +105,16 @@ export default function PatternListsManager() {
   const showFavoritesTab = favorites.length > 0
   // A stored "favorites" view with no favorites falls back to All.
   const effectiveView: ListView = view === 'favorites' && showFavoritesTab ? 'favorites' : 'all'
-  // Favorites keep their own manual order; the All view follows the sort menu.
-  const visibleLists = effectiveView === 'favorites' ? favorites : sortLists(lists, sort)
-  const reorderable = !savingOrder && (effectiveView === 'favorites' || (effectiveView === 'all' && sort === 'custom'))
+  // Search spans all lists (including favorites) and ignores the tab
+  // selection; the active sort applies within results.
+  const searching = query.trim().length > 0
+  const visibleLists = searching
+    ? sortLists(searchLists(lists, query), sort)
+    : effectiveView === 'favorites'
+      ? favorites
+      : sortLists(lists, sort)
+  const reorderable =
+    !searching && !savingOrder && (effectiveView === 'favorites' || (effectiveView === 'all' && sort === 'custom'))
 
   const handleToggleFavorite = useCallback(
     async (list: WordList) => {
@@ -163,7 +187,9 @@ export default function PatternListsManager() {
       }
       // Entering custom order: the arrangement starts as the order on
       // screen, then persists so it survives reloads.
-      const ordered = initializeCustomOrder(visibleLists)
+      // Build the custom order from the full All view, not the visible
+      // (possibly searched) subset, so every list gets a sortOrder.
+      const ordered = initializeCustomOrder(sortLists(lists, sort))
       const previousSort = sort
       const orderMap = new Map(ordered.map((l) => [l.id, l.sortOrder] as const))
       setLists((prev) => prev.map((l) => ({ ...l, sortOrder: orderMap.get(l.id) })))
@@ -264,38 +290,81 @@ export default function PatternListsManager() {
             )}
           </div>
 
-          {showFavoritesTab && (
-            <div
-              role="tablist"
-              aria-label="List views"
-              className="inline-flex rounded-full border-2 border-line bg-card p-1"
-            >
-              {(['all', 'favorites'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={effectiveView === tab}
-                  onClick={() => setView(tab)}
-                  className={cn(
-                    'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
-                    'focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                    effectiveView === tab ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
-                  )}
-                >
-                  {tab === 'all' ? 'All' : 'Favorites'}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Sticky on mobile so tabs + search stay pinned while scrolling. */}
+          <div className="sticky top-0 z-10 -my-1 space-y-4 bg-background py-3">
+            {showFavoritesTab && !searching && (
+              <div
+                role="tablist"
+                aria-label="List views"
+                className="inline-flex rounded-full border-2 border-line bg-card p-1"
+              >
+                {(['all', 'favorites'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={effectiveView === tab}
+                    onClick={() => setView(tab)}
+                    className={cn(
+                      'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
+                      'focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                      effectiveView === tab ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
+                    )}
+                  >
+                    {tab === 'all' ? 'All' : 'Favorites'}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {effectiveView === 'all' && lists.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3">
-              <ListSortMenu sort={sort} onSortChange={handleSortChange} />
-              {sort === 'custom' && (
-                <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
-              )}
-            </div>
+            {lists.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                {(effectiveView === 'all' || searching) && (
+                  <>
+                    <ListSortMenu sort={sort} onSortChange={handleSortChange} />
+                    {sort === 'custom' && !searching && (
+                      <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
+                    )}
+                  </>
+                )}
+                <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
+                  <SearchIcon
+                    className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    ref={searchRef}
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search lists"
+                    aria-label="Search lists"
+                    className="min-h-[44px] rounded-full pl-10 pr-10"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      aria-label="Clear search"
+                      className={cn(
+                        'absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full',
+                        'text-muted-foreground outline-none transition-colors hover:bg-line/60 hover:text-ink',
+                        'focus-visible:ring-[3px] focus-visible:ring-ring/60'
+                      )}
+                    >
+                      <XIcon className="size-5" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {searching && (
+            <p className="text-[15px] text-muted-foreground" role="status">
+              {visibleLists.length === 0
+                ? `No lists match "${query.trim()}".`
+                : `${visibleLists.length} ${visibleLists.length === 1 ? 'result' : 'results'} for "${query.trim()}".`}
+            </p>
           )}
 
           {lists.length === 0 ? (
@@ -320,6 +389,7 @@ export default function PatternListsManager() {
                     onOpen={openList}
                     onDelete={setDeleteListTarget}
                     onToggleFavorite={handleToggleFavorite}
+                    highlightQuery={searching ? query : ''}
                   />
                 ))}
               </div>
