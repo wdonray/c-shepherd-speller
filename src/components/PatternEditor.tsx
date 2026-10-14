@@ -15,6 +15,7 @@ import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
+import { wordMatchesPattern } from '@/lib/word-pattern-match'
 import type { SpellingPattern, PatternFrequency, ListColor } from '@/models/WordList'
 import { LIST_ACCENT_CLASSES, DEFAULT_LIST_COLOR } from '@/models/WordList'
 
@@ -58,6 +59,7 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
 export default function PatternEditor({ pattern, onChange, onRemove, color = DEFAULT_LIST_COLOR }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
+  const [mismatchedWord, setMismatchedWord] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
   const isLocked = pattern.isLocked ?? false
@@ -68,11 +70,22 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
     onChange({ ...pattern, ...updates })
   }
 
+  const commitWord = (word: string) => {
+    update({ words: [...pattern.words, word] })
+    setNewWord('')
+    setMismatchedWord(null)
+  }
+
   const addWord = () => {
     const word = newWord.trim().toLowerCase()
     if (!word || pattern.words.includes(word)) return
-    update({ words: [...pattern.words, word] })
-    setNewWord('')
+    if (!wordMatchesPattern(word, pattern.pattern)) {
+      // Warn at save time, never block: the match is a heuristic that
+      // cannot catch subtle cases like "have" under "a_e".
+      setMismatchedWord(word)
+      return
+    }
+    commitWord(word)
   }
 
   const removeWord = (word: string) => {
@@ -429,6 +442,28 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
               <Button variant="destructive" onClick={() => wordPendingDelete && removeWord(wordPendingDelete)}>
                 Remove word
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={mismatchedWord !== null} onOpenChange={(open) => !open && setMismatchedWord(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-ink">Check this word</DialogTitle>
+              <DialogDescription className="text-[14px] text-muted-foreground">
+                {mismatchedWord && (
+                  <>
+                    &ldquo;{mismatchedWord}&rdquo; does not look like it contains the &ldquo;{pattern.pattern}&rdquo;
+                    spelling pattern. Some words are tricky, so save it anyway if it belongs here.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setMismatchedWord(null)}>
+                Keep editing
+              </Button>
+              <Button onClick={() => mismatchedWord && commitWord(mismatchedWord)}>Save anyway</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

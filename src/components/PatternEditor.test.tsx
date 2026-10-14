@@ -252,6 +252,70 @@ describe('PatternEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('adds a word directly when it matches a contiguous pattern', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'meet' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, pattern: 'ee', words: ['meet'] })
+  })
+
+  it('warns when the added word does not match the pattern', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('Check this word')).toBeInTheDocument()
+    expect(screen.getByText(/does not look like it contains the/)).toBeInTheDocument()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('warns for a word missing one half of a split pattern', () => {
+    const { onChange } = renderEditor({ words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'cat' } })
+    fireEvent.keyDown(screen.getByLabelText('New word'), { key: 'Enter' })
+    expect(screen.getByText('Check this word')).toBeInTheDocument()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('saves the word anyway from the mismatch warning', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save anyway' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, pattern: 'ee', words: ['bed'] })
+    expect(screen.getByLabelText('New word')).toHaveValue('')
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+  })
+
+  it('keeps the word for editing when the mismatch warning is dismissed', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }))
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('New word')).toHaveValue('bed')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('dismisses the mismatch warning on Escape, keeping the word for editing', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('Check this word')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('New word')).toHaveValue('bed')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('does not warn when the pattern is empty', () => {
+    const { onChange } = renderEditor({ pattern: '', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, pattern: '', words: ['bed'] })
+  })
+
   it('removes a word through its chip button', () => {
     const { onChange } = renderEditor()
     fireEvent.click(screen.getByRole('button', { name: 'Remove cake' }))
