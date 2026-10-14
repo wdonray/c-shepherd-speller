@@ -139,6 +139,14 @@ export const WordListSchema = z.object({
    * to creation order.
    */
   sortOrder: z.number().int().optional(),
+  /**
+   * The teacher's classroom for this list, set at the list level and flowing
+   * down silently to present and sort. Absent on legacy lists and on lists
+   * never assigned a class; treated as no class ("No class" is a first-class
+   * state, and unscoped rules apply). Changing it never bumps updatedAt, so
+   * classroom assignment does not disturb "recently modified" sorts.
+   */
+  classId: z.string().min(1).max(100).optional(),
   patterns: z.array(SpellingPatternSchema).max(20),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -151,6 +159,8 @@ export const CreateWordListSchema = z.object({
   gradeLevel: z.string().max(20).optional(),
   week: z.string().max(20).optional(),
   color: ListColorSchema.optional(),
+  /** Optional classroom assignment; new lists usually inherit the teacher's default class. */
+  classId: z.string().min(1).max(100).optional(),
   patterns: z
     .array(SpellingPatternSchema.omit({ id: true }))
     .max(20)
@@ -164,6 +174,8 @@ export const UpdateWordListSchema = z.object({
   gradeLevel: z.string().max(20).optional(),
   week: z.string().max(20).optional(),
   color: ListColorSchema.optional(),
+  /** Set to a class id to assign, or null to clear back to "No class". */
+  classId: z.string().min(1).max(100).nullable().optional(),
   patterns: z.array(SpellingPatternSchema).max(20).optional(),
   isFavorite: z.boolean().optional(),
   favoriteOrder: z.number().int().optional(),
@@ -227,7 +239,7 @@ export function updateWordListItem(list: WordList, input: UpdateWordListInput): 
     input.week !== undefined ||
     input.color !== undefined ||
     input.patterns !== undefined
-  return {
+  const next: WordList = {
     ...list,
     ...(input.name !== undefined ? { name: input.name } : {}),
     ...(input.gradeLevel !== undefined ? { gradeLevel: input.gradeLevel } : {}),
@@ -241,6 +253,14 @@ export function updateWordListItem(list: WordList, input: UpdateWordListInput): 
     // disturb "recently modified" sorts.
     ...(contentChanged ? { updatedAt: new Date().toISOString() } : {}),
   }
+  // Classroom assignment is organization, not content: assigning or clearing
+  // it never bumps updatedAt. A null clears back to "No class" (the attribute
+  // is dropped so legacy reads stay clean).
+  if (input.classId !== undefined) {
+    if (input.classId) next.classId = input.classId
+    else delete next.classId
+  }
+  return next
 }
 
 /**

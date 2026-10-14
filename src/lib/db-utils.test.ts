@@ -86,6 +86,22 @@ describe('db-utils', () => {
       const putCommand = send.mock.calls[1][0]
       expect(putCommand.input.Item.name).toBe('New Name')
     })
+
+    it('sets the default class id', async () => {
+      send.mockResolvedValueOnce({ Item: storedUser }).mockResolvedValueOnce({})
+      const updated = await updateUser('abc-user', { defaultClassId: 'class_1' })
+      expect(updated.defaultClassId).toBe('class_1')
+      const putCommand = send.mock.calls[1][0]
+      expect(putCommand.input.Item.defaultClassId).toBe('class_1')
+    })
+
+    it('drops the default class attribute when cleared with null', async () => {
+      send.mockResolvedValueOnce({ Item: { ...storedUser, defaultClassId: 'class_1' } }).mockResolvedValueOnce({})
+      const updated = await updateUser('abc-user', { defaultClassId: null })
+      expect('defaultClassId' in updated).toBe(false)
+      const putCommand = send.mock.calls[1][0]
+      expect('defaultClassId' in putCommand.input.Item).toBe(false)
+    })
   })
 
   describe('getUserByEmail', () => {

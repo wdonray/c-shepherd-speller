@@ -20,6 +20,9 @@ const { updateUser, getUserById } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/db-utils', () => ({ updateUser, getUserById }))
 
+const { getClassById } = vi.hoisted(() => ({ getClassById: vi.fn() }))
+vi.mock('@/lib/classes-db', () => ({ getClassById }))
+
 // Imported after the mocks so the routes bind to them.
 import { PUT, GET } from './route'
 
@@ -205,6 +208,54 @@ describe('PUT /api/users/[id]', () => {
     const res = await PUT(req, ctx(ID))
     expect(res.status).toBe(500)
     expect(await res.json()).toEqual({ error: 'Failed to update user' })
+  })
+
+  it('sets the default class when it belongs to the teacher', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    getClassById.mockResolvedValue({ id: 'class_1', userId: ID, name: 'Period 2' })
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ defaultClassId: 'class_1' }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(getClassById).toHaveBeenCalledWith(ID, 'class_1')
+    expect(updateUser).toHaveBeenCalledWith(ID, { defaultClassId: 'class_1' })
+  })
+
+  it('clears the default class with null', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ defaultClassId: null }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(getClassById).not.toHaveBeenCalled()
+    expect(updateUser).toHaveBeenCalledWith(ID, { defaultClassId: null })
+  })
+
+  it("returns 404 when the default class is not the teacher's", async () => {
+    getClassById.mockResolvedValue(undefined)
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ defaultClassId: 'class_nope' }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(404)
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for an invalid default class id', async () => {
+    for (const bad of ['', 42, 'x'.repeat(101)]) {
+      const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+        method: 'PUT',
+        body: JSON.stringify({ defaultClassId: bad }),
+      })
+      const res = await PUT(req, ctx(ID))
+      expect(res.status).toBe(400)
+    }
+    expect(updateUser).not.toHaveBeenCalled()
   })
 })
 

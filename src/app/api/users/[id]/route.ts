@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateUser, getUserById } from '@/lib/db-utils'
+import { getClassById } from '@/lib/classes-db'
 import { UpdateUserBody } from '@/types/User'
 import { requireOwnership } from '@/lib/require-auth'
 import { reportError } from '@/lib/report-error'
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(jpeg|png|webp);base64,/
 const IMAGE_MAX_LENGTH = 140_000
+const CLASS_ID_MAX_LENGTH = 100
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -18,7 +20,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.response) return auth.response
 
     const body = await request.json()
-    const { name, gradeLevel, subject, schoolName, classroomSize, preferredName, image } = body
+    const { name, gradeLevel, subject, schoolName, classroomSize, preferredName, image, defaultClassId } = body
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -40,6 +42,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json({ error: 'Invalid profile image' }, { status: 400 })
       }
       updateData.image = image
+    }
+    if (defaultClassId !== undefined) {
+      if (defaultClassId !== null) {
+        if (
+          typeof defaultClassId !== 'string' ||
+          defaultClassId.length < 1 ||
+          defaultClassId.length > CLASS_ID_MAX_LENGTH
+        ) {
+          return NextResponse.json({ error: 'Invalid default class' }, { status: 400 })
+        }
+        // The default must be one of the teacher's own classes.
+        const cls = await getClassById(id, defaultClassId)
+        if (!cls) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+        updateData.defaultClassId = defaultClassId
+      } else {
+        updateData.defaultClassId = null
+      }
     }
 
     const updatedUser = await updateUser(id, updateData)

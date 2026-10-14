@@ -135,3 +135,21 @@ export async function saveClassRules(
   )
   return merged
 }
+
+/**
+ * Resolve the teacher's effective default classroom.
+ *
+ * An explicitly set default wins. Otherwise a teacher with exactly one
+ * class gets that class as the default automatically (no migration, no
+ * stored value): this is the common "one classroom" case from issue #263.
+ * Teachers with zero or multiple classes and no explicit default get null,
+ * which means "No class".
+ */
+export function resolveDefaultClassId(
+  user: { defaultClassId?: string | null } | null | undefined,
+  classes: Pick<Class, 'id'>[]
+): string | null {
+  if (user?.defaultClassId) return user.defaultClassId
+  if (classes.length === 1) return classes[0].id
+  return null
+}

@@ -8,7 +8,15 @@ vi.mock('@/lib/dynamodb', () => ({
   client: {},
 }))
 
-import { createClass, getClassById, getClassesByUser, updateClass, deleteClass, saveClassRules } from './classes-db'
+import {
+  createClass,
+  getClassById,
+  getClassesByUser,
+  updateClass,
+  deleteClass,
+  saveClassRules,
+  resolveDefaultClassId,
+} from './classes-db'
 import type { Class } from '../models/Class'
 
 const storedClass = {
@@ -135,6 +143,31 @@ describe('classes-db', () => {
     it('throws when the class does not exist', async () => {
       send.mockResolvedValue({})
       await expect(saveClassRules('u1', 'missing', { ai: { rule: 'x' } })).rejects.toThrow('Class not found')
+    })
+  })
+
+  describe('resolveDefaultClassId', () => {
+    const oneClass = [{ id: 'c1' }]
+    const twoClasses = [{ id: 'c1' }, { id: 'c2' }]
+
+    it('prefers the explicitly set default', () => {
+      expect(resolveDefaultClassId({ defaultClassId: 'c2' }, twoClasses)).toBe('c2')
+    })
+
+    it('auto-applies the single class when no default is set', () => {
+      expect(resolveDefaultClassId({}, oneClass)).toBe('c1')
+      expect(resolveDefaultClassId({ defaultClassId: null }, oneClass)).toBe('c1')
+      expect(resolveDefaultClassId(null, oneClass)).toBe('c1')
+      expect(resolveDefaultClassId(undefined, oneClass)).toBe('c1')
+    })
+
+    it('returns null with no classes', () => {
+      expect(resolveDefaultClassId({}, [])).toBeNull()
+      expect(resolveDefaultClassId({ defaultClassId: 'c9' }, [])).toBe('c9')
+    })
+
+    it('returns null with multiple classes and no explicit default', () => {
+      expect(resolveDefaultClassId({}, twoClasses)).toBeNull()
     })
   })
 })
