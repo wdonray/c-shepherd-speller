@@ -787,6 +787,10 @@ describe('sorting (issue #275)', () => {
 })
 
 describe('search (issue #275)', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   const listA: WordList = {
     id: 'a',
     userId: 'u1',
