@@ -543,3 +543,155 @@ describe('favorites (issue #275)', () => {
     expect(titles).toEqual(['Week 5: Long A', 'Week 6'])
   })
 })
+
+describe('sorting (issue #275)', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  const listA: WordList = {
+    id: 'a',
+    userId: 'u1',
+    name: 'Zebra',
+    patterns: [],
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-10T00:00:00.000Z',
+  }
+  const listB: WordList = {
+    id: 'b',
+    userId: 'u1',
+    name: 'Apple',
+    patterns: [],
+    createdAt: '2026-10-03T00:00:00.000Z',
+    updatedAt: '2026-10-12T00:00:00.000Z',
+  }
+
+  function cardTitles() {
+    return screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+      .filter((t) => !t?.startsWith('My word lists'))
+  }
+
+  async function openSortMenu() {
+    fireEvent.pointerDown(screen.getByRole('button', { name: /Sort:/ }), { pointerType: 'mouse' })
+  }
+
+  it('sorts by recently modified by default', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('changes the sort order from the menu', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Name A-Z' }))
+    expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Recently created' }))
+    expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('persists the sort choice across sessions', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    const { unmount } = render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Name A-Z' }))
+    expect(window.localStorage.getItem('patternspell:lists-sort')).toBe('name')
+    unmount()
+
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.getByRole('button', { name: 'Sort: Name A-Z' })).toBeInTheDocument()
+  })
+
+  it('hides the sort menu in the Favorites view', async () => {
+    const starred = { ...listA, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.getByRole('button', { name: /Sort:/ })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    expect(screen.queryByRole('button', { name: /Sort:/ })).not.toBeInTheDocument()
+  })
+
+  it('does nothing when the current sort is re-selected', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Recently modified' }))
+    expect(updateList).not.toHaveBeenCalled()
+    expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('initializes custom order from the current view and persists it', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    updateList.mockResolvedValue({} as WordList)
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Custom order' }))
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 0 })
+    })
+    expect(updateList).toHaveBeenCalledWith('a', { sortOrder: 1 })
+    // Drag handles appear for custom order.
+    expect(screen.getByRole('button', { name: 'Drag to reorder Apple' })).toBeInTheDocument()
+  })
+
+  it('rolls back when initializing custom order fails', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    updateList.mockRejectedValue(new Error('network down'))
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
+    await screen.findByText('My word lists (2)')
+
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Custom order' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    // Sort reverts to the previous choice.
+    expect(screen.getByRole('button', { name: 'Sort: Recently modified' })).toBeInTheDocument()
+  })
+
+  it('reorders the custom sort on drag end', async () => {
+    const withOrderA = { ...listA, sortOrder: 0 }
+    const withOrderB = { ...listB, sortOrder: 1 }
+    getLists.mockResolvedValue([withOrderA, withOrderB])
+    updateList.mockResolvedValue({} as WordList)
+    window.localStorage.setItem('patternspell:lists-sort', 'custom')
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(cardTitles()).toEqual(['Zebra', 'Apple'])
+
+    const dragEvent = { active: { id: 'a' }, over: { id: 'b' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(dragEvent)
+    })
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('a', { sortOrder: 1 })
+    })
+    expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 0 })
+    expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+  })
+})

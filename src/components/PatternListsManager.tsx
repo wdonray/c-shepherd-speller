@@ -20,8 +20,18 @@ import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 import { cn } from '@/lib/utils'
 import { useLocalStorage } from '@/lib/use-local-storage'
-import { sortFavorites, toggleFavorite, reorderFavorites } from '@/lib/list-organize'
+import {
+  sortFavorites,
+  toggleFavorite,
+  reorderFavorites,
+  sortLists,
+  reorderCustom,
+  initializeCustomOrder,
+  LIST_SORT_STORAGE_KEY,
+  type ListSort,
+} from '@/lib/list-organize'
 import ListsOverviewCard from './ListsOverviewCard'
+import ListSortMenu from './ListSortMenu'
 import { OddDuck } from './OddDuck'
 
 /** All/Favorites view selection, persisted across sessions. */
@@ -43,6 +53,7 @@ export default function PatternListsManager() {
   const [deleteListTarget, setDeleteListTarget] = useState<WordList | null>(null)
   const [deletingList, setDeletingList] = useState(false)
   const [view, setView] = useLocalStorage<ListView>(VIEW_STORAGE_KEY, 'all')
+  const [sort, setSort] = useLocalStorage<ListSort>(LIST_SORT_STORAGE_KEY, 'recent')
   const [announcement, setAnnouncement] = useState('')
 
   const loadLists = useCallback(async () => {
@@ -74,8 +85,9 @@ export default function PatternListsManager() {
   const showFavoritesTab = favorites.length > 0
   // A stored "favorites" view with no favorites falls back to All.
   const effectiveView: ListView = view === 'favorites' && showFavoritesTab ? 'favorites' : 'all'
-  const visibleLists = effectiveView === 'favorites' ? favorites : lists
-  const reorderable = effectiveView === 'favorites'
+  // Favorites keep their own manual order; the All view follows the sort menu.
+  const visibleLists = effectiveView === 'favorites' ? favorites : sortLists(lists, sort)
+  const reorderable = effectiveView === 'favorites' || (effectiveView === 'all' && sort === 'custom')
 
   const handleToggleFavorite = useCallback(
     async (list: WordList) => {
@@ -107,22 +119,57 @@ export default function PatternListsManager() {
     async (event: DragEndEvent) => {
       const { active, over } = event
       if (!over || active.id === over.id) return
-      const reordered = reorderFavorites(lists, String(active.id), String(over.id))
+      const favoriteReorder = effectiveView === 'favorites'
+      const reordered = favoriteReorder
+        ? reorderFavorites(lists, String(active.id), String(over.id))
+        : reorderCustom(lists, String(active.id), String(over.id))
       if (reordered === lists) return
       const previous = lists
       setLists(reordered)
-      setAnnouncement('Favorites reordered.')
+      setAnnouncement(favoriteReorder ? 'Favorites reordered.' : 'Lists reordered.')
       try {
-        await Promise.all(
-          reordered.filter(isListFavorite).map((l) => updateList(l.id, { favoriteOrder: l.favoriteOrder }))
-        )
+        if (favoriteReorder) {
+          await Promise.all(
+            reordered.filter(isListFavorite).map((l) => updateList(l.id, { favoriteOrder: l.favoriteOrder }))
+          )
+        } else {
+          await Promise.all(reordered.map((l) => updateList(l.id, { sortOrder: l.sortOrder })))
+        }
       } catch (error) {
         setLists(previous)
         reportError(error, { location: 'PatternListsManager.handleDragEnd' })
         toastError(getErrorMessage(error))
       }
     },
-    [lists]
+    [lists, effectiveView]
+  )
+
+  const handleSortChange = useCallback(
+    async (next: ListSort) => {
+      if (next === sort) return
+      if (next !== 'custom') {
+        setSort(next)
+        return
+      }
+      // Entering custom order: the arrangement starts as the order on
+      // screen, then persists so it survives reloads.
+      const ordered = initializeCustomOrder(visibleLists)
+      const previous = lists
+      const previousSort = sort
+      const orderMap = new Map(ordered.map((l) => [l.id, l.sortOrder] as const))
+      setLists((prev) => prev.map((l) => ({ ...l, sortOrder: orderMap.get(l.id) })))
+      setSort(next)
+      setAnnouncement('Custom order. Drag the handles to reorder your lists.')
+      try {
+        await Promise.all(ordered.map((l) => updateList(l.id, { sortOrder: l.sortOrder })))
+      } catch (error) {
+        setLists(previous)
+        setSort(previousSort)
+        reportError(error, { location: 'PatternListsManager.handleSortChange' })
+        toastError(getErrorMessage(error))
+      }
+    },
+    [sort, visibleLists, lists]
   )
 
   const confirmDeleteList = async (target: WordList) => {
@@ -225,6 +272,15 @@ export default function PatternListsManager() {
                   {tab === 'all' ? 'All' : 'Favorites'}
                 </button>
               ))}
+            </div>
+          )}
+
+          {effectiveView === 'all' && lists.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <ListSortMenu sort={sort} onSortChange={handleSortChange} />
+              {sort === 'custom' && (
+                <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
+              )}
             </div>
           )}
 
