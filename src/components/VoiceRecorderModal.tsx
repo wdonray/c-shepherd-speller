@@ -8,8 +8,11 @@ import { cn } from '@/lib/utils'
 import {
   isAudioCaptureSupported,
   isRecordingStorageSupported,
+  requestMicrophoneStream,
   saveRecording,
   startRecording,
+  MICROPHONE_REQUEST_TIMEOUT_MS,
+  type MicrophoneRequest,
   type RecordingSession,
 } from '@/lib/voice-recordings'
 import { drawLiveWaveform, drawReviewWaveform } from '@/lib/waveform-draw'
@@ -29,6 +32,15 @@ interface VoiceRecorderModalProps {
   word: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /**
+   * In-flight microphone permission request started by the opener directly
+   * from its click gesture. Browsers only show the permission prompt for
+   * requests made in a user gesture, so the opener asks and this modal
+   * awaits the answer instead of asking again from an effect, where the
+   * request would be silently dropped. When absent, the modal falls back to
+   * asking from the Record button's own tap.
+   */
+  microphoneRequest?: MicrophoneRequest | null
   /** Maximum recording length in seconds. Defaults to 60. */
   maxSeconds?: number
   /** Warn once when this many seconds remain. Defaults to 30. */
@@ -44,15 +56,25 @@ function formatTime(totalSeconds: number): string {
 /**
  * Modal flow for recording the teacher's voice for one word.
  *
- * Phases: checking (mic permission) -> ready (press Record) -> recording
- * (live waveform, timer, auto-stop at the cap) -> review (playback, Save or
+ * Phases: checking (mic support and permission preflight) -> ready (press
+ * Record) -> requesting (waiting on the browser prompt) -> recording (live
+ * waveform, timer, auto-stop at the cap) -> review (playback, Save or
  * Re-record). A denied microphone shows in-modal steps to re-enable it.
  * Nothing records until the teacher presses Record.
+ *
+ * The permission prompt must be requested from a user gesture: browsers
+ * silently drop permission requests made from effects or promise callbacks,
+ * showing no prompt and never settling. So the opener asks from its click
+ * and this modal awaits the answer (the microphoneRequest prop); without
+ * that prop, the request happens in the Record button's own tap instead.
+ * The open-time permissions check is only a preflight hint so an
+ * already-blocked microphone shows the recovery UI immediately.
  */
 export default function VoiceRecorderModal({
   word,
   open,
   onOpenChange,
+  microphoneRequest = null,
   maxSeconds = MAX_RECORDING_SECONDS,
   warningSeconds = WARNING_SECONDS_REMAINING,
 }: VoiceRecorderModalProps) {
@@ -67,6 +89,10 @@ export default function VoiceRecorderModal({
 
   const sessionRef = useRef<RecordingSession | null>(null)
   const recordedBlobRef = useRef<Blob | null>(null)
+  /** Stream granted by the opener's permission request, waiting for Record. */
+  const pendingStreamRef = useRef<MediaStream | null>(null)
+  /** Aborts the in-flight permission request when the modal closes. */
+  const permissionAbortRef = useRef<AbortController | null>(null)
   const openRef = useRef(open)
   useEffect(() => {
     openRef.current = open
@@ -127,48 +153,79 @@ export default function VoiceRecorderModal({
   // Cancellation flag for the async permission flow, shared by the open
   // effect and the Try again retry so a late rejection never updates state.
   const permissionCancelledRef = useRef(false)
+  /**
+   * Generation counter for the opener's warmup request. The open effect can
+   * run setup/cleanup/setup (React StrictMode double-invokes effects in
+   * development); only the latest setup's handlers may claim the granted
+   * stream, so a stale setup never stops a stream the live setup just
+   * received.
+   */
+  const warmupGenerationRef = useRef(0)
+
+  /** Map a microphone permission failure onto the matching modal phase. */
+  const mapPermissionError = useCallback((error: unknown) => {
+    const name = error instanceof DOMException ? error.name : ''
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      setPhase('denied')
+    } else if (name === 'TimeoutError') {
+      // The browser never answered the prompt. Give the teacher a way
+      // forward instead of hanging on the spinner.
+      setNotice(
+        'The browser did not show a permission prompt. Click the lock or tune icon in the address bar, set Microphone to Allow, then press Record again.'
+      )
+      setPhase('ready')
+    } else if (name === 'AbortError') {
+      setPhase('ready')
+    } else if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError') {
+      setPhase('unavailable')
+    } else {
+      reportError(error, { location: 'VoiceRecorderModal.handleRecord' })
+      setNotice('Microphone unavailable. Try again.')
+      setPhase('ready')
+    }
+  }, [])
 
   const checkMicrophonePermission = useCallback(() => {
+    // Preflight hint only: when the microphone is already blocked, show the
+    // recovery UI immediately. Otherwise stay on ready; the actual request
+    // waits for a user gesture (the opener's click or the Record press),
+    // which is what browsers require before they will show the prompt.
     const permissions = navigator.permissions as Permissions | undefined
     if (typeof permissions?.query !== 'function') {
       setPhase('ready')
       return
     }
-    permissions
-      .query({ name: 'microphone' as PermissionName })
-      .then((status) => {
-        if (permissionCancelledRef.current) return
-        if (status.state === 'denied') {
-          setPhase('denied')
-          return
-        }
-        if (status.state === 'granted') {
-          setPhase('ready')
-          return
-        }
-        setPhase('requesting')
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            stream.getTracks().forEach((track) => track.stop())
-            if (!permissionCancelledRef.current) setPhase('ready')
-          })
-          .catch((error: unknown) => {
-            if (permissionCancelledRef.current) return
-            // Only permission denials get the blocked help UI. Other
-            // failures (no mic hardware, mic in use) get their own message.
-            const name = error instanceof DOMException ? error.name : ''
-            setPhase(name === 'NotAllowedError' ? 'denied' : 'unavailable')
-          })
-      })
-      .catch(() => {
+    let query: Promise<PermissionStatus>
+    try {
+      query = permissions.query({ name: 'microphone' as PermissionName })
+    } catch {
+      // Some browsers throw synchronously for permission names they do not
+      // recognize. Fall through to the gesture-driven request instead.
+      setPhase('ready')
+      return
+    }
+    query.then(
+      (status) => {
+        if (!permissionCancelledRef.current) setPhase(status.state === 'denied' ? 'denied' : 'ready')
+      },
+      () => {
         if (!permissionCancelledRef.current) setPhase('ready')
-      })
+      }
+    )
+  }, [])
+
+  /** Release a granted-but-unused warmup stream so the mic light goes out. */
+  const releasePendingStream = useCallback(() => {
+    pendingStreamRef.current?.getTracks().forEach((track) => track.stop())
+    pendingStreamRef.current = null
   }, [])
 
   // Reset everything when the modal opens; clean up when it closes.
   useEffect(() => {
     if (!open) {
+      permissionAbortRef.current?.abort()
+      permissionAbortRef.current = null
+      releasePendingStream()
       cleanupRecordingRef.current()
       cleanupAudioRef.current()
       return
@@ -186,23 +243,50 @@ export default function VoiceRecorderModal({
       setPhase('unsupported')
       return
     }
-    // Check the cached permission state. If the mic is already denied,
-    // show the help UI. If permission is undecided, request it now so the
-    // browser prompt appears on open; recording still waits for Record.
     permissionCancelledRef.current = false
-    checkMicrophonePermission()
+    if (microphoneRequest) {
+      // The opener asked for microphone access from its click gesture.
+      // Await the answer here instead of asking again from this effect,
+      // where the request would be silently dropped with no prompt.
+      setPhase('requesting')
+      const generation = ++warmupGenerationRef.current
+      microphoneRequest.promise.then(
+        (stream) => {
+          // A stale setup (superseded by a newer effect run) must not
+          // touch the stream; the live setup owns it.
+          if (generation !== warmupGenerationRef.current) return
+          if (permissionCancelledRef.current) {
+            stream.getTracks().forEach((track) => track.stop())
+            return
+          }
+          pendingStreamRef.current = stream
+          setPhase('ready')
+        },
+        (error: unknown) => {
+          if (generation !== warmupGenerationRef.current) return
+          if (!permissionCancelledRef.current) mapPermissionError(error)
+        }
+      )
+    } else {
+      // No opener request (or an unsupported browser): preflight hint only.
+      // The real request waits for the Record press's user gesture.
+      checkMicrophonePermission()
+    }
     return () => {
       permissionCancelledRef.current = true
     }
-  }, [open, checkMicrophonePermission])
+  }, [open, microphoneRequest, checkMicrophonePermission, mapPermissionError, releasePendingStream])
 
   // Full cleanup on unmount.
   useEffect(() => {
     return () => {
+      permissionAbortRef.current?.abort()
+      permissionAbortRef.current = null
+      releasePendingStream()
       cleanupRecordingRef.current()
       if (audioRef.current) audioRef.current.pause()
     }
-  }, [])
+  }, [releasePendingStream])
 
   // Start the live waveform once the recording canvas has rendered.
   useEffect(() => {
@@ -284,9 +368,24 @@ export default function VoiceRecorderModal({
 
   const handleRecord = async () => {
     setNotice(null)
+    const aborter = new AbortController()
+    permissionAbortRef.current = aborter
+    // Prefer the stream the opener pre-authorized from its click gesture;
+    // otherwise ask here, in this tap's gesture, which is what browsers
+    // require before they will show the permission prompt.
+    let stream: MediaStream | null = pendingStreamRef.current
+    pendingStreamRef.current = null
     try {
-      const session = await startRecording()
+      if (!stream) {
+        setPhase('requesting')
+        stream = await requestMicrophoneStream(MICROPHONE_REQUEST_TIMEOUT_MS, aborter.signal)
+      }
       // The modal may have closed while the permission prompt was open.
+      if (!openRef.current) return
+      const session = await startRecording(stream)
+      // Ownership of the stream moves to the session; stop()/cancel()
+      // release it from here on.
+      stream = null
       if (!openRef.current) {
         session.cancel()
         return
@@ -314,13 +413,14 @@ export default function VoiceRecorderModal({
       setPhase('recording')
       startTimer()
     } catch (error) {
-      const name = error instanceof DOMException ? error.name : ''
-      if (name === 'NotAllowedError' || name === 'SecurityError') {
-        setPhase('denied')
-      } else {
-        reportError(error, { location: 'VoiceRecorderModal.handleRecord' })
-        setNotice('Microphone unavailable. Try again.')
-      }
+      // The modal may have closed while the permission prompt was open.
+      if (!openRef.current) return
+      mapPermissionError(error)
+    } finally {
+      // A stream that never made it into a session (request failed, or the
+      // modal closed first) is released here so the mic light goes out.
+      stream?.getTracks().forEach((track) => track.stop())
+      if (permissionAbortRef.current === aborter) permissionAbortRef.current = null
     }
   }
 

@@ -2,13 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import type { RecordingSession } from '@/lib/voice-recordings'
 
-const { startRecording, saveRecording, isRecordingStorageSupported, isAudioCaptureSupported } = vi.hoisted(() => ({
-  startRecording: vi.fn(),
-  saveRecording: vi.fn(),
-  isRecordingStorageSupported: vi.fn(),
-  isAudioCaptureSupported: vi.fn(),
-}))
+const { requestMicrophoneStream, startRecording, saveRecording, isRecordingStorageSupported, isAudioCaptureSupported } =
+  vi.hoisted(() => ({
+    requestMicrophoneStream: vi.fn(),
+    startRecording: vi.fn(),
+    saveRecording: vi.fn(),
+    isRecordingStorageSupported: vi.fn(),
+    isAudioCaptureSupported: vi.fn(),
+  }))
 vi.mock('@/lib/voice-recordings', () => ({
+  MICROPHONE_REQUEST_TIMEOUT_MS: 15000,
+  requestMicrophoneStream,
   startRecording,
   saveRecording,
   isRecordingStorageSupported,
@@ -23,6 +27,16 @@ import VoiceRecorderModal from './VoiceRecorderModal'
 function supported() {
   isRecordingStorageSupported.mockReturnValue(true)
   isAudioCaptureSupported.mockReturnValue(true)
+}
+
+/** A granted microphone stream the permission request resolves with. */
+function fakeMicStream() {
+  return { getTracks: () => [] as Array<{ stop: () => void }> }
+}
+
+/** An opener-started permission request, as passed via the microphoneRequest prop. */
+function fakeMicRequest(promise: Promise<unknown>) {
+  return { promise, cancel: vi.fn() }
 }
 
 function stubPermissions(state: PermissionState) {
@@ -133,6 +147,7 @@ describe('VoiceRecorderModal', () => {
     stubPermissions('granted')
     stubAudioContext()
     stubCanvas()
+    requestMicrophoneStream.mockResolvedValue(fakeMicStream())
     vi.stubGlobal(
       'requestAnimationFrame',
       vi.fn(() => 1)
@@ -178,42 +193,75 @@ describe('VoiceRecorderModal', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
-  it('requests permission on open when undecided and shows ready on grant', async () => {
+  it('does not request permission on open; the Record tap asks from its own gesture', async () => {
     stubPermissions('prompt')
-    let resolvePermission!: (stream: { getTracks: () => Array<{ stop: () => void }> }) => void
-    const track = { stop: vi.fn() }
-    const getUserMedia = vi.fn(() => new Promise((resolve) => (resolvePermission = resolve)))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
     renderModal()
-    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
-    expect(getUserMedia).toHaveBeenCalledWith({ audio: true })
-    resolvePermission({ getTracks: () => [track] })
     expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
-    expect(track.stop).toHaveBeenCalled()
+    expect(requestMicrophoneStream).not.toHaveBeenCalled()
+    const getUserMedia = navigator.mediaDevices.getUserMedia as ReturnType<typeof vi.fn>
+    expect(getUserMedia).not.toHaveBeenCalled()
   })
 
-  it('shows the denial help when the on-open permission request is denied', async () => {
-    stubPermissions('prompt')
-    const getUserMedia = vi.fn().mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
+  it('asks for the microphone from the Record tap and records from the granted stream', async () => {
+    const stream = fakeMicStream()
+    let resolveRequest!: (stream: unknown) => void
+    requestMicrophoneStream.mockReturnValue(new Promise((resolve) => (resolveRequest = resolve)))
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
     renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(requestMicrophoneStream).toHaveBeenCalledWith(expect.any(Number), expect.any(AbortSignal))
+    )
+    resolveRequest(stream)
+    await waitFor(() => expect(startRecording).toHaveBeenCalledWith(stream))
+    expect(await screen.findByRole('button', { name: 'Stop' })).toBeInTheDocument()
+  })
+
+  it('records from the opener pre-authorized stream without asking again', async () => {
+    const stream = fakeMicStream()
+    let resolveWarmup!: (stream: unknown) => void
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(new Promise((resolve) => (resolveWarmup = resolve)))}
+      />
+    )
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    resolveWarmup(stream)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await waitFor(() => expect(startRecording).toHaveBeenCalledWith(stream))
+    expect(requestMicrophoneStream).not.toHaveBeenCalled()
+    expect(await screen.findByRole('button', { name: 'Stop' })).toBeInTheDocument()
+  })
+
+  it('shows the denial help when the opener permission request is denied', async () => {
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('denied', 'NotAllowedError')))}
+      />
+    )
     expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
   })
 
-  it('shows the unavailable help when the mic request fails for another reason', async () => {
-    stubPermissions('prompt')
-    const getUserMedia = vi.fn().mockRejectedValue(new DOMException('no device', 'NotFoundError'))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
-    const { onOpenChange } = renderModal()
+  it('shows the unavailable help when the opener request finds no microphone', async () => {
+    const onOpenChange = vi.fn()
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={onOpenChange}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('no device', 'NotFoundError')))}
+      />
+    )
     expect(await screen.findByText('No microphone found')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     const closeButtons = screen.getAllByRole('button', { name: 'Close' })
@@ -222,45 +270,100 @@ describe('VoiceRecorderModal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('shows the unavailable help when the mic request rejects without a DOMException', async () => {
-    stubPermissions('prompt')
-    const getUserMedia = vi.fn().mockRejectedValue(new Error('boom'))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
-    renderModal()
-    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+  it('shows a notice and returns to ready when the opener request fails generically', async () => {
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new Error('boom')))}
+      />
+    )
+    expect(await screen.findByText('Microphone unavailable. Try again.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(reportError).toHaveBeenCalled()
   })
 
-  it('ignores unmount during the on-open permission request', async () => {
-    stubPermissions('prompt')
-    let resolvePermission!: (stream: unknown) => void
-    const getUserMedia = vi.fn(() => new Promise((resolve) => (resolvePermission = resolve)))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
-    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+  it('shows recovery guidance when the opener request times out', async () => {
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('timed out', 'TimeoutError')))}
+      />
+    )
+    expect(await screen.findByText(/did not show a permission prompt/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('ignores a superseded opener request when a newer one arrives', async () => {
+    const oldTrack = { stop: vi.fn() }
+    let resolveOld!: (stream: unknown) => void
+    let resolveNew!: (stream: unknown) => void
+    const oldRequest = fakeMicRequest(new Promise((resolve) => (resolveOld = resolve)))
+    const newRequest = fakeMicRequest(new Promise((resolve) => (resolveNew = resolve)))
+    const { rerender } = render(
+      <VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={oldRequest} />
+    )
     expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
-    unmount()
-    resolvePermission({ getTracks: () => [] })
+    rerender(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={newRequest} />)
+    // The old request resolves late: the stale handler must not touch its
+    // stream, and the modal keeps waiting on the new request.
+    resolveOld({ getTracks: () => [oldTrack] })
     await act(async () => {})
-    expect(true).toBe(true)
+    expect(oldTrack.stop).not.toHaveBeenCalled()
+    expect(screen.getByText(/Requesting microphone access/)).toBeInTheDocument()
+    // The new request still drives the modal.
+    const newTrack = { stop: vi.fn() }
+    resolveNew({ getTracks: () => [newTrack] })
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(newTrack.stop).not.toHaveBeenCalled()
   })
 
-  it('ignores a denied permission request after unmount', async () => {
-    stubPermissions('prompt')
-    let rejectPermission!: (error: unknown) => void
-    const getUserMedia = vi.fn(() => new Promise((_resolve, reject) => (rejectPermission = reject)))
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia },
-      configurable: true,
-    })
-    const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+  it('ignores a rejected superseded opener request', async () => {
+    let rejectOld!: (error: unknown) => void
+    let resolveNew!: (stream: unknown) => void
+    const oldRequest = fakeMicRequest(new Promise((_resolve, reject) => (rejectOld = reject)))
+    const newRequest = fakeMicRequest(new Promise((resolve) => (resolveNew = resolve)))
+    const { rerender } = render(
+      <VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={oldRequest} />
+    )
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    rerender(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={newRequest} />)
+    // The old request rejects late: the stale handler must not surface it.
+    rejectOld(new DOMException('denied', 'NotAllowedError'))
+    await act(async () => {})
+    expect(screen.getByText(/Requesting microphone access/)).toBeInTheDocument()
+    expect(screen.queryByText('Microphone is blocked')).not.toBeInTheDocument()
+    resolveNew(fakeMicStream())
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('releases the opener stream when it resolves after unmount', async () => {
+    const track = { stop: vi.fn() }
+    let resolveRequest!: (stream: unknown) => void
+    const request = fakeMicRequest(new Promise((resolve) => (resolveRequest = resolve)))
+    const { unmount } = render(
+      <VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={request} />
+    )
     expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
     unmount()
-    rejectPermission(new DOMException('denied', 'NotAllowedError'))
+    resolveRequest({ getTracks: () => [track] })
+    await act(async () => {})
+    expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('ignores a denied opener request after unmount', async () => {
+    let rejectRequest!: (error: unknown) => void
+    const request = fakeMicRequest(new Promise((_resolve, reject) => (rejectRequest = reject)))
+    const { unmount } = render(
+      <VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={request} />
+    )
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    unmount()
+    rejectRequest(new DOMException('denied', 'NotAllowedError'))
     await act(async () => {})
     expect(true).toBe(true)
   })
@@ -298,6 +401,116 @@ describe('VoiceRecorderModal', () => {
     renderModal()
     fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
     expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+  })
+
+  it('shows the denial help when the Record tap is blocked with a SecurityError', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('blocked', 'SecurityError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+  })
+
+  it('shows the unavailable help when the Record tap finds no microphone', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('no device', 'NotFoundError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+  })
+
+  it('shows the unavailable help when the Record tap cannot satisfy the constraints', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('overconstrained', 'OverconstrainedError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+  })
+
+  it('shows the unavailable help when the microphone is already in use', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('in use', 'NotReadableError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText('No microphone found')).toBeInTheDocument()
+  })
+
+  it('shows recovery guidance when the Record tap never gets a browser answer', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('timed out', 'TimeoutError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText(/did not show a permission prompt/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('returns to ready when the Record tap permission request is aborted', async () => {
+    requestMicrophoneStream.mockRejectedValue(new DOMException('cancelled', 'AbortError'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('releases the stream when recording fails to start after the grant', async () => {
+    const track = { stop: vi.fn() }
+    requestMicrophoneStream.mockResolvedValue({ getTracks: () => [track] })
+    startRecording.mockRejectedValue(new Error('recorder broken'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText('Microphone unavailable. Try again.')).toBeInTheDocument()
+    expect(track.stop).toHaveBeenCalled()
+    expect(reportError).toHaveBeenCalled()
+  })
+
+  it('releases the stream when the modal closes during the permission request', async () => {
+    const track = { stop: vi.fn() }
+    let resolveRequest!: (stream: unknown) => void
+    requestMicrophoneStream.mockReturnValue(new Promise((resolve) => (resolveRequest = resolve)))
+    const onOpenChange = vi.fn()
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={onOpenChange} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={onOpenChange} />)
+    resolveRequest({ getTracks: () => [track] })
+    await act(async () => {})
+    expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('ignores a rejected permission request after the modal closes', async () => {
+    let rejectRequest!: (error: unknown) => void
+    requestMicrophoneStream.mockReturnValue(new Promise((_resolve, reject) => (rejectRequest = reject)))
+    const onOpenChange = vi.fn()
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={onOpenChange} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={onOpenChange} />)
+    rejectRequest(new DOMException('denied', 'NotAllowedError'))
+    await act(async () => {})
+    // No crash, no state update on the closed modal.
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('releases the pre-authorized stream when the modal closes before recording', async () => {
+    const track = { stop: vi.fn() }
+    const onOpenChange = vi.fn()
+    const { rerender } = render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={onOpenChange}
+        microphoneRequest={fakeMicRequest(Promise.resolve({ getTracks: () => [track] }))}
+      />
+    )
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={onOpenChange} />)
+    await act(async () => {})
+    expect(track.stop).toHaveBeenCalled()
+  })
+
+  it('proceeds when the permission query throws synchronously', async () => {
+    const query = vi.fn(() => {
+      throw new TypeError('not supported')
+    })
+    Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true })
+    renderModal()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
   })
 
   it('shows a notice when recording fails for another reason', async () => {
@@ -401,12 +614,18 @@ describe('VoiceRecorderModal', () => {
 
   it('cancels an in-flight recording when the modal closes', async () => {
     const session = makeSession()
+    let resolveRequest!: (stream: unknown) => void
     let resolveStart!: (s: ReturnType<typeof makeSession>) => void
+    requestMicrophoneStream.mockReturnValue(new Promise((resolve) => (resolveRequest = resolve)))
     startRecording.mockReturnValue(new Promise((resolve) => (resolveStart = resolve)))
     const onOpenChange = vi.fn()
     const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={onOpenChange} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
-    // Close while the permission prompt is still open.
+    expect(await screen.findByText(/Requesting microphone access/)).toBeInTheDocument()
+    resolveRequest(fakeMicStream())
+    // The permission is granted; startRecording is now the pending step.
+    await waitFor(() => expect(startRecording).toHaveBeenCalled())
+    // Close while the recording start is still in flight.
     rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={onOpenChange} />)
     resolveStart(session)
     await act(async () => {})

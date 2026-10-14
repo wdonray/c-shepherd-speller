@@ -9,6 +9,8 @@ import {
   isAudioCaptureSupported,
   isRecordingStorageSupported,
   recordingToBlob,
+  requestMicrophoneAccess,
+  requestMicrophoneStream,
   saveRecording,
   startRecording,
 } from './voice-recordings'
@@ -210,6 +212,95 @@ describe('recordings store', () => {
   })
 })
 
+describe('requestMicrophoneStream', () => {
+  function fakeStream() {
+    const stop = vi.fn()
+    const stream = { getTracks: () => [{ stop }] } as unknown as MediaStream
+    return { stream, stop }
+  }
+
+  it('resolves with the granted stream', async () => {
+    const { stream } = fakeStream()
+    getUserMedia.mockResolvedValue(stream)
+    await expect(requestMicrophoneStream(15000)).resolves.toBe(stream)
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: true })
+  })
+
+  it('rejects with the browser error when access is denied', async () => {
+    getUserMedia.mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
+    await expect(requestMicrophoneStream(15000)).rejects.toMatchObject({ name: 'NotAllowedError' })
+  })
+
+  it('rejects with TimeoutError when the browser never answers', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveGum!: (stream: MediaStream) => void
+      getUserMedia.mockReturnValue(new Promise((resolve) => (resolveGum = resolve)))
+      const promise = requestMicrophoneStream(15000)
+      const assertion = expect(promise).rejects.toMatchObject({ name: 'TimeoutError' })
+      await vi.advanceTimersByTimeAsync(15000)
+      await assertion
+      // A late grant after the timeout is released immediately.
+      vi.useRealTimers()
+      const { stream, stop } = fakeStream()
+      resolveGum(stream)
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(stop).toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('aborts the wait when the signal fires', async () => {
+    const controller = new AbortController()
+    let rejectGum!: (error: unknown) => void
+    getUserMedia.mockReturnValue(new Promise((_resolve, reject) => (rejectGum = reject)))
+    const promise = requestMicrophoneStream(15000, controller.signal)
+    const assertion = expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+    controller.abort()
+    await assertion
+    // A late rejection after the abort needs no stream cleanup.
+    rejectGum(new DOMException('denied', 'NotAllowedError'))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(true).toBe(true)
+  })
+
+  it('stops a late-arriving stream after the abort', async () => {
+    const controller = new AbortController()
+    let resolveGum!: (stream: MediaStream) => void
+    getUserMedia.mockReturnValue(new Promise((resolve) => (resolveGum = resolve)))
+    const promise = requestMicrophoneStream(15000, controller.signal)
+    controller.abort()
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+    const { stream, stop } = fakeStream()
+    resolveGum(stream)
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(stop).toHaveBeenCalled()
+  })
+
+  it('rejects immediately without asking when the signal is already aborted', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    await expect(requestMicrophoneStream(15000, controller.signal)).rejects.toMatchObject({
+      name: 'AbortError',
+    })
+    expect(getUserMedia).not.toHaveBeenCalled()
+  })
+})
+
+describe('requestMicrophoneAccess', () => {
+  it('returns a cancellable in-flight request', async () => {
+    getUserMedia.mockReturnValue(new Promise(() => {}))
+    const request = requestMicrophoneAccess(15000)
+    const assertion = expect(request.promise).rejects.toMatchObject({ name: 'AbortError' })
+    request.cancel()
+    await assertion
+  })
+})
+
 describe('startRecording', () => {
   function trackStopped() {
     const stopped: unknown[] = []
@@ -254,6 +345,18 @@ describe('startRecording', () => {
   it('rejects when microphone access is denied', async () => {
     getUserMedia.mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
     await expect(startRecording()).rejects.toThrow('denied')
+  })
+
+  it('records from a pre-authorized stream without asking again', async () => {
+    const stopped: unknown[] = []
+    const stream = {
+      getTracks: () => [{ stop: () => stopped.push('track') }],
+    } as unknown as MediaStream
+    const session = await startRecording(stream)
+    expect(getUserMedia).not.toHaveBeenCalled()
+    expect(FakeMediaRecorder.instances[0].stream).toBe(stream)
+    await session.stop()
+    expect(stopped).toHaveLength(1)
   })
 
   it('cancel stops an active recorder without saving', async () => {
