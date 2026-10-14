@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
@@ -150,7 +150,7 @@ describe('Dashboard', () => {
     })
   })
 
-  it('shows only the three most recently touched lists, newest first', async () => {
+  it('ranks the three shown lists by most recent activity, not last-updated', async () => {
     const makeList = (id: string, name: string, updatedAt: string): WordList => ({
       ...list,
       id,
@@ -158,20 +158,91 @@ describe('Dashboard', () => {
       updatedAt,
     })
     getLists.mockResolvedValue([
-      makeList('l1', 'Oldest', '2026-10-01T00:00:00.000Z'),
-      makeList('l2', 'Newest', '2026-10-05T00:00:00.000Z'),
+      makeList('l1', 'Recently edited', '2026-10-05T00:00:00.000Z'),
+      makeList('l2', 'Old but practiced today', '2026-10-01T00:00:00.000Z'),
       makeList('l3', 'Middle', '2026-10-03T00:00:00.000Z'),
       makeList('l4', 'Second newest', '2026-10-04T00:00:00.000Z'),
-      makeList('l5', 'Second oldest', '2026-10-02T00:00:00.000Z'),
+      makeList('l5', 'Never touched', '2026-09-01T00:00:00.000Z'),
     ])
+    // Practicing the old list now outranks the more recently edited one.
+    logActivity('practiced', 'Practiced Old but practiced today', 'l2')
     render(<Dashboard {...defaultProps} />)
 
     await waitFor(() => {
       expect(screen.getByText('My word lists (5)')).toBeInTheDocument()
     })
-    const cards = screen.getAllByText(/Newest|Second newest|Middle|Second oldest|Oldest/)
-    expect(cards.map((c) => c.textContent)).toEqual(['Newest', 'Second newest', 'Middle'])
+    const listsSection = screen.getByRole('region', { name: 'My word lists' })
+    const cards = within(listsSection).getAllByText(
+      /Recently edited|Old but practiced today|Middle|Second newest|Never touched/
+    )
+    expect(cards.map((c) => c.textContent)).toEqual(['Old but practiced today', 'Recently edited', 'Second newest'])
+  })
+
+  it('explains the preview and names the total when more than three lists exist', async () => {
+    const makeList = (id: string, name: string, updatedAt: string): WordList => ({
+      ...list,
+      id,
+      name,
+      updatedAt,
+    })
+    getLists.mockResolvedValue([
+      makeList('l1', 'First', '2026-10-01T00:00:00.000Z'),
+      makeList('l2', 'Second', '2026-10-02T00:00:00.000Z'),
+      makeList('l3', 'Third', '2026-10-03T00:00:00.000Z'),
+      makeList('l4', 'Fourth', '2026-10-04T00:00:00.000Z'),
+    ])
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (4)')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Showing your three most recently used lists.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View all 4 lists' })).toHaveAttribute('href', '/lists')
+  })
+
+  it('hides the preview caption when every list fits', async () => {
+    getLists.mockResolvedValue([list])
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (1)')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Showing your three most recently used lists.')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View all lists' })).toHaveAttribute('href', '/lists')
+  })
+
+  it('ignores activity older than the last edit when ranking', async () => {
+    const makeList = (id: string, name: string, updatedAt: string): WordList => ({
+      ...list,
+      id,
+      name,
+      updatedAt,
+    })
+    // A practice event from before the last edit must not move the list up.
+    localStorage.setItem(
+      'shepherd-speller-activity',
+      JSON.stringify([
+        {
+          id: 'stale',
+          kind: 'practiced',
+          text: 'Practiced Stale practice',
+          listId: 'l1',
+          at: Date.parse('2026-09-01T00:00:00.000Z'),
+        },
+      ])
+    )
+    getLists.mockResolvedValue([
+      makeList('l1', 'Stale practice', '2026-10-05T00:00:00.000Z'),
+      makeList('l2', 'Newer edit', '2026-10-06T00:00:00.000Z'),
+    ])
+    render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('My word lists (2)')).toBeInTheDocument()
+    })
+    const listsSection = screen.getByRole('region', { name: 'My word lists' })
+    const cards = within(listsSection).getAllByText(/Stale practice|Newer edit/)
+    expect(cards.map((c) => c.textContent)).toEqual(['Newer edit', 'Stale practice'])
   })
 
   it('calls onEditList when Open is clicked on a card', async () => {

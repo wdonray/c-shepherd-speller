@@ -109,7 +109,21 @@ function RecentActivity({ events }: { events: ActivityEvent[] }) {
 /**
  * Teacher dashboard: greeting, quick actions, lists, getting started guide,
  * and recent activity.
+ *
+ * The lists section previews the teacher's three most recently used lists.
+ * Recency comes from the activity log (practiced, presented, created,
+ * edited) when an event exists for the list, falling back to the list's
+ * own updatedAt. The activity log is local-only and capped, so older or
+ * cross-device work still ranks by updatedAt.
  */
+function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
+  let latest = Date.parse(list.updatedAt)
+  for (const event of events) {
+    if (event.listId === list.id && event.at > latest) latest = event.at
+  }
+  return latest
+}
+
 export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
   const { data: session, status } = useSession()
   const [lists, setLists] = useState<WordList[]>([])
@@ -227,10 +241,15 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
 
           <section aria-label="My word lists" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-bold">My word lists ({lists.length})</h2>
+              <div>
+                <h2 className="text-2xl font-bold">My word lists ({lists.length})</h2>
+                {lists.length > 3 && (
+                  <p className="text-sm text-muted-foreground">Showing your three most recently used lists.</p>
+                )}
+              </div>
               {lists.length > 0 && (
                 <Button variant="secondary" asChild>
-                  <Link href="/lists">View all lists</Link>
+                  <Link href="/lists">{lists.length > 3 ? `View all ${lists.length} lists` : 'View all lists'}</Link>
                 </Button>
               )}
             </div>
@@ -255,7 +274,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[...lists]
-                  .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                  .sort((a, b) => lastActivityAt(b, activity) - lastActivityAt(a, activity))
                   .slice(0, 3)
                   .map((list) => (
                     <WordListCard key={list.id} list={list} onOpen={onEditList} primaryLabel="Edit list" />
