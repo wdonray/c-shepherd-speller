@@ -4,14 +4,16 @@ import PatternListsManager from './PatternListsManager'
 import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
 
-const { getLists, deleteList, notifyListsChanged } = vi.hoisted(() => ({
+const { getLists, deleteList, updateList, notifyListsChanged } = vi.hoisted(() => ({
   getLists: vi.fn(),
   deleteList: vi.fn(),
+  updateList: vi.fn(),
   notifyListsChanged: vi.fn(),
 }))
 vi.mock('@/lib/lists-api', () => ({
   getLists,
   deleteList,
+  updateList,
   notifyListsChanged,
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
@@ -33,6 +35,36 @@ const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }))
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
+
+const { dndProps } = vi.hoisted(() => ({
+  dndProps: {} as { onDragEnd?: (event: import('@dnd-kit/core').DragEndEvent) => void },
+}))
+
+const { toggleFavoriteOverride } = vi.hoisted(() => ({
+  toggleFavoriteOverride: { current: null as null | (() => null) },
+}))
+vi.mock('@/lib/list-organize', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/list-organize')>()
+  return {
+    ...actual,
+    toggleFavorite: (...args: Parameters<typeof actual.toggleFavorite>) => {
+      if (toggleFavoriteOverride.current) return toggleFavoriteOverride.current()
+      return actual.toggleFavorite(...args)
+    },
+  }
+})
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+  return {
+    ...actual,
+    // Capture DndContext props so tests can invoke onDragEnd directly;
+    // the real context provider still drives the cards.
+    DndContext: (props: React.ComponentProps<typeof actual.DndContext>) => {
+      dndProps.onDragEnd = props.onDragEnd
+      return <actual.DndContext {...props} />
+    },
+  }
+})
 
 const patternA: SpellingPattern = {
   id: 'p1',
@@ -71,6 +103,7 @@ describe('PatternListsManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    toggleFavoriteOverride.current = null
   })
 
   afterEach(() => {
@@ -268,5 +301,245 @@ describe('PatternListsManager', () => {
       expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+  })
+})
+
+describe('favorites (issue #275)', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('stars a list when the star button is clicked', async () => {
+    getLists.mockResolvedValue([list, list2])
+    updateList.mockResolvedValue({ ...list, isFavorite: true, favoriteOrder: 0 })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', { isFavorite: true, favoriteOrder: 0 })
+    })
+    expect(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' })).toBeInTheDocument()
+  })
+
+  it('rolls back the star when the update fails', async () => {
+    getLists.mockResolvedValue([list])
+    updateList.mockRejectedValue(new Error('network down'))
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
+    await screen.findByText('My word lists (1)')
+    fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' })).toBeInTheDocument()
+    })
+  })
+
+  it('shows All/Favorites tabs only when a favorite exists', async () => {
+    getLists.mockResolvedValue([list, list2])
+    updateList.mockResolvedValue({ ...list, isFavorite: true, favoriteOrder: 0 })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.queryByRole('tablist', { name: 'List views' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    await waitFor(() => {
+      expect(screen.getByRole('tablist', { name: 'List views' })).toBeInTheDocument()
+    })
+  })
+
+  it('filters to favorites while keeping them in All with a filled star', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'All' }))
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    expect(screen.getByText('Week 6')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' })).toBeInTheDocument()
+  })
+
+  it('persists the selected view across sessions', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, list2])
+    const { unmount } = render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    expect(window.localStorage.getItem('patternspell:lists-view')).toBe('favorites')
+    unmount()
+
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.getByRole('tab', { name: 'Favorites' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
+  })
+
+  it('falls back to All when the stored view is favorites but none exist', async () => {
+    window.localStorage.setItem('patternspell:lists-view', 'favorites')
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.getByText('Week 6')).toBeInTheDocument()
+  })
+
+  it('toggles a favorite on swipe right', async () => {
+    getLists.mockResolvedValue([list])
+    updateList.mockResolvedValue({ ...list, isFavorite: true, favoriteOrder: 0 })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    const card = screen.getByText('Week 5: Long A').closest('[data-testid="lists-grid"] > div')!
+    fireEvent.touchStart(card, { touches: [{ clientX: 100, clientY: 200 }] })
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 180, clientY: 205 }] })
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', { isFavorite: true, favoriteOrder: 0 })
+    })
+  })
+
+  it('ignores vertical swipes and short swipes', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    const card = screen.getByText('Week 5: Long A').closest('[data-testid="lists-grid"] > div')!
+    fireEvent.touchStart(card, { touches: [{ clientX: 100, clientY: 200 }] })
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 110, clientY: 300 }] })
+    fireEvent.touchStart(card, { touches: [{ clientX: 100, clientY: 200 }] })
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 130, clientY: 202 }] })
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('shows drag handles in the favorites view only', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    const starred2 = { ...list2, isFavorite: true, favoriteOrder: 1 }
+    getLists.mockResolvedValue([starred, starred2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.queryByRole('button', { name: /Drag to reorder/ })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    expect(screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Drag to reorder Week 6' })).toBeInTheDocument()
+  })
+
+  it('reorders favorites on drag end and persists the new order', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    const favB = { ...list2, isFavorite: true, favoriteOrder: 1 }
+    getLists.mockResolvedValue([favA, favB])
+    updateList.mockResolvedValue({} as WordList)
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    const dragEvent = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(dragEvent)
+    })
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', { favoriteOrder: 1 })
+    })
+    expect(updateList).toHaveBeenCalledWith('l2', { favoriteOrder: 0 })
+    const titles = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+      .filter((t) => t !== 'My word lists (2)')
+    expect(titles).toEqual(['Week 6', 'Week 5: Long A'])
+  })
+
+  it('unstars a favorite when the filled star is clicked', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, list2])
+    updateList.mockResolvedValue({ ...starred, isFavorite: false })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' }))
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', { isFavorite: false, favoriteOrder: 0 })
+    })
+    expect(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' })).toBeInTheDocument()
+    // The Favorites tab disappears with the last favorite.
+    expect(screen.queryByRole('tablist', { name: 'List views' })).not.toBeInTheDocument()
+  })
+
+  it('ignores a favorite toggle for a list that is no longer loaded', async () => {
+    toggleFavoriteOverride.current = () => null
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    expect(updateList).not.toHaveBeenCalled()
+    // The star stays unfilled.
+    expect(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' })).toBeInTheDocument()
+  })
+
+  it('ignores drag end for unknown list ids', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([favA])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    const unknown = { active: { id: 'nope' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(unknown)
+    })
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('ignores drag end without a drop target or movement', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([favA])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (1)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    const noTarget = { active: { id: 'l1' }, over: null } as unknown as import('@dnd-kit/core').DragEndEvent
+    const noMove = { active: { id: 'l1' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(noTarget)
+      dndProps.onDragEnd?.(noMove)
+    })
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('rolls back the reorder when persisting fails', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    const favB = { ...list2, isFavorite: true, favoriteOrder: 1 }
+    getLists.mockResolvedValue([favA, favB])
+    updateList.mockRejectedValue(new Error('network down'))
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    const dragEvent = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(dragEvent)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    const titles = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+      .filter((t) => t !== 'My word lists (2)')
+    expect(titles).toEqual(['Week 5: Long A', 'Week 6'])
   })
 })

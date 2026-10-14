@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,17 +13,27 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlusIcon } from 'lucide-react'
-import { getLists, deleteList, notifyListsChanged } from '@/lib/lists-api'
+import { getLists, deleteList, updateList, notifyListsChanged } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
-import { type WordList } from '@/models/WordList'
+import { type WordList, isListFavorite } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
-import WordListCard from './WordListCard'
+import { cn } from '@/lib/utils'
+import { useLocalStorage } from '@/lib/use-local-storage'
+import { sortFavorites, toggleFavorite, reorderFavorites } from '@/lib/list-organize'
+import ListsOverviewCard from './ListsOverviewCard'
 import { OddDuck } from './OddDuck'
+
+/** All/Favorites view selection, persisted across sessions. */
+type ListView = 'all' | 'favorites'
+const VIEW_STORAGE_KEY = 'patternspell:lists-view'
 
 /**
  * List-of-lists overview, rendered as the full /lists page. Creating a list
  * happens on /lists/new; editing a single list on /lists/[id].
+ *
+ * Issue #275: teachers star favorite lists (All/Favorites tabs, favorites
+ * stay in All with a filled star, favorites drag-reorder independently).
  */
 export default function PatternListsManager() {
   const router = useRouter()
@@ -31,6 +42,8 @@ export default function PatternListsManager() {
   const [loadError, setLoadError] = useState(false)
   const [deleteListTarget, setDeleteListTarget] = useState<WordList | null>(null)
   const [deletingList, setDeletingList] = useState(false)
+  const [view, setView] = useLocalStorage<ListView>(VIEW_STORAGE_KEY, 'all')
+  const [announcement, setAnnouncement] = useState('')
 
   const loadLists = useCallback(async () => {
     setLoading(true)
@@ -55,6 +68,61 @@ export default function PatternListsManager() {
       router.push(`/lists/${encodeURIComponent(list.id)}`)
     },
     [router]
+  )
+
+  const favorites = useMemo(() => sortFavorites(lists), [lists])
+  const showFavoritesTab = favorites.length > 0
+  // A stored "favorites" view with no favorites falls back to All.
+  const effectiveView: ListView = view === 'favorites' && showFavoritesTab ? 'favorites' : 'all'
+  const visibleLists = effectiveView === 'favorites' ? favorites : lists
+  const reorderable = effectiveView === 'favorites'
+
+  const handleToggleFavorite = useCallback(
+    async (list: WordList) => {
+      const toggled = toggleFavorite(lists, list.id)
+      if (!toggled) return
+      const previous = lists
+      setLists(toggled.lists)
+      setAnnouncement(
+        toggled.update.isFavorite ? `${list.name} added to favorites.` : `${list.name} removed from favorites.`
+      )
+      try {
+        await updateList(list.id, toggled.update)
+      } catch (error) {
+        setLists(previous)
+        reportError(error, { location: 'PatternListsManager.handleToggleFavorite' })
+        toastError(getErrorMessage(error))
+      }
+    },
+    [lists]
+  )
+
+  // useSensor normalizes a missing options argument to {}, which the
+  // KeyboardSensor requires (see SortActivity's sentry #255 note).
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  const keyboardSensor = useSensor(KeyboardSensor)
+  const sensors = useSensors(pointerSensor, keyboardSensor)
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const reordered = reorderFavorites(lists, String(active.id), String(over.id))
+      if (reordered === lists) return
+      const previous = lists
+      setLists(reordered)
+      setAnnouncement('Favorites reordered.')
+      try {
+        await Promise.all(
+          reordered.filter(isListFavorite).map((l) => updateList(l.id, { favoriteOrder: l.favoriteOrder }))
+        )
+      } catch (error) {
+        setLists(previous)
+        reportError(error, { location: 'PatternListsManager.handleDragEnd' })
+        toastError(getErrorMessage(error))
+      }
+    },
+    [lists]
   )
 
   const confirmDeleteList = async (target: WordList) => {
@@ -112,6 +180,9 @@ export default function PatternListsManager() {
   // List overview
   return (
     <div className="space-y-4">
+      <div aria-live="polite" className="sr-only" role="status">
+        {announcement}
+      </div>
       {loadError ? (
         <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
           <p className="text-xl font-bold">Could not load your lists</p>
@@ -132,6 +203,31 @@ export default function PatternListsManager() {
             )}
           </div>
 
+          {showFavoritesTab && (
+            <div
+              role="tablist"
+              aria-label="List views"
+              className="inline-flex rounded-full border-2 border-line bg-card p-1"
+            >
+              {(['all', 'favorites'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={effectiveView === tab}
+                  onClick={() => setView(tab)}
+                  className={cn(
+                    'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
+                    'focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                    effectiveView === tab ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
+                  )}
+                >
+                  {tab === 'all' ? 'All' : 'Favorites'}
+                </button>
+              ))}
+            </div>
+          )}
+
           {lists.length === 0 ? (
             <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
               <p className="text-xl font-bold">No word lists yet</p>
@@ -144,17 +240,20 @@ export default function PatternListsManager() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="lists-grid">
-              {lists.map((list) => (
-                <WordListCard
-                  key={list.id}
-                  list={list}
-                  onOpen={openList}
-                  onDelete={setDeleteListTarget}
-                  primaryLabel="Edit list"
-                />
-              ))}
-            </div>
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="lists-grid">
+                {visibleLists.map((list) => (
+                  <ListsOverviewCard
+                    key={list.id}
+                    list={list}
+                    reorderable={reorderable}
+                    onOpen={openList}
+                    onDelete={setDeleteListTarget}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))}
+              </div>
+            </DndContext>
           )}
         </>
       )}
