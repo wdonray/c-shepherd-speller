@@ -46,6 +46,13 @@ interface WordListCardProps {
    * Used by the lists overview search (issue #275); empty elsewhere.
    */
   highlightQuery?: string
+  /**
+   * Optional control rendered at the start of the card header row, inside
+   * the card (issue #289): the lists overview passes its reorder drag
+   * handle here so it reads as part of the card instead of floating
+   * detached beside it.
+   */
+  leadingAction?: React.ReactNode
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -70,6 +77,7 @@ export default function WordListCard({
   isFavorite = false,
   onToggleFavorite,
   highlightQuery = '',
+  leadingAction,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -91,6 +99,7 @@ export default function WordListCard({
       <div className={cn('h-2 w-full', accent.bar)} aria-hidden="true" />
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">
+          {leadingAction}
           <h3 className="text-xl font-bold">
             <HighlightedText text={list.name} query={highlightQuery} />
           </h3>
