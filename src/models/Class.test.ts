@@ -10,6 +10,7 @@ import {
   generateClassId,
   createClassItem,
   updateClassItem,
+  resolveDefaultClassId,
 } from './Class'
 
 describe('Class model', () => {
@@ -140,5 +141,30 @@ describe('Class model', () => {
       expect(updated.name).toBe('Period 2')
       expect(updated.rules).toEqual({})
     })
+  })
+})
+
+describe('resolveDefaultClassId', () => {
+  const oneClass = [{ id: 'c1' }]
+  const twoClasses = [{ id: 'c1' }, { id: 'c2' }]
+
+  it('prefers the explicitly set default', () => {
+    expect(resolveDefaultClassId({ defaultClassId: 'c2' }, twoClasses)).toBe('c2')
+  })
+
+  it('auto-applies the single class when no default is set', () => {
+    expect(resolveDefaultClassId({}, oneClass)).toBe('c1')
+    expect(resolveDefaultClassId({ defaultClassId: null }, oneClass)).toBe('c1')
+    expect(resolveDefaultClassId(null, oneClass)).toBe('c1')
+    expect(resolveDefaultClassId(undefined, oneClass)).toBe('c1')
+  })
+
+  it('returns null with no classes', () => {
+    expect(resolveDefaultClassId({}, [])).toBeNull()
+    expect(resolveDefaultClassId({ defaultClassId: 'c9' }, [])).toBe('c9')
+  })
+
+  it('returns null with multiple classes and no explicit default', () => {
+    expect(resolveDefaultClassId({}, twoClasses)).toBeNull()
   })
 })
