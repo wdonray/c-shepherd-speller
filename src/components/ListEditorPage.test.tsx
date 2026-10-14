@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import ListEditorPage from './ListEditorPage'
 import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
@@ -1007,5 +1007,94 @@ describe('ListEditorPage', () => {
     // The incomplete pattern never reaches the server: the save only carries the original patterns.
     await waitForSave()
     expect(updateList).toHaveBeenCalledWith('l1', expect.objectContaining({ patterns: [patternA] }))
+  })
+
+  it('badges the edited pattern card Unsaved until the save lands', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+    expect(screen.queryByText('Unsaved')).not.toBeInTheDocument()
+
+    // Two edits in a row: the second re-marks an already-marked pattern.
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    expect(screen.getByText('Unsaved')).toBeInTheDocument()
+
+    await waitForSave()
+    expect(screen.queryByText('Unsaved')).not.toBeInTheDocument()
+  })
+
+  it('badges only the pattern card that was edited', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    const patternB: SpellingPattern = { id: 'p2', sound: 'long e', pattern: 'ee', frequency: 'common', words: [] }
+    await renderReady({ patterns: [patternA, patternB] })
+
+    fireEvent.change(within(screen.getByRole('region', { name: 'Pattern ee' })).getByLabelText('Pattern spelling'), {
+      target: { value: 'ea' },
+    })
+
+    expect(within(screen.getByRole('region', { name: 'Pattern a_e' })).queryByText('Unsaved')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Pattern ea' })).getByText('Unsaved')).toBeInTheDocument()
+
+    await waitForSave()
+    expect(screen.queryByText('Unsaved')).not.toBeInTheDocument()
+  })
+
+  it('keeps the badge on a new pattern until it is complete and saved', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    expect(screen.getByText('Unsaved')).toBeInTheDocument()
+
+    // Still incomplete: saves fire for the rest of the list, but the draft is
+    // filtered out of the payload, so the badge stays.
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    await waitForSave()
+    for (const [, data] of updateList.mock.calls) {
+      expect((data as { patterns: unknown[] }).patterns).toEqual([])
+    }
+    expect(screen.getByText('Unsaved')).toBeInTheDocument()
+
+    // Completing the pattern saves it, which clears the badge.
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    await waitFor(() =>
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ patterns: [expect.objectContaining({ pattern: 'ai' })] })
+      )
+    )
+    await waitFor(() => expect(screen.queryByText('Unsaved')).not.toBeInTheDocument())
+  })
+
+  it('keeps the badge on a local-only pattern while clearing it for saved ones', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    // Add an incomplete new pattern (stays local-only), then edit the saved one.
+    fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
+    fireEvent.change(screen.getAllByLabelText('Target sound')[1], { target: { value: 'long a' } })
+    fireEvent.change(screen.getAllByLabelText('Pattern spelling')[0], { target: { value: 'ai' } })
+
+    // The save persists the edited pattern; the incomplete one is filtered out of the payload.
+    await waitForSave()
+
+    expect(within(screen.getByRole('region', { name: 'Pattern ai' })).queryByText('Unsaved')).not.toBeInTheDocument()
+    // The incomplete draft never went to the server, so its badge stays on.
+    expect(within(screen.getByRole('region', { name: 'Untitled pattern' })).getByText('Unsaved')).toBeInTheDocument()
+  })
+
+  it('drops the badge when the marked pattern is deleted', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    expect(screen.getByText('Unsaved')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete pattern ai' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Unsaved')).not.toBeInTheDocument()
+    })
   })
 })

@@ -119,6 +119,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const [localOnlyCount, setLocalOnlyCount] = useState(0)
   /** The last save attempt failed; the edits are still unsaved. */
   const [saveFailed, setSaveFailed] = useState(false)
+  /**
+   * Ids of patterns with edits not yet confirmed saved. Drives each pattern
+   * card's "Unsaved" badge, so the teacher can see which pattern is still
+   * unsaved after blurring away from it. Cleared per pattern when a save
+   * confirms the edit persisted.
+   */
+  const [unsavedPatternIds, setUnsavedPatternIds] = useState<ReadonlySet<string>>(new Set())
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
@@ -216,6 +223,22 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     }
   }, [])
 
+  const markPatternUnsaved = (patternId: string) => {
+    setUnsavedPatternIds((prev) => {
+      if (prev.has(patternId)) return prev
+      return new Set(prev).add(patternId)
+    })
+  }
+
+  const unmarkPatternUnsaved = (patternId: string) => {
+    setUnsavedPatternIds((prev) => {
+      if (!prev.has(patternId)) return prev
+      const next = new Set(prev)
+      next.delete(patternId)
+      return next
+    })
+  }
+
   async function doSave(next: WordList): Promise<void> {
     pendingSaveRef.current = null
     setHasPendingSave(false)
@@ -257,6 +280,16 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         logActivity('edited', next.name, next.id)
       }
       notifyListsChanged()
+      // The payload just persisted, so every pattern it carried is saved.
+      // Patterns still in unsavedPatternIdsRef never went to the API
+      // (local-only drafts), so their badges stay on.
+      setUnsavedPatternIds((prev) => {
+        const stillUnsaved = new Set<string>()
+        for (const id of prev) {
+          if (unsavedPatternIdsRef.current.has(id)) stillUnsaved.add(id)
+        }
+        return stillUnsaved
+      })
       setSaveFailed(false)
       setSaveStatus('saved')
       savedTimerRef.current = setTimeout(() => {
@@ -387,6 +420,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       unsavedPatternIdsRef.current.delete(patternId)
       setLocalOnlyCount(unsavedPatternIdsRef.current.size)
     }
+    markPatternUnsaved(patternId)
     applyChange({
       ...list,
       patterns: list.patterns.map((p) => (p.id === patternId ? updated : p)),
@@ -416,6 +450,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     // Local-only until the required fields are filled: no auto-save fires,
     // so a blank pattern is never persisted (or rejected by API validation).
     unsavedPatternIdsRef.current.add(newPattern.id)
+    markPatternUnsaved(newPattern.id)
     // Flag the new card so its mount scrolls it into view (see the pattern
     // list rendering below).
     pendingScrollIdRef.current = newPattern.id
@@ -427,6 +462,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (unsavedPatternIdsRef.current.delete(target.id)) {
       setLocalOnlyCount(unsavedPatternIdsRef.current.size)
     }
+    unmarkPatternUnsaved(target.id)
     applyChange({
       ...list,
       patterns: list.patterns.filter((p) => p.id !== target.id),
@@ -532,6 +568,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
                   onChange={(updated) => updatePattern(pattern.id, updated)}
                   onRemove={() => setDeletePatternTarget(pattern)}
                   color={resolveListColor(list)}
+                  isUnsaved={unsavedPatternIds.has(pattern.id)}
                 />
               </div>
             ))}

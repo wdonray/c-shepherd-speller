@@ -33,6 +33,12 @@ interface PatternEditorProps {
   onRemove: () => void
   /** List accent color: the card's top bar follows it. Defaults to the default list color. */
   color?: ListColor
+  /**
+   * True when this pattern has edits not yet confirmed saved. Shows an
+   * "Unsaved" badge on the pattern card itself, so the teacher can see which
+   * pattern is still unsaved after moving on to another part of the page.
+   */
+  isUnsaved?: boolean
 }
 
 const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; level: PowerBarLevel }[] = [
@@ -66,7 +72,13 @@ const FREQUENCY_LABELS: Record<PatternFrequency, string> = {
 const MOBILE_QUERY = '(max-width: 767px)'
 
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
-export default function PatternEditor({ pattern, onChange, onRemove, color = DEFAULT_LIST_COLOR }: PatternEditorProps) {
+export default function PatternEditor({
+  pattern,
+  onChange,
+  onRemove,
+  color = DEFAULT_LIST_COLOR,
+  isUnsaved = false,
+}: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const [mismatchedWord, setMismatchedWord] = useState<string | null>(null)
@@ -247,7 +259,18 @@ export default function PatternEditor({ pattern, onChange, onRemove, color = DEF
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1 space-y-1.5">
-                <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
+                  {isUnsaved && (
+                    <span
+                      role="status"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[12px] font-bold text-amber-700"
+                    >
+                      <span aria-hidden="true" className="size-1.5 rounded-full bg-amber-500" />
+                      Unsaved
+                    </span>
+                  )}
+                </div>
                 <Input
                   id={`pattern-spelling-${pattern.id}`}
                   value={pattern.pattern}
