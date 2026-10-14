@@ -6,11 +6,11 @@ vi.mock('@/lib/require-auth', () => ({ requireUser }))
 const { getUserById } = vi.hoisted(() => ({ getUserById: vi.fn() }))
 vi.mock('@/lib/db-utils', () => ({ getUserById }))
 
-const { getClassesByUser, resolveDefaultClassId } = vi.hoisted(() => ({
-  getClassesByUser: vi.fn(),
-  resolveDefaultClassId: vi.fn(),
-}))
-vi.mock('@/lib/classes-db', () => ({ getClassesByUser, resolveDefaultClassId }))
+const { getClassesByUser } = vi.hoisted(() => ({ getClassesByUser: vi.fn() }))
+vi.mock('@/lib/classes-db', () => ({ getClassesByUser }))
+
+const { resolveDefaultClassId } = vi.hoisted(() => ({ resolveDefaultClassId: vi.fn() }))
+vi.mock('@/models/Class', () => ({ resolveDefaultClassId }))
 
 import { GET } from './route'
 
