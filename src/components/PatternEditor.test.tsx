@@ -297,6 +297,17 @@ describe('PatternEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('dismisses the mismatch warning on Escape, keeping the word for editing', () => {
+    const { onChange } = renderEditor({ pattern: 'ee', words: [] })
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('Check this word')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByText('Check this word')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('New word')).toHaveValue('bed')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('does not warn when the pattern is empty', () => {
     const { onChange } = renderEditor({ pattern: '', words: [] })
     fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'bed' } })
