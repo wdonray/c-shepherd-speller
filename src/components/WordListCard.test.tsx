@@ -148,6 +148,29 @@ describe('WordListCard', () => {
     expect(screen.getByRole('img', { name: 'Frequency: Rare' })).toBeInTheDocument()
   })
 
+  it('renders an invisible placeholder tile when the list has no patterns (issue #283)', () => {
+    const empty: WordList = { ...list, patterns: [] }
+    render(<WordListCard list={empty} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    const placeholder = screen.getByTestId('pattern-preview-placeholder')
+    expect(placeholder).toBeInTheDocument()
+    expect(placeholder).toHaveAttribute('aria-hidden', 'true')
+    // Same tile classes as a real pattern tile, plus invisible, so the card
+    // keeps the height of a list with patterns.
+    expect(placeholder).toHaveClass('invisible', 'flex', 'flex-col', 'gap-1.5', 'rounded-xl', 'px-3', 'py-2')
+    expect(screen.getByText('0 patterns, 0 words')).toBeInTheDocument()
+  })
+
+  it('does not render the placeholder tile when the list has patterns', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.queryByTestId('pattern-preview-placeholder')).not.toBeInTheDocument()
+  })
+
+  it('does not render the placeholder tile when the preview is hidden', () => {
+    const empty: WordList = { ...list, patterns: [] }
+    render(<WordListCard list={empty} onOpen={vi.fn()} primaryLabel="Edit list" showPreview={false} />)
+    expect(screen.queryByTestId('pattern-preview-placeholder')).not.toBeInTheDocument()
+  })
+
   it('hides the pattern preview when showPreview is false', () => {
     render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" showPreview={false} />)
     expect(screen.queryByLabelText('Spelling patterns')).not.toBeInTheDocument()

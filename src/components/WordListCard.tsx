@@ -127,12 +127,27 @@ export default function WordListCard({
         {showPreview && (
           <>
             <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Spelling patterns">
-              {visiblePatterns.map((pattern) => (
-                <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
-                  <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
-                  <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+              {visiblePatterns.length > 0 ? (
+                visiblePatterns.map((pattern) => (
+                  <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
+                    <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
+                    <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+                  </li>
+                ))
+              ) : (
+                // Empty-pattern placeholder (issue #283): an invisible copy of a
+                // pattern tile, so a list with no patterns renders the same card
+                // height as a list with patterns. aria-hidden because the
+                // "0 patterns" count above already conveys the empty state.
+                <li
+                  aria-hidden="true"
+                  data-testid="pattern-preview-placeholder"
+                  className={cn('invisible flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}
+                >
+                  <span className={cn('truncate text-sm font-bold', accent.text)}>placeholder</span>
+                  <PowerBar level={3} filledClassName={accent.fill} />
                 </li>
-              ))}
+              )}
             </ul>
             {hiddenPatternCount > 0 && (
               <p className="text-xs font-medium text-muted-foreground">+{hiddenPatternCount} more</p>
