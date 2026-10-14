@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { PowerBar, type PowerBarLevel } from '@/components/ui/power-bar'
 import { cn } from '@/lib/utils'
 import { resolveListColor, LIST_ACCENT_CLASSES, type WordList, type PatternFrequency } from '@/models/WordList'
+import { StarIcon } from 'lucide-react'
 
 interface WordListCardProps {
   list: WordList
@@ -32,6 +33,13 @@ interface WordListCardProps {
    * design system keeps cards flat, and motion-reduce disables the lift.
    */
   hoverLift?: boolean
+  /**
+   * When true, shows a star toggle for favoriting the list. Used by the
+   * lists overview page (issue #275); off everywhere else.
+   */
+  isFavorite?: boolean
+  /** Called when the teacher toggles the favorite star. */
+  onToggleFavorite?: (list: WordList) => void
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -53,6 +61,8 @@ export default function WordListCard({
   showPreview = true,
   href,
   hoverLift = false,
+  isFavorite = false,
+  onToggleFavorite,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -84,6 +94,22 @@ export default function WordListCard({
             <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
               Grade {list.gradeLevel}
             </span>
+          )}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(list)}
+              aria-pressed={isFavorite}
+              aria-label={isFavorite ? `Remove ${list.name} from favorites` : `Add ${list.name} to favorites`}
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              className={cn(
+                'ml-auto flex size-11 shrink-0 items-center justify-center rounded-full outline-none transition-colors',
+                'hover:bg-sun-soft focus-visible:ring-[3px] focus-visible:ring-ring/60 active:bg-sun-soft',
+                isFavorite ? 'text-sun-deep' : 'text-muted-foreground'
+              )}
+            >
+              <StarIcon className={cn('size-6', isFavorite && 'fill-sun')} aria-hidden="true" />
+            </button>
           )}
         </div>
         <p className="text-sm text-muted-foreground">
