@@ -53,8 +53,14 @@ export default function ListsOverviewCard({
   })
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: list.id, disabled: !reorderable })
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const handleRef = useRef<HTMLButtonElement>(null)
 
   const handleTouchStart = (event: React.TouchEvent) => {
+    // A touch starting on the drag handle is a reorder, not a star swipe.
+    if (handleRef.current?.contains(event.target as Node)) {
+      touchStart.current = null
+      return
+    }
     const touch = event.touches[0]
     touchStart.current = { x: touch.clientX, y: touch.clientY }
   }
@@ -87,6 +93,7 @@ export default function ListsOverviewCard({
         {reorderable && (
           <button
             type="button"
+            ref={handleRef}
             {...listeners}
             {...attributes}
             aria-label={`Drag to reorder ${list.name}`}

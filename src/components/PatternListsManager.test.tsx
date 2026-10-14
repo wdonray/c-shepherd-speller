@@ -322,8 +322,8 @@ describe('favorites (issue #275)', () => {
     expect(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' })).toBeInTheDocument()
   })
 
-  it('rolls back the star when the update fails', async () => {
-    getLists.mockResolvedValue([list])
+  it('rolls back only the failed star when the update fails', async () => {
+    getLists.mockResolvedValue([list, list2])
     updateList.mockRejectedValue(new Error('network down'))
     render(
       <>
@@ -331,11 +331,17 @@ describe('favorites (issue #275)', () => {
         <ErrorToaster />
       </>
     )
-    await screen.findByText('My word lists (1)')
+    await screen.findByText('My word lists (2)')
     fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    // Optimistic update fills the star first.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' })).toBeInTheDocument()
+    })
+    // Then the failure rolls back just that list.
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' })).toBeInTheDocument()
     })
+    expect(screen.getByRole('button', { name: 'Add Week 6 to favorites' })).toBeInTheDocument()
   })
 
   it('shows All/Favorites tabs only when a favorite exists', async () => {
@@ -514,7 +520,7 @@ describe('favorites (issue #275)', () => {
     expect(updateList).not.toHaveBeenCalled()
   })
 
-  it('rolls back the reorder when persisting fails', async () => {
+  it('shows the error when the reorder re-sync also fails', async () => {
     const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
     const favB = { ...list2, isFavorite: true, favoriteOrder: 1 }
     getLists.mockResolvedValue([favA, favB])
@@ -528,6 +534,8 @@ describe('favorites (issue #275)', () => {
     await screen.findByText('My word lists (2)')
     fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
 
+    // Both the save and the re-sync fail.
+    getLists.mockRejectedValue(new Error('network down'))
     const dragEvent = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
     await act(async () => {
       dndProps.onDragEnd?.(dragEvent)
@@ -536,11 +544,39 @@ describe('favorites (issue #275)', () => {
     await waitFor(() => {
       expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
-    const titles = screen
-      .getAllByRole('heading', { level: 3 })
-      .map((h) => h.textContent)
-      .filter((t) => t !== 'My word lists (2)')
-    expect(titles).toEqual(['Week 5: Long A', 'Week 6'])
+  })
+
+  it('re-syncs from the server when persisting a reorder fails', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    const favB = { ...list2, isFavorite: true, favoriteOrder: 1 }
+    getLists.mockResolvedValue([favA, favB])
+    updateList.mockRejectedValue(new Error('network down'))
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    // The re-sync returns the pre-drag order.
+    getLists.mockResolvedValue([favA, favB])
+    const dragEvent = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(dragEvent)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      const titles = screen
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent)
+        .filter((t) => t !== 'My word lists (2)')
+      expect(titles).toEqual(['Week 5: Long A', 'Week 6'])
+    })
   })
 })
 
@@ -652,6 +688,28 @@ describe('sorting (issue #275)', () => {
     expect(screen.getByRole('button', { name: 'Drag to reorder Apple' })).toBeInTheDocument()
   })
 
+  it('shows the error when the custom order re-sync also fails', async () => {
+    getLists.mockResolvedValue([listA, listB])
+    updateList.mockRejectedValue(new Error('network down'))
+    render(
+      <>
+        <PatternListsManager />
+        <ErrorToaster />
+      </>
+    )
+    await screen.findByText('My word lists (2)')
+
+    getLists.mockRejectedValue(new Error('network down'))
+    await openSortMenu()
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Custom order' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    // Sort still reverts to the previous choice.
+    expect(screen.getByRole('button', { name: 'Sort: Recently modified' })).toBeInTheDocument()
+  })
+
   it('rolls back when initializing custom order fails', async () => {
     getLists.mockResolvedValue([listA, listB])
     updateList.mockRejectedValue(new Error('network down'))
@@ -693,5 +751,37 @@ describe('sorting (issue #275)', () => {
     })
     expect(updateList).toHaveBeenCalledWith('b', { sortOrder: 0 })
     expect(cardTitles()).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('ignores a second drag while the first reorder is still saving', async () => {
+    const favA = { ...list, isFavorite: true, favoriteOrder: 0 }
+    const favB = { ...list2, isFavorite: true, favoriteOrder: 1 }
+    getLists.mockResolvedValue([favA, favB])
+    const resolvers: ((value: unknown) => void)[] = []
+    updateList.mockImplementation(() => new Promise((resolve) => resolvers.push(resolve)))
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+
+    const firstDrag = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    const secondDrag = { active: { id: 'l2' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
+    await act(async () => {
+      dndProps.onDragEnd?.(firstDrag)
+    })
+    // Drag handles disappear while saving.
+    expect(screen.queryByRole('button', { name: /Drag to reorder/ })).not.toBeInTheDocument()
+
+    await act(async () => {
+      dndProps.onDragEnd?.(secondDrag)
+    })
+    // Only the first reorder's saves were issued.
+    expect(updateList).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      resolvers.forEach((resolve) => resolve({}))
+    })
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /Drag to reorder/ })).toHaveLength(2)
+    })
   })
 })

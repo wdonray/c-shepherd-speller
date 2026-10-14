@@ -131,6 +131,16 @@ describe('ListsOverviewCard', () => {
     expect(onToggleFavorite).not.toHaveBeenCalled()
   })
 
+  it('does not star on a swipe starting from the drag handle', () => {
+    const { onToggleFavorite } = renderCard({ reorderable: true })
+    const handle = screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })
+    const wrapper = cardWrapper()
+    // A drag starts on the handle and moves right; it must not toggle the star.
+    fireEvent.touchStart(handle, { touches: [{ clientX: 100, clientY: 200 }] })
+    fireEvent.touchEnd(wrapper, { changedTouches: [{ clientX: 200, clientY: 205 }] })
+    expect(onToggleFavorite).not.toHaveBeenCalled()
+  })
+
   it('shows a drag handle when reorderable', () => {
     renderCard({ reorderable: true })
     expect(screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })).toBeInTheDocument()
