@@ -33,8 +33,9 @@ interface ListsOverviewCardProps {
  *
  * - Star toggle lives on the card (WordListCard).
  * - Swipe right on the card body toggles the favorite (mobile gesture).
- * - In reorder mode a drag handle reorders via dnd-kit; only the handle
- *   starts a drag so swipes on the body never conflict with dragging.
+ * - In reorder mode the drag handle renders inside the card header
+ *   (issue #289) and only the handle starts a drag, so swipes on the
+ *   body never conflict with dragging.
  */
 export default function ListsOverviewCard({
   list,
@@ -92,35 +93,33 @@ export default function ListsOverviewCard({
       onTouchEnd={handleTouchEnd}
       className={cn(isDragging && 'opacity-40', isOver && 'rounded-[20px] ring-[3px] ring-sky-deep')}
     >
-      <div className="flex h-full items-center gap-2">
-        {reorderable && (
-          <button
-            type="button"
-            ref={handleRef}
-            {...listeners}
-            {...attributes}
-            aria-label={`Drag to reorder ${list.name}`}
-            className={cn(
-              'flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-full',
-              'border-2 border-line bg-card text-muted-foreground outline-none',
-              'hover:border-sky-deep hover:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60 active:cursor-grabbing'
-            )}
-          >
-            <GripVerticalIcon className="size-5" aria-hidden="true" />
-          </button>
-        )}
-        <div className="min-w-0 flex-1">
-          <WordListCard
-            list={list}
-            onOpen={onOpen}
-            onDelete={onDelete}
-            primaryLabel="Edit list"
-            isFavorite={isListFavorite(list)}
-            onToggleFavorite={onToggleFavorite}
-            highlightQuery={highlightQuery}
-          />
-        </div>
-      </div>
+      <WordListCard
+        list={list}
+        onOpen={onOpen}
+        onDelete={onDelete}
+        primaryLabel="Edit list"
+        isFavorite={isListFavorite(list)}
+        onToggleFavorite={onToggleFavorite}
+        highlightQuery={highlightQuery}
+        leadingAction={
+          reorderable ? (
+            <button
+              type="button"
+              ref={handleRef}
+              {...listeners}
+              {...attributes}
+              aria-label={`Drag to reorder ${list.name}`}
+              className={cn(
+                'flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-full',
+                'border-2 border-line bg-card text-muted-foreground outline-none',
+                'hover:border-sky-deep hover:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60 active:cursor-grabbing'
+              )}
+            >
+              <GripVerticalIcon className="size-5" aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
+      />
     </div>
   )
 }
