@@ -1503,7 +1503,7 @@ describe('ListEditorPage classroom', () => {
   })
 })
 
-describe('ListEditorPage rules section', () => {
+describe('ListEditorPage per-pattern rule editor (issue #313)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
@@ -1518,7 +1518,15 @@ describe('ListEditorPage rules section', () => {
     getList.mockResolvedValue({ ...list, ...listOverrides })
     render(<ListEditorPage listId="l1" />)
     await screen.findByRole('heading', { name: 'Week 5: Long A' })
-    await screen.findByRole('heading', { name: 'Rules (1)' })
+    // The rule affordance lives on each pattern card now; there is no
+    // standalone Rules section.
+    await screen.findByRole('button', { name: /^(Add|Edit) rule for a_e$/ })
+  }
+
+  /** Opens the rule modal for one pattern; returns the modal textarea. */
+  function openRuleModal(buttonName: string) {
+    fireEvent.click(screen.getByRole('button', { name: buttonName }))
+    return screen.getByLabelText('Rule, in the kids’ words') as HTMLTextAreaElement
   }
 
   it('saves an unscoped rule to the pattern when there is no classroom', async () => {
@@ -1527,10 +1535,9 @@ describe('ListEditorPage rules section', () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReadyWithRules()
 
-    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
-    fireEvent.focus(field)
+    const field = openRuleModal('Add rule for a_e')
     fireEvent.change(field, { target: { value: 'Magic e.' } })
-    fireEvent.blur(field)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(updateList).toHaveBeenCalledWith(
@@ -1540,6 +1547,8 @@ describe('ListEditorPage rules section', () => {
         })
       )
     })
+    // The card now previews the saved rule.
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
   })
 
   it('loads classroom rules and saves a rule to the classroom', async () => {
@@ -1561,20 +1570,25 @@ describe('ListEditorPage rules section', () => {
     vi.stubGlobal('fetch', fetchMock)
     await renderReadyWithRules({ classId: 'c1' })
 
-    // The classroom rule wins over the pattern's unscoped rule.
-    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
-    await waitFor(() => expect(field).toHaveValue('Old rule.'))
+    // The classroom rule wins over the pattern's unscoped rule: wait for it
+    // to land on the collapsed row before opening the modal.
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
     expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
 
-    fireEvent.focus(field)
+    const field = openRuleModal('Edit rule for a_e')
+    expect(field).toHaveValue('Old rule.')
     fireEvent.change(field, { target: { value: 'Magic e.' } })
-    fireEvent.blur(field)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
     })
     // The list's own patterns were not touched: the rule went to the class.
     expect(updateList).not.toHaveBeenCalled()
+    // The card previews the newly saved classroom rule.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('Magic e.')
+    })
   })
 
   it('clears classroom rules when the classroom is removed', async () => {
@@ -1594,7 +1608,7 @@ describe('ListEditorPage rules section', () => {
     getList.mockResolvedValue({ ...list, classId: 'c1' })
     render(<ListEditorPage listId="l1" />)
     await screen.findByRole('heading', { name: 'Week 5: Long A' })
-    await screen.findByRole('heading', { name: 'Rules (1)' })
+    await screen.findByRole('button', { name: /^(Add|Edit) rule for a_e$/ })
 
     const select = screen.getByLabelText('Classroom')
     await waitFor(() => expect(select).not.toBeDisabled())
@@ -1617,9 +1631,12 @@ describe('ListEditorPage rules section', () => {
     vi.stubGlobal('fetch', fetchMock)
     await renderReadyWithRules({ classId: 'c1' })
 
-    // The classroom rule never loads: the field falls back to the (empty) unscoped rule.
-    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
-    await waitFor(() => expect(field).toHaveValue(''))
+    // Wait for the failed load to settle before opening the modal.
+    await waitFor(() => expect(reportError).toHaveBeenCalled())
+    // The classroom rule never loads: the modal falls back to the (empty)
+    // unscoped rule.
+    const field = openRuleModal('Add rule for a_e')
+    expect(field).toHaveValue('')
     expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
   })
 
@@ -1663,12 +1680,10 @@ describe('ListEditorPage rules section', () => {
     await renderReadyWithRules({ classId: 'c1' })
 
     // The classroom is known, but no classroom rule exists for the pattern:
-    // the field falls back to the unscoped rule and nothing is marked shared.
-    const section = screen.getByRole('region', { name: 'Spelling rules' })
-    await waitFor(() => {
-      expect(within(section).getByText('Period 2')).toBeInTheDocument()
-    })
-    expect(screen.getByLabelText('Rule, in the kids\u2019 words')).toHaveValue('')
+    // the modal falls back to the unscoped rule and nothing is marked shared.
+    const field = openRuleModal('Add rule for a_e')
+    await screen.findByText(/Shared across Period 2’s lists and shown on the present chart/)
+    expect(field).toHaveValue('')
     expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
   })
 
@@ -1686,7 +1701,7 @@ describe('ListEditorPage rules section', () => {
     getList.mockResolvedValue({ ...list, classId: 'c1' })
     const { unmount } = render(<ListEditorPage listId="l1" />)
     await screen.findByRole('heading', { name: 'Week 5: Long A' })
-    await screen.findByRole('heading', { name: 'Rules (1)' })
+    await screen.findByRole('button', { name: /^(Add|Edit) rule for a_e$/ })
 
     unmount()
     resolveClassFetch({
@@ -1713,11 +1728,11 @@ describe('ListEditorPage rules section', () => {
     vi.stubGlobal('fetch', fetchMock)
     await renderReadyWithRules({ classId: 'c1' })
 
-    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
-    await waitFor(() => expect(field).toHaveValue('Old rule.'))
-    fireEvent.focus(field)
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    const field = openRuleModal('Edit rule for a_e')
+    expect(field).toHaveValue('Old rule.')
     fireEvent.change(field, { target: { value: 'Magic e.' } })
-    fireEvent.blur(field)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Could not save the rule. Try again.')
@@ -1744,16 +1759,15 @@ describe('ListEditorPage rules section', () => {
     vi.stubGlobal('fetch', fetchMock)
     await renderReadyWithRules({ classId: 'c1' })
 
-    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
-    fireEvent.focus(field)
+    const field = openRuleModal('Add rule for a_e')
     fireEvent.change(field, { target: { value: 'Magic e.' } })
-    fireEvent.blur(field)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
     })
-    // Saved against a null previous value: the classroom rule map starts fresh.
-    await waitFor(() => expect(field).toHaveValue('Magic e.'))
+    // Saved against a null previous value: the card previews the new rule.
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
     resolveClassFetch({ ok: true, json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }) })
   })
 
@@ -1770,13 +1784,12 @@ describe('ListEditorPage rules section', () => {
     })
     render(<ListEditorPage listId="l1" />)
     await screen.findByRole('heading', { name: 'Week 5: Long A' })
-    await screen.findByRole('heading', { name: 'Rules (2)' })
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    await screen.findByRole('button', { name: 'Edit rule for ai' })
 
-    const fields = screen.getAllByLabelText('Rule, in the kids\u2019 words')
-    expect(fields).toHaveLength(2)
-    fireEvent.focus(fields[0])
-    fireEvent.change(fields[0], { target: { value: '' } })
-    fireEvent.blur(fields[0])
+    const field = openRuleModal('Edit rule for a_e')
+    fireEvent.change(field, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
     await waitFor(() => {
       expect(updateList).toHaveBeenCalledWith(

@@ -11,6 +11,7 @@ import FrequencyHelpDialog from './FrequencyHelpDialog'
 import SentencePicker from './SentencePicker'
 import KeywordImagePicker from './KeywordImagePicker'
 import VoiceRecorderModal from './VoiceRecorderModal'
+import PatternRuleEditor from './PatternRuleEditor'
 import { OddDuck } from './OddDuck'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
@@ -39,6 +40,18 @@ interface PatternEditorProps {
    * pattern is still unsaved after moving on to another part of the page.
    */
   isUnsaved?: boolean
+  /** The list's classroom id, or null/undefined for "No class". */
+  classId?: string | null
+  /** The classroom's display name, or null when there is no class. */
+  className?: string | null
+  /** The classroom's rules by pattern text, or null when there is no class. */
+  classRules?: Record<string, string> | null
+  /**
+   * Persist one rule. The parent saves to the classroom (when classId is
+   * set) or to the pattern itself. Rejects on failure so the rule editor
+   * keeps the draft and shows the error.
+   */
+  onSaveRule?: (patternId: string, patternText: string, rule: string) => Promise<void>
 }
 
 const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; level: PowerBarLevel }[] = [
@@ -78,6 +91,10 @@ export default function PatternEditor({
   onRemove,
   color = DEFAULT_LIST_COLOR,
   isUnsaved = false,
+  classId,
+  className = null,
+  classRules = null,
+  onSaveRule,
 }: PatternEditorProps) {
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
@@ -106,6 +123,12 @@ export default function PatternEditor({
     setRecordingWord(word)
   }
   const isLocked = pattern.isLocked ?? false
+
+  // The effective rule: the classroom's rule wins when set. Rendered as a
+  // per-pattern affordance in the card header (issue #313); the standalone
+  // Rules section is gone.
+  const effectiveRule = classRules?.[pattern.pattern] ?? pattern.rule ?? ''
+  const ruleShared = !!classId && classRules?.[pattern.pattern] !== undefined
 
   const accent = LIST_ACCENT_CLASSES[color]
   const isMobile = useMediaQuery(MOBILE_QUERY)
@@ -308,6 +331,18 @@ export default function PatternEditor({
                 className="h-9 border-2 border-line bg-card px-2 text-[15px] text-muted-foreground placeholder:text-muted-foreground focus-visible:border-sky-deep focus-visible:ring-[3px]"
               />
             </div>
+            {onSaveRule && (
+              <div className="mt-3">
+                <PatternRuleEditor
+                  patternId={pattern.id}
+                  patternText={pattern.pattern}
+                  initialRule={effectiveRule}
+                  shared={ruleShared}
+                  className={className}
+                  onSave={(rule) => onSaveRule(pattern.id, pattern.pattern, rule)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:shrink-0 sm:items-end">
