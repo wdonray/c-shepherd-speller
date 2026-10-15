@@ -134,3 +134,33 @@ describe('ListRulesSection rule refresh', () => {
     await waitFor(() => expect(field).toHaveValue('New.'))
   })
 })
+
+describe('ListRulesSection focused refresh', () => {
+  it('does not clobber the draft when the saved rule changes while focused', async () => {
+    const { rerender } = render(
+      <ListRulesSection
+        patterns={[{ id: 'p1', pattern: 'a_e', rule: 'Old.' }]}
+        classId={null}
+        className={null}
+        classRules={null}
+        onSaveRule={vi.fn()}
+      />
+    )
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Typing…' } })
+
+    // The saved rule changes underneath while the teacher is typing.
+    rerender(
+      <ListRulesSection
+        patterns={[{ id: 'p1', pattern: 'a_e', rule: 'New.' }]}
+        classId={null}
+        className={null}
+        classRules={null}
+        onSaveRule={vi.fn()}
+      />
+    )
+    // The draft survives; it is not replaced by the new saved rule.
+    expect(field).toHaveValue('Typing…')
+  })
+})
