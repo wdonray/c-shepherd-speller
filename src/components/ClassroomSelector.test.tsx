@@ -115,6 +115,18 @@ describe('ClassroomSelector', () => {
     await new Promise((r) => setTimeout(r, 10))
   })
 
+  it('stacks the new-classroom input and Add button full-width on mobile', async () => {
+    renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+
+    fireEvent.change(select, { target: { value: '__new__' } })
+    const input = screen.getByLabelText('New classroom name')
+    const container = input.parentElement
+    expect(container?.className).toContain('flex-col')
+    expect(container?.className).toContain('sm:flex-row')
+  })
+
   it('creates a new classroom inline and selects it', async () => {
     const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
       if (init?.method === 'POST') {
