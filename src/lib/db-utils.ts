@@ -63,23 +63,29 @@ export async function updateUser(
   // Field-scoped update (issue #263): only the provided attributes are
   // touched, so a profile save can never clobber a concurrently saved
   // defaultClassId (or vice versa). Returns ALL_NEW so callers never need
-  // an eventually consistent re-read.
+  // an eventually consistent re-read. All attribute names go through
+  // ExpressionAttributeNames because some (e.g. "name") are DynamoDB
+  // reserved words.
   const keys = getUserKeys(userId)
   const timestamp = new Date().toISOString()
-  const setClauses = ['updatedAt = :now']
+  const names: Record<string, string> = { '#updatedAt': 'updatedAt' }
+  const setClauses = ['#updatedAt = :now']
   const removeClauses: string[] = []
   const values: Record<string, unknown> = { ':now': timestamp }
   let fieldIndex = 0
   for (const [field, value] of Object.entries(userData)) {
     if (value === undefined) continue
+    const nameRef = `#field${fieldIndex}`
+    names[nameRef] = field
     // A cleared default class drops the attribute (matches the old
     // read-modify-write behavior); other falsy values are stored as-is.
     if (field === 'defaultClassId' && !value) {
-      removeClauses.push(field)
+      removeClauses.push(nameRef)
       continue
     }
-    const varName = `:field${fieldIndex++}`
-    setClauses.push(`${field} = ${varName}`)
+    const varName = `:field${fieldIndex}`
+    fieldIndex++
+    setClauses.push(`${nameRef} = ${varName}`)
     values[varName] = value
   }
   let updateExpression = `SET ${setClauses.join(', ')}`
@@ -90,6 +96,7 @@ export async function updateUser(
     TableName: USER_TABLE_NAME,
     Key: keys,
     UpdateExpression: updateExpression,
+    ExpressionAttributeNames: names,
     ExpressionAttributeValues: values,
     ConditionExpression: 'attribute_exists(PK)',
     ReturnValues: 'ALL_NEW',

@@ -99,7 +99,10 @@ describe('db-utils', () => {
       expect(updated.name).toBe('New Name')
       expect(send).toHaveBeenCalledTimes(1)
       const command = send.mock.calls[0][0]
-      expect(command.input.UpdateExpression).toContain('name = :field0')
+      // Attribute names go through ExpressionAttributeNames ("name" is a
+      // DynamoDB reserved word).
+      expect(command.input.UpdateExpression).toContain('#field0 = :field0')
+      expect(command.input.ExpressionAttributeNames['#field0']).toBe('name')
       expect(command.input.ExpressionAttributeValues[':field0']).toBe('New Name')
       expect(command.input.ReturnValues).toBe('ALL_NEW')
       expect(command.input.ConditionExpression).toBe('attribute_exists(PK)')
@@ -112,7 +115,8 @@ describe('db-utils', () => {
       const updated = await updateUser('abc-user', { defaultClassId: 'class_1' })
       expect(updated.defaultClassId).toBe('class_1')
       const command = send.mock.calls[0][0]
-      expect(command.input.UpdateExpression).toContain('defaultClassId = :field0')
+      expect(command.input.UpdateExpression).toContain('#field0 = :field0')
+      expect(command.input.ExpressionAttributeNames['#field0']).toBe('defaultClassId')
       expect(command.input.ExpressionAttributeValues[':field0']).toBe('class_1')
     })
 
@@ -121,14 +125,16 @@ describe('db-utils', () => {
       const updated = await updateUser('abc-user', { defaultClassId: null })
       expect('defaultClassId' in updated).toBe(false)
       const command = send.mock.calls[0][0]
-      expect(command.input.UpdateExpression).toContain('REMOVE defaultClassId')
+      expect(command.input.UpdateExpression).toContain('REMOVE #field0')
+      expect(command.input.ExpressionAttributeNames['#field0']).toBe('defaultClassId')
     })
 
     it('stores an empty image as-is instead of removing it', async () => {
       send.mockResolvedValue({ Attributes: { ...storedUser, image: '' } })
       await updateUser('abc-user', { image: '' })
       const command = send.mock.calls[0][0]
-      expect(command.input.UpdateExpression).toContain('image = :field0')
+      expect(command.input.UpdateExpression).toContain('#field0 = :field0')
+      expect(command.input.ExpressionAttributeNames['#field0']).toBe('image')
       expect(command.input.UpdateExpression).not.toContain('REMOVE')
     })
   })
