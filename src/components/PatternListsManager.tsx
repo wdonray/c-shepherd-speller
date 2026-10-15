@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,6 +44,7 @@ import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
 import { OddDuck } from './OddDuck'
+import { touchDragLiftModifier } from './SortActivity'
 
 /** All/Favorites view selection, persisted across sessions. */
 type ListView = 'all' | 'favorites'
@@ -143,8 +153,23 @@ export default function PatternListsManager() {
   const keyboardSensor = useSensor(KeyboardSensor)
   const sensors = useSensors(pointerSensor, keyboardSensor)
 
+  // The DragOverlay renders a smooth floating copy of the dragged card while
+  // the original stays in place (hidden), mirroring the Sort page.
+  const [activeListId, setActiveListId] = useState<string | null>(null)
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveListId(String(event.active.id))
+  }, [])
+  const handleDragCancel = useCallback(() => {
+    setActiveListId(null)
+  }, [])
+  const activeList = useMemo(
+    () => (activeListId ? (lists.find((list) => list.id === activeListId) ?? null) : null),
+    [lists, activeListId]
+  )
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      setActiveListId(null)
       const { active, over } = event
       if (!over || active.id === over.id || savingOrder) return
       const favoriteReorder = effectiveView === 'favorites'
@@ -379,7 +404,12 @@ export default function PatternListsManager() {
               </Button>
             </div>
           ) : (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragCancel={handleDragCancel}
+              onDragEnd={handleDragEnd}
+            >
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="lists-grid">
                 {visibleLists.map((list) => (
                   <ListsOverviewCard
@@ -393,6 +423,21 @@ export default function PatternListsManager() {
                   />
                 ))}
               </div>
+              <DragOverlay dropAnimation={null} modifiers={[touchDragLiftModifier]} style={{ zIndex: 100 }}>
+                {activeList && (
+                  // Inert ghost copy: the real handlers are unreachable while
+                  // the overlay is inert, but keep them wired for correctness.
+                  <div aria-hidden="true" inert>
+                    <ListsOverviewCard
+                      list={activeList}
+                      reorderable={false}
+                      onOpen={openList}
+                      onDelete={setDeleteListTarget}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                  </div>
+                )}
+              </DragOverlay>
             </DndContext>
           )}
         </>
