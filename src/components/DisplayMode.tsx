@@ -9,6 +9,7 @@ import { getList, getLists, updateList } from '@/lib/lists-api'
 import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
+import RulesVisibilityToggle from './RulesVisibilityToggle'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
@@ -83,6 +84,8 @@ function DisplayModeInner() {
   // display-only. Null when the list has no classroom.
   const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
   const [className, setClassName] = useState<string | null>(null)
+  // Rule display visibility on the chart (issue #310). Default shown.
+  const [showRules, setShowRules] = useState(true)
 
   useEffect(() => {
     const classId = list?.classId
@@ -293,6 +296,7 @@ function DisplayModeInner() {
             </span>
             <WhyChartPopover />
             <div className="ml-auto flex items-center gap-2">
+              <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
               <Button variant="secondary" size="sm" asChild>
                 <Link href={`/lists/${list.id}/print`}>
                   <PrinterIcon className="size-4" aria-hidden="true" />
@@ -333,6 +337,7 @@ function DisplayModeInner() {
             list={list}
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
             classRules={classRules}
+            showRules={showRules}
           />
         )}
       </main>

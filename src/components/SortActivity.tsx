@@ -30,6 +30,7 @@ import {
 } from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
+import RulesVisibilityToggle from './RulesVisibilityToggle'
 import {
   playCorrectSound,
   playIncorrectSound,
@@ -566,6 +567,9 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
   const [selectedEntry, setSelectedEntry] = useState<BankWord | null>(null)
   const [won, setWon] = useState(false)
   const [activeClass, setActiveClass] = useState<ActiveClass | null>(null)
+  // Rule display visibility (issue #310). Default shown; the toggle in the
+  // toolbar hides the rule cards under the column headers.
+  const [showRules, setShowRules] = useState(true)
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const patterns = useMemo(() => {
@@ -812,15 +816,18 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
               {activeClass.name}
             </span>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onExit}
-            aria-label="Exit sort"
-            className="opacity-60 hover:opacity-100"
-          >
-            <XIcon className="size-5" aria-hidden="true" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onExit}
+              aria-label="Exit sort"
+              className="opacity-60 hover:opacity-100"
+            >
+              <XIcon className="size-5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
 
         <div aria-live="polite" className="sr-only" role="status">
@@ -863,7 +870,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     key={pattern.id}
                     pattern={pattern}
                     isOver={overId === pattern.id}
-                    rule={existingRules[pattern.pattern] ?? null}
+                    rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
                   >
                     {columnWords.map((entry) => (
@@ -913,7 +920,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     pattern={pattern}
                     isOver={overId === pattern.id}
                     ghostEntry={ghostEntry}
-                    rule={existingRules[pattern.pattern] ?? null}
+                    rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
                     ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
                   >
                     {columnWords.map((entry) => (

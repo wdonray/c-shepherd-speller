@@ -21,6 +21,11 @@ interface PatternChartDisplayProps {
    */
   classRules?: Record<string, string> | null
   /**
+   * Whether the rule display under the column headers is shown (issue #310).
+   * Default true preserves current behavior; the parent renders a toggle.
+   */
+  showRules?: boolean
+  /**
    * 'present' is the interactive projector chart. 'print' renders a
    * non-interactive poster: locked patterns are excluded entirely, words are
    * plain text, and all buttons and the caption are hidden.
@@ -58,6 +63,7 @@ export default function PatternChartDisplay({
   list,
   onToggleLock,
   classRules,
+  showRules = true,
   variant = 'present',
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
@@ -107,7 +113,7 @@ export default function PatternChartDisplay({
    * room; rules are managed on the list page, never here.
    */
   const renderRuleDisplay = (pattern: SpellingPattern) => {
-    if (isPrint) return null
+    if (isPrint || !showRules) return null
     const rule = classRules?.[pattern.pattern] ?? pattern.rule
     if (!rule) return null
     const isClassRule = classRules?.[pattern.pattern] !== undefined

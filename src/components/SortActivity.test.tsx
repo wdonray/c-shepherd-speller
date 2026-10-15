@@ -466,3 +466,38 @@ describe('SortActivity class pill', () => {
     expect(tray.className).toContain('bottom-0')
   })
 })
+
+describe('SortActivity rule display toggle', () => {
+  const ruledList: WordList = {
+    ...list,
+    patterns: [
+      {
+        id: 'p1',
+        sound: 'long a',
+        pattern: 'a_e',
+        frequency: 'common',
+        words: ['cake', 'bake'],
+        rule: 'Magic e.',
+      },
+      { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
+    ],
+  }
+
+  it('shows rule cards by default and hides them when the toggle is pressed', () => {
+    render(<SortActivity list={ruledList} onExit={vi.fn()} />)
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    const toggle = screen.getByRole('button', { name: 'Hide rules' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(toggle)
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show rules' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('shows the rule cards again when the toggle is pressed twice', () => {
+    render(<SortActivity list={ruledList} onExit={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Hide rules' }))
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+  })
+})

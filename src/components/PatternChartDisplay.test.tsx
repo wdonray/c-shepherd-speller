@@ -515,5 +515,17 @@ describe('PatternChartDisplay', () => {
       render(<PatternChartDisplay list={listWithRule} variant="print" />)
       expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
     })
+
+    it('hides rules when showRules is false', () => {
+      render(<PatternChartDisplay list={listWithRule} showRules={false} />)
+      expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+      expect(screen.queryByText('Magic e.')).not.toBeInTheDocument()
+    })
+
+    it('shows rules by default when showRules is not provided', () => {
+      render(<PatternChartDisplay list={listWithRule} />)
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      expect(screen.getByText('Magic e.')).toBeInTheDocument()
+    })
   })
 })
