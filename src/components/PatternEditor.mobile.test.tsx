@@ -129,3 +129,74 @@ describe('PatternEditor mobile words cards', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: ['cake'] }))
   })
 })
+
+describe('PatternEditor mobile rule affordance (issue #313)', () => {
+  beforeEach(() => {
+    mockMobileViewport()
+    vi.clearAllMocks()
+    isAudioCaptureSupported.mockReturnValue(true)
+    requestMicrophoneAccess.mockReturnValue({
+      promise: Promise.resolve({ getTracks: () => [] }),
+      cancel: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: originalMatchMedia,
+    })
+  })
+
+  function renderWithRule(
+    overrides: Partial<SpellingPattern> = {},
+    ruleProps: { classId?: string | null; className?: string | null; classRules?: Record<string, string> | null } = {}
+  ) {
+    const onSaveRule = vi.fn().mockResolvedValue(undefined)
+    render(
+      <PatternEditor
+        pattern={{ ...basePattern, ...overrides }}
+        onChange={vi.fn()}
+        onRemove={vi.fn()}
+        onSaveRule={onSaveRule}
+        {...ruleProps}
+      />
+    )
+    return { onSaveRule }
+  }
+
+  it('renders the collapsed rule row at 390px with a 44px touch target', () => {
+    renderWithRule()
+    const row = screen.getByRole('button', { name: 'Add rule for a_e' })
+    expect(row).toBeInTheDocument()
+    expect(row).toHaveClass('min-h-[44px]')
+  })
+
+  it('shows the pattern rule preview on the card', () => {
+    renderWithRule({ rule: 'ai never ends a word.' })
+    expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('ai never ends a word.')
+  })
+
+  it('opens the rule dialog from the card row with the textarea reachable', () => {
+    renderWithRule()
+    fireEvent.click(screen.getByRole('button', { name: 'Add rule for a_e' }))
+    expect(screen.getByRole('dialog', { name: 'Rule for a_e' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Rule, in the kids’ words')).toBeInTheDocument()
+  })
+
+  it('prefers the classroom rule and marks it shared', () => {
+    renderWithRule({}, { classId: 'c1', className: 'Period 2', classRules: { a_e: 'Shared rule.' } })
+    expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('Shared rule.')
+    expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
+  })
+
+  it('falls back to the pattern rule when the classroom has none for the pattern', () => {
+    renderWithRule(
+      { rule: 'Local rule.' },
+      { classId: 'c1', className: 'Period 2', classRules: { ough: 'Other rule.' } }
+    )
+    expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('Local rule.')
+    expect(screen.queryByText(/Shared with/)).not.toBeInTheDocument()
+  })
+})

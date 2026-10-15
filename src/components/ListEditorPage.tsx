@@ -30,7 +30,6 @@ import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-chan
 import PatternEditor from './PatternEditor'
 import ListColorPicker from './ListColorPicker'
 import ClassroomSelector from './ClassroomSelector'
-import ListRulesSection from './ListRulesSection'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 
@@ -200,8 +199,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     }
   }, [listId])
 
-  // Load the list's classroom (name + rules) for the Rules section whenever
-  // the classroom assignment changes. Null clears back to unscoped rules.
+  // Load the list's classroom (name + rules) for the per-pattern rule editor
+  // whenever the classroom assignment changes. Null clears back to unscoped
+  // rules.
   useEffect(() => {
     const classId = list?.classId
     if (!classId) {
@@ -550,10 +550,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   // From here on, list is the loaded WordList, so the editor helpers below
   // need no null guards.
   /**
-   * Save one spelling rule from the Rules section (issue #263). With a
-   * classroom, the rule is saved to the classroom (shared across its
-   * lists); otherwise it is saved unscoped on the pattern itself.
-   * Rejects on failure so the row keeps the draft and shows the error.
+   * Save one spelling rule from the per-pattern rule editor (issue #313).
+   * With a classroom, the rule is saved to the classroom (shared across
+   * its lists); otherwise it is saved unscoped on the pattern itself.
+   * Rejects on failure so the editor keeps the draft and shows the error.
    */
   const handleSaveRule = async (patternId: string, patternText: string, rule: string): Promise<void> => {
     if (list.classId) {
@@ -735,6 +735,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
                   onRemove={() => setDeletePatternTarget(pattern)}
                   color={resolveListColor(list)}
                   isUnsaved={unsavedPatternIds.has(pattern.id)}
+                  classId={list.classId}
+                  className={className}
+                  classRules={classRules}
+                  onSaveRule={handleSaveRule}
                 />
               </div>
             ))}
@@ -744,14 +748,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           </div>
         </>
       )}
-
-      <ListRulesSection
-        patterns={list.patterns.map((p) => ({ id: p.id, pattern: p.pattern, rule: p.rule }))}
-        classId={list.classId}
-        className={className}
-        classRules={classRules}
-        onSaveRule={handleSaveRule}
-      />
 
       <Dialog open={deletePatternTarget !== null} onOpenChange={() => setDeletePatternTarget(null)}>
         {deletePatternTarget && (
