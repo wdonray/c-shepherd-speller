@@ -11,6 +11,7 @@ vi.mock('@/lib/dynamodb', () => ({
 import {
   createUser,
   updateUser,
+  updateUserDefaultClassId,
   getUserByEmail,
   getUserById,
   getUserSpellingData,
@@ -101,6 +102,26 @@ describe('db-utils', () => {
       expect('defaultClassId' in updated).toBe(false)
       const putCommand = send.mock.calls[1][0]
       expect('defaultClassId' in putCommand.input.Item).toBe(false)
+    })
+  })
+
+  describe('updateUserDefaultClassId', () => {
+    it('sets the default class id with a field-scoped update', async () => {
+      send.mockResolvedValue({})
+      await updateUserDefaultClassId('abc-user', 'class_1')
+      expect(send).toHaveBeenCalledTimes(1)
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('SET defaultClassId = :classId')
+      expect(command.input.ExpressionAttributeValues[':classId']).toBe('class_1')
+      expect(command.input.ConditionExpression).toBe('attribute_exists(PK)')
+    })
+
+    it('removes the default class attribute when cleared with null', async () => {
+      send.mockResolvedValue({})
+      await updateUserDefaultClassId('abc-user', null)
+      expect(send).toHaveBeenCalledTimes(1)
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('REMOVE defaultClassId')
     })
   })
 

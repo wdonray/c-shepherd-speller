@@ -21,6 +21,17 @@ export async function GET() {
 
   try {
     const [user, classes] = await Promise.all([getUserById(auth.user.id), getClassesByUser(auth.user.id)])
+    if (!user) {
+      // The caller is authenticated, so a missing user record means the
+      // read failed (getUserById swallows DB errors as undefined). Falling
+      // through would silently drop an explicit default and let a new list
+      // start with the wrong classroom.
+      reportError(new Error('User record not found for authenticated user'), {
+        location: 'GET /api/classes/default',
+        extra: { status: 500 },
+      })
+      return noStoreJson({ error: 'Failed to resolve default class' }, { status: 500 })
+    }
     return noStoreJson({ defaultClassId: resolveDefaultClassId(user, classes) })
   } catch (error) {
     reportError(error, { location: 'GET /api/classes/default', extra: { status: 500 } })

@@ -62,4 +62,14 @@ describe('GET /api/classes/default', () => {
     expect(res.status).toBe(500)
     expect(await res.json()).toEqual({ error: 'Failed to resolve default class' })
   })
+
+  it('returns 500 when the user record is missing', async () => {
+    requireUser.mockResolvedValue(authed)
+    getUserById.mockResolvedValue(undefined)
+    getClassesByUser.mockResolvedValue([{ id: 'c1' }])
+    const res = await GET()
+    expect(res.status).toBe(500)
+    expect(await res.json()).toEqual({ error: 'Failed to resolve default class' })
+    expect(resolveDefaultClassId).not.toHaveBeenCalled()
+  })
 })

@@ -1174,6 +1174,87 @@ describe('ListEditorPage classroom', () => {
     // Reverted to the previously assigned classroom.
     expect(select.value).toBe('c1')
   })
+
+  it('serializes rapid classroom changes so the last selection persists', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    const calls: Array<{ classId: string | null }> = []
+    let resolveFirst: (value: unknown) => void = () => {}
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      // Only track classroom PUTs (content autosaves have no classId key).
+      if ('classId' in data) {
+        const classId = (data as { classId?: string | null }).classId ?? null
+        calls.push({ classId })
+        if (calls.length === 1) {
+          // Hold the first PUT open; the second selection happens while it is in flight.
+          await new Promise((resolve) => {
+            resolveFirst = resolve as (value: unknown) => void
+          })
+        }
+      }
+      return { ...list }
+    })
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // Wait for the first PUT to start.
+    await waitFor(() => expect(calls).toHaveLength(1))
+    expect(calls[0]).toEqual({ classId: 'c1' })
+    fireEvent.change(select, { target: { value: 'c2' } })
+    // The second PUT waits for the first: it has not fired yet.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(calls).toHaveLength(1)
+    resolveFirst({ ok: true })
+    // The second PUT now fires with the latest selection.
+    await waitFor(() => expect(calls).toHaveLength(2), { timeout: 2000 })
+    expect(calls[1]).toEqual({ classId: 'c2' })
+    await waitFor(() => expect(notifyListsChanged).toHaveBeenCalled())
+    expect(select.value).toBe('c2')
+  })
+
+  it('does not revert a newer selection when an older classroom save fails', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    let failFirst = true
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data && failFirst) {
+        failFirst = false
+        throw new Error('network down')
+      }
+      return { ...list }
+    })
+    const select = await renderReadyWithList()
+    // First selection's PUT fails.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c1' }))
+    // Reverted to "No class" (the last persisted value).
+    await waitFor(() => expect(select.value).toBe(''))
+    // Second selection succeeds; the failed first save does not clobber it.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c2' }))
+    expect(select.value).toBe('c2')
+  })
 })
 
 describe('ListEditorPage rules section', () => {

@@ -215,6 +215,19 @@ describe('ClassroomSelector', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('disables Cancel while the create request is in flight', async () => {
+    renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    fireEvent.change(select, { target: { value: '__new__' } })
+    // Hold the create request open.
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}))
+    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Period 9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Adding…' })).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+  })
+
   it('shows an error when the create request returns an error status', async () => {
     renderSelector()
     const select = await screen.findByLabelText('Classroom')

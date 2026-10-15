@@ -139,6 +139,14 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
+  /** In-flight content save promise, if any; classroom saves wait for it. */
+  const contentSavePromiseRef = useRef<Promise<void> | null>(null)
+  /** Sequence for classroom saves; only the latest may commit or revert. */
+  const classroomSaveSeqRef = useRef(0)
+  /** Chain of classroom save promises; saves run sequentially. */
+  const classroomSaveChainRef = useRef<Promise<void>>(Promise.resolve())
+  /** Last classroom id confirmed persisted; revert target on failure. */
+  const persistedClassIdRef = useRef<string | null>(null)
   /** Whether this editor visit already logged an "edited" activity event. */
   const editLoggedRef = useRef(false)
   /**
@@ -178,6 +186,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         const data = await getList(listId)
         if (!cancelled) {
           setList(data)
+          persistedClassIdRef.current = data.classId ?? null
           setLoadState('ready')
         }
       } catch (err) {
@@ -354,8 +363,22 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
-      void doSave(next)
+      void trackContentSave(doSave(next))
     }, SAVE_DEBOUNCE_MS)
+  }
+
+  /**
+   * Track an in-flight content save so classroom changes can wait for it
+   * (issue #263: a classroom PUT racing a content PUT can discard one of
+   * the two edits at the database's read-modify-write).
+   */
+  function trackContentSave(promise: Promise<void>): Promise<void> {
+    contentSavePromiseRef.current = promise
+    return promise.finally(() => {
+      if (contentSavePromiseRef.current === promise) {
+        contentSavePromiseRef.current = null
+      }
+    })
   }
 
   /** Apply a local edit and schedule its auto-save. The once-per-visit
@@ -368,25 +391,83 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
   /**
    * Classroom assignment saves immediately (not debounced): it is an
-   * explicit choice, not a content edit. Reverts on failure. Independent
-   * of the content autosave, which never touches classId.
+   * explicit choice, not a content edit. Reverts on failure.
+   *
+   * Race handling (issue #263):
+   * - Classroom saves run sequentially via a promise chain, so selecting
+   *   A then B sends the PUTs in order and the last selection is the one
+   *   persisted.
+   * - The save waits for any pending or in-flight content autosave first,
+   *   so the two PUTs cannot read the same prior list and discard each
+   *   other's edits.
+   * - On failure only the classId is reverted (via functional update) to
+   *   the last persisted value, so content edits made while the PUT was
+   *   pending are preserved; a newer classroom selection is never reverted.
    */
   async function handleClassroomChange(classId: string | null, current: WordList): Promise<void> {
-    const prev = current.classId
+    const saveId = ++classroomSaveSeqRef.current
+    const attempted = classId ?? null
     const next: WordList = { ...current }
     if (classId) next.classId = classId
     else delete next.classId
     setList(next)
+
+    // Chain onto the previous classroom save so PUTs hit the API in order.
+    const prevChain = classroomSaveChainRef.current
+    let releaseChain: () => void = () => {}
+    const thisChain = new Promise<void>((resolve) => {
+      releaseChain = resolve
+    })
+    classroomSaveChainRef.current = prevChain.then(() => thisChain)
+
     try {
+      await prevChain
+      // Serialize with content saves: flush a pending autosave and wait for
+      // an in-flight one before the classroom PUT reads the list.
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+      const pending = pendingSaveRef.current
+      if (pending) {
+        pendingSaveRef.current = null
+        setHasPendingSave(false)
+        await trackContentSave(doSave(pending)).catch(() => {
+          // doSave already reports and surfaces its own failure state.
+        })
+      }
+      const inFlight = contentSavePromiseRef.current
+      if (inFlight) {
+        await inFlight.catch(() => {
+          // The content save already reported its own failure.
+        })
+      }
+      // A newer classroom selection started while we waited; it owns the
+      // outcome now.
+      if (saveId !== classroomSaveSeqRef.current) return
       await updateList(next.id, { classId })
-      notifyListsChanged()
+      persistedClassIdRef.current = attempted
+      if (saveId === classroomSaveSeqRef.current) {
+        notifyListsChanged()
+      }
     } catch (error) {
-      const reverted: WordList = { ...current }
-      if (prev) reverted.classId = prev
-      else delete reverted.classId
-      setList(reverted)
+      if (saveId === classroomSaveSeqRef.current) {
+        const persisted = persistedClassIdRef.current
+        setList((list) => {
+          if (!list) return list
+          // Do not revert a newer classroom selection made while this PUT
+          // was pending.
+          if ((list.classId ?? null) !== attempted) return list
+          const reverted = { ...list }
+          if (persisted) reverted.classId = persisted
+          else delete reverted.classId
+          return reverted
+        })
+      }
       reportError(error, { location: 'ListEditorPage.handleClassroomChange' })
       toastError(getErrorMessage(error))
+    } finally {
+      releaseChain()
     }
   }
 
@@ -395,6 +476,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     try {
       const data = await getList(listId)
       setList(data)
+      persistedClassIdRef.current = data.classId ?? null
       setLoadState('ready')
     } catch (err) {
       reportError(err, { location: 'ListEditorPage.reload' })

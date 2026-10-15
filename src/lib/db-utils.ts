@@ -85,6 +85,43 @@ export async function updateUser(
   return updatedUser
 }
 
+/**
+ * Field-scoped update for the teacher's default classroom (issue #263).
+ * Uses UpdateCommand so a default-class save never overwrites concurrent
+ * profile edits: unlike updateUser's read-modify-write, only the
+ * defaultClassId attribute is touched.
+ */
+export async function updateUserDefaultClassId(userId: string, defaultClassId: string | null): Promise<void> {
+  const keys = getUserKeys(userId)
+  const timestamp = new Date().toISOString()
+  if (defaultClassId) {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: USER_TABLE_NAME,
+        Key: keys,
+        UpdateExpression: 'SET defaultClassId = :classId, updatedAt = :now',
+        ExpressionAttributeValues: {
+          ':classId': defaultClassId,
+          ':now': timestamp,
+        },
+        ConditionExpression: 'attribute_exists(PK)',
+      })
+    )
+  } else {
+    await docClient.send(
+      new UpdateCommand({
+        TableName: USER_TABLE_NAME,
+        Key: keys,
+        UpdateExpression: 'REMOVE defaultClassId SET updatedAt = :now',
+        ExpressionAttributeValues: {
+          ':now': timestamp,
+        },
+        ConditionExpression: 'attribute_exists(PK)',
+      })
+    )
+  }
+}
+
 export async function getUserByEmail(email: string) {
   // Note: In DynamoDB, we'll need to create a GSI (Global Secondary Index) on email
   // For now, this is a placeholder - you'll need to implement email-based queries
