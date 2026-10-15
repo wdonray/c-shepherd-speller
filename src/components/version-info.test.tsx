@@ -107,6 +107,12 @@ describe('summarizeRelease', () => {
     ).toBe('Use custom Cognito hosted-UI domain when COGNITO_HOSTED_UI_DOMAIN is set')
   })
 
+  it('extracts titles with multiple PR references (#289, #293)', () => {
+    expect(
+      summarizeRelease('### 🩹 Fixes\n\n  - Render list reorder drag handle inside the card header (#289, #293)\n')
+    ).toBe('Render list reorder drag handle inside the card header')
+  })
+
   it('keeps parenthesized words inside the title with a PR reference', () => {
     expect(summarizeRelease('  - Fix thing (special) (#134)\n')).toBe('Fix thing (special)')
   })
