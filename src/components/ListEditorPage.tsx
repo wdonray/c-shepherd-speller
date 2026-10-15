@@ -147,6 +147,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const classroomSaveChainRef = useRef<Promise<void>>(Promise.resolve())
   /** Last classroom id confirmed persisted; revert target on failure. */
   const persistedClassIdRef = useRef<string | null>(null)
+  /** Current classroom id in the UI (mirrors list.classId for revert checks). */
+  const currentClassIdRef = useRef<string | null>(null)
   /** Whether this editor visit already logged an "edited" activity event. */
   const editLoggedRef = useRef(false)
   /**
@@ -187,6 +189,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         if (!cancelled) {
           setList(data)
           persistedClassIdRef.current = data.classId ?? null
+          currentClassIdRef.current = data.classId ?? null
           setLoadState('ready')
         }
       } catch (err) {
@@ -413,6 +416,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (classId) next.classId = classId
     else delete next.classId
     setList(next)
+    currentClassIdRef.current = attempted
 
     // Chain onto the previous classroom save so PUTs hit the API in order.
     const prevChain = classroomSaveChainRef.current
@@ -458,17 +462,20 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       }
     } catch (error) {
       if (saveId === classroomSaveSeqRef.current) {
-        const persisted = persistedClassIdRef.current
-        setList((list) => {
-          if (!list) return list
-          // Do not revert a newer classroom selection made while this PUT
-          // was pending.
-          if ((list.classId ?? null) !== attempted) return list
-          const reverted = { ...list }
-          if (persisted) reverted.classId = persisted
-          else delete reverted.classId
-          return reverted
-        })
+        // Do not revert a newer classroom selection made while this PUT
+        // was pending.
+        if (currentClassIdRef.current === attempted) {
+          const persisted = persistedClassIdRef.current
+          currentClassIdRef.current = persisted
+          setList((list) => {
+            // handleClassroomChange only runs when list is loaded (the
+            // ClassroomSelector renders after load), so list is non-null.
+            const reverted = { ...list! }
+            if (persisted) reverted.classId = persisted
+            else delete reverted.classId
+            return reverted
+          })
+        }
       }
       reportError(error, { location: 'ListEditorPage.handleClassroomChange' })
       toastError(getErrorMessage(error))
@@ -483,6 +490,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       const data = await getList(listId)
       setList(data)
       persistedClassIdRef.current = data.classId ?? null
+      currentClassIdRef.current = data.classId ?? null
       setLoadState('ready')
     } catch (err) {
       reportError(err, { location: 'ListEditorPage.reload' })
