@@ -130,6 +130,7 @@ function PracticeInner() {
                   primaryLabel="Start practice"
                   showPresent={false}
                   showPreview={false}
+                  hoverLift
                 />
               ))}
             </div>

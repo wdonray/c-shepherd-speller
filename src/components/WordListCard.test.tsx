@@ -231,13 +231,29 @@ describe('WordListCard', () => {
         hoverLift
       />
     )
+    // The fixture has no stored color, so the default (leaf) outline applies.
     expect(container.querySelector('[data-slot="card"]')).toHaveClass(
       'hover:z-10',
       'hover:scale-[1.05]',
-      'hover:border-sky-deep',
+      'hover:border-leaf-deep',
       'hover:shadow-xl',
       'motion-reduce:hover:scale-100',
       'motion-reduce:hover:shadow-none'
     )
+  })
+
+  it('matches the hover outline to the list color (issue #290)', () => {
+    const { container } = render(
+      <WordListCard
+        list={{ ...list, color: 'plum' }}
+        primaryLabel="Present chart"
+        showPresent={false}
+        showPreview={false}
+        href="/display?list=l1"
+        hoverLift
+      />
+    )
+    expect(container.querySelector('[data-slot="card"]')).toHaveClass('hover:border-plum-deep')
+    expect(container.querySelector('[data-slot="card"]')).not.toHaveClass('hover:border-leaf-deep')
   })
 })
