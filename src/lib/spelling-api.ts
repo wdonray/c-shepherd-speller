@@ -17,6 +17,8 @@ export interface User {
   schoolName?: string
   classroomSize?: number
   preferredName?: string
+  /** The teacher's default classroom id. Absent until set. */
+  defaultClassId?: string | null
 }
 
 export interface SpellingData {

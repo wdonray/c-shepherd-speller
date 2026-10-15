@@ -124,6 +124,14 @@ describe('ListEditorPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    // ClassroomSelector fetches the teacher's classes on mount.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }),
+      })
+    )
     // jsdom does not implement scrollIntoView; stub it so the add-pattern
     // scroll can be asserted (and so existing add-pattern tests don't throw).
     scrollIntoViewMock = vi.fn<(options?: ScrollIntoViewOptions | boolean) => void>()
@@ -132,6 +140,7 @@ describe('ListEditorPage', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
     delete (window.HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView
   })
 
@@ -1096,5 +1105,73 @@ describe('ListEditorPage', () => {
     await waitFor(() => {
       expect(screen.queryByText('Unsaved')).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('ListEditorPage classroom', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useRealTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }),
+      })
+    )
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  async function renderReadyWithList(overrides: Partial<WordList> = {}) {
+    getList.mockResolvedValue({ ...list, ...overrides })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    const select = screen.getByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    return select as HTMLSelectElement
+  }
+
+  it('shows the list classroom as selected', async () => {
+    const select = await renderReadyWithList({ classId: 'c1' })
+    expect(select.value).toBe('c1')
+  })
+
+  it('saves a classroom change immediately', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    const select = await renderReadyWithList()
+    expect(select.value).toBe('')
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c1' }))
+    expect(notifyListsChanged).toHaveBeenCalled()
+  })
+
+  it('clears the classroom with "No class"', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    const select = await renderReadyWithList({ classId: 'c1' })
+    fireEvent.change(select, { target: { value: '' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: null }))
+  })
+
+  it('reverts the classroom when saving fails', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c1' }))
+    // Reverted to "No class".
+    expect(select.value).toBe('')
+  })
+
+  it('restores the previous classroom when clearing fails', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    const select = await renderReadyWithList({ classId: 'c1' })
+    expect(select.value).toBe('c1')
+    fireEvent.change(select, { target: { value: '' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: null }))
+    // Reverted to the previously assigned classroom.
+    expect(select.value).toBe('c1')
   })
 })

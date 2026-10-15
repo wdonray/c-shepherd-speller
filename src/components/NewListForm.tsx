@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,24 @@ export default function NewListForm() {
   const [week, setWeek] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The teacher's default classroom, inherited by the new list (issue #263).
+  // Null/absent means "No class". Loaded once; a slow load never blocks create.
+  const [defaultClassId, setDefaultClassId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/classes/default')
+      .then((res) => (res.ok ? res.json() : { defaultClassId: null }))
+      .then((body) => {
+        if (!cancelled && typeof body.defaultClassId === 'string') setDefaultClassId(body.defaultClassId)
+      })
+      .catch(() => {
+        // A missing default must not block list creation.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const canSubmit = name.trim().length > 0 && !creating
 
@@ -36,6 +54,7 @@ export default function NewListForm() {
         name: name.trim(),
         gradeLevel: gradeLevel.trim() || undefined,
         week: week.trim() || undefined,
+        ...(defaultClassId ? { classId: defaultClassId } : {}),
         patterns: [],
       })
       logActivity('created', list.name, list.id)

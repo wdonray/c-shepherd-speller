@@ -29,6 +29,7 @@ import {
 import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-changes-guard'
 import PatternEditor from './PatternEditor'
 import ListColorPicker from './ListColorPicker'
+import ClassroomSelector from './ClassroomSelector'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 
@@ -321,6 +322,30 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     scheduleAutosave(next)
   }
 
+  /**
+   * Classroom assignment saves immediately (not debounced): it is an
+   * explicit choice, not a content edit. Reverts on failure. Independent
+   * of the content autosave, which never touches classId.
+   */
+  async function handleClassroomChange(classId: string | null, current: WordList): Promise<void> {
+    const prev = current.classId
+    const next: WordList = { ...current }
+    if (classId) next.classId = classId
+    else delete next.classId
+    setList(next)
+    try {
+      await updateList(next.id, { classId })
+      notifyListsChanged()
+    } catch (error) {
+      const reverted: WordList = { ...current }
+      if (prev) reverted.classId = prev
+      else delete reverted.classId
+      setList(reverted)
+      reportError(error, { location: 'ListEditorPage.handleClassroomChange' })
+      toastError(getErrorMessage(error))
+    }
+  }
+
   const reload = async () => {
     setLoadState('loading')
     try {
@@ -518,6 +543,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
             value={resolveListColor(list)}
             onChange={(color: ListColor) => applyChange({ ...list, color })}
           />
+        </div>
+        <div className="w-52 space-y-1.5">
+          <ClassroomSelector value={list.classId} onChange={(classId) => handleClassroomChange(classId, list)} />
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import { Badge } from './ui/badge'
 import { UpdateUserBody } from '@/types/User'
 import { processProfileImage } from '@/lib/profile-image'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
+import ProfileClassesSection from './ProfileClassesSection'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, getToastMessage, toastError, HttpError } from '@/lib/error-toast'
 
@@ -442,6 +443,7 @@ export default function ProfileForm() {
           </div>
         </CardContent>
       </Card>
+      {user?.id && <ProfileClassesSection userId={user.id} />}
     </div>
   )
 }
