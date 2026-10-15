@@ -315,8 +315,14 @@ export default function PatternListsManager() {
             )}
           </div>
 
-          {/* Sticky on mobile so tabs + search stay pinned while scrolling. */}
-          <div className="sticky top-0 z-10 -my-1 space-y-4 bg-background py-3">
+          {/*
+            Sticky so tabs + search stay pinned while scrolling (issue #298):
+            pinned below the 72px site header (top-0 would stick it hidden
+            behind the header), and isolated in its own compositing layer so
+            iOS Safari stops ghosting card action bars into a stuck duplicate
+            that smears over the controls while scrolling.
+          */}
+          <div className="sticky top-[72px] z-10 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]">
             {showFavoritesTab && !searching && (
               <div
                 role="tablist"
