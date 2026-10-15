@@ -654,6 +654,39 @@ describe('DisplayMode classroom rules loading', () => {
     // The chart still renders; no classroom rule is shown.
     expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
   })
+
+  it('treats an HTTP error from the class fetch as no classroom rules', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
+
+  it('shows the classroom with no classroom rule when the class has no rules yet', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ class: { id: 'c1', name: 'Period 2' } }),
+      })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Period 2')).toBeInTheDocument()
+    })
+    // No rule rows: the chart falls back to the patterns' own rules.
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
 })
 
 describe('DisplayMode classroom unmount', () => {
@@ -684,6 +717,37 @@ describe('DisplayMode classroom unmount', () => {
     unmount()
     rejectFetch(new Error('down'))
     // Give the rejection a chance to run; no error should surface.
+    await new Promise((r) => setTimeout(r, 50))
+  })
+
+  it('ignores a classroom fetch that resolves after unmount', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    let resolveFetch: (res: object) => void = () => {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveFetch = resolve
+          })
+      )
+    )
+    const { unmount } = render(<DisplayMode />)
+    // Wait for the chart to render (list loaded, classroom fetch in flight).
+    await waitFor(() => {
+      expect(screen.getByText('cake')).toBeInTheDocument()
+    })
+    // Unmount before the fetch settles.
+    unmount()
+    resolveFetch({
+      ok: true,
+      json: async () => ({
+        class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'ai never ends a word.' } } },
+      }),
+    })
+    // Give the resolution a chance to run; no state update should happen.
     await new Promise((r) => setTimeout(r, 50))
   })
 })

@@ -390,34 +390,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     }
   }
 
-  /**
-   * Save one spelling rule from the Rules section (issue #263). With a
-   * classroom, the rule is saved to the classroom (shared across its
-   * lists); otherwise it is saved unscoped on the pattern itself.
-   * Rejects on failure so the row keeps the draft and shows the error.
-   */
-  async function handleSaveRule(patternId: string, patternText: string, rule: string): Promise<void> {
-    if (!list) throw new Error('No list loaded')
-    if (list.classId) {
-      const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rules: { [patternText]: { rule } } }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
-    } else {
-      const next: WordList = {
-        ...list,
-        patterns: list.patterns.map((p) => (p.id === patternId ? { ...p, rule: rule || undefined } : p)),
-      }
-      setList(next)
-      await updateList(next.id, {
-        patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
-      })
-    }
-  }
-
   const reload = async () => {
     setLoadState('loading')
     try {
@@ -510,6 +482,33 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
   // From here on, list is the loaded WordList, so the editor helpers below
   // need no null guards.
+  /**
+   * Save one spelling rule from the Rules section (issue #263). With a
+   * classroom, the rule is saved to the classroom (shared across its
+   * lists); otherwise it is saved unscoped on the pattern itself.
+   * Rejects on failure so the row keeps the draft and shows the error.
+   */
+  const handleSaveRule = async (patternId: string, patternText: string, rule: string): Promise<void> => {
+    if (list.classId) {
+      const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: { [patternText]: { rule } } }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
+    } else {
+      const next: WordList = {
+        ...list,
+        patterns: list.patterns.map((p) => (p.id === patternId ? { ...p, rule: rule || undefined } : p)),
+      }
+      setList(next)
+      await updateList(next.id, {
+        patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
+      })
+    }
+  }
+
   const updatePattern = (patternId: string, updated: SpellingPattern) => {
     // Once a new pattern has its required fields, it graduates to a normal
     // pattern and is included in saves from here on.
