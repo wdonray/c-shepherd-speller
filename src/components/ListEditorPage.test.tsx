@@ -1635,6 +1635,69 @@ describe('ListEditorPage per-pattern rule editor (issue #313)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('keeps the draft and shows an error when deleting a classroom rule fails', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'DELETE') {
+        return { ok: false, status: 500 }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not save the rule. Try again.')
+    })
+    // The failed delete restores the draft so the teacher can retry.
+    expect(screen.getByLabelText('Rule, in the kids’ words')).toHaveValue('Old rule.')
+    expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+  })
+
+  it('deletes a classroom rule while the classroom is still loading', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'DELETE') {
+        expect(JSON.parse(init.body as string)).toEqual({ patternText: 'a_e' })
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    // The unscoped rule is the effective rule until the class loads.
+    await renderReadyWithRules({ classId: 'c1', patterns: [{ ...patternA, rule: 'Magic e.' }] })
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+    // Deleted against a null previous value: the row falls back to Add.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    resolveClassFetch({ ok: true, json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }) })
+  })
+
   it('clears classroom rules when the classroom is removed', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes('/api/classes/')) {
