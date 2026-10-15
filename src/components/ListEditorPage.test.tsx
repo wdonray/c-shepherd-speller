@@ -1591,6 +1591,190 @@ describe('ListEditorPage per-pattern rule editor (issue #313)', () => {
     })
   })
 
+  it('deletes a classroom rule via DELETE when the rule is cleared (issue #307)', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'DELETE') {
+        expect(JSON.parse(init.body as string)).toEqual({ patternText: 'a_e' })
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom rule is showing on the collapsed row.
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+    // Clearing must not touch the list's own patterns.
+    expect(updateList).not.toHaveBeenCalled()
+    // Close the modal (nothing is dirty after the successful clear), then
+    // the rule is gone: the row falls back to the Add affordance and the
+    // classroom marker is gone.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+    // No error is shown.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps the draft and shows an error when deleting a classroom rule fails', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'DELETE') {
+        return { ok: false, status: 500 }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not save the rule. Try again.')
+    })
+    // The failed delete restores the draft so the teacher can retry.
+    expect(screen.getByLabelText('Rule, in the kids’ words')).toHaveValue('Old rule.')
+    expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+  })
+
+  it('deletes a classroom rule while the classroom is still loading', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'DELETE') {
+        expect(JSON.parse(init.body as string)).toEqual({ patternText: 'a_e' })
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    // The unscoped rule is the effective rule until the class loads.
+    await renderReadyWithRules({ classId: 'c1', patterns: [{ ...patternA, rule: 'Magic e.' }] })
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+    // Deleted against a null previous value: the row falls back to Add.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    resolveClassFetch({ ok: true, json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }) })
+  })
+
+  it('ignores a stale classroom fetch that resolves after a rule delete', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'DELETE') {
+        expect(JSON.parse(init.body as string)).toEqual({ patternText: 'a_e' })
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1', patterns: [{ ...patternA, rule: 'Magic e.' }] })
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+
+    // The fetch that started before the delete resolves with the old rule:
+    // it must not restore the deleted rule.
+    resolveClassFetch({
+      ok: true,
+      json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } } }),
+    })
+    // Give the resolution a chance to run.
+    await new Promise((r) => setTimeout(r, 50))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+  })
+
+  it('ignores a stale classroom fetch that fails after a rule delete', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'DELETE') {
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1', patterns: [{ ...patternA, rule: 'Magic e.' }] })
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+
+    // The fetch that started before the delete fails: the error is still
+    // reported, but the deleted state must not be wiped.
+    const reportsBefore = reportError.mock.calls.length
+    resolveClassFetch({ ok: false, status: 500 })
+    await waitFor(() => {
+      expect(reportError.mock.calls.length).toBe(reportsBefore + 1)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+  })
+
   it('clears classroom rules when the classroom is removed', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes('/api/classes/')) {

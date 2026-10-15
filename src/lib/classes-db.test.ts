@@ -15,6 +15,7 @@ import {
   updateClass,
   deleteClass,
   saveClassRules,
+  deleteClassRule,
   resolveDefaultClassId,
 } from './classes-db'
 import type { Class } from '../models/Class'
@@ -143,6 +144,48 @@ describe('classes-db', () => {
     it('throws when the class does not exist', async () => {
       send.mockResolvedValue({})
       await expect(saveClassRules('u1', 'missing', { ai: { rule: 'x' } })).rejects.toThrow('Class not found')
+    })
+  })
+
+  describe('deleteClassRule', () => {
+    it('removes the pattern rule atomically and returns the remaining rules', async () => {
+      const remaining = { ai: { rule: 'ai never ends a word.' } }
+      const withRules = {
+        ...storedClass,
+        rules: { a_e: { rule: 'Magic e.' }, ...remaining },
+      }
+      send.mockResolvedValueOnce({ Item: withRules }).mockResolvedValueOnce({ Attributes: { rules: remaining } })
+
+      const result = await deleteClassRule('u1', 'c1', 'a_e')
+
+      expect(result).toEqual(remaining)
+      const command = send.mock.calls[1][0]
+      expect(command.input.UpdateExpression).toContain('REMOVE #rules.#patternText')
+      expect(command.input.ExpressionAttributeNames['#patternText']).toBe('a_e')
+      expect(command.input.ReturnValues).toBe('UPDATED_NEW')
+      expect(command.input.ExpressionAttributeValues[':now']).toBeDefined()
+    })
+
+    it('is a no-op when the pattern has no rule', async () => {
+      const rules = { a_e: { rule: 'Magic e.' } }
+      send.mockResolvedValueOnce({ Item: { ...storedClass, rules } }).mockResolvedValueOnce({ Attributes: { rules } })
+
+      const remaining = await deleteClassRule('u1', 'c1', 'ai')
+      expect(remaining).toEqual(rules)
+    })
+
+    it('treats a legacy class without a rules map as empty', async () => {
+      const legacy = { ...storedClass }
+      delete (legacy as Record<string, unknown>).rules
+      send.mockResolvedValueOnce({ Item: legacy }).mockResolvedValueOnce({ Attributes: {} })
+
+      const remaining = await deleteClassRule('u1', 'c1', 'a_e')
+      expect(remaining).toEqual({})
+    })
+
+    it('throws when the class does not exist', async () => {
+      send.mockResolvedValue({})
+      await expect(deleteClassRule('u1', 'missing', 'a_e')).rejects.toThrow('Class not found')
     })
   })
 

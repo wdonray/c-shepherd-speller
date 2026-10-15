@@ -134,6 +134,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
   /** The classroom's display name, for the Rules section. */
   const [className, setClassName] = useState<string | null>(null)
+  /**
+   * Sequence guard for classroom rule loads (issue #307): a rule save or
+   * delete bumps this, and the class fetch effect ignores results that
+   * predate the bump, so a stale fetch cannot restore a rule the teacher
+   * just changed.
+   */
+  const classRulesSeqRef = useRef(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
@@ -210,13 +217,16 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       return
     }
     let cancelled = false
+    const loadSeq = classRulesSeqRef.current
     fetch(`/api/classes/${encodeURIComponent(classId)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
       .then((body) => {
-        if (cancelled) return
+        // A rule save/delete that landed while the fetch was in flight owns
+        // the current state; a stale fetch must not overwrite it.
+        if (cancelled || loadSeq !== classRulesSeqRef.current) return
         const rules: Record<string, string> = {}
         for (const [patternText, rule] of Object.entries(body.class.rules ?? {})) {
           rules[patternText] = (rule as { rule: string }).rule
@@ -225,8 +235,11 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         setClassName(body.class.name)
       })
       .catch((error) => {
-        if (!cancelled) {
-          reportError(error, { location: 'ListEditorPage.loadClass' })
+        if (cancelled) return
+        reportError(error, { location: 'ListEditorPage.loadClass' })
+        // A rule save/delete that landed while the fetch was in flight owns
+        // the current rules; a failed stale fetch must not wipe them.
+        if (loadSeq === classRulesSeqRef.current) {
           setClassRules(null)
           setClassName(null)
         }
@@ -553,16 +566,34 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * Save one spelling rule from the per-pattern rule editor (issue #313).
    * With a classroom, the rule is saved to the classroom (shared across
    * its lists); otherwise it is saved unscoped on the pattern itself.
+   * Clearing a classroom rule deletes it via DELETE (issue #307): an empty
+   * rule fails the rules API validation, so it cannot go through PUT.
    * Rejects on failure so the editor keeps the draft and shows the error.
    */
   const handleSaveRule = async (patternId: string, patternText: string, rule: string): Promise<void> => {
     if (list.classId) {
+      if (rule === '') {
+        const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patternText }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        classRulesSeqRef.current += 1
+        setClassRules((prev) => {
+          const next = { ...(prev ?? {}) }
+          delete next[patternText]
+          return next
+        })
+        return
+      }
       const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rules: { [patternText]: { rule } } }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      classRulesSeqRef.current += 1
       setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
     } else {
       const next: WordList = {
