@@ -21,6 +21,11 @@ const { logActivity } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
 
+const { reportError } = vi.hoisted(() => ({
+  reportError: vi.fn(),
+}))
+vi.mock('@/lib/report-error', () => ({ reportError }))
+
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))
@@ -1517,6 +1522,32 @@ describe('ListEditorPage rules section', () => {
     const field = screen.getByLabelText('Rule, in the kids\u2019 words')
     await waitFor(() => expect(field).toHaveValue(''))
     expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+  })
+
+  it('ignores a classroom fetch failure after the page unmounts', async () => {
+    let rejectClassFetch: (e: Error) => void = () => {}
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((_resolve, reject) => {
+          rejectClassFetch = reject
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1')
+    })
+
+    // Leave while the classroom load is in flight; the late failure must be
+    // swallowed, not reported.
+    unmount()
+    rejectClassFetch(new Error('boom'))
+    await new Promise((r) => setTimeout(r, 100))
+    expect(reportError).not.toHaveBeenCalled()
   })
 
   it('shows the classroom with unscoped rules when the class has no rules yet', async () => {
