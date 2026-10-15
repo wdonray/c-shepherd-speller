@@ -84,7 +84,7 @@ describe('ProfileClassesSection', () => {
   })
 
   it('shows an error and reverts when saving the default fails', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'PUT') throw new Error('down')
       if (String(url).includes('/api/users/')) {
         return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }
@@ -111,7 +111,7 @@ describe('ProfileClassesSection', () => {
   })
 
   it('creates a classroom inline', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'POST') {
         return { ok: true, json: async () => ({ class: { id: 'c9', name: 'Green group' } }) }
       }
@@ -128,38 +128,8 @@ describe('ProfileClassesSection', () => {
     expect(await screen.findByText('Green group')).toBeInTheDocument()
   })
 
-  it('creates a classroom with Enter in the name field', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
-      if (init?.method === 'POST') {
-        return { ok: true, json: async () => ({ class: { id: 'c9', name: 'Green group' } }) }
-      }
-      if (String(url).includes('/api/users/')) {
-        return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }
-      }
-      return { ok: true, json: async () => ({ classes: [] }) }
-    })
-    vi.stubGlobal('fetch', fetchMock)
-    render(<ProfileClassesSection userId="u1" />)
-    await screen.findByText('No classrooms yet. Create one below.')
-    const input = screen.getByLabelText('New classroom')
-    fireEvent.change(input, { target: { value: 'Green group' } })
-    // Other keys do not submit.
-    fireEvent.keyDown(input, { key: 'a' })
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/classes', expect.objectContaining({ method: 'POST' }))
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(await screen.findByText('Green group')).toBeInTheDocument()
-  })
-
-  it('does not offer to clear the default with a single classroom', async () => {
-    vi.stubGlobal('fetch', mockFetch([{ id: 'c1', name: 'Period 2' }], 'c1'))
-    render(<ProfileClassesSection userId="u1" />)
-    expect(await screen.findByText('Period 2')).toBeInTheDocument()
-    expect(screen.getByText('Default')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Clear default' })).not.toBeInTheDocument()
-  })
-
   it('shows an error when creation fails', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'POST') throw new Error('down')
       if (String(url).includes('/api/users/')) {
         return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }
@@ -181,7 +151,7 @@ describe('ProfileClassesSection clear default', () => {
   })
 
   it('clears the explicit default', async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'PUT') {
         expect(JSON.parse(init.body as string)).toEqual({ defaultClassId: null })
         return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }

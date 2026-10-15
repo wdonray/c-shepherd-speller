@@ -327,10 +327,9 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * explicit choice, not a content edit. Reverts on failure. Independent
    * of the content autosave, which never touches classId.
    */
-  async function handleClassroomChange(classId: string | null): Promise<void> {
-    // `list` is non-null here: the ClassroomSelector only renders after the list loads.
-    const prev = list.classId
-    const next: WordList = { ...list }
+  async function handleClassroomChange(classId: string | null, current: WordList): Promise<void> {
+    const prev = current.classId
+    const next: WordList = { ...current }
     if (classId) next.classId = classId
     else delete next.classId
     setList(next)
@@ -338,7 +337,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       await updateList(next.id, { classId })
       notifyListsChanged()
     } catch (error) {
-      const reverted: WordList = { ...list }
+      const reverted: WordList = { ...current }
       if (prev) reverted.classId = prev
       else delete reverted.classId
       setList(reverted)
@@ -546,7 +545,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           />
         </div>
         <div className="w-52 space-y-1.5">
-          <ClassroomSelector value={list.classId} onChange={handleClassroomChange} />
+          <ClassroomSelector value={list.classId} onChange={(classId) => handleClassroomChange(classId, list)} />
         </div>
       </div>
 
