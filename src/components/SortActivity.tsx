@@ -41,7 +41,6 @@ import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activi
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { fireWinConfetti } from '@/lib/confetti'
 import { OddDuck } from './OddDuck'
-import RuleCaptureDialog from './RuleCaptureDialog'
 import RuleCard from './RuleCard'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import { useMediaQuery } from '@/lib/use-media-query'
@@ -50,14 +49,12 @@ import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordL
 interface SortActivityProps {
   list: WordList
   onExit: () => void
-  /** Active class id, or null/undefined when sorting without a class. */
-  classId?: string | null
   /**
-   * Re-opens the class picker (provided by the host page). When set and a
-   * class is active, a pill with the class name renders top-left; tapping
-   * it calls this to let the teacher switch classes mid-sort.
+   * Active class id, or null/undefined when sorting without a class.
+   * Set once by the host page from the list's classroom (issue #263):
+   * the teacher never picks a class here.
    */
-  onReopenClassPicker?: () => void
+  classId?: string | null
 }
 
 /** A class loaded for rule recall, with its per-pattern rules. */
@@ -65,22 +62,6 @@ export interface ActiveClass {
   id: string
   name: string
   rules: Record<string, { rule: string }>
-}
-
-/**
- * Merges freshly saved class rules into state, but only when the class
- * hasn't changed underneath the save (e.g. the teacher picked another
- * class while the save was in flight). Otherwise the current state is kept
- * and the class-load effect's fresh fetch owns it, so a stale response can
- * never resurrect the previous class or overwrite the new one.
- */
-export function applySavedClassRules(
-  prev: ActiveClass | null,
-  classId: string,
-  rules: Record<string, { rule: string }> | undefined
-): ActiveClass | null {
-  if (!prev || prev.id !== classId) return prev
-  return { ...prev, rules: rules ?? prev.rules }
 }
 
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
@@ -575,7 +556,7 @@ function MobilePlaceBar({
  * destinations come to the thumb instead of making the student scroll to
  * find them.
  */
-export default function SortActivity({ list, onExit, classId = null, onReopenClassPicker }: SortActivityProps) {
+export default function SortActivity({ list, onExit, classId = null }: SortActivityProps) {
   const bank = useMemo(() => buildWordBank(list), [list])
   const [placements, setPlacements] = useState<Record<string, string>>({})
   const [results, setResults] = useState<Record<string, boolean>>({})
@@ -584,10 +565,6 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedEntry, setSelectedEntry] = useState<BankWord | null>(null)
   const [won, setWon] = useState(false)
-  // Rule capture state.
-  const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
-  const [savingRules, setSavingRules] = useState(false)
-  const [saveRulesError, setSaveRulesError] = useState<string | null>(null)
   const [activeClass, setActiveClass] = useState<ActiveClass | null>(null)
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
@@ -649,71 +626,9 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
     }
   }, [classId])
 
-  // Local overrides for unscoped rules edited in this session (the list prop
-  // is owned by the parent, so edits merge here for immediate display).
-  const [unscopedRuleOverrides, setUnscopedRuleOverrides] = useState<Record<string, string>>({})
-
-  /**
-   * Save captured rules: to the active class when one is selected, otherwise
-   * as the unscoped rule on each of the list's patterns. Keyed off the
-   * selected classId (not the loaded class) so a save started while the
-   * class is still loading writes to the right class.
-   */
-  const handleSaveRules = useCallback(
-    async (rules: Record<string, string>) => {
-      setSavingRules(true)
-      setSaveRulesError(null)
-      try {
-        if (classId) {
-          const payload: Record<string, { rule: string }> = {}
-          for (const [patternText, rule] of Object.entries(rules)) {
-            if (rule !== '') payload[patternText] = { rule }
-          }
-          const res = await fetch(`/api/classes/${classId}/rules`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rules: payload }),
-          })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const body = await res.json()
-          // Guarded: if the teacher switched classes mid-save, the class-load
-          // effect's fresh fetch owns the state, not this stale response.
-          setActiveClass((prev) => applySavedClassRules(prev, classId, body.rules))
-        } else {
-          // Unscoped: store the rule on each pattern of this list, starting
-          // from the effective rules (including this session's edits) so
-          // earlier saves are not overwritten.
-          const merged = { ...unscopedRuleOverrides }
-          for (const [patternText, r] of Object.entries(rules)) {
-            merged[patternText] = r
-          }
-          const updatedPatterns = list.patterns.map((p) => {
-            const override = merged[p.pattern]
-            if (override === undefined) return p
-            return override === '' ? { ...p, rule: undefined } : { ...p, rule: override }
-          })
-          const res = await fetch(`/api/lists/${list.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patterns: updatedPatterns }),
-          })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          setUnscopedRuleOverrides(merged)
-        }
-        setRuleDialogOpen(false)
-        announce('Rules saved.')
-      } catch {
-        setSaveRulesError('Could not save the rules. Try again.')
-      } finally {
-        setSavingRules(false)
-      }
-    },
-    [classId, list, announce, unscopedRuleOverrides]
-  )
-
-  // Existing rules for the capture form and column headers: the class's
-  // rules when a class is active, otherwise the unscoped rules on the
-  // list's patterns merged with this session's edits.
+  // Existing rules for the column headers: the class's rules when a class
+  // is active, otherwise the unscoped rules on the list's patterns.
+  // Rule capture lives on the list page now (issue #263), never here.
   const existingRules = useMemo(() => {
     const map: Record<string, string> = {}
     if (activeClass) {
@@ -724,10 +639,9 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
       for (const p of list.patterns) {
         if (p.rule) map[p.pattern] = p.rule
       }
-      Object.assign(map, unscopedRuleOverrides)
     }
     return map
-  }, [activeClass, list, unscopedRuleOverrides])
+  }, [activeClass, list])
 
   /**
    * Shared placement logic for drag-and-drop and tap-to-place. Moves the
@@ -891,22 +805,12 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
           isMobile && selectedEntry && 'pb-64'
         )}
       >
-        <div
-          className={cn(
-            'mb-4 flex items-center',
-            activeClass && onReopenClassPicker ? 'justify-between' : 'justify-end'
-          )}
-        >
-          {activeClass && onReopenClassPicker && (
-            <button
-              type="button"
-              onClick={onReopenClassPicker}
-              aria-label={`Change class, currently ${activeClass.name}`}
-              className="flex items-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-1.5 text-sm font-bold text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-            >
+        <div className={cn('mb-4 flex items-center', activeClass ? 'justify-between' : 'justify-end')}>
+          {activeClass && (
+            <span className="flex items-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-1.5 text-sm font-bold text-ink">
               <UsersIcon className="size-4" aria-hidden="true" />
               {activeClass.name}
-            </button>
+            </span>
           )}
           <Button
             variant="ghost"
@@ -1084,33 +988,18 @@ export default function SortActivity({ list, onExit, classId = null, onReopenCla
             <h2 id="win-title" className="text-2xl font-extrabold text-ink">
               Every word is sorted.
             </h2>
-            <p className="mt-2 text-[15px] text-muted-foreground">Nice work. Now, what did the class figure out?</p>
+            <p className="mt-2 text-[15px] text-muted-foreground">Nice work.</p>
             <div className="mt-6 flex justify-center gap-3">
-              <Button
-                onClick={() => {
-                  setWon(false)
-                  setRuleDialogOpen(true)
-                }}
-              >
-                Tell the rule
+              <Button variant="secondary" onClick={handleTryAgain}>
+                Try again
               </Button>
-              <Button variant="ghost" onClick={() => setWon(false)}>
-                Skip for now
+              <Button variant="ghost" onClick={onExit}>
+                Exit
               </Button>
             </div>
           </motion.div>
         </div>
       )}
-      <RuleCaptureDialog
-        open={ruleDialogOpen}
-        patterns={list.patterns.map((p) => ({ id: p.id, pattern: p.pattern }))}
-        existingRules={existingRules}
-        className={activeClass?.name ?? null}
-        saving={savingRules}
-        saveError={saveRulesError}
-        onSave={handleSaveRules}
-        onSkip={() => setRuleDialogOpen(false)}
-      />
     </DndContext>
   )
 }

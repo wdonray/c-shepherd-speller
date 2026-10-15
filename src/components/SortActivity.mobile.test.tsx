@@ -236,7 +236,8 @@ describe('SortActivity on mobile', () => {
   })
 
   it('announces each correct drop and shows the win overlay when every word is correct', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const onExit = vi.fn()
+    render(<SortActivity list={list} onExit={onExit} />)
     placeViaBar('cake', 'a_e')
     expect(liveRegion()?.textContent).toContain('cake is correct in a_e.')
     placeViaBar('bake', 'a_e')
@@ -254,21 +255,17 @@ describe('SortActivity on mobile', () => {
     expect(playWinFanfare).toHaveBeenCalled()
     // Confetti fires alongside the fanfare.
     expect(fireWinConfetti).toHaveBeenCalledTimes(1)
-    // "Tell the rule" dismisses the win overlay and opens rule capture.
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    expect(within(screen.getByRole('dialog')).getByText('What rule did you discover?')).toBeInTheDocument()
-    // Skip the capture form to return to the board.
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    // The win dialog has no rule nudge (issue #263): Try again resets the board.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    // Win again and dismiss with the other action.
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    // Win again and exit from the dialog.
     placeViaBar('cake', 'a_e')
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
     const secondDialog = await screen.findByRole('dialog')
-    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Skip for now' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    fireEvent.click(within(secondDialog).getByRole('button', { name: 'Exit' }))
+    expect(onExit).toHaveBeenCalledTimes(1)
   })
 
   it('plays the incorrect sound on a wrong drop and the correct sound on right drops', () => {
@@ -315,7 +312,7 @@ describe('SortActivity on mobile', () => {
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
     const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Skip for now' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     // A parent re-render (new list object, same content) must not re-arm the win.
     rerender(<SortActivity list={{ ...list }} onExit={vi.fn()} />)

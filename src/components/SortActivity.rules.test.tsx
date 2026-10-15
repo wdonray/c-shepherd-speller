@@ -70,7 +70,7 @@ function placeViaBar(word: string, pattern: string) {
   fireEvent.click(screen.getByRole('button', { name: `Put ${word} in the ${pattern} column` }))
 }
 
-describe('SortActivity rule capture', () => {
+describe('SortActivity rule recall', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -105,206 +105,12 @@ describe('SortActivity rule capture', () => {
     vi.unstubAllGlobals()
   })
 
-  async function winAndOpenCapture() {
-    render(<SortActivity list={list} onExit={vi.fn()} />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    return screen.getByRole('dialog')
-  }
-
-  it('opens rule capture from the win dialog and saves unscoped rules to the list', async () => {
-    const capture = await winAndOpenCapture()
-    expect(within(capture).getByText('What rule did you discover?')).toBeInTheDocument()
-    fireEvent.change(within(capture).getByLabelText(/Pattern a_e/), {
-      target: { value: 'Magic e.' },
-    })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/lists/list-1', expect.objectContaining({ method: 'PUT' }))
-    })
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
-    expect(body.patterns.find((p: { pattern: string }) => p.pattern === 'a_e').rule).toBe('Magic e.')
-    // The dialog closes after a successful save.
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-  })
-
-  it('saves rules to the active class when one is selected', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    // The class's existing rule is prefilled (recall).
-    expect(within(capture).getByText('What rule did Period 2 discover?')).toBeInTheDocument()
-    await waitFor(() => {
-      expect(within(capture).getByLabelText(/Pattern a_e/)).toHaveValue('Magic e.')
-    })
-    fireEvent.change(within(capture).getByLabelText(/Pattern ai/), {
-      target: { value: 'ai never ends a word.' },
-    })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
-    })
-    const putCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) =>
-      String(c[0]).includes('/api/classes/c1/rules')
-    )
-    expect(putCall).toBeDefined()
-    const body = JSON.parse(String(putCall![1].body))
-    expect(body.rules).toEqual({ ai: { rule: 'ai never ends a word.' } })
-  })
-
-  it('shows an error when saving rules fails', async () => {
-    const capture = await winAndOpenCapture()
-    ;(fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('down'))
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    expect(await within(capture).findByRole('alert')).toHaveTextContent('Could not save the rules.')
-  })
-
-  it('shows an error when the list save returns an error status', async () => {
-    const capture = await winAndOpenCapture()
-    ;(fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 500 })
-    fireEvent.change(within(capture).getByLabelText(/Pattern a_e/), {
-      target: { value: 'Magic e.' },
-    })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    expect(await within(capture).findByRole('alert')).toHaveTextContent('Could not save the rules.')
-  })
-
-  it('shows an error when the class rules save returns an error status', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    // The class fetch (call 0) succeeded; fail only the rules PUT.
-    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
-      String(url).includes('/rules')
-        ? Promise.resolve({ ok: false, status: 500 })
-        : Promise.resolve({ ok: true, json: async () => ({}) })
-    )
-    fireEvent.change(within(capture).getByLabelText(/Pattern ai/), {
-      target: { value: 'ai never ends a word.' },
-    })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    expect(await within(capture).findByRole('alert')).toHaveTextContent('Could not save the rules.')
-  })
-
-  it('keeps the current rules when the save response is malformed', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    await waitFor(() => {
-      expect(within(capture).getByLabelText(/Pattern a_e/)).toHaveValue('Magic e.')
-    })
-    // PUT succeeds but returns no rules: the component must not crash.
-    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
-      String(url).includes('/rules')
-        ? Promise.resolve({ ok: true, json: async () => ({}) })
-        : Promise.resolve({ ok: true, json: async () => ({}) })
-    )
-    fireEvent.change(within(capture).getByLabelText(/Pattern ai/), {
-      target: { value: 'ai never ends a word.' },
-    })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-  })
-
-  it('omits cleared rules from the class payload', async () => {
-    render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    await waitFor(() => {
-      expect(within(capture).getByLabelText(/Pattern a_e/)).toHaveValue('Magic e.')
-    })
-    // Clear the existing rule: it must not be sent.
-    fireEvent.change(within(capture).getByLabelText(/Pattern a_e/), { target: { value: '' } })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
-    })
-    const putCall = (fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) =>
-      String(c[0]).includes('/api/classes/c1/rules')
-    )
-    expect(putCall).toBeDefined()
-    const body = JSON.parse(String(putCall![1].body))
-    expect(body.rules).toEqual({})
-  })
-
-  it('clears an unscoped rule when the field is emptied', async () => {
-    const listWithRule = {
-      ...list,
-      patterns: list.patterns.map((p) => (p.pattern === 'a_e' ? { ...p, rule: 'Magic e.' } : p)),
-    } as unknown as WordList
-    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    fireEvent.change(within(capture).getByLabelText(/Pattern a_e/), { target: { value: '' } })
-    fireEvent.click(within(capture).getByRole('button', { name: 'Save rules' }))
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/lists/list-1', expect.objectContaining({ method: 'PUT' }))
-    })
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body)
-    expect(body.patterns.find((p: { pattern: string }) => p.pattern === 'a_e').rule).toBeUndefined()
-  })
-
-  it('prefills unscoped rules from the list patterns', async () => {
-    const listWithRule = {
-      ...list,
-      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
-    } as unknown as WordList
-    render(<SortActivity list={listWithRule} onExit={vi.fn()} />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = screen.getByRole('dialog')
-    expect(within(capture).getByLabelText(/Pattern ai/)).toHaveValue('ai never ends a word.')
-  })
-
   it('continues without rule recall when the class fetch fails', async () => {
     ;(fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('down'))
     render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
-    placeViaBar('cake', 'a_e')
-    placeViaBar('bake', 'a_e')
-    placeViaBar('rain', 'ai')
-    placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = await screen.findByRole('dialog')
-    // No class loaded: falls back to the generic heading.
-    expect(within(capture).getByText('What rule did you discover?')).toBeInTheDocument()
+    // No class loaded: the column header shows no recalled rule.
+    const column = await screen.findByLabelText('Pattern a_e column')
+    expect(within(column).queryByText('Your class decided:')).not.toBeInTheDocument()
   })
 
   it('ignores the class fetch result after unmount', async () => {
@@ -339,21 +145,22 @@ describe('SortActivity rule capture', () => {
   it('continues without rule recall when the class fetch returns an error status', async () => {
     ;(fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, status: 404 })
     render(<SortActivity list={list} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern a_e column')
+    expect(within(column).queryByText('Your class decided:')).not.toBeInTheDocument()
+  })
+
+  it('does not re-celebrate when the list re-renders after a win', async () => {
+    const { rerender } = render(<SortActivity list={list} onExit={vi.fn()} />)
     placeViaBar('cake', 'a_e')
     placeViaBar('bake', 'a_e')
     placeViaBar('rain', 'ai')
     placeViaBar('said', 'odd')
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Tell the rule' }))
-    const capture = await screen.findByRole('dialog')
-    expect(within(capture).getByText('What rule did you discover?')).toBeInTheDocument()
-  })
-
-  it('skips rule capture without saving', async () => {
-    const capture = await winAndOpenCapture()
-    fireEvent.click(within(capture).getByRole('button', { name: 'Skip' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(fetch).not.toHaveBeenCalledWith('/api/lists/list-1', expect.anything())
+    await screen.findByRole('dialog')
+    // A new list object (same content) recomputes the word bank and re-runs
+    // the win effect; the already-celebrated win must not fire again.
+    rerender(<SortActivity list={{ ...list }} onExit={vi.fn()} />)
+    await new Promise((r) => setTimeout(r, 400))
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
   })
 
   it('shows the class rule under the desktop column header', async () => {
