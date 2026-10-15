@@ -8,11 +8,13 @@ vi.mock('./VoiceRecorderModal', () => ({
     word,
     open,
     onOpenChange,
+    onSaved,
     microphoneRequest,
   }: {
     word: string
     open: boolean
     onOpenChange: (open: boolean) => void
+    onSaved?: (word: string) => void
     microphoneRequest?: unknown
   }) =>
     open ? (
@@ -20,18 +22,32 @@ vi.mock('./VoiceRecorderModal', () => ({
         <span>{word}</span>
         <button onClick={() => onOpenChange(false)}>Close modal</button>
         <button onClick={() => onOpenChange(true)}>Reopen modal</button>
+        <button
+          onClick={() => {
+            onSaved?.(word)
+            onOpenChange(false)
+          }}
+        >
+          Save recording
+        </button>
       </div>
     ) : null,
 }))
 
-const { requestMicrophoneAccess, isAudioCaptureSupported } = vi.hoisted(() => ({
-  requestMicrophoneAccess: vi.fn(),
-  isAudioCaptureSupported: vi.fn(),
-}))
+const { requestMicrophoneAccess, isAudioCaptureSupported, isRecordingStorageSupported, hasRecording } = vi.hoisted(
+  () => ({
+    requestMicrophoneAccess: vi.fn(),
+    isAudioCaptureSupported: vi.fn(),
+    isRecordingStorageSupported: vi.fn(),
+    hasRecording: vi.fn(),
+  })
+)
 vi.mock('@/lib/voice-recordings', () => ({
   MICROPHONE_REQUEST_TIMEOUT_MS: 15000,
   requestMicrophoneAccess,
   isAudioCaptureSupported,
+  isRecordingStorageSupported,
+  hasRecording,
 }))
 
 vi.mock('@/lib/example-sentences', () => ({
@@ -66,6 +82,8 @@ describe('PatternEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     isAudioCaptureSupported.mockReturnValue(true)
+    isRecordingStorageSupported.mockReturnValue(true)
+    hasRecording.mockResolvedValue(false)
     requestMicrophoneAccess.mockReturnValue({
       promise: Promise.resolve({ getTracks: () => [] }),
       cancel: vi.fn(),
@@ -645,6 +663,22 @@ describe('PatternEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Record your voice for cake' }))
     expect(requestMicrophoneAccess).not.toHaveBeenCalled()
     expect(screen.getByTestId('voice-recorder-modal')).toHaveAttribute('data-has-mic-request', 'no')
+  })
+
+  it('marks the mic button for words that already have a recording', async () => {
+    hasRecording.mockImplementation(async (text: string) => text === 'cake')
+    renderEditor()
+    const button = await screen.findByRole('button', { name: 'Re-record your voice for cake' })
+    expect(button).toHaveClass('bg-sky-soft', 'text-sky-ink')
+    // The unrecorded word keeps the plain mic button.
+    expect(screen.getByRole('button', { name: 'Record your voice for bake' })).toBeInTheDocument()
+  })
+
+  it('marks the mic button after the modal saves a recording', async () => {
+    renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save recording' }))
+    expect(await screen.findByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
   })
 
   it('keeps a rejected microphone request from surfacing as unhandled', async () => {
