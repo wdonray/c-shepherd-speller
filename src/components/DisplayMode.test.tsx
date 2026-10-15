@@ -151,7 +151,7 @@ describe('DisplayMode', () => {
     expect(printLink).toHaveAttribute('href', '/lists/l1/print')
   })
 
-  it('opens the class picker from the Sort words button and enters sort mode', async () => {
+  it('enters sort mode directly from the Sort words button, with no class picker', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)
     render(<DisplayMode />)
@@ -161,11 +161,8 @@ describe('DisplayMode', () => {
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    // The class picker opens instead of entering sort mode directly.
-    expect(screen.getByText('Who is sorting?')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Word tray')).not.toBeInTheDocument()
-    // Continue without a class enters sort mode.
-    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
+    // Issue #263: no "Who is sorting?" picker; the list's classroom flows silently.
+    expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
 
@@ -174,21 +171,6 @@ describe('DisplayMode', () => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
-  })
-
-  it('cancels the class picker without entering sort mode', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
-    getList.mockResolvedValue(list)
-    render(<DisplayMode />)
-
-    await waitFor(() => {
-      expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    expect(screen.getByText('Who is sorting?')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Word tray')).not.toBeInTheDocument()
   })
 
   it('shows a full screen button in the chart header when supported', async () => {
@@ -568,7 +550,6 @@ describe('DisplayMode sort-mode chrome', () => {
     expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
 
     // Sort mode: the sort surface fills the area, no header, no subheader.
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
@@ -579,9 +560,9 @@ describe('DisplayMode sort-mode chrome', () => {
     expect(screen.getByRole('button', { name: 'Exit sort' })).toBeInTheDocument()
   })
 
-  it('re-opens the class picker from the class pill', async () => {
+  it('shows the list classroom as a static pill in sort mode', async () => {
     mockSearchParams.get.mockReturnValue('l1')
-    getList.mockResolvedValue(list)
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
@@ -602,15 +583,14 @@ describe('DisplayMode sort-mode chrome', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
     })
+    // Issue #263: no picker; the list's classroom flows silently into sort.
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    // Pick the class from the picker.
-    fireEvent.click(await screen.findByRole('button', { name: 'Period 2' }))
-    // Sort mode shows the class pill top-left.
-    const pill = await screen.findByRole('button', { name: 'Change class, currently Period 2' })
+    expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
-    // Tapping the pill re-opens the picker.
-    fireEvent.click(pill)
-    expect(await screen.findByText('Who is sorting?')).toBeInTheDocument()
+    // Sort mode shows the classroom as a display-only pill.
+    const pill = await screen.findByText('Period 2')
+    expect(pill.tagName).not.toBe('BUTTON')
+    expect(pill.closest('button')).toBeNull()
     vi.unstubAllGlobals()
   })
 
@@ -624,7 +604,6 @@ describe('DisplayMode sort-mode chrome', () => {
       expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue without a class' }))
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))

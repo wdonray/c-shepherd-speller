@@ -10,7 +10,6 @@ import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
 import SortActivity from './SortActivity'
-import ClassPickerDialog from './ClassPickerDialog'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
 import WhyChartPopover from './WhyChartPopover'
@@ -34,8 +33,6 @@ function DisplayModeInner() {
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
-  const [classPickerOpen, setClassPickerOpen] = useState(false)
-  const [activeClassId, setActiveClassId] = useState<string | null>(null)
   /** Selected week chip; null means "All weeks" (every list). */
   const [weekFilter, setWeekFilter] = useState<string | null>(null)
 
@@ -302,7 +299,7 @@ function DisplayModeInner() {
                   <span className="hidden sm:inline-block">Print chart</span>
                 </Link>
               </Button>
-              <Button size="sm" onClick={() => setClassPickerOpen(true)}>
+              <Button size="sm" onClick={() => setSortMode(true)}>
                 Sort words
               </Button>
               <FullscreenButton />
@@ -326,11 +323,9 @@ function DisplayModeInner() {
         {sortMode ? (
           <SortActivity
             list={list}
-            classId={activeClassId}
-            onReopenClassPicker={() => setClassPickerOpen(true)}
+            classId={list.classId ?? null}
             onExit={() => {
               setSortMode(false)
-              setActiveClassId(null)
             }}
           />
         ) : (
@@ -340,15 +335,6 @@ function DisplayModeInner() {
             classRules={classRules}
           />
         )}
-        <ClassPickerDialog
-          open={classPickerOpen}
-          onSelect={(classId) => {
-            setActiveClassId(classId)
-            setClassPickerOpen(false)
-            setSortMode(true)
-          }}
-          onClose={() => setClassPickerOpen(false)}
-        />
       </main>
     </div>
   )
