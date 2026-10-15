@@ -562,4 +562,27 @@ describe('SortActivity mobile drag visuals', () => {
     expect(wordButton.className).toContain('invisible')
     spy.mockRestore()
   })
+
+  it('toggles the rule cards under the mobile column headers', () => {
+    const ruledList: WordList = {
+      ...list,
+      patterns: [
+        {
+          id: 'p1',
+          sound: 'long a',
+          pattern: 'a_e',
+          frequency: 'common',
+          words: ['cake', 'bake'],
+          rule: 'Magic e.',
+        },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
+      ],
+    }
+    render(<SortActivity list={ruledList} onExit={vi.fn()} />)
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Hide rules' }))
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+  })
 })
