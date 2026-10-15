@@ -1255,6 +1255,106 @@ describe('ListEditorPage classroom', () => {
     await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c2' }))
     expect(select.value).toBe('c2')
   })
+
+  it('flushes a pending content autosave before the classroom save', async () => {
+    const callOrder: string[] = []
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        callOrder.push(`classroom:${(data as { classId?: string | null }).classId ?? 'null'}`)
+      } else {
+        callOrder.push(`content:${(data as { name?: string }).name ?? '?'}`)
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name: schedules a debounced autosave.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // Change the classroom before the debounce fires.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // The content save is flushed first, then the classroom save.
+    await waitFor(() => expect(callOrder).toHaveLength(2), { timeout: 2000 })
+    expect(callOrder[0]).toBe('content:Renamed')
+    expect(callOrder[1]).toBe('classroom:c1')
+    expect(select.value).toBe('c1')
+  })
+
+  it('waits for an in-flight content save before the classroom save', async () => {
+    const callOrder: string[] = []
+    let resolveContent: (value: unknown) => void = () => {}
+    let contentStarted = false
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        callOrder.push(`classroom:${(data as { classId?: string | null }).classId ?? 'null'}`)
+      } else {
+        callOrder.push(`content:${(data as { name?: string }).name ?? '?'}`)
+        if (!contentStarted) {
+          contentStarted = true
+          // Hold the content PUT open.
+          await new Promise((resolve) => {
+            resolveContent = resolve as (value: unknown) => void
+          })
+        }
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name and wait for the autosave to start (in-flight).
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitFor(() => expect(contentStarted).toBe(true), { timeout: 2000 })
+    // Change the classroom while the content save is in-flight.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // The classroom PUT waits: only the content PUT has fired.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(callOrder).toEqual(['content:Renamed'])
+    resolveContent({ ok: true })
+    // The classroom PUT now fires.
+    await waitFor(() => expect(callOrder).toHaveLength(2), { timeout: 2000 })
+    expect(callOrder[1]).toBe('classroom:c1')
+    expect(select.value).toBe('c1')
+  })
+
+  it('drops a stale classroom save when a newer selection starts during content flush', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    const classroomPuts: Array<string | null> = []
+    let resolveContent: (value: unknown) => void = () => {}
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        classroomPuts.push((data as { classId?: string | null }).classId ?? null)
+      } else {
+        // Hold the content PUT open so the first classroom save waits in flush.
+        await new Promise((resolve) => {
+          resolveContent = resolve as (value: unknown) => void
+        })
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name: schedules a debounced autosave.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // First classroom selection: starts flushing the pending content save.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // Wait for the content flush to start.
+    await new Promise((r) => setTimeout(r, 100))
+    // Second selection while the first is still flushing: the first becomes stale.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    resolveContent({ ok: true })
+    // Only the latest selection's PUT fires; the stale one is dropped.
+    await waitFor(() => expect(classroomPuts).toHaveLength(1), { timeout: 2000 })
+    expect(classroomPuts[0]).toBe('c2')
+    expect(select.value).toBe('c2')
+  })
 })
 
 describe('ListEditorPage rules section', () => {

@@ -83,7 +83,6 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
   }
 
   const handleSetDefault = async (classId: string | null) => {
-    if (savingDefault) return
     setDefaultError(null)
     const prev = explicitDefault
     setExplicitDefault(classId)
