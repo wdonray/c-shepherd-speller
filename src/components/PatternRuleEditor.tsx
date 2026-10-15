@@ -50,15 +50,16 @@ export default function PatternRuleEditor({
   // Refresh the draft when the saved rule changes underneath (e.g. the
   // classroom was switched or the pattern renamed), but never while the
   // modal is open and never on a failed save (the draft must survive to be
-  // retried).
+  // retried). Changes that arrive while the modal is open are picked up
+  // when it closes: the ref is only advanced while closed, so the next run
+  // after close sees the difference and refreshes.
   const lastInitialRef = useRef(initialRule)
   useEffect(() => {
+    if (open) return
     if (lastInitialRef.current !== initialRule) {
       lastInitialRef.current = initialRule
-      if (!open) {
-        setDraft(initialRule)
-        setSavedRule(initialRule)
-      }
+      setDraft(initialRule)
+      setSavedRule(initialRule)
     }
   }, [initialRule, open])
 
@@ -105,10 +106,13 @@ export default function PatternRuleEditor({
   /**
    * Every close path runs through here: Done, the corner X, backdrop
    * click, and Escape. Saves when the draft is dirty, then closes on
-   * success.
+   * success. A close requested while a save is still running is ignored:
+   * the modal stays open so a failed save can show its error with the
+   * draft intact.
    */
   const closeAndSave = async () => {
-    if (!dirty || saving) {
+    if (saving) return
+    if (!dirty) {
       setOpen(false)
       return
     }

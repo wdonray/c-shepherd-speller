@@ -209,7 +209,25 @@ describe('PatternRuleEditor modal', () => {
     await waitFor(() => expect(textarea()).toHaveValue(''))
   })
 
-  it('refreshes the draft when the rule changes underneath while closed', async () => {
+  it('ignores a close requested while a save is still running', async () => {
+    let resolveSave!: () => void
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (resolveSave = resolve)))
+    renderEditor({ onSave })
+    openModal()
+    fireEvent.change(textarea(), { target: { value: 'Magic e.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(await screen.findByText('Saving…')).toBeInTheDocument()
+    // A second Done, or Escape, while the save is pending does nothing:
+    // the modal stays open so a failed save can surface its error.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(onSave).toHaveBeenCalledTimes(1)
+    resolveSave()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('picks up a rule change that arrived while the modal was open once it closes', async () => {
     const { rerender } = render(
       <PatternRuleEditor
         patternId="p1"
@@ -261,5 +279,38 @@ describe('PatternRuleEditor modal', () => {
     expect(textarea()).toHaveValue('My new rule')
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('My new rule'))
+  })
+
+  it('syncs a rule that arrived while the modal was open after it closes', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    const { rerender } = render(
+      <PatternRuleEditor
+        patternId="p1"
+        patternText="a_e"
+        initialRule=""
+        shared={false}
+        className={null}
+        onSave={onSave}
+      />
+    )
+    openModal()
+    // The classroom fetch delivers a rule while the modal is open: the
+    // draft is not clobbered.
+    rerender(
+      <PatternRuleEditor
+        patternId="p1"
+        patternText="a_e"
+        initialRule="Classroom rule."
+        shared={false}
+        className={null}
+        onSave={onSave}
+      />
+    )
+    expect(textarea()).toHaveValue('')
+    // Closing without edits picks the arrived rule up on the card.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('Classroom rule.')
   })
 })
