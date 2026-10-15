@@ -328,7 +328,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * of the content autosave, which never touches classId.
    */
   async function handleClassroomChange(classId: string | null): Promise<void> {
-    if (!list) return
+    // `list` is non-null here: the ClassroomSelector only renders after the list loads.
     const prev = list.classId
     const next: WordList = { ...list }
     if (classId) next.classId = classId

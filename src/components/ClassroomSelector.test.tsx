@@ -90,6 +90,30 @@ describe('ClassroomSelector', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/classes', expect.objectContaining({ method: 'POST' }))
   })
 
+  it('creates a new classroom with Enter in the name field', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'POST') {
+        return { ok: true, json: async () => ({ class: { id: 'c9', name: 'Green group' } }) }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { onChange } = renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+
+    fireEvent.change(select, { target: { value: '__new__' } })
+    const input = screen.getByLabelText('New classroom name')
+    fireEvent.change(input, { target: { value: 'Green group' } })
+    // Other keys do not submit.
+    fireEvent.keyDown(input, { key: 'a' })
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/classes', expect.objectContaining({ method: 'POST' }))
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith('c9'))
+    expect(fetchMock).toHaveBeenCalledWith('/api/classes', expect.objectContaining({ method: 'POST' }))
+  })
+
   it('shows an error when creation fails', async () => {
     const fetchMock = mockFetch([])
     vi.stubGlobal('fetch', fetchMock)

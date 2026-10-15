@@ -1164,4 +1164,14 @@ describe('ListEditorPage classroom', () => {
     // Reverted to "No class".
     expect(select.value).toBe('')
   })
+
+  it('restores the previous classroom when clearing fails', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    const select = await renderReadyWithList({ classId: 'c1' })
+    expect(select.value).toBe('c1')
+    fireEvent.change(select, { target: { value: '' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: null }))
+    // Reverted to the previously assigned classroom.
+    expect(select.value).toBe('c1')
+  })
 })
