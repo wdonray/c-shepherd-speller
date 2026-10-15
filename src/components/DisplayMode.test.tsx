@@ -655,3 +655,35 @@ describe('DisplayMode classroom rules loading', () => {
     expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
   })
 })
+
+describe('DisplayMode classroom unmount', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('does not update state if unmounted during classroom fetch', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    let rejectFetch: (err: Error) => void = () => {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            rejectFetch = reject
+          })
+      )
+    )
+    const { unmount } = render(<DisplayMode />)
+    // Wait for the chart to render (list loaded, classroom fetch in flight).
+    await waitFor(() => {
+      expect(screen.getByText('cake')).toBeInTheDocument()
+    })
+    // Unmount before the fetch settles.
+    unmount()
+    rejectFetch(new Error('down'))
+    // Give the rejection a chance to run; no error should surface.
+    await new Promise((r) => setTimeout(r, 50))
+  })
+})
