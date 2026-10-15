@@ -486,7 +486,7 @@ describe('SortActivity rule display toggle', () => {
   it('shows rule cards by default and hides them when the toggle is pressed', () => {
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
-    const toggle = screen.getByRole('button', { name: 'Hide rules' })
+    const toggle = screen.getByRole('button', { name: 'Show rules' })
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(toggle)
     expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
@@ -495,9 +495,11 @@ describe('SortActivity rule display toggle', () => {
 
   it('shows the rule cards again when the toggle is pressed twice', () => {
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Hide rules' }))
+    const toggle = screen.getByRole('button', { name: 'Show rules' })
+    fireEvent.click(toggle)
     expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
   })
 })

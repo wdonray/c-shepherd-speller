@@ -20,7 +20,7 @@ export default function RulesVisibilityToggle({ showRules, onToggle }: RulesVisi
       type="button"
       onClick={onToggle}
       aria-pressed={showRules}
-      aria-label={showRules ? 'Hide rules' : 'Show rules'}
+      aria-label="Show rules"
       title={showRules ? 'Hide rules' : 'Show rules'}
       className="cursor-pointer rounded-full p-2 text-muted-foreground outline-none hover:bg-card hover:text-foreground focus-visible:bg-card focus-visible:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/60"
     >

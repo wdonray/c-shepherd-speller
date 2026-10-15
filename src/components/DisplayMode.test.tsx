@@ -751,9 +751,10 @@ describe('DisplayMode classroom unmount', () => {
     await waitFor(() => {
       expect(screen.getByText('The rule:')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Hide rules' }))
+    const toggle = screen.getByRole('button', { name: 'Show rules' })
+    fireEvent.click(toggle)
     expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
   })
 })
