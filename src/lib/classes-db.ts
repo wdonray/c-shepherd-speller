@@ -47,6 +47,13 @@ export async function getClassById(userId: string, classId: string): Promise<Cla
     new GetCommand({
       TableName: LISTS_TABLE_NAME,
       Key: keys,
+      // Strongly consistent read (issue #308): the Present chart and the list
+      // page read a class immediately after a rule save lands, and an
+      // eventually consistent read can return the pre-save item, so a newly
+      // saved rule "disappears" until the next reload. Strong reads reflect
+      // every write that already succeeded; class items are tiny, so the
+      // extra read capacity is negligible.
+      ConsistentRead: true,
     })
   )
   if (!result.Item) return undefined

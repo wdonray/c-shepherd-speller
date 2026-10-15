@@ -68,6 +68,14 @@ describe('classes-db', () => {
       send.mockResolvedValue({})
       expect(await getClassById('u1', 'missing')).toBeUndefined()
     })
+
+    it('reads with strong consistency so a just-saved rule is never stale (issue #308)', async () => {
+      send.mockResolvedValue({ Item: storedClass })
+      await getClassById('u1', 'c1')
+
+      const command = send.mock.calls[0][0]
+      expect(command.input.ConsistentRead).toBe(true)
+    })
   })
 
   describe('getClassesByUser', () => {
