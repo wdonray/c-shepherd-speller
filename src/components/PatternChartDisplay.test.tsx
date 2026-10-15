@@ -528,4 +528,64 @@ describe('PatternChartDisplay', () => {
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
     })
   })
+
+  describe('word underlines (issue #264)', () => {
+    const underlineList: WordList = {
+      id: 'l1',
+      userId: 'u1',
+      name: 'Underlines',
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+        { id: 'p3', sound: 'long e', pattern: 'ee', frequency: 'common', words: ['bed', 'eel'] },
+      ],
+      createdAt: '2026-10-06T00:00:00.000Z',
+      updatedAt: '2026-10-06T00:00:00.000Z',
+    }
+
+    /** The underlined letter runs inside a word button, in order. */
+    const underlinedText = (button: HTMLElement): string[] =>
+      Array.from(button.querySelectorAll('span'))
+        .filter((s) => (s as HTMLElement).style.textDecorationLine === 'underline')
+        .map((s) => s.textContent ?? '')
+
+    it('shows no underlines by default', () => {
+      render(<PatternChartDisplay list={underlineList} />)
+      const button = screen.getByRole('button', { name: 'Analyze the word cake' })
+      expect(underlinedText(button)).toEqual([])
+      expect(button).toHaveTextContent('cake')
+    })
+
+    it('underlines the pattern letters when showUnderlines is true', () => {
+      render(<PatternChartDisplay list={underlineList} showUnderlines />)
+      const cake = screen.getByRole('button', { name: 'Analyze the word cake' })
+      expect(underlinedText(cake)).toEqual(['a', 'e'])
+      const rain = screen.getByRole('button', { name: 'Analyze the word rain' })
+      expect(underlinedText(rain)).toEqual(['ai'])
+      // A pattern at the very start of the word underlines without a
+      // leading text span.
+      const eel = screen.getByRole('button', { name: 'Analyze the word eel' })
+      expect(underlinedText(eel)).toEqual(['ee'])
+      // The full word text stays in the button; the accessible name is unchanged.
+      expect(cake).toHaveTextContent('cake')
+      expect(rain).toHaveTextContent('rain')
+      expect(eel).toHaveTextContent('eel')
+    })
+
+    it('leaves words plain when the pattern does not occur in them', () => {
+      render(<PatternChartDisplay list={underlineList} showUnderlines />)
+      const bed = screen.getByRole('button', { name: 'Analyze the word bed' })
+      expect(underlinedText(bed)).toEqual([])
+      expect(bed).toHaveTextContent('bed')
+    })
+
+    it('keeps underlines off the printed poster', () => {
+      const { container } = render(<PatternChartDisplay list={underlineList} variant="print" showUnderlines />)
+      expect(
+        Array.from(container.querySelectorAll('span')).filter(
+          (s) => (s as HTMLElement).style.textDecorationLine === 'underline'
+        )
+      ).toHaveLength(0)
+    })
+  })
 })

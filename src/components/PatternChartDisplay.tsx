@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
@@ -8,7 +8,8 @@ import { OddDuck } from './OddDuck'
 import { Volume2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
-import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
+import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
+import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 
 interface PatternChartDisplayProps {
   list: WordList
@@ -31,6 +32,13 @@ interface PatternChartDisplayProps {
    * plain text, and all buttons and the caption are hidden.
    */
   variant?: 'present' | 'print'
+  /**
+   * Whether to underline the spelling-pattern letters inside each word card
+   * on the present chart (issue #264). Default false: underlines stay off
+   * until the teacher turns them on with the header toggle. The printed
+   * poster never underlines.
+   */
+  showUnderlines?: boolean
 }
 
 const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
@@ -65,6 +73,7 @@ export default function PatternChartDisplay({
   classRules,
   showRules = true,
   variant = 'present',
+  showUnderlines = false,
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
@@ -218,6 +227,49 @@ export default function PatternChartDisplay({
     )
   }
 
+  /**
+   * Renders a word with its spelling-pattern letters underlined for the
+   * present chart (issue #264), using the same ranges and sound-type colors
+   * as the sort page. Returns the plain word when the pattern does not
+   * occur in it.
+   */
+  const renderUnderlinedWord = (word: string, pattern: SpellingPattern): ReactNode => {
+    const underlineRanges = getPatternUnderlineRanges(word, pattern.pattern)
+    if (underlineRanges.length === 0) return word
+    const soundType = getSoundType(pattern.pattern)
+    const underlineColor = SOUND_TYPE_UNDERLINE_COLOR[soundType]
+    const parts: ReactNode[] = []
+    let lastIndex = 0
+    underlineRanges.forEach((range, i) => {
+      if (range.start > lastIndex) {
+        parts.push(<span key={`t${i}`}>{word.slice(lastIndex, range.start)}</span>)
+      }
+      parts.push(
+        <span
+          key={`u${i}`}
+          style={{
+            // text-decoration paints the underline without changing the
+            // box: border-bottom + padding-bottom made underlined segments
+            // taller than plain ones, shifting the word up and breaking
+            // letter alignment inside the word card.
+            textDecorationLine: 'underline',
+            textDecorationColor: underlineColor,
+            textDecorationThickness: '4px',
+            textUnderlineOffset: '4px',
+            textDecorationSkipInk: 'none',
+          }}
+        >
+          {word.slice(range.start, range.end)}
+        </span>
+      )
+      lastIndex = range.end
+    })
+    if (lastIndex < word.length) {
+      parts.push(<span key="t-end">{word.slice(lastIndex)}</span>)
+    }
+    return <>{parts}</>
+  }
+
   const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => {
     const isOddDuck = pattern.oddDucks?.includes(word) ?? false
     // The printed poster is not interactive: words are plain text, no analysis
@@ -253,7 +305,7 @@ export default function PatternChartDisplay({
           aria-label={`Analyze the word ${word}`}
           className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
-          {word}
+          {showUnderlines ? renderUnderlinedWord(word, pattern) : word}
         </button>
         <button
           type="button"

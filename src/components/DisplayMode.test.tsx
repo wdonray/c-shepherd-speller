@@ -757,4 +757,30 @@ describe('DisplayMode classroom unmount', () => {
     fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
   })
+
+  it('toggles word underlines on the present chart, default off (issue #264)', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    })
+
+    const toggle = screen.getByRole('button', { name: 'Show word underlines' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    // Underlines start off: the word button holds plain text, no spans.
+    expect(screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span')).toHaveLength(0)
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    const underlined = screen.getByRole('button', { name: 'Analyze the word cake' })
+    expect(underlined.querySelectorAll('span').length).toBeGreaterThan(0)
+    // The word itself is unchanged.
+    expect(underlined).toHaveTextContent('cake')
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span')).toHaveLength(0)
+  })
 })
