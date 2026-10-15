@@ -1175,3 +1175,266 @@ describe('ListEditorPage classroom', () => {
     expect(select.value).toBe('c1')
   })
 })
+
+describe('ListEditorPage rules section', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useRealTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  async function renderReadyWithRules(listOverrides: Partial<WordList> = {}) {
+    getList.mockResolvedValue({ ...list, ...listOverrides })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (1)' })
+  }
+
+  it('saves an unscoped rule to the pattern when there is no classroom', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ classes: [] }) })
+    vi.stubGlobal('fetch', fetchMock)
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReadyWithRules()
+
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([expect.objectContaining({ id: 'p1', rule: 'Magic e.' })]),
+        })
+      )
+    })
+  })
+
+  it('loads classroom rules and saves a rule to the classroom', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'PUT') {
+        expect(JSON.parse(init.body as string)).toEqual({ rules: { a_e: { rule: 'Magic e.' } } })
+        return { ok: true, json: async () => ({}) }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom rule wins over the pattern's unscoped rule.
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    await waitFor(() => expect(field).toHaveValue('Old rule.'))
+    expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
+
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    // The list's own patterns were not touched: the rule went to the class.
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('clears classroom rules when the classroom is removed', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (1)' })
+
+    const select = screen.getByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    fireEvent.change(select, { target: { value: '' } })
+
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: null }))
+    // Back to unscoped: the classroom rule no longer applies.
+    await waitFor(() => {
+      expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+    })
+  })
+
+  it('treats an HTTP error from the classroom fetch as no classroom', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/')) {
+        return { ok: false, status: 500 }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom rule never loads: the field falls back to the (empty) unscoped rule.
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    await waitFor(() => expect(field).toHaveValue(''))
+    expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+  })
+
+  it('shows the classroom with unscoped rules when the class has no rules yet', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({ class: { id: 'c1', name: 'Period 2' } }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom is known, but no classroom rule exists for the pattern:
+    // the field falls back to the unscoped rule and nothing is marked shared.
+    const section = screen.getByRole('region', { name: 'Spelling rules' })
+    await waitFor(() => {
+      expect(within(section).getByText('Period 2')).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText('Rule, in the kids\u2019 words')).toHaveValue('')
+    expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+  })
+
+  it('ignores a classroom fetch that resolves after unmount', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (1)' })
+
+    unmount()
+    resolveClassFetch({
+      ok: true,
+      json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } } }),
+    })
+    // Give the resolution a chance to run; no state update should happen.
+    await new Promise((r) => setTimeout(r, 50))
+  })
+
+  it('keeps the draft and shows an error when saving a classroom rule fails', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'PUT') {
+        return { ok: false, status: 500 }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } } }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    await waitFor(() => expect(field).toHaveValue('Old rule.'))
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not save the rule. Try again.')
+    })
+    // The draft survives the failed save so the teacher can retry.
+    expect(field).toHaveValue('Magic e.')
+    expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+  })
+
+  it('saves a classroom rule while the classroom is still loading', async () => {
+    let resolveClassFetch: (res: object) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'PUT') {
+        expect(JSON.parse(init.body as string)).toEqual({ rules: { a_e: { rule: 'Magic e.' } } })
+        return { ok: true, json: async () => ({}) }
+      }
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((resolve) => {
+          resolveClassFetch = resolve
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    // Saved against a null previous value: the classroom rule map starts fresh.
+    await waitFor(() => expect(field).toHaveValue('Magic e.'))
+    resolveClassFetch({ ok: true, json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: {} } }) })
+  })
+
+  it('clears an unscoped rule on one pattern without touching the other', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ classes: [] }) })
+    vi.stubGlobal('fetch', fetchMock)
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue({
+      ...list,
+      patterns: [
+        { ...patternA, rule: 'Magic e.' },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'], rule: 'Keep ai.' },
+      ],
+    })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (2)' })
+
+    const fields = screen.getAllByLabelText('Rule, in the kids\u2019 words')
+    expect(fields).toHaveLength(2)
+    fireEvent.focus(fields[0])
+    fireEvent.change(fields[0], { target: { value: '' } })
+    fireEvent.blur(fields[0])
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([
+            expect.objectContaining({ id: 'p1', rule: undefined }),
+            expect.objectContaining({ id: 'p2', rule: 'Keep ai.' }),
+          ]),
+        })
+      )
+    })
+  })
+})

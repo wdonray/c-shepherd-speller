@@ -30,6 +30,7 @@ import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-chan
 import PatternEditor from './PatternEditor'
 import ListColorPicker from './ListColorPicker'
 import ClassroomSelector from './ClassroomSelector'
+import ListRulesSection from './ListRulesSection'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage, toastError } from '@/lib/error-toast'
 
@@ -127,6 +128,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * confirms the edit persisted.
    */
   const [unsavedPatternIds, setUnsavedPatternIds] = useState<ReadonlySet<string>>(new Set())
+  /**
+   * The list's classroom rules by pattern text, for the Rules section.
+   * Null when the list has no classroom (unscoped pattern rules apply).
+   */
+  const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
+  /** The classroom's display name, for the Rules section. */
+  const [className, setClassName] = useState<string | null>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
@@ -184,6 +192,42 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       cancelled = true
     }
   }, [listId])
+
+  // Load the list's classroom (name + rules) for the Rules section whenever
+  // the classroom assignment changes. Null clears back to unscoped rules.
+  useEffect(() => {
+    const classId = list?.classId
+    if (!classId) {
+      setClassRules(null)
+      setClassName(null)
+      return
+    }
+    let cancelled = false
+    fetch(`/api/classes/${encodeURIComponent(classId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((body) => {
+        if (cancelled) return
+        const rules: Record<string, string> = {}
+        for (const [patternText, rule] of Object.entries(body.class.rules ?? {})) {
+          rules[patternText] = (rule as { rule: string }).rule
+        }
+        setClassRules(rules)
+        setClassName(body.class.name)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          reportError(error, { location: 'ListEditorPage.loadClass' })
+          setClassRules(null)
+          setClassName(null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [list?.classId])
 
   // Flush any pending debounced save when leaving the page, and clear timers
   // so a stray save never fires after unmount.
@@ -438,6 +482,33 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
   // From here on, list is the loaded WordList, so the editor helpers below
   // need no null guards.
+  /**
+   * Save one spelling rule from the Rules section (issue #263). With a
+   * classroom, the rule is saved to the classroom (shared across its
+   * lists); otherwise it is saved unscoped on the pattern itself.
+   * Rejects on failure so the row keeps the draft and shows the error.
+   */
+  const handleSaveRule = async (patternId: string, patternText: string, rule: string): Promise<void> => {
+    if (list.classId) {
+      const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: { [patternText]: { rule } } }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
+    } else {
+      const next: WordList = {
+        ...list,
+        patterns: list.patterns.map((p) => (p.id === patternId ? { ...p, rule: rule || undefined } : p)),
+      }
+      setList(next)
+      await updateList(next.id, {
+        patterns: saveablePatterns(next.patterns, unsavedPatternIdsRef.current),
+      })
+    }
+  }
+
   const updatePattern = (patternId: string, updated: SpellingPattern) => {
     // Once a new pattern has its required fields, it graduates to a normal
     // pattern and is included in saves from here on.
@@ -606,6 +677,14 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           </div>
         </>
       )}
+
+      <ListRulesSection
+        patterns={list.patterns.map((p) => ({ id: p.id, pattern: p.pattern, rule: p.rule }))}
+        classId={list.classId}
+        className={className}
+        classRules={classRules}
+        onSaveRule={handleSaveRule}
+      />
 
       <Dialog open={deletePatternTarget !== null} onOpenChange={() => setDeletePatternTarget(null)}>
         {deletePatternTarget && (

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import DisplayMode from './DisplayMode'
 import type { WordList } from '@/models/WordList'
@@ -277,36 +277,55 @@ describe('DisplayMode', () => {
     expect(mockPush).not.toHaveBeenCalledWith('/display')
   })
 
-  it('saves a rule edit from the chart header via updateList', async () => {
+  it('shows the chart rule display-only, with no edit affordances', async () => {
     const listWithRule = {
       ...twoPatternList,
       patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
     }
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(listWithRule)
-    updateList.mockImplementation(async (_id: string, input: { patterns: unknown[] }) => ({
-      ...listWithRule,
-      patterns: input.patterns,
-    }))
     render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: 'Magic e updated.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+  })
+
+  it('shows the classroom rule on the chart when the list has a class', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => ({
+        class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'ai never ends a word.' } } },
+      }),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<DisplayMode />)
+
     await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith(
-        'l1',
-        expect.objectContaining({
-          patterns: expect.arrayContaining([expect.objectContaining({ pattern: 'a_e', rule: 'Magic e updated.' })]),
-        })
-      )
+      expect(screen.getByText('ai never ends a word.')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+    // The classroom is clearly shown in the present header (issue #263).
+    expect(screen.getByText('Period 2')).toBeInTheDocument()
+  })
+
+  it('shows "No class" in the present header when the list has no classroom', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(twoPatternList)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
     })
   })
 
-  it('restores the list when a chart rule save fails', async () => {
+  it('keeps the chart rule visible when there is no classroom rule', async () => {
     const listWithRule: WordList = {
       ...twoPatternList,
       patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
@@ -318,71 +337,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
     })
-    // Set the rejection after the initial render is confirmed.
-    updateList.mockRejectedValueOnce(new Error('down'))
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
-    fireEvent.change(screen.getByLabelText('Edit rule'), { target: { value: 'Changed.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the rule.')
-    // Cancel the edit: the original rule is restored (the failed save rolled back).
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByText('Magic e.')).toBeInTheDocument()
-  })
-
-  it('deletes a rule from the chart header via updateList', async () => {
-    const listWithRule = {
-      ...twoPatternList,
-      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
-    }
-    mockSearchParams.get.mockReturnValue('l1')
-    getList.mockResolvedValue(listWithRule)
-    updateList.mockImplementation(async (_id: string, input: { patterns: unknown[] }) => ({
-      ...listWithRule,
-      patterns: input.patterns,
-    }))
-    render(<DisplayMode />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Magic e.')).toBeInTheDocument()
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
-    await waitFor(() => {
-      expect(updateList).toHaveBeenCalledWith(
-        'l1',
-        expect.objectContaining({
-          patterns: expect.arrayContaining([expect.objectContaining({ pattern: 'a_e', rule: undefined })]),
-        })
-      )
-    })
-    // The rule card is gone after deletion.
-    await waitFor(() => {
-      expect(screen.queryByText('Magic e.')).not.toBeInTheDocument()
-    })
-  })
-
-  it('shows an error when a chart rule delete fails', async () => {
-    const listWithRule: WordList = {
-      ...twoPatternList,
-      patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
-    }
-    mockSearchParams.get.mockReturnValue('l1')
-    getList.mockResolvedValue(listWithRule)
-    render(<DisplayMode />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Magic e.')).toBeInTheDocument()
-    })
-    updateList.mockRejectedValueOnce(new Error('down'))
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the rule. Try again.')
-    // Still on the confirm step: the teacher can retry or cancel.
-    expect(screen.getByText('Delete this rule?')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    // The rule was never removed: it is still displayed intact.
-    expect(screen.getByText('Magic e.')).toBeInTheDocument()
-    expect(updateList).toHaveBeenCalledTimes(1)
+    // Display-only: no delete affordance exists on the chart anymore.
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   })
 
   it('locks a pattern optimistically and persists via updateList', async () => {
@@ -677,5 +633,121 @@ describe('DisplayMode sort-mode chrome', () => {
     })
     expect(screen.getByRole('region', { name: 'Presenting tips' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
+  })
+})
+
+describe('DisplayMode classroom rules loading', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('continues without classroom rules when the class fetch fails', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
+    })
+    // The chart still renders; no classroom rule is shown.
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
+
+  it('treats an HTTP error from the class fetch as no classroom rules', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
+
+  it('shows the classroom with no classroom rule when the class has no rules yet', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ class: { id: 'c1', name: 'Period 2' } }),
+      })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Period 2')).toBeInTheDocument()
+    })
+    // No rule rows: the chart falls back to the patterns' own rules.
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
+})
+
+describe('DisplayMode classroom unmount', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('does not update state if unmounted during classroom fetch', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    let rejectFetch: (err: Error) => void = () => {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            rejectFetch = reject
+          })
+      )
+    )
+    const { unmount } = render(<DisplayMode />)
+    // Wait for the chart to render (list loaded, classroom fetch in flight).
+    await waitFor(() => {
+      expect(screen.getByText('cake')).toBeInTheDocument()
+    })
+    // Unmount before the fetch settles.
+    unmount()
+    rejectFetch(new Error('down'))
+    // Give the rejection a chance to run; no error should surface.
+    await new Promise((r) => setTimeout(r, 50))
+  })
+
+  it('ignores a classroom fetch that resolves after unmount', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    let resolveFetch: (res: object) => void = () => {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveFetch = resolve
+          })
+      )
+    )
+    const { unmount } = render(<DisplayMode />)
+    // Wait for the chart to render (list loaded, classroom fetch in flight).
+    await waitFor(() => {
+      expect(screen.getByText('cake')).toBeInTheDocument()
+    })
+    // Unmount before the fetch settles.
+    unmount()
+    resolveFetch({
+      ok: true,
+      json: async () => ({
+        class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'ai never ends a word.' } } },
+      }),
+    })
+    // Give the resolution a chance to run; no state update should happen.
+    await new Promise((r) => setTimeout(r, 50))
   })
 })
