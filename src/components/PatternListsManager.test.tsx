@@ -37,7 +37,11 @@ vi.mock('next/navigation', () => ({
 }))
 
 const { dndProps } = vi.hoisted(() => ({
-  dndProps: {} as { onDragEnd?: (event: import('@dnd-kit/core').DragEndEvent) => void },
+  dndProps: {} as {
+    onDragEnd?: (event: import('@dnd-kit/core').DragEndEvent) => void
+    onDragStart?: (event: import('@dnd-kit/core').DragStartEvent) => void
+    onDragCancel?: (event: import('@dnd-kit/core').DragCancelEvent) => void
+  },
 }))
 
 const { toggleFavoriteOverride } = vi.hoisted(() => ({
@@ -61,8 +65,13 @@ vi.mock('@dnd-kit/core', async (importOriginal) => {
     // the real context provider still drives the cards.
     DndContext: (props: React.ComponentProps<typeof actual.DndContext>) => {
       dndProps.onDragEnd = props.onDragEnd
+      dndProps.onDragStart = props.onDragStart
+      dndProps.onDragCancel = props.onDragCancel
       return <actual.DndContext {...props} />
     },
+    // Render DragOverlay children unconditionally so tests can assert the
+    // ghost copy; the real overlay only shows them while a drag is active.
+    DragOverlay: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   }
 })
 
@@ -806,6 +815,72 @@ describe('sorting (issue #275)', () => {
     await waitFor(() => {
       expect(screen.getAllByRole('button', { name: /Drag to reorder/ })).toHaveLength(2)
     })
+  })
+})
+
+describe('drag overlay (issue #294)', () => {
+  it('floats a ghost copy of the dragged list card on drag start', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(1)
+
+    act(() => {
+      dndProps.onDragStart?.({ active: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragStartEvent)
+    })
+
+    // The DragOverlay renders a second, aria-hidden + inert copy of the dragged card.
+    const copies = screen.getAllByText('Week 5: Long A')
+    expect(copies).toHaveLength(2)
+    const overlay = copies[1].closest('[aria-hidden="true"]')
+    expect(overlay).not.toBeNull()
+    expect(overlay).toHaveAttribute('inert')
+    expect(screen.getAllByText('Week 6')).toHaveLength(1)
+  })
+
+  it('removes the ghost copy when the drag ends', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    act(() => {
+      dndProps.onDragStart?.({ active: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragStartEvent)
+    })
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(2)
+
+    const dragEnd = { active: { id: 'l1' }, over: null } as unknown as import('@dnd-kit/core').DragEndEvent
+    act(() => {
+      dndProps.onDragEnd?.(dragEnd)
+    })
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(1)
+  })
+
+  it('removes the ghost copy when the drag is cancelled', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    act(() => {
+      dndProps.onDragStart?.({ active: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragStartEvent)
+    })
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(2)
+
+    act(() => {
+      dndProps.onDragCancel?.({} as import('@dnd-kit/core').DragCancelEvent)
+    })
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(1)
+  })
+
+  it('renders no ghost copy for an unknown dragged id', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    act(() => {
+      dndProps.onDragStart?.({ active: { id: 'missing' } } as unknown as import('@dnd-kit/core').DragStartEvent)
+    })
+    expect(screen.getAllByText('Week 5: Long A')).toHaveLength(1)
+    expect(screen.getAllByText('Week 6')).toHaveLength(1)
   })
 })
 

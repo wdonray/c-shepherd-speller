@@ -2,7 +2,6 @@
 
 import { useRef } from 'react'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
-import { CSS, type Transform } from '@dnd-kit/utilities'
 import { GripVerticalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WordList } from '@/models/WordList'
@@ -11,11 +10,6 @@ import WordListCard from './WordListCard'
 
 /** Minimum rightward swipe distance that toggles a favorite (Spotify-style). */
 export const SWIPE_STAR_MIN_DX = 60
-
-/** Card style while dragging: the card follows the pointer. */
-export function dragCardStyle(transform: Transform | null): React.CSSProperties | undefined {
-  return transform ? { transform: CSS.Translate.toString(transform) } : undefined
-}
 
 interface ListsOverviewCardProps {
   list: WordList
@@ -49,7 +43,6 @@ export default function ListsOverviewCard({
     attributes,
     listeners,
     setNodeRef: setDraggableRef,
-    transform,
     isDragging,
   } = useDraggable({
     id: list.id,
@@ -88,10 +81,12 @@ export default function ListsOverviewCard({
         setDraggableRef(element)
         setDroppableRef(element)
       }}
-      style={dragCardStyle(transform)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={cn(isDragging && 'opacity-40', isOver && 'rounded-[20px] ring-[3px] ring-sky-deep')}
+      // The DragOverlay renders the floating copy; hide the original visually
+      // with opacity-0 (not visibility:hidden) so a keyboard drag keeps its
+      // focused handle in the accessibility tree while dragging.
+      className={cn(isDragging && 'opacity-0', isOver && 'rounded-[20px] ring-[3px] ring-sky-deep')}
     >
       <WordListCard
         list={list}

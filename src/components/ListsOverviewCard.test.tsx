@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
-import ListsOverviewCard, { SWIPE_STAR_MIN_DX, dragCardStyle } from './ListsOverviewCard'
+import ListsOverviewCard, { SWIPE_STAR_MIN_DX } from './ListsOverviewCard'
 import type { WordList } from '@/models/WordList'
 
 vi.mock('next/link', () => ({
@@ -159,22 +159,15 @@ describe('ListsOverviewCard', () => {
     renderCard({ reorderable: false })
     expect(screen.queryByRole('button', { name: 'Drag to reorder Week 5: Long A' })).not.toBeInTheDocument()
   })
-  it('dims the card while dragging and highlights the drop target', () => {
+  it('hides the card visually while the DragOverlay floats the copy, and highlights the drop target', () => {
     dndState.isDragging = true
     dndState.isOver = true
     renderCard({ reorderable: true })
     const wrapper = cardWrapper()
-    expect(wrapper.className).toContain('opacity-40')
+    // opacity-0 keeps the card (and a keyboard drag's focused handle) in the
+    // accessibility tree; visibility:hidden would drop it.
+    expect(wrapper.className).toContain('opacity-0')
+    expect(wrapper.className).not.toContain('invisible')
     expect(wrapper.className).toContain('ring-sky-deep')
-  })
-})
-
-describe('dragCardStyle', () => {
-  it('returns undefined when not dragging', () => {
-    expect(dragCardStyle(null)).toBeUndefined()
-  })
-
-  it('returns a translate style while dragging', () => {
-    expect(dragCardStyle({ x: 10, y: 20, scaleX: 1, scaleY: 1 })).toEqual({ transform: 'translate3d(10px, 20px, 0)' })
   })
 })
