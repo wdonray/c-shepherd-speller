@@ -1175,3 +1175,108 @@ describe('ListEditorPage classroom', () => {
     expect(select.value).toBe('c1')
   })
 })
+
+describe('ListEditorPage rules section', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useRealTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  async function renderReadyWithRules(listOverrides: Partial<WordList> = {}) {
+    getList.mockResolvedValue({ ...list, ...listOverrides })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (1)' })
+  }
+
+  it('saves an unscoped rule to the pattern when there is no classroom', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ classes: [] }) })
+    vi.stubGlobal('fetch', fetchMock)
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReadyWithRules()
+
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([expect.objectContaining({ id: 'p1', rule: 'Magic e.' })]),
+        })
+      )
+    })
+  })
+
+  it('loads classroom rules and saves a rule to the classroom', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'PUT') {
+        expect(JSON.parse(init.body as string)).toEqual({ rules: { a_e: { rule: 'Magic e.' } } })
+        return { ok: true, json: async () => ({}) }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom rule wins over the pattern's unscoped rule.
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    await waitFor(() => expect(field).toHaveValue('Old rule.'))
+    expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
+
+    fireEvent.focus(field)
+    fireEvent.change(field, { target: { value: 'Magic e.' } })
+    fireEvent.blur(field)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'PUT' }))
+    })
+    // The list's own patterns were not touched: the rule went to the class.
+    expect(updateList).not.toHaveBeenCalled()
+  })
+
+  it('clears classroom rules when the classroom is removed', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
+    render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await screen.findByRole('heading', { name: 'Rules (1)' })
+
+    const select = screen.getByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    fireEvent.change(select, { target: { value: '' } })
+
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: null }))
+    // Back to unscoped: the classroom rule no longer applies.
+    await waitFor(() => {
+      expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+    })
+  })
+})
