@@ -681,6 +681,32 @@ describe('PatternEditor', () => {
     expect(await screen.findByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
   })
 
+  it('leaves the mic buttons unmarked when reading recording presence fails', async () => {
+    hasRecording.mockRejectedValue(new Error('db down'))
+    renderEditor()
+    // The rejected reads resolve to "no recording" instead of crashing.
+    expect(await screen.findByRole('button', { name: 'Record your voice for cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Record your voice for bake' })).toBeInTheDocument()
+  })
+
+  it('leaves the mic buttons unmarked when recording storage is unsupported', async () => {
+    isRecordingStorageSupported.mockReturnValue(false)
+    renderEditor()
+    expect(await screen.findByRole('button', { name: 'Record your voice for cake' })).toBeInTheDocument()
+    expect(hasRecording).not.toHaveBeenCalled()
+  })
+
+  it('ignores a late recording-presence read after unmount', async () => {
+    let resolveRead!: (has: boolean) => void
+    hasRecording.mockReturnValue(new Promise((resolve) => (resolveRead = resolve)))
+    const { unmount } = render(<PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} />)
+    unmount()
+    resolveRead(true)
+    await act(async () => {})
+    // No crash, no state update after unmount.
+    expect(hasRecording).toHaveBeenCalled()
+  })
+
   it('keeps a rejected microphone request from surfacing as unhandled', async () => {
     const cancel = vi.fn()
     requestMicrophoneAccess.mockReturnValue({
