@@ -126,6 +126,20 @@ class FakeAudio {
   }
 }
 
+/**
+ * Mobile Safari may never fire loadedmetadata for the review audio element,
+ * leaving the duration unknown (#300).
+ */
+class NoMetadataAudio extends FakeAudio {
+  constructor(src: string) {
+    super(src)
+  }
+  override emit(event: string): void {
+    if (event === 'loadedmetadata') return
+    super.emit(event)
+  }
+}
+
 function makeSession(overrides: Partial<{ stream: MediaStream | undefined }> = {}) {
   return {
     stop: vi.fn().mockResolvedValue(new Blob(['audio'], { type: 'audio/webm' })),
@@ -549,6 +563,24 @@ describe('VoiceRecorderModal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  it('notifies the opener after a successful save', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    saveRecording.mockResolvedValue({ text: 'cake' })
+    const onSaved = vi.fn()
+    const onOpenChange = vi.fn()
+    render(<VoiceRecorderModal word="cake" open={true} onOpenChange={onOpenChange} onSaved={onSaved} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    const saveButton = await screen.findByRole('button', { name: 'Save recording' })
+    await waitFor(() => expect(saveButton).toBeEnabled())
+    fireEvent.click(saveButton)
+    await waitFor(() => expect(saveRecording).toHaveBeenCalledWith('cake', expect.any(Blob)))
+    expect(onSaved).toHaveBeenCalledWith('cake')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
   it('shows a notice when saving fails', async () => {
     const session = makeSession()
     startRecording.mockResolvedValue(session)
@@ -918,6 +950,41 @@ describe('VoiceRecorderModal', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save recording' })).toBeInTheDocument())
     // The duration falls back to elapsed time, not Infinity.
     expect(screen.getByText(/recorded/)).toBeInTheDocument()
+  })
+
+  it('shows the measured recording length when audio metadata never loads', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal('Audio', NoMetadataAudio)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Let the recording timer measure a real second.
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save recording' })).toBeInTheDocument())
+    // Without the fix the review row reads "00:00 recorded" (#300).
+    expect(screen.getByText('00:01 recorded')).toBeInTheDocument()
+  })
+
+  it('keeps the measured recording length when metadata reports zero', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override duration = 0
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Let the recording timer measure real seconds.
+    await new Promise((resolve) => setTimeout(resolve, 2100))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save recording' })).toBeInTheDocument())
+    // A zero metadata duration must not clobber the measured length (#300).
+    expect(screen.getByText('00:02 recorded')).toBeInTheDocument()
   })
 
   it('ignores a rejected permission query after unmount', async () => {

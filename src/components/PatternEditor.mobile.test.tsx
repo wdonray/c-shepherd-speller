@@ -24,14 +24,20 @@ vi.mock('./VoiceRecorderModal', () => ({
     ) : null,
 }))
 
-const { requestMicrophoneAccess, isAudioCaptureSupported } = vi.hoisted(() => ({
-  requestMicrophoneAccess: vi.fn(),
-  isAudioCaptureSupported: vi.fn(),
-}))
+const { requestMicrophoneAccess, isAudioCaptureSupported, isRecordingStorageSupported, hasRecording } = vi.hoisted(
+  () => ({
+    requestMicrophoneAccess: vi.fn(),
+    isAudioCaptureSupported: vi.fn(),
+    isRecordingStorageSupported: vi.fn(),
+    hasRecording: vi.fn(),
+  })
+)
 vi.mock('@/lib/voice-recordings', () => ({
   MICROPHONE_REQUEST_TIMEOUT_MS: 15000,
   requestMicrophoneAccess,
   isAudioCaptureSupported,
+  isRecordingStorageSupported,
+  hasRecording,
 }))
 
 vi.mock('@/lib/example-sentences', () => ({
@@ -87,6 +93,8 @@ describe('PatternEditor mobile words cards', () => {
     mockMobileViewport()
     vi.clearAllMocks()
     isAudioCaptureSupported.mockReturnValue(true)
+    isRecordingStorageSupported.mockReturnValue(true)
+    hasRecording.mockResolvedValue(false)
     requestMicrophoneAccess.mockReturnValue({
       promise: Promise.resolve({ getTracks: () => [] }),
       cancel: vi.fn(),

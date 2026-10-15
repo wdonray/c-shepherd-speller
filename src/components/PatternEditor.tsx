@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,7 +20,9 @@ import { wordMatchesPattern } from '@/lib/word-pattern-match'
 import { useMediaQuery } from '@/lib/use-media-query'
 import {
   MICROPHONE_REQUEST_TIMEOUT_MS,
+  hasRecording,
   isAudioCaptureSupported,
+  isRecordingStorageSupported,
   requestMicrophoneAccess,
   type MicrophoneRequest,
 } from '@/lib/voice-recordings'
@@ -101,6 +103,53 @@ export default function PatternEditor({
   const [mismatchedWord, setMismatchedWord] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
+  /**
+   * Words in this pattern that already have a saved voice recording. The
+   * mic button renders in its recorded state for these, so the teacher can
+   * see at a glance which words play a custom recording instead of the
+   * built-in voice.
+   */
+  const [recordedWords, setRecordedWords] = useState<Set<string>>(new Set())
+  /**
+   * Words saved while a recording-presence lookup is in flight. The lookup
+   * resolves with a full replacement set, so without this a slow read could
+   * erase a recording the teacher just saved. Merged into the result below.
+   */
+  const savedDuringLookupRef = useRef<Set<string>>(new Set())
+
+  // Load recording presence for this pattern's words. Runs once per word
+  // list, not per render: IndexedDB reads are cheap but not free.
+  const wordsKey = JSON.stringify(pattern.words)
+  useEffect(() => {
+    // The presence lookup only needs recording *storage*. Microphone capture
+    // support gates recording new audio (see handleMicClick), but a teacher
+    // on a device without a mic should still see which words already have
+    // recordings.
+    if (!isRecordingStorageSupported()) {
+      setRecordedWords(new Set())
+      return
+    }
+    let cancelled = false
+    const savedDuringFlight = (savedDuringLookupRef.current = new Set<string>())
+    const words: string[] = JSON.parse(wordsKey)
+    void Promise.all(
+      words.map((word) =>
+        hasRecording(word)
+          .then((has) => ({ word, has }))
+          .catch(() => ({ word, has: false }))
+      )
+    ).then((results) => {
+      if (!cancelled) {
+        const found = results.filter((result) => result.has).map((result) => result.word)
+        setRecordedWords(new Set([...found, ...savedDuringFlight]))
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+    // wordsKey is the serialized word list; the effect only refires when the words change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordsKey])
   /**
    * In-flight microphone permission request for the word being recorded.
    * Started here, in the mic button's click handler: browsers only show the
@@ -212,13 +261,20 @@ export default function PatternEditor({
           <button
             type="button"
             onClick={() => handleMicClick(word)}
-            aria-label={`Record your voice for ${word}`}
-            className="flex size-11 cursor-pointer items-center justify-center rounded-full p-2 text-muted-foreground outline-none transition hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            aria-label={recordedWords.has(word) ? `Re-record your voice for ${word}` : `Record your voice for ${word}`}
+            className={cn(
+              'flex size-11 cursor-pointer items-center justify-center rounded-full p-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+              recordedWords.has(word)
+                ? 'bg-sky-soft text-sky-ink hover:brightness-95 focus-visible:brightness-95'
+                : 'text-muted-foreground hover:bg-sky-soft hover:text-sky-ink focus-visible:bg-sky-soft'
+            )}
           >
             <MicIcon className="size-5" aria-hidden="true" />
           </button>
         </TooltipTrigger>
-        <TooltipContent>Record your voice</TooltipContent>
+        <TooltipContent>
+          {recordedWords.has(word) ? 'Recording saved. Tap to re-record.' : 'Record your voice'}
+        </TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -589,6 +645,12 @@ export default function PatternEditor({
             word={recordingWord}
             open={recordingWord !== null}
             microphoneRequest={micRequestRef.current}
+            onSaved={(savedWord) => {
+              // Tracked separately so a pending presence lookup merges rather
+              // than erases this save when it resolves.
+              savedDuringLookupRef.current.add(savedWord)
+              setRecordedWords((prev) => new Set(prev).add(savedWord))
+            }}
             onOpenChange={(open) => {
               if (!open) {
                 micRequestRef.current?.cancel()

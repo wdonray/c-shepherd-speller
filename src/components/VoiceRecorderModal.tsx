@@ -45,6 +45,11 @@ interface VoiceRecorderModalProps {
   maxSeconds?: number
   /** Warn once when this many seconds remain. Defaults to 30. */
   warningSeconds?: number
+  /**
+   * Called with the trimmed word after a recording saves successfully, so
+   * the opener can mark the word as recorded without re-reading storage.
+   */
+  onSaved?: (word: string) => void
 }
 
 function formatTime(totalSeconds: number): string {
@@ -77,6 +82,7 @@ export default function VoiceRecorderModal({
   microphoneRequest = null,
   maxSeconds = MAX_RECORDING_SECONDS,
   warningSeconds = WARNING_SECONDS_REMAINING,
+  onSaved,
 }: VoiceRecorderModalProps) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [elapsed, setElapsed] = useState(0)
@@ -323,16 +329,23 @@ export default function VoiceRecorderModal({
     analyserRef.current = null
     try {
       const blob = await session.stop()
-      // WebM blobs can report Infinity for duration; fall back to measured time.
+      // Mobile Safari may never fire loadedmetadata for the review audio,
+      // and WebM blobs can report Infinity for duration. Start from the
+      // measured recording time so the review never shows 00:00, then
+      // refine when the browser reports real, finite metadata.
       const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000
       recordedBlobRef.current = blob
+      setAudioDuration(elapsedSeconds)
       const url = URL.createObjectURL(blob)
       setAudioUrl(url)
       const audio = new Audio(url)
       audioRef.current = audio
       audio.addEventListener('loadedmetadata', () => {
         const duration = audio.duration
-        setAudioDuration(Number.isFinite(duration) ? duration : elapsedSeconds)
+        // Only trust positive, finite metadata. Some browsers report 0 for a
+        // recording that lasted seconds, which would show "00:00 recorded"
+        // and hide the short-recording warning.
+        if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration)
       })
       audio.addEventListener('ended', () => setPlaying(false))
       setPhase('review')
@@ -431,7 +444,8 @@ export default function VoiceRecorderModal({
     const blob = recordedBlobRef.current!
     setSaving(true)
     try {
-      await saveRecording(word, blob)
+      const saved = await saveRecording(word, blob)
+      onSaved?.(saved.text)
       onOpenChange(false)
     } catch (error) {
       reportError(error, { location: 'VoiceRecorderModal.handleSave' })
