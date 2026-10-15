@@ -10,6 +10,7 @@ import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import FullscreenButton from './FullscreenButton'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
+import WordUnderlineToggle from './WordUnderlineToggle'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
@@ -86,6 +87,10 @@ function DisplayModeInner() {
   const [className, setClassName] = useState<string | null>(null)
   // Rule display visibility on the chart (issue #310). Default shown.
   const [showRules, setShowRules] = useState(true)
+  // Word underline visibility on the chart (issue #264). Default hidden:
+  // underlines stay off when the Present chart loads until the teacher
+  // turns them on.
+  const [showUnderlines, setShowUnderlines] = useState(false)
 
   useEffect(() => {
     const classId = list?.classId
@@ -297,6 +302,7 @@ function DisplayModeInner() {
             <WhyChartPopover />
             <div className="ml-auto flex items-center gap-2">
               <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
+              <WordUnderlineToggle showUnderlines={showUnderlines} onToggle={() => setShowUnderlines((v) => !v)} />
               <Button variant="secondary" size="sm" asChild>
                 <Link href={`/lists/${list.id}/print`}>
                   <PrinterIcon className="size-4" aria-hidden="true" />
@@ -338,6 +344,7 @@ function DisplayModeInner() {
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
             classRules={classRules}
             showRules={showRules}
+            showUnderlines={showUnderlines}
           />
         )}
       </main>
