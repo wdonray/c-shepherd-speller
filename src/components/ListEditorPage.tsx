@@ -363,19 +363,26 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
-      void trackContentSave(doSave(next))
+      // Wait for any in-flight classroom save first (issue #263): the two
+      // PUTs share a read-modify-write on the list item, so the content
+      // save must not read the item before the classroom write lands.
+      void trackContentSave(classroomSaveChainRef.current.then(() => doSave(next)))
     }, SAVE_DEBOUNCE_MS)
   }
 
   /**
    * Track an in-flight content save so classroom changes can wait for it
    * (issue #263: a classroom PUT racing a content PUT can discard one of
-   * the two edits at the database's read-modify-write).
+   * the two edits at the database's read-modify-write). Only clears the
+   * ref if it still holds this promise: a newer save may have started
+   * while this one was in flight, and it must stay tracked.
    */
   function trackContentSave(promise: Promise<void>): Promise<void> {
     contentSavePromiseRef.current = promise
     return promise.finally(() => {
-      contentSavePromiseRef.current = null
+      if (contentSavePromiseRef.current === promise) {
+        contentSavePromiseRef.current = null
+      }
     })
   }
 

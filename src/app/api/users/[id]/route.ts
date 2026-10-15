@@ -64,12 +64,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // A default-class-only update uses a field-scoped write so it cannot
-    // clobber a concurrent profile autosave (issue #263).
+    // clobber a concurrent profile autosave (issue #263). The updated user
+    // comes back from the write itself (ALL_NEW): no eventually consistent
+    // re-read.
     const onlyDefaultClassId = Object.keys(updateData).length === 1 && 'defaultClassId' in updateData
     let updatedUser
     if (onlyDefaultClassId) {
-      await updateUserDefaultClassId(id, updateData.defaultClassId ?? null)
-      updatedUser = await getUserById(id)
+      updatedUser = await updateUserDefaultClassId(id, updateData.defaultClassId ?? null)
     } else {
       updatedUser = await updateUser(id, updateData)
     }

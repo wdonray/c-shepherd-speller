@@ -1,6 +1,6 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
-import { IUser, USER_TABLE_NAME, createUserItem, updateUserItem, updateUserTimestamps } from '../models/User'
+import { IUser, USER_TABLE_NAME, createUserItem, updateUserTimestamps } from '../models/User'
 import { reportError } from './report-error'
 
 // Helper function to generate consistent DynamoDB keys from userId
@@ -59,44 +59,64 @@ export async function updateUser(
     image?: string
     defaultClassId?: string | null
   }
-) {
-  const user = await getUserById(userId)
-  if (!user) {
-    throw new Error('User not found')
-  }
-  // updateUserItem types against Partial<IUser>; keep the null out of the
-  // merge and drop the attribute below instead.
-  const { defaultClassId, ...rest } = userData
-  const updatedUser = updateUserItem(user, rest)
-  if (defaultClassId !== undefined) {
-    if (defaultClassId) updatedUser.defaultClassId = defaultClassId
-    else delete updatedUser.defaultClassId
-  }
+): Promise<IUser> {
+  // Field-scoped update (issue #263): only the provided attributes are
+  // touched, so a profile save can never clobber a concurrently saved
+  // defaultClassId (or vice versa). Returns ALL_NEW so callers never need
+  // an eventually consistent re-read.
   const keys = getUserKeys(userId)
-
-  const command = new PutCommand({
+  const timestamp = new Date().toISOString()
+  const setClauses = ['updatedAt = :now']
+  const removeClauses: string[] = []
+  const values: Record<string, unknown> = { ':now': timestamp }
+  let fieldIndex = 0
+  for (const [field, value] of Object.entries(userData)) {
+    if (value === undefined) continue
+    // A cleared default class drops the attribute (matches the old
+    // read-modify-write behavior); other falsy values are stored as-is.
+    if (field === 'defaultClassId' && !value) {
+      removeClauses.push(field)
+      continue
+    }
+    const varName = `:field${fieldIndex++}`
+    setClauses.push(`${field} = ${varName}`)
+    values[varName] = value
+  }
+  let updateExpression = `SET ${setClauses.join(', ')}`
+  if (removeClauses.length > 0) {
+    updateExpression += ` REMOVE ${removeClauses.join(', ')}`
+  }
+  const command = new UpdateCommand({
     TableName: USER_TABLE_NAME,
-    Item: {
-      ...keys,
-      ...updatedUser,
-    },
+    Key: keys,
+    UpdateExpression: updateExpression,
+    ExpressionAttributeValues: values,
+    ConditionExpression: 'attribute_exists(PK)',
+    ReturnValues: 'ALL_NEW',
   })
-  await docClient.send(command)
-  return updatedUser
+  try {
+    const response = await docClient.send(command)
+    return response.Attributes as IUser
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      throw new Error('User not found')
+    }
+    throw error
+  }
 }
 
 /**
  * Field-scoped update for the teacher's default classroom (issue #263).
  * Uses UpdateCommand so a default-class save never overwrites concurrent
  * profile edits: unlike updateUser's read-modify-write, only the
- * defaultClassId attribute is touched.
+ * defaultClassId attribute is touched. Returns ALL_NEW so callers never
+ * need an eventually consistent re-read.
  */
-export async function updateUserDefaultClassId(userId: string, defaultClassId: string | null): Promise<void> {
+export async function updateUserDefaultClassId(userId: string, defaultClassId: string | null): Promise<IUser> {
   const keys = getUserKeys(userId)
   const timestamp = new Date().toISOString()
-  if (defaultClassId) {
-    await docClient.send(
-      new UpdateCommand({
+  const command = defaultClassId
+    ? new UpdateCommand({
         TableName: USER_TABLE_NAME,
         Key: keys,
         UpdateExpression: 'SET defaultClassId = :classId, updatedAt = :now',
@@ -105,11 +125,9 @@ export async function updateUserDefaultClassId(userId: string, defaultClassId: s
           ':now': timestamp,
         },
         ConditionExpression: 'attribute_exists(PK)',
+        ReturnValues: 'ALL_NEW',
       })
-    )
-  } else {
-    await docClient.send(
-      new UpdateCommand({
+    : new UpdateCommand({
         TableName: USER_TABLE_NAME,
         Key: keys,
         UpdateExpression: 'REMOVE defaultClassId SET updatedAt = :now',
@@ -117,9 +135,10 @@ export async function updateUserDefaultClassId(userId: string, defaultClassId: s
           ':now': timestamp,
         },
         ConditionExpression: 'attribute_exists(PK)',
+        ReturnValues: 'ALL_NEW',
       })
-    )
-  }
+  const response = await docClient.send(command)
+  return response.Attributes as IUser
 }
 
 export async function getUserByEmail(email: string) {

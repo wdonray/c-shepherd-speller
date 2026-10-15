@@ -75,53 +75,85 @@ describe('db-utils', () => {
 
   describe('updateUser', () => {
     it('throws when the user does not exist', async () => {
-      send.mockResolvedValue({ Item: undefined })
+      const notFound = new Error('Conditional check failed')
+      notFound.name = 'ConditionalCheckFailedException'
+      send.mockRejectedValue(notFound)
       await expect(updateUser('nope-user', { name: 'X' })).rejects.toThrow('User not found')
     })
 
-    it('puts the merged user', async () => {
-      send.mockResolvedValueOnce({ Item: storedUser }).mockResolvedValueOnce({})
+    it('rethrows unexpected database errors', async () => {
+      send.mockRejectedValue(new Error('boom'))
+      await expect(updateUser('abc-user', { name: 'X' })).rejects.toThrow('boom')
+    })
+
+    it('skips undefined fields', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser, name: 'New Name' } })
+      await updateUser('abc-user', { name: 'New Name', gradeLevel: undefined })
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).not.toContain('gradeLevel')
+    })
+
+    it('writes only the provided fields and returns ALL_NEW', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser, name: 'New Name' } })
       const updated = await updateUser('abc-user', { name: 'New Name' })
       expect(updated.name).toBe('New Name')
-      expect(updated.email).toBe('teacher@example.com')
-      const putCommand = send.mock.calls[1][0]
-      expect(putCommand.input.Item.name).toBe('New Name')
+      expect(send).toHaveBeenCalledTimes(1)
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('name = :field0')
+      expect(command.input.ExpressionAttributeValues[':field0']).toBe('New Name')
+      expect(command.input.ReturnValues).toBe('ALL_NEW')
+      expect(command.input.ConditionExpression).toBe('attribute_exists(PK)')
+      // A field-scoped update never reads the item first.
+      expect(command.input.UpdateExpression).not.toContain('email')
     })
 
     it('sets the default class id', async () => {
-      send.mockResolvedValueOnce({ Item: storedUser }).mockResolvedValueOnce({})
+      send.mockResolvedValue({ Attributes: { ...storedUser, defaultClassId: 'class_1' } })
       const updated = await updateUser('abc-user', { defaultClassId: 'class_1' })
       expect(updated.defaultClassId).toBe('class_1')
-      const putCommand = send.mock.calls[1][0]
-      expect(putCommand.input.Item.defaultClassId).toBe('class_1')
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('defaultClassId = :field0')
+      expect(command.input.ExpressionAttributeValues[':field0']).toBe('class_1')
     })
 
     it('drops the default class attribute when cleared with null', async () => {
-      send.mockResolvedValueOnce({ Item: { ...storedUser, defaultClassId: 'class_1' } }).mockResolvedValueOnce({})
+      send.mockResolvedValue({ Attributes: { ...storedUser } })
       const updated = await updateUser('abc-user', { defaultClassId: null })
       expect('defaultClassId' in updated).toBe(false)
-      const putCommand = send.mock.calls[1][0]
-      expect('defaultClassId' in putCommand.input.Item).toBe(false)
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('REMOVE defaultClassId')
+    })
+
+    it('stores an empty image as-is instead of removing it', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser, image: '' } })
+      await updateUser('abc-user', { image: '' })
+      const command = send.mock.calls[0][0]
+      expect(command.input.UpdateExpression).toContain('image = :field0')
+      expect(command.input.UpdateExpression).not.toContain('REMOVE')
     })
   })
 
   describe('updateUserDefaultClassId', () => {
-    it('sets the default class id with a field-scoped update', async () => {
-      send.mockResolvedValue({})
-      await updateUserDefaultClassId('abc-user', 'class_1')
+    it('sets the default class id with a field-scoped update and returns the user', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser, defaultClassId: 'class_1' } })
+      const updated = await updateUserDefaultClassId('abc-user', 'class_1')
+      expect(updated.defaultClassId).toBe('class_1')
       expect(send).toHaveBeenCalledTimes(1)
       const command = send.mock.calls[0][0]
       expect(command.input.UpdateExpression).toContain('SET defaultClassId = :classId')
       expect(command.input.ExpressionAttributeValues[':classId']).toBe('class_1')
       expect(command.input.ConditionExpression).toBe('attribute_exists(PK)')
+      expect(command.input.ReturnValues).toBe('ALL_NEW')
     })
 
-    it('removes the default class attribute when cleared with null', async () => {
-      send.mockResolvedValue({})
-      await updateUserDefaultClassId('abc-user', null)
+    it('removes the default class attribute when cleared with null and returns the user', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser } })
+      const updated = await updateUserDefaultClassId('abc-user', null)
+      expect('defaultClassId' in updated).toBe(false)
       expect(send).toHaveBeenCalledTimes(1)
       const command = send.mock.calls[0][0]
       expect(command.input.UpdateExpression).toContain('REMOVE defaultClassId')
+      expect(command.input.ReturnValues).toBe('ALL_NEW')
     })
   })
 
