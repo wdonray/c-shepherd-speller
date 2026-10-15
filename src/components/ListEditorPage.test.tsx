@@ -1591,6 +1591,50 @@ describe('ListEditorPage per-pattern rule editor (issue #313)', () => {
     })
   })
 
+  it('deletes a classroom rule via DELETE when the rule is cleared (issue #307)', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'DELETE') {
+        expect(JSON.parse(init.body as string)).toEqual({ patternText: 'a_e' })
+        return { ok: true, json: async () => ({ rules: {} }) }
+      }
+      if (String(url).includes('/api/classes/')) {
+        return {
+          ok: true,
+          json: async () => ({
+            class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Old rule.' } } },
+          }),
+        }
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await renderReadyWithRules({ classId: 'c1' })
+
+    // The classroom rule is showing on the collapsed row.
+    await screen.findByRole('button', { name: 'Edit rule for a_e' })
+    expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
+
+    openRuleModal('Edit rule for a_e')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1/rules', expect.objectContaining({ method: 'DELETE' }))
+    })
+    // Clearing must not touch the list's own patterns.
+    expect(updateList).not.toHaveBeenCalled()
+    // Close the modal (nothing is dirty after the successful clear), then
+    // the rule is gone: the row falls back to the Add affordance and the
+    // classroom marker is gone.
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+    // No error is shown.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('clears classroom rules when the classroom is removed', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes('/api/classes/')) {

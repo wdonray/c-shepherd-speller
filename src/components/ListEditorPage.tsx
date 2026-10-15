@@ -553,10 +553,26 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    * Save one spelling rule from the per-pattern rule editor (issue #313).
    * With a classroom, the rule is saved to the classroom (shared across
    * its lists); otherwise it is saved unscoped on the pattern itself.
+   * Clearing a classroom rule deletes it via DELETE (issue #307): an empty
+   * rule fails the rules API validation, so it cannot go through PUT.
    * Rejects on failure so the editor keeps the draft and shows the error.
    */
   const handleSaveRule = async (patternId: string, patternText: string, rule: string): Promise<void> => {
     if (list.classId) {
+      if (rule === '') {
+        const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patternText }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        setClassRules((prev) => {
+          const next = { ...(prev ?? {}) }
+          delete next[patternText]
+          return next
+        })
+        return
+      }
       const res = await fetch(`/api/classes/${encodeURIComponent(list.classId)}/rules`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

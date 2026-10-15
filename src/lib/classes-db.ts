@@ -137,6 +137,40 @@ export async function saveClassRules(
 }
 
 /**
+ * Delete one pattern's rule from a class. Idempotent: deleting a rule that
+ * isn't there is a no-op. Returns the remaining rules. Throws if the class
+ * does not exist or is not owned.
+ */
+export async function deleteClassRule(
+  userId: string,
+  classId: string,
+  patternText: string
+): Promise<Record<string, ClassRule>> {
+  const existing = await getClassById(userId, classId)
+  if (!existing) {
+    throw new Error(`Class not found: ${classId}`)
+  }
+  const remaining = { ...(existing.rules ?? {}) }
+  delete remaining[patternText]
+  const keys = getClassKeys(userId, classId)
+
+  await docClient.send(
+    new UpdateCommand({
+      TableName: LISTS_TABLE_NAME,
+      Key: keys,
+      UpdateExpression: 'SET #rules = :rules, updatedAt = :now',
+      ExpressionAttributeNames: { '#rules': 'rules' },
+      ExpressionAttributeValues: {
+        ':rules': remaining,
+        ':now': new Date().toISOString(),
+      },
+      ConditionExpression: 'attribute_exists(PK)',
+    })
+  )
+  return remaining
+}
+
+/**
  * Resolve the teacher's effective default classroom.
  *
  * An explicitly set default wins. Otherwise a teacher with exactly one

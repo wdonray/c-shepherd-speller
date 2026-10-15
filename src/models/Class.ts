@@ -62,6 +62,12 @@ export const SaveClassRulesSchema = z.object({
 })
 export type SaveClassRulesInput = z.infer<typeof SaveClassRulesSchema>
 
+/** Payload for deleting one class rule: the pattern text, from the rule editor's Clear button. */
+export const DeleteClassRuleSchema = z.object({
+  patternText: z.string().min(1).max(20),
+})
+export type DeleteClassRuleInput = z.infer<typeof DeleteClassRuleSchema>
+
 /**
  * DynamoDB key for a class item. Classes share the lists table
  * (single-table design); the SK prefix distinguishes them from lists.
