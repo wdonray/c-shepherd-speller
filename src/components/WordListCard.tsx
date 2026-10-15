@@ -29,9 +29,11 @@ interface WordListCardProps {
   href?: string
   /**
    * Adds the hover lift animation (card slightly grows and casts a shadow) to
-   * the card. Used by the display-mode list picker (issue #268) so teachers
-   * can see which list they are about to present. Off everywhere else: the
-   * design system keeps cards flat, and motion-reduce disables the lift.
+   * the card, with a hover outline in the list's own accent color (issue #290).
+   * Used by the display-mode and practice-mode list pickers (issue #268) so
+   * teachers can see which list they are about to present or practice. Off
+   * everywhere else: the design system keeps cards flat, and motion-reduce
+   * disables the lift.
    */
   hoverLift?: boolean
   /**
@@ -46,6 +48,13 @@ interface WordListCardProps {
    * Used by the lists overview search (issue #275); empty elsewhere.
    */
   highlightQuery?: string
+  /**
+   * Optional control rendered at the start of the card header row, inside
+   * the card (issue #289): the lists overview passes its reorder drag
+   * handle here so it reads as part of the card instead of floating
+   * detached beside it.
+   */
+  leadingAction?: React.ReactNode
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -70,6 +79,7 @@ export default function WordListCard({
   isFavorite = false,
   onToggleFavorite,
   highlightQuery = '',
+  leadingAction,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -82,15 +92,19 @@ export default function WordListCard({
       className={cn(
         'relative overflow-hidden',
         hoverLift &&
-          // Hover lift (issue #268): moved here from present-mode word cards
-          // so the list to present is unmistakable on hover. motion-reduce
-          // keeps the flat card for users who asked for no motion.
-          'transition duration-200 ease-out hover:z-10 hover:scale-[1.05] hover:border-sky-deep hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none'
+          // Hover lift (issues #268, #290): moved here from present-mode word
+          // cards so the list to present or practice is unmistakable on hover.
+          // The outline color matches the list's own accent color (issue
+          // #290) instead of one fixed color. motion-reduce keeps the flat
+          // card for users who asked for no motion.
+          'transition duration-200 ease-out hover:z-10 hover:scale-[1.05] hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none',
+        hoverLift && accent.hoverBorder
       )}
     >
       <div className={cn('h-2 w-full', accent.bar)} aria-hidden="true" />
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex flex-wrap items-center gap-2">
+          {leadingAction}
           <h3 className="text-xl font-bold">
             <HighlightedText text={list.name} query={highlightQuery} />
           </h3>

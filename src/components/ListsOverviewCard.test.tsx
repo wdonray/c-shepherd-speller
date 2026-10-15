@@ -146,6 +146,15 @@ describe('ListsOverviewCard', () => {
     expect(screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })).toBeInTheDocument()
   })
 
+  it('renders the drag handle inside the card header, attached to the card (issue #289)', () => {
+    renderCard({ reorderable: true })
+    const handle = screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })
+    const heading = screen.getByRole('heading', { name: 'Week 5: Long A' })
+    // The handle shares the card header row with the list name instead of
+    // floating beside the card.
+    expect(handle.parentElement).toBe(heading.parentElement)
+  })
+
   it('hides the drag handle when not reorderable', () => {
     renderCard({ reorderable: false })
     expect(screen.queryByRole('button', { name: 'Drag to reorder Week 5: Long A' })).not.toBeInTheDocument()
