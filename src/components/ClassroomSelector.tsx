@@ -120,7 +120,7 @@ export default function ClassroomSelector({
       {creating && (
         <div className="space-y-1.5 rounded-xl border-2 border-line bg-card p-3">
           <Label htmlFor={`${id}-new-name`}>New classroom name</Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               id={`${id}-new-name`}
               value={newName}
