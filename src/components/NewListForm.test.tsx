@@ -217,3 +217,23 @@ describe('NewListForm', () => {
     expect(createList.mock.calls[0][0]).not.toHaveProperty('classId')
   })
 })
+
+describe('NewListForm default classroom edge cases', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('creates without a classroom when the default lookup returns not-ok', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
+    createList.mockResolvedValue({ id: 'l9', name: 'Week 7' })
+    render(<NewListForm />)
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Week 7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+
+    await waitFor(() => {
+      expect(createList).toHaveBeenCalled()
+    })
+    expect(createList.mock.calls[0][0]).not.toHaveProperty('classId')
+  })
+})
