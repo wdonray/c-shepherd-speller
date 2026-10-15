@@ -148,34 +148,36 @@ describe('classes-db', () => {
   })
 
   describe('deleteClassRule', () => {
-    it('removes the pattern rule and returns the remaining rules', async () => {
+    it('removes the pattern rule atomically and returns the remaining rules', async () => {
+      const remaining = { ai: { rule: 'ai never ends a word.' } }
       const withRules = {
         ...storedClass,
-        rules: { a_e: { rule: 'Magic e.' }, ai: { rule: 'ai never ends a word.' } },
+        rules: { a_e: { rule: 'Magic e.' }, ...remaining },
       }
-      send.mockResolvedValueOnce({ Item: withRules }).mockResolvedValueOnce({})
+      send.mockResolvedValueOnce({ Item: withRules }).mockResolvedValueOnce({ Attributes: { rules: remaining } })
 
-      const remaining = await deleteClassRule('u1', 'c1', 'a_e')
+      const result = await deleteClassRule('u1', 'c1', 'a_e')
 
-      expect(remaining).toEqual({ ai: { rule: 'ai never ends a word.' } })
+      expect(result).toEqual(remaining)
       const command = send.mock.calls[1][0]
-      expect(command.input.UpdateExpression).toContain('SET #rules = :rules')
-      expect(command.input.ExpressionAttributeValues[':rules']).toEqual(remaining)
+      expect(command.input.UpdateExpression).toContain('REMOVE #rules.#patternText')
+      expect(command.input.ExpressionAttributeNames['#patternText']).toBe('a_e')
+      expect(command.input.ReturnValues).toBe('UPDATED_NEW')
       expect(command.input.ExpressionAttributeValues[':now']).toBeDefined()
     })
 
     it('is a no-op when the pattern has no rule', async () => {
-      const withRule = { ...storedClass, rules: { a_e: { rule: 'Magic e.' } } }
-      send.mockResolvedValueOnce({ Item: withRule }).mockResolvedValueOnce({})
+      const rules = { a_e: { rule: 'Magic e.' } }
+      send.mockResolvedValueOnce({ Item: { ...storedClass, rules } }).mockResolvedValueOnce({ Attributes: { rules } })
 
       const remaining = await deleteClassRule('u1', 'c1', 'ai')
-      expect(remaining).toEqual({ a_e: { rule: 'Magic e.' } })
+      expect(remaining).toEqual(rules)
     })
 
     it('treats a legacy class without a rules map as empty', async () => {
       const legacy = { ...storedClass }
       delete (legacy as Record<string, unknown>).rules
-      send.mockResolvedValueOnce({ Item: legacy }).mockResolvedValueOnce({})
+      send.mockResolvedValueOnce({ Item: legacy }).mockResolvedValueOnce({ Attributes: {} })
 
       const remaining = await deleteClassRule('u1', 'c1', 'a_e')
       expect(remaining).toEqual({})

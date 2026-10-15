@@ -140,6 +140,10 @@ export async function saveClassRules(
  * Delete one pattern's rule from a class. Idempotent: deleting a rule that
  * isn't there is a no-op. Returns the remaining rules. Throws if the class
  * does not exist or is not owned.
+ *
+ * The removal is a single atomic UpdateCommand (REMOVE on the nested map
+ * key), so concurrent deletes cannot read the same map and restore each
+ * other's removed rules the way a read-modify-write could.
  */
 export async function deleteClassRule(
   userId: string,
@@ -150,24 +154,23 @@ export async function deleteClassRule(
   if (!existing) {
     throw new Error(`Class not found: ${classId}`)
   }
-  const remaining = { ...(existing.rules ?? {}) }
-  delete remaining[patternText]
   const keys = getClassKeys(userId, classId)
 
-  await docClient.send(
+  const result = await docClient.send(
     new UpdateCommand({
       TableName: LISTS_TABLE_NAME,
       Key: keys,
-      UpdateExpression: 'SET #rules = :rules, updatedAt = :now',
-      ExpressionAttributeNames: { '#rules': 'rules' },
+      UpdateExpression: 'REMOVE #rules.#patternText SET updatedAt = :now',
+      ExpressionAttributeNames: { '#rules': 'rules', '#patternText': patternText },
       ExpressionAttributeValues: {
-        ':rules': remaining,
         ':now': new Date().toISOString(),
       },
       ConditionExpression: 'attribute_exists(PK)',
+      ReturnValues: 'UPDATED_NEW',
     })
   )
-  return remaining
+  // Absent on legacy classes that predate the rules map.
+  return (result.Attributes?.rules as Record<string, ClassRule> | undefined) ?? {}
 }
 
 /**
