@@ -106,3 +106,31 @@ describe('ListRulesSection', () => {
     )
   })
 })
+
+describe('ListRulesSection rule refresh', () => {
+  it('refreshes the draft when the saved rule changes from outside', async () => {
+    const { rerender } = render(
+      <ListRulesSection
+        patterns={[{ id: 'p1', pattern: 'a_e', rule: 'Old.' }]}
+        classId={null}
+        className={null}
+        classRules={null}
+        onSaveRule={vi.fn()}
+      />
+    )
+    const field = screen.getByLabelText('Rule, in the kids\u2019 words')
+    expect(field).toHaveValue('Old.')
+
+    // The parent re-renders with a new saved rule (e.g. classroom switched).
+    rerender(
+      <ListRulesSection
+        patterns={[{ id: 'p1', pattern: 'a_e', rule: 'New.' }]}
+        classId={null}
+        className={null}
+        classRules={null}
+        onSaveRule={vi.fn()}
+      />
+    )
+    await waitFor(() => expect(field).toHaveValue('New.'))
+  })
+})

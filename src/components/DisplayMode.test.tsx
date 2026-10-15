@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import DisplayMode from './DisplayMode'
 import type { WordList } from '@/models/WordList'
@@ -633,5 +633,25 @@ describe('DisplayMode sort-mode chrome', () => {
     })
     expect(screen.getByRole('region', { name: 'Presenting tips' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
+  })
+})
+
+describe('DisplayMode classroom rules loading', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('continues without classroom rules when the class fetch fails', async () => {
+    const listWithClass = { ...twoPatternList, classId: 'c1' }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(listWithClass)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
+    })
+    // The chart still renders; no classroom rule is shown.
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
   })
 })
