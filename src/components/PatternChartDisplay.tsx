@@ -8,17 +8,18 @@ import { OddDuck } from './OddDuck'
 import { Volume2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
-import RuleCard from './RuleCard'
 import { getSoundType, SOUND_TYPE_BORDER } from '@/lib/sound-type'
 
 interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
-  /** When provided, each column header shows its rule with edit and delete affordances. */
-  onSaveRule?: (patternId: string, rule: string) => Promise<void>
-  /** When provided, each column header rule gets a delete affordance with a confirm step. */
-  onDeleteRule?: (patternId: string) => Promise<void>
+  /**
+   * The list's classroom rules by pattern text. Rules are display-only on
+   * the chart (issue #263): management moved to the list page. The class
+   * rule wins over the pattern's unscoped rule when both exist.
+   */
+  classRules?: Record<string, string> | null
   /**
    * 'present' is the interactive projector chart. 'print' renders a
    * non-interactive poster: locked patterns are excluded entirely, words are
@@ -56,16 +57,11 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
 export default function PatternChartDisplay({
   list,
   onToggleLock,
-  onSaveRule,
-  onDeleteRule,
+  classRules,
   variant = 'present',
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
-  // Per-column rule editing state, keyed by pattern id so one column's
-  // save does not disable or error the others.
-  const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
-  const [ruleError, setRuleError] = useState<{ id: string; message: string } | null>(null)
 
   const { columns, allLocked, oddDuckWords } = useMemo(() => {
     // The printed poster matches what is currently taught: locked patterns
@@ -102,6 +98,27 @@ export default function PatternChartDisplay({
     presentTracks = 'sm:grid-cols-[minmax(0,420px)]'
   } else if (columns.length === 2) {
     presentTracks = 'sm:grid-cols-[repeat(2,minmax(0,420px))]'
+  }
+
+  /**
+   * The rule under a column header, display-only (issue #263). The
+   * classroom's rule wins over the pattern's unscoped rule when both
+   * exist. Rendered larger than before so it reads from the back of the
+   * room; rules are managed on the list page, never here.
+   */
+  const renderRuleDisplay = (pattern: SpellingPattern) => {
+    if (isPrint) return null
+    const rule = classRules?.[pattern.pattern] ?? pattern.rule
+    if (!rule) return null
+    const isClassRule = classRules?.[pattern.pattern] !== undefined
+    return (
+      <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">
+        <figcaption className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+          {isClassRule ? 'Our class figured out:' : 'The rule:'}
+        </figcaption>
+        <blockquote className="text-lg font-bold leading-snug text-ink">{rule}</blockquote>
+      </figure>
+    )
   }
 
   /** Lock toggle for an unlocked column header (locked columns render a placeholder instead). */
@@ -186,27 +203,7 @@ export default function PatternChartDisplay({
             <PowerBar level={level} filledClassName="bg-ink" />
             <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
           </div>
-          {onSaveRule && pattern.rule && !isPrint && (
-            <RuleCard
-              rule={pattern.rule}
-              label="The rule:"
-              saving={savingRuleId === pattern.id}
-              saveError={ruleError?.id === pattern.id ? ruleError.message : null}
-              onSave={async (newRule) => {
-                setSavingRuleId(pattern.id)
-                setRuleError(null)
-                try {
-                  await onSaveRule(pattern.id, newRule)
-                } catch {
-                  setRuleError({ id: pattern.id, message: 'Could not save the rule. Try again.' })
-                  throw new Error('Failed to save rule')
-                } finally {
-                  setSavingRuleId(null)
-                }
-              }}
-              onDelete={onDeleteRule ? () => onDeleteRule(pattern.id) : undefined}
-            />
-          )}
+          {renderRuleDisplay(pattern)}
         </div>
         <ul className="space-y-3">
           {pattern.words.map((word) => renderWordCard(word, pattern, `${pattern.id}-${word}`))}

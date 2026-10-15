@@ -81,30 +81,44 @@ function DisplayModeInner() {
     }
   }, [])
 
-  const handleSaveRule = useCallback(async (patternId: string, rule: string, current: WordList) => {
-    const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule } : p))
-    setList({ ...current, patterns: nextPatterns })
-    try {
-      const saved = await updateList(current.id, { patterns: nextPatterns })
-      setList(saved)
-    } catch {
-      setList(current)
-      throw new Error('Failed to save rule')
-    }
-  }, [])
+  // The list's classroom rules by pattern text, for the present chart.
+  // Rules are managed on the list page now (issue #263); the chart is
+  // display-only. Null when the list has no classroom.
+  const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
+  const [className, setClassName] = useState<string | null>(null)
 
-  const handleDeleteRule = useCallback(async (patternId: string, current: WordList) => {
-    const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule: undefined } : p))
-    // Not optimistic: removing the rule up front would unmount the rule
-    // card, swallowing a save failure before its error could display.
-    // The card's own "Deleting…" state covers the wait instead.
-    try {
-      const saved = await updateList(current.id, { patterns: nextPatterns })
-      setList(saved)
-    } catch {
-      throw new Error('Failed to delete rule')
+  useEffect(() => {
+    const classId = list?.classId
+    if (!classId) {
+      setClassRules(null)
+      setClassName(null)
+      return
     }
-  }, [])
+    let cancelled = false
+    fetch(`/api/classes/${encodeURIComponent(classId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      })
+      .then((body) => {
+        if (cancelled) return
+        const rules: Record<string, string> = {}
+        for (const [patternText, rule] of Object.entries(body.class.rules ?? {})) {
+          rules[patternText] = (rule as { rule: string }).rule
+        }
+        setClassRules(rules)
+        setClassName(body.class.name)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setClassRules(null)
+          setClassName(null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [list?.classId])
 
   // Escape never navigates. When the browser is in full screen, Escape exits
   // full screen natively; the app takes no action on Escape at all.
@@ -272,6 +286,14 @@ function DisplayModeInner() {
               </Link>
             </Button>
             <h1 className="text-xl font-bold text-ink">{list.name}</h1>
+            {/* The list's classroom, clearly shown (issue #263): this is what
+                the old sort-entry picker communicated, now visible up front. */}
+            <span
+              className="hidden rounded-full border-2 border-line bg-background px-2.5 py-1 text-xs font-extrabold text-muted-foreground sm:inline-block"
+              title={className ? `Classroom: ${className}` : 'No classroom assigned'}
+            >
+              {className ?? 'No class'}
+            </span>
             <WhyChartPopover />
             <div className="ml-auto flex items-center gap-2">
               <Button variant="secondary" size="sm" asChild>
@@ -315,8 +337,7 @@ function DisplayModeInner() {
           <PatternChartDisplay
             list={list}
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
-            onSaveRule={(patternId, rule) => handleSaveRule(patternId, rule, list)}
-            onDeleteRule={(patternId) => handleDeleteRule(patternId, list)}
+            classRules={classRules}
           />
         )}
         <ClassPickerDialog
