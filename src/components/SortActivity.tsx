@@ -18,7 +18,7 @@ import {
   type DragOverEvent,
   type Modifier,
 } from '@dnd-kit/core'
-import { XIcon, CheckIcon, UsersIcon } from 'lucide-react'
+import { XIcon, CheckIcon, UsersIcon, RotateCcwIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { LIFT_TRANSITION, PICKUP_SHADOW, feedbackAnimate, settleTransition } from '@/lib/sort-motion'
@@ -809,6 +809,10 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
           )}
           <div className="flex items-center gap-1">
             <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
+            <Button variant="secondary" size="sm" onClick={handleTryAgain}>
+              <RotateCcwIcon className="size-4" aria-hidden="true" />
+              Try again
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -957,12 +961,6 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
             </p>
           </section>
         )}
-
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Button variant="secondary" onClick={handleTryAgain}>
-            Try again
-          </Button>
-        </div>
       </div>
       <DragOverlay dropAnimation={null} modifiers={[touchDragLiftModifier]} style={{ zIndex: 100 }}>
         {activeId
