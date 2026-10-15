@@ -1355,6 +1355,48 @@ describe('ListEditorPage classroom', () => {
     expect(classroomPuts[0]).toBe('c2')
     expect(select.value).toBe('c2')
   })
+
+  it('does not revert when a failed save is superseded by a newer selection', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    let resolveFirst: (value: unknown) => void = () => {}
+    let firstStarted = false
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        const classId = (data as { classId?: string | null }).classId ?? null
+        if (classId === 'c1' && !firstStarted) {
+          firstStarted = true
+          // Hold the first PUT open; fail it after the second selection.
+          await new Promise((resolve) => {
+            resolveFirst = resolve as (value: unknown) => void
+          })
+          throw new Error('network down')
+        }
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(firstStarted).toBe(true), { timeout: 2000 })
+    // Second selection while the first PUT is in-flight.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    // Fail the first PUT; the second selection must not be reverted.
+    resolveFirst({ ok: true })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c2' }), { timeout: 2000 })
+    // The UI still shows the second selection, not reverted to null.
+    expect(select.value).toBe('c2')
+  })
 })
 
 describe('ListEditorPage rules section', () => {

@@ -375,6 +375,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   function trackContentSave(promise: Promise<void>): Promise<void> {
     contentSavePromiseRef.current = promise
     return promise.finally(() => {
+      // Clear only if this is still the tracked promise; a newer save
+      // would have overwritten the ref.
       if (contentSavePromiseRef.current === promise) {
         contentSavePromiseRef.current = null
       }
@@ -432,15 +434,19 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       if (pending) {
         pendingSaveRef.current = null
         setHasPendingSave(false)
-        await trackContentSave(doSave(pending)).catch(() => {
+        try {
+          await trackContentSave(doSave(pending))
+        } catch {
           // doSave already reports and surfaces its own failure state.
-        })
+        }
       }
       const inFlight = contentSavePromiseRef.current
       if (inFlight) {
-        await inFlight.catch(() => {
+        try {
+          await inFlight
+        } catch {
           // The content save already reported its own failure.
-        })
+        }
       }
       // A newer classroom selection started while we waited; it owns the
       // outcome now.
