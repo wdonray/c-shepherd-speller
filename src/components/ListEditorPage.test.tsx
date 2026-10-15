@@ -1261,7 +1261,36 @@ describe('ListEditorPage classroom', () => {
     )
   })
 
-  it('keeps tracking a newer content save when an older one settles first', async () => {
+  it('serializes overlapping content saves through the save chain', async () => {
+    const resolvers: Array<(value: unknown) => void> = []
+    const order: string[] = []
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) return { ...list }
+      const label = (data as { name: string }).name
+      order.push(`start-${label}`)
+      await new Promise((resolve) => {
+        resolvers.push(resolve as (value: unknown) => void)
+      })
+      order.push(`end-${label}`)
+      return { ...list, ...(data as object) }
+    })
+    await renderReadyWithList()
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'First' } })
+    await waitFor(() => expect(resolvers).toHaveLength(1))
+    // Second edit while the first save is in flight: the second save waits
+    // for the first instead of overlapping it.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Second' } })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    expect(resolvers).toHaveLength(1)
+    resolvers[0]({ ok: true })
+    await waitFor(() => expect(resolvers).toHaveLength(2), { timeout: 2000 })
+    resolvers[1]({ ok: true })
+    await waitFor(() => expect(order).toEqual(['start-First', 'end-First', 'start-Second', 'end-Second']), {
+      timeout: 2000,
+    })
+  })
+
+  it('does not deadlock when a debounced save queues while a flushed save is in flight', async () => {
     const resolvers: Array<(value: unknown) => void> = []
     updateList.mockImplementation(async (_id: string, data: object) => {
       if ('classId' in data) return { ...list }
@@ -1271,20 +1300,19 @@ describe('ListEditorPage classroom', () => {
       return { ...list, ...(data as object) }
     })
     const select = await renderReadyWithList()
-    // First edit: the debounced save S1 hangs in flight.
+    // Edit, then change the classroom before the debounce fires: the
+    // classroom change flushes the pending content save.
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'First' } })
-    await waitFor(() => expect(resolvers).toHaveLength(1))
-    // Second edit before S1 settles: save S2 starts while S1 is in flight.
-    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Second' } })
-    await waitFor(() => expect(resolvers).toHaveLength(2))
-    // S1 settles: S2 must stay tracked as the in-flight save.
-    resolvers[0]({ ok: true })
-    await new Promise((r) => setTimeout(r, 50))
     fireEvent.change(select, { target: { value: 'c1' } })
-    // The classroom save waits for S2; its PUT has not fired yet.
-    await new Promise((r) => setTimeout(r, 100))
-    expect(updateList.mock.calls.filter(([, data]) => 'classId' in (data as object))).toHaveLength(0)
-    resolvers[1]({ ok: true })
+    await waitFor(() => expect(resolvers).toHaveLength(1))
+    // Another edit queues a debounced save behind the save chain while the
+    // flushed save is still in flight.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Second' } })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    // Finish the flushed save. The classroom PUT must proceed (no deadlock):
+    // the queued save is not tracked as in-flight, so the classroom change
+    // does not wait for a promise that waits for the save chain.
+    resolvers[0]({ ok: true })
     await waitFor(
       () => {
         const calls = updateList.mock.calls.filter(([, data]) => 'classId' in (data as object))
@@ -1292,6 +1320,10 @@ describe('ListEditorPage classroom', () => {
       },
       { timeout: 2000 }
     )
+    // The queued save runs after the classroom save lands.
+    await waitFor(() => expect(resolvers).toHaveLength(2), { timeout: 2000 })
+    resolvers[1]({ ok: true })
+    await waitFor(() => expect(notifyListsChanged).toHaveBeenCalled())
   })
 
   it('does not revert a newer selection when an older classroom save fails', async () => {

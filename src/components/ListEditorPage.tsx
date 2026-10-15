@@ -139,12 +139,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
-  /** In-flight content save promise, if any; classroom saves wait for it. */
-  const contentSavePromiseRef = useRef<Promise<void> | null>(null)
   /** Sequence for classroom saves; only the latest may commit or revert. */
   const classroomSaveSeqRef = useRef(0)
-  /** Chain of classroom save promises; saves run sequentially. */
-  const classroomSaveChainRef = useRef<Promise<void>>(Promise.resolve())
+  /** Chain of save promises; content and classroom saves run sequentially. */
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve())
   /** Last classroom id confirmed persisted; revert target on failure. */
   const persistedClassIdRef = useRef<string | null>(null)
   /** Whether this editor visit already logged an "edited" activity event. */
@@ -363,27 +361,16 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
-      // Wait for any in-flight classroom save first (issue #263): the two
-      // PUTs share a read-modify-write on the list item, so the content
-      // save must not read the item before the classroom write lands.
-      void trackContentSave(classroomSaveChainRef.current.then(() => doSave(next)))
+      // Serialize behind the save chain (issue #263): the content PUT shares
+      // a read-modify-write on the list item with classroom PUTs, so it must
+      // not run concurrently with one. The save EXTENDS the chain (rather
+      // than merely awaiting it) so a later classroom save automatically
+      // waits for it.
+      const prev = saveChainRef.current
+      const task = prev.then(() => doSave(next))
+      // doSave never rejects, so the chain cannot break here.
+      saveChainRef.current = task
     }, SAVE_DEBOUNCE_MS)
-  }
-
-  /**
-   * Track an in-flight content save so classroom changes can wait for it
-   * (issue #263: a classroom PUT racing a content PUT can discard one of
-   * the two edits at the database's read-modify-write). Only clears the
-   * ref if it still holds this promise: a newer save may have started
-   * while this one was in flight, and it must stay tracked.
-   */
-  function trackContentSave(promise: Promise<void>): Promise<void> {
-    contentSavePromiseRef.current = promise
-    return promise.finally(() => {
-      if (contentSavePromiseRef.current === promise) {
-        contentSavePromiseRef.current = null
-      }
-    })
   }
 
   /** Apply a local edit and schedule its auto-save. The once-per-visit
@@ -417,10 +404,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     else delete next.classId
     setList(next)
 
-    // Chain onto the previous classroom save so PUTs hit the API in order.
-    const prevChain = classroomSaveChainRef.current
+    // Chain onto the previous save so PUTs hit the API in order.
+    const prevChain = saveChainRef.current
     const deferred = Promise.withResolvers<void>()
-    classroomSaveChainRef.current = prevChain.then(() => deferred.promise)
+    saveChainRef.current = prevChain.then(() => deferred.promise)
 
     try {
       await prevChain
@@ -434,20 +421,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       if (pending) {
         pendingSaveRef.current = null
         setHasPendingSave(false)
-        try {
-          await trackContentSave(doSave(pending))
-        } catch {
-          // doSave already reports and surfaces its own failure state.
-        }
+        // doSave never rejects (it reports its own failures), so no catch.
+        await doSave(pending)
       }
-      const inFlight = contentSavePromiseRef.current
-      if (inFlight) {
-        try {
-          await inFlight
-        } catch {
-          // The content save already reported its own failure.
-        }
-      }
+      // Any content save active at entry was in prevChain and is already
+      // awaited above; the flush above is also awaited. No separate
+      // in-flight check is needed.
       // A newer classroom selection started while we waited; it owns the
       // outcome now.
       if (saveId !== classroomSaveSeqRef.current) return

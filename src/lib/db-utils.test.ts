@@ -129,6 +129,18 @@ describe('db-utils', () => {
       expect(command.input.ExpressionAttributeNames['#field0']).toBe('defaultClassId')
     })
 
+    it('uses distinct aliases when a removed field precedes a set field', async () => {
+      send.mockResolvedValue({ Attributes: { ...storedUser, name: 'X' } })
+      await updateUser('abc-user', { defaultClassId: null, name: 'X' })
+      const command = send.mock.calls[0][0]
+      // The REMOVE and the SET must not share an alias.
+      expect(command.input.UpdateExpression).toContain('REMOVE #field0')
+      expect(command.input.UpdateExpression).toContain('#field1 = :field1')
+      expect(command.input.ExpressionAttributeNames['#field0']).toBe('defaultClassId')
+      expect(command.input.ExpressionAttributeNames['#field1']).toBe('name')
+      expect(command.input.ExpressionAttributeValues[':field1']).toBe('X')
+    })
+
     it('stores an empty image as-is instead of removing it', async () => {
       send.mockResolvedValue({ Attributes: { ...storedUser, image: '' } })
       await updateUser('abc-user', { image: '' })

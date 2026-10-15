@@ -76,6 +76,8 @@ export async function updateUser(
   for (const [field, value] of Object.entries(userData)) {
     if (value === undefined) continue
     const nameRef = `#field${fieldIndex}`
+    const varName = `:field${fieldIndex}`
+    fieldIndex++
     names[nameRef] = field
     // A cleared default class drops the attribute (matches the old
     // read-modify-write behavior); other falsy values are stored as-is.
@@ -83,8 +85,6 @@ export async function updateUser(
       removeClauses.push(nameRef)
       continue
     }
-    const varName = `:field${fieldIndex}`
-    fieldIndex++
     setClauses.push(`${nameRef} = ${varName}`)
     values[varName] = value
   }
