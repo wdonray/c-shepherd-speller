@@ -21,13 +21,7 @@ import {
 import { XIcon, CheckIcon, UsersIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import {
-  LIFT_TRANSITION,
-  PICKUP_SHADOW,
-  feedbackAnimate,
-  prefersReducedMotion,
-  settleTransition,
-} from '@/lib/sort-motion'
+import { LIFT_TRANSITION, PICKUP_SHADOW, feedbackAnimate, settleTransition } from '@/lib/sort-motion'
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
@@ -339,13 +333,10 @@ function DropColumn({
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
   const level = FREQUENCY_LEVEL[pattern.frequency]
-  const reduceMotion = prefersReducedMotion()
   return (
-    <motion.section
+    <section
       ref={setNodeRef}
       aria-label={`Pattern ${pattern.pattern} drop column`}
-      animate={isOver || reduceMotion ? { scale: 1 } : { scale: [1, 1.015, 1] }}
-      transition={isOver || reduceMotion ? undefined : { duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
       className={cn(
         'min-h-[240px] flex-1 rounded-2xl border-[3px] border-dashed bg-card p-5 outline-none transition-colors',
         border,
@@ -375,7 +366,7 @@ function DropColumn({
           </li>
         )}
       </ul>
-    </motion.section>
+    </section>
   )
 }
 
