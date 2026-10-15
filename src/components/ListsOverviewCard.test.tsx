@@ -159,13 +159,15 @@ describe('ListsOverviewCard', () => {
     renderCard({ reorderable: false })
     expect(screen.queryByRole('button', { name: 'Drag to reorder Week 5: Long A' })).not.toBeInTheDocument()
   })
-  it('hides the card while the DragOverlay floats the copy, and highlights the drop target', () => {
+  it('hides the card visually while the DragOverlay floats the copy, and highlights the drop target', () => {
     dndState.isDragging = true
     dndState.isOver = true
     renderCard({ reorderable: true })
     const wrapper = cardWrapper()
-    expect(wrapper.className).toContain('invisible')
-    expect(wrapper.className).not.toContain('opacity-40')
+    // opacity-0 keeps the card (and a keyboard drag's focused handle) in the
+    // accessibility tree; visibility:hidden would drop it.
+    expect(wrapper.className).toContain('opacity-0')
+    expect(wrapper.className).not.toContain('invisible')
     expect(wrapper.className).toContain('ring-sky-deep')
   })
 })

@@ -83,9 +83,10 @@ export default function ListsOverviewCard({
       }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      // The DragOverlay renders the floating copy; hide the original so it
-      // does not double-render while dragging (mirrors the Sort page).
-      className={cn(isDragging && 'invisible', isOver && 'rounded-[20px] ring-[3px] ring-sky-deep')}
+      // The DragOverlay renders the floating copy; hide the original visually
+      // with opacity-0 (not visibility:hidden) so a keyboard drag keeps its
+      // focused handle in the accessibility tree while dragging.
+      className={cn(isDragging && 'opacity-0', isOver && 'rounded-[20px] ring-[3px] ring-sky-deep')}
     >
       <WordListCard
         list={list}
