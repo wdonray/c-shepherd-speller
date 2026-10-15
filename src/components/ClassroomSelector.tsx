@@ -140,7 +140,7 @@ export default function ClassroomSelector({
               {createError}
             </p>
           )}
-          <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
+          <Button variant="ghost" size="sm" onClick={() => setCreating(false)} disabled={saving}>
             Cancel
           </Button>
         </div>

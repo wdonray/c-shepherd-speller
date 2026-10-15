@@ -28,6 +28,8 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [defaultError, setDefaultError] = useState<string | null>(null)
+  /** A default-class save is in flight; selections are locked until it lands. */
+  const [savingDefault, setSavingDefault] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -84,6 +86,7 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
     setDefaultError(null)
     const prev = explicitDefault
     setExplicitDefault(classId)
+    setSavingDefault(true)
     try {
       const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
         method: 'PUT',
@@ -95,6 +98,8 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
       setExplicitDefault(prev)
       setDefaultError('Could not save the default classroom. Try again.')
       reportError(error, { location: 'ProfileClassesSection.handleSetDefault' })
+    } finally {
+      setSavingDefault(false)
     }
   }
 
@@ -134,7 +139,7 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
                     )}
                   </span>
                   {!isDefault && (
-                    <Button variant="ghost" size="sm" onClick={() => handleSetDefault(cls.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleSetDefault(cls.id)} disabled={savingDefault}>
                       Set as default
                     </Button>
                   )}
@@ -149,7 +154,7 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
           </p>
         )}
         {classes !== null && explicitDefault !== null && classes.length > 1 && (
-          <Button variant="ghost" size="sm" onClick={() => handleSetDefault(null)}>
+          <Button variant="ghost" size="sm" onClick={() => handleSetDefault(null)} disabled={savingDefault}>
             Clear default
           </Button>
         )}

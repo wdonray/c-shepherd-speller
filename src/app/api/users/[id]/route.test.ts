@@ -9,16 +9,17 @@ const { requireOwnership } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/require-auth', () => ({ requireOwnership }))
 
-const { updateUser, getUserById } = vi.hoisted(() => ({
+const { updateUser, updateUserDefaultClassId, getUserById } = vi.hoisted(() => ({
   createUser: vi.fn(),
   getUserByEmail: vi.fn(),
   updateUser: vi.fn(),
+  updateUserDefaultClassId: vi.fn(),
   getUserById: vi.fn(),
   getUserSpellingData: vi.fn(),
   updateUserSpellingData: vi.fn(),
   updateUserLastActive: vi.fn(),
 }))
-vi.mock('@/lib/db-utils', () => ({ updateUser, getUserById }))
+vi.mock('@/lib/db-utils', () => ({ updateUser, updateUserDefaultClassId, getUserById }))
 
 const { getClassById } = vi.hoisted(() => ({ getClassById: vi.fn() }))
 vi.mock('@/lib/classes-db', () => ({ getClassById }))
@@ -211,7 +212,7 @@ describe('PUT /api/users/[id]', () => {
   })
 
   it('sets the default class when it belongs to the teacher', async () => {
-    updateUser.mockResolvedValue({ id: ID })
+    updateUserDefaultClassId.mockResolvedValue({ id: ID, defaultClassId: 'class_1' })
     getClassById.mockResolvedValue({ id: 'class_1', userId: ID, name: 'Period 2' })
     const req = new NextRequest(`http://localhost/api/users/${ID}`, {
       method: 'PUT',
@@ -220,11 +221,18 @@ describe('PUT /api/users/[id]', () => {
     const res = await PUT(req, ctx(ID))
     expect(res.status).toBe(200)
     expect(getClassById).toHaveBeenCalledWith(ID, 'class_1')
-    expect(updateUser).toHaveBeenCalledWith(ID, { defaultClassId: 'class_1' })
+    expect(updateUserDefaultClassId).toHaveBeenCalledWith(ID, 'class_1')
+    expect(updateUser).not.toHaveBeenCalled()
+    // The user comes back from the write itself: no eventually consistent re-read.
+    expect(getUserById).not.toHaveBeenCalled()
+    expect(await res.json()).toEqual({
+      message: 'User updated successfully',
+      user: { id: ID, defaultClassId: 'class_1' },
+    })
   })
 
   it('clears the default class with null', async () => {
-    updateUser.mockResolvedValue({ id: ID })
+    updateUserDefaultClassId.mockResolvedValue({ id: ID })
     const req = new NextRequest(`http://localhost/api/users/${ID}`, {
       method: 'PUT',
       body: JSON.stringify({ defaultClassId: null }),
@@ -232,7 +240,9 @@ describe('PUT /api/users/[id]', () => {
     const res = await PUT(req, ctx(ID))
     expect(res.status).toBe(200)
     expect(getClassById).not.toHaveBeenCalled()
-    expect(updateUser).toHaveBeenCalledWith(ID, { defaultClassId: null })
+    expect(updateUserDefaultClassId).toHaveBeenCalledWith(ID, null)
+    expect(updateUser).not.toHaveBeenCalled()
+    expect(getUserById).not.toHaveBeenCalled()
   })
 
   it("returns 404 when the default class is not the teacher's", async () => {

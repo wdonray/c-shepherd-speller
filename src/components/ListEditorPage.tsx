@@ -139,6 +139,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
+  /** Sequence for classroom saves; only the latest may commit or revert. */
+  const classroomSaveSeqRef = useRef(0)
+  /** Chain of save promises; content and classroom saves run sequentially. */
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve())
+  /** Last classroom id confirmed persisted; revert target on failure. */
+  const persistedClassIdRef = useRef<string | null>(null)
   /** Whether this editor visit already logged an "edited" activity event. */
   const editLoggedRef = useRef(false)
   /**
@@ -178,6 +184,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         const data = await getList(listId)
         if (!cancelled) {
           setList(data)
+          persistedClassIdRef.current = data.classId ?? null
           setLoadState('ready')
         }
       } catch (err) {
@@ -354,7 +361,15 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       saveTimerRef.current = null
-      void doSave(next)
+      // Serialize behind the save chain (issue #263): the content PUT shares
+      // a read-modify-write on the list item with classroom PUTs, so it must
+      // not run concurrently with one. The save EXTENDS the chain (rather
+      // than merely awaiting it) so a later classroom save automatically
+      // waits for it.
+      const prev = saveChainRef.current
+      const task = prev.then(() => doSave(next))
+      // doSave never rejects, so the chain cannot break here.
+      saveChainRef.current = task
     }, SAVE_DEBOUNCE_MS)
   }
 
@@ -368,25 +383,76 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
   /**
    * Classroom assignment saves immediately (not debounced): it is an
-   * explicit choice, not a content edit. Reverts on failure. Independent
-   * of the content autosave, which never touches classId.
+   * explicit choice, not a content edit. Reverts on failure.
+   *
+   * Race handling (issue #263):
+   * - Classroom saves run sequentially via a promise chain, so selecting
+   *   A then B sends the PUTs in order and the last selection is the one
+   *   persisted.
+   * - The save waits for any pending or in-flight content autosave first,
+   *   so the two PUTs cannot read the same prior list and discard each
+   *   other's edits.
+   * - On failure only the classId is reverted (via functional update) to
+   *   the last persisted value, so content edits made while the PUT was
+   *   pending are preserved; a newer classroom selection is never reverted.
    */
   async function handleClassroomChange(classId: string | null, current: WordList): Promise<void> {
-    const prev = current.classId
+    const saveId = ++classroomSaveSeqRef.current
+    const attempted = classId ?? null
     const next: WordList = { ...current }
     if (classId) next.classId = classId
     else delete next.classId
     setList(next)
+
+    // Chain onto the previous save so PUTs hit the API in order.
+    const prevChain = saveChainRef.current
+    const deferred = Promise.withResolvers<void>()
+    saveChainRef.current = prevChain.then(() => deferred.promise)
+
     try {
+      await prevChain
+      // Serialize with content saves: flush a pending autosave and wait for
+      // an in-flight one before the classroom PUT reads the list.
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+      const pending = pendingSaveRef.current
+      if (pending) {
+        pendingSaveRef.current = null
+        setHasPendingSave(false)
+        // doSave never rejects (it reports its own failures), so no catch.
+        await doSave(pending)
+      }
+      // Any content save active at entry was in prevChain and is already
+      // awaited above; the flush above is also awaited. No separate
+      // in-flight check is needed.
+      // A newer classroom selection started while we waited; it owns the
+      // outcome now.
+      if (saveId !== classroomSaveSeqRef.current) return
       await updateList(next.id, { classId })
-      notifyListsChanged()
+      persistedClassIdRef.current = attempted
+      if (saveId === classroomSaveSeqRef.current) {
+        notifyListsChanged()
+      }
     } catch (error) {
-      const reverted: WordList = { ...current }
-      if (prev) reverted.classId = prev
-      else delete reverted.classId
-      setList(reverted)
+      // Only the latest save reverts; a stale save's failure must not
+      // clobber a newer selection (the saveId check ensures this).
+      if (saveId === classroomSaveSeqRef.current) {
+        const persisted = persistedClassIdRef.current
+        setList((list) => {
+          // handleClassroomChange only runs when list is loaded (the
+          // ClassroomSelector renders after load), so list is non-null.
+          const reverted = { ...list! }
+          if (persisted) reverted.classId = persisted
+          else delete reverted.classId
+          return reverted
+        })
+      }
       reportError(error, { location: 'ListEditorPage.handleClassroomChange' })
       toastError(getErrorMessage(error))
+    } finally {
+      deferred.resolve()
     }
   }
 
@@ -395,6 +461,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     try {
       const data = await getList(listId)
       setList(data)
+      persistedClassIdRef.current = data.classId ?? null
       setLoadState('ready')
     } catch (err) {
       reportError(err, { location: 'ListEditorPage.reload' })

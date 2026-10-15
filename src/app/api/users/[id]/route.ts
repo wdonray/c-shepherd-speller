@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateUser, getUserById } from '@/lib/db-utils'
+import { updateUser, updateUserDefaultClassId, getUserById } from '@/lib/db-utils'
 import { getClassById } from '@/lib/classes-db'
 import { UpdateUserBody } from '@/types/User'
 import { requireOwnership } from '@/lib/require-auth'
@@ -63,7 +63,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    const updatedUser = await updateUser(id, updateData)
+    // A default-class-only update uses a field-scoped write so it cannot
+    // clobber a concurrent profile autosave (issue #263). The updated user
+    // comes back from the write itself (ALL_NEW): no eventually consistent
+    // re-read.
+    const onlyDefaultClassId = Object.keys(updateData).length === 1 && 'defaultClassId' in updateData
+    let updatedUser
+    if (onlyDefaultClassId) {
+      updatedUser = await updateUserDefaultClassId(id, updateData.defaultClassId ?? null)
+    } else {
+      updatedUser = await updateUser(id, updateData)
+    }
     return NextResponse.json({ message: 'User updated successfully', user: updatedUser }, { status: 200 })
   } catch (error: unknown) {
     reportError(error, { location: 'PUT /api/users/[id]', extra: { status: 500 } })

@@ -160,6 +160,41 @@ describe('ProfileClassesSection', () => {
     expect(await screen.findAllByText('Default')).toHaveLength(1)
   })
 
+  it('disables default buttons while a save is in flight', async () => {
+    let resolvePut: (value: unknown) => void = () => {}
+    const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
+      if (init?.method === 'PUT') {
+        return new Promise((resolve) => {
+          resolvePut = resolve
+        })
+      }
+      if (String(url).includes('/api/users/')) {
+        return { ok: true, json: async () => ({ user: { id: 'u1', defaultClassId: null } }) }
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ProfileClassesSection userId="u1" />)
+    await screen.findByText('Period 2')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Set as default' })[0])
+    // While the PUT is pending, the buttons are disabled: a second click is ignored.
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Set as default' })[0]).toBeDisabled())
+    fireEvent.click(screen.getAllByRole('button', { name: 'Set as default' })[0])
+    const puts = fetchMock.mock.calls.filter((c) => c[1]?.method === 'PUT')
+    expect(puts).toHaveLength(1)
+    // Resolve the pending PUT so the component can settle.
+    resolvePut({ ok: true, json: async () => ({}) })
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Set as default' })[0]).not.toBeDisabled())
+  })
+
   it('shows an error and reverts when saving the default fails', async () => {
     const fetchMock = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'PUT') throw new Error('down')

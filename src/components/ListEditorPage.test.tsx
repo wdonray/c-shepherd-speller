@@ -21,6 +21,11 @@ const { logActivity } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
 
+const { reportError } = vi.hoisted(() => ({
+  reportError: vi.fn(),
+}))
+vi.mock('@/lib/report-error', () => ({ reportError }))
+
 vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
 }))
@@ -1174,6 +1179,328 @@ describe('ListEditorPage classroom', () => {
     // Reverted to the previously assigned classroom.
     expect(select.value).toBe('c1')
   })
+
+  it('serializes rapid classroom changes so the last selection persists', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    const calls: Array<{ classId: string | null }> = []
+    let resolveFirst: (value: unknown) => void = () => {}
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      // Only track classroom PUTs (content autosaves have no classId key).
+      if ('classId' in data) {
+        const classId = (data as { classId?: string | null }).classId ?? null
+        calls.push({ classId })
+        if (calls.length === 1) {
+          // Hold the first PUT open; the second selection happens while it is in flight.
+          await new Promise((resolve) => {
+            resolveFirst = resolve as (value: unknown) => void
+          })
+        }
+      }
+      return { ...list }
+    })
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // Wait for the first PUT to start.
+    await waitFor(() => expect(calls).toHaveLength(1))
+    expect(calls[0]).toEqual({ classId: 'c1' })
+    fireEvent.change(select, { target: { value: 'c2' } })
+    // The second PUT waits for the first: it has not fired yet.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(calls).toHaveLength(1)
+    resolveFirst({ ok: true })
+    // The second PUT now fires with the latest selection.
+    await waitFor(() => expect(calls).toHaveLength(2), { timeout: 2000 })
+    expect(calls[1]).toEqual({ classId: 'c2' })
+    await waitFor(() => expect(notifyListsChanged).toHaveBeenCalled())
+    expect(select.value).toBe('c2')
+  })
+
+  it('waits for an in-flight classroom save before the content autosave', async () => {
+    let resolveClassPut: (value: unknown) => void = () => {}
+    let classroomPutStarted = false
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        classroomPutStarted = true
+        await new Promise((resolve) => {
+          resolveClassPut = resolve as (value: unknown) => void
+        })
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(classroomPutStarted).toBe(true))
+
+    // Edit content while the classroom PUT is in flight.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // Wait past the debounce: the content PUT must not fire while the
+    // classroom write is still in flight (read-modify-write race).
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    expect(updateList.mock.calls.filter(([, data]) => !('classId' in (data as object)))).toHaveLength(0)
+
+    resolveClassPut({ ok: true })
+    // The classroom save lands first, then the content save follows.
+    await waitFor(
+      () => {
+        const calls = updateList.mock.calls.filter(([, data]) => !('classId' in (data as object)))
+        expect(calls.length).toBeGreaterThan(0)
+      },
+      { timeout: 2000 }
+    )
+  })
+
+  it('serializes overlapping content saves through the save chain', async () => {
+    const resolvers: Array<(value: unknown) => void> = []
+    const order: string[] = []
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) return { ...list }
+      const label = (data as { name: string }).name
+      order.push(`start-${label}`)
+      await new Promise((resolve) => {
+        resolvers.push(resolve as (value: unknown) => void)
+      })
+      order.push(`end-${label}`)
+      return { ...list, ...(data as object) }
+    })
+    await renderReadyWithList()
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'First' } })
+    await waitFor(() => expect(resolvers).toHaveLength(1))
+    // Second edit while the first save is in flight: the second save waits
+    // for the first instead of overlapping it.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Second' } })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    expect(resolvers).toHaveLength(1)
+    resolvers[0]({ ok: true })
+    await waitFor(() => expect(resolvers).toHaveLength(2), { timeout: 2000 })
+    resolvers[1]({ ok: true })
+    await waitFor(() => expect(order).toEqual(['start-First', 'end-First', 'start-Second', 'end-Second']), {
+      timeout: 2000,
+    })
+  })
+
+  it('does not deadlock when a debounced save queues while a flushed save is in flight', async () => {
+    const resolvers: Array<(value: unknown) => void> = []
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) return { ...list }
+      await new Promise((resolve) => {
+        resolvers.push(resolve as (value: unknown) => void)
+      })
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit, then change the classroom before the debounce fires: the
+    // classroom change flushes the pending content save.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'First' } })
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(resolvers).toHaveLength(1))
+    // Another edit queues a debounced save behind the save chain while the
+    // flushed save is still in flight.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Second' } })
+    await new Promise((r) => setTimeout(r, SAVE_DEBOUNCE_WAIT_MS))
+    // Finish the flushed save. The classroom PUT must proceed (no deadlock):
+    // the queued save is not tracked as in-flight, so the classroom change
+    // does not wait for a promise that waits for the save chain.
+    resolvers[0]({ ok: true })
+    await waitFor(
+      () => {
+        const calls = updateList.mock.calls.filter(([, data]) => 'classId' in (data as object))
+        expect(calls.length).toBeGreaterThan(0)
+      },
+      { timeout: 2000 }
+    )
+    // The queued save runs after the classroom save lands.
+    await waitFor(() => expect(resolvers).toHaveLength(2), { timeout: 2000 })
+    resolvers[1]({ ok: true })
+    await waitFor(() => expect(notifyListsChanged).toHaveBeenCalled())
+  })
+
+  it('does not revert a newer selection when an older classroom save fails', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    let failFirst = true
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data && failFirst) {
+        failFirst = false
+        throw new Error('network down')
+      }
+      return { ...list }
+    })
+    const select = await renderReadyWithList()
+    // First selection's PUT fails.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c1' }))
+    // Reverted to "No class" (the last persisted value).
+    await waitFor(() => expect(select.value).toBe(''))
+    // Second selection succeeds; the failed first save does not clobber it.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c2' }))
+    expect(select.value).toBe('c2')
+  })
+
+  it('flushes a pending content autosave before the classroom save', async () => {
+    const callOrder: string[] = []
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        callOrder.push(`classroom:${(data as { classId?: string | null }).classId ?? 'null'}`)
+      } else {
+        callOrder.push(`content:${(data as { name?: string }).name ?? '?'}`)
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name: schedules a debounced autosave.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // Change the classroom before the debounce fires.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // The content save is flushed first, then the classroom save.
+    await waitFor(() => expect(callOrder).toHaveLength(2), { timeout: 2000 })
+    expect(callOrder[0]).toBe('content:Renamed')
+    expect(callOrder[1]).toBe('classroom:c1')
+    expect(select.value).toBe('c1')
+  })
+
+  it('waits for an in-flight content save before the classroom save', async () => {
+    const callOrder: string[] = []
+    let resolveContent: (value: unknown) => void = () => {}
+    let contentStarted = false
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        callOrder.push(`classroom:${(data as { classId?: string | null }).classId ?? 'null'}`)
+      } else {
+        callOrder.push(`content:${(data as { name?: string }).name ?? '?'}`)
+        if (!contentStarted) {
+          contentStarted = true
+          // Hold the content PUT open.
+          await new Promise((resolve) => {
+            resolveContent = resolve as (value: unknown) => void
+          })
+        }
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name and wait for the autosave to start (in-flight).
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitFor(() => expect(contentStarted).toBe(true), { timeout: 2000 })
+    // Change the classroom while the content save is in-flight.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // The classroom PUT waits: only the content PUT has fired.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(callOrder).toEqual(['content:Renamed'])
+    resolveContent({ ok: true })
+    // The classroom PUT now fires.
+    await waitFor(() => expect(callOrder).toHaveLength(2), { timeout: 2000 })
+    expect(callOrder[1]).toBe('classroom:c1')
+    expect(select.value).toBe('c1')
+  })
+
+  it('drops a stale classroom save when a newer selection starts during content flush', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    const classroomPuts: Array<string | null> = []
+    let resolveContent: (value: unknown) => void = () => {}
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        classroomPuts.push((data as { classId?: string | null }).classId ?? null)
+      } else {
+        // Hold the content PUT open so the first classroom save waits in flush.
+        await new Promise((resolve) => {
+          resolveContent = resolve as (value: unknown) => void
+        })
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    // Edit the list name: schedules a debounced autosave.
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    // First classroom selection: starts flushing the pending content save.
+    fireEvent.change(select, { target: { value: 'c1' } })
+    // Wait for the content flush to start.
+    await new Promise((r) => setTimeout(r, 100))
+    // Second selection while the first is still flushing: the first becomes stale.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    resolveContent({ ok: true })
+    // Only the latest selection's PUT fires; the stale one is dropped.
+    await waitFor(() => expect(classroomPuts).toHaveLength(1), { timeout: 2000 })
+    expect(classroomPuts[0]).toBe('c2')
+    expect(select.value).toBe('c2')
+  })
+
+  it('does not revert when a failed save is superseded by a newer selection', async () => {
+    // The default beforeEach mocks one class; this test needs two.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          classes: [
+            { id: 'c1', name: 'Period 2' },
+            { id: 'c2', name: 'Blue group' },
+          ],
+        }),
+      })
+    )
+    let resolveFirst: (value: unknown) => void = () => {}
+    let firstStarted = false
+    updateList.mockImplementation(async (_id: string, data: object) => {
+      if ('classId' in data) {
+        const classId = (data as { classId?: string | null }).classId ?? null
+        if (classId === 'c1' && !firstStarted) {
+          firstStarted = true
+          // Hold the first PUT open; fail it after the second selection.
+          await new Promise((resolve) => {
+            resolveFirst = resolve as (value: unknown) => void
+          })
+          throw new Error('network down')
+        }
+      }
+      return { ...list, ...(data as object) }
+    })
+    const select = await renderReadyWithList()
+    fireEvent.change(select, { target: { value: 'c1' } })
+    await waitFor(() => expect(firstStarted).toBe(true), { timeout: 2000 })
+    // Second selection while the first PUT is in-flight.
+    fireEvent.change(select, { target: { value: 'c2' } })
+    // Fail the first PUT; the second selection must not be reverted.
+    resolveFirst({ ok: true })
+    await waitFor(() => expect(updateList).toHaveBeenCalledWith('l1', { classId: 'c2' }), { timeout: 2000 })
+    // The UI still shows the second selection, not reverted to null.
+    expect(select.value).toBe('c2')
+  })
 })
 
 describe('ListEditorPage rules section', () => {
@@ -1294,6 +1621,32 @@ describe('ListEditorPage rules section', () => {
     const field = screen.getByLabelText('Rule, in the kids\u2019 words')
     await waitFor(() => expect(field).toHaveValue(''))
     expect(screen.queryByText('Shared with Period 2')).not.toBeInTheDocument()
+  })
+
+  it('ignores a classroom fetch failure after the page unmounts', async () => {
+    let rejectClassFetch: (e: Error) => void = () => {}
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/classes/c1')) {
+        return new Promise((_resolve, reject) => {
+          rejectClassFetch = reject
+        })
+      }
+      return { ok: true, json: async () => ({ classes: [{ id: 'c1', name: 'Period 2' }] }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    getList.mockResolvedValue({ ...list, classId: 'c1' })
+    const { unmount } = render(<ListEditorPage listId="l1" />)
+    await screen.findByRole('heading', { name: 'Week 5: Long A' })
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/classes/c1')
+    })
+
+    // Leave while the classroom load is in flight; the late failure must be
+    // swallowed, not reported.
+    unmount()
+    rejectClassFetch(new Error('boom'))
+    await new Promise((r) => setTimeout(r, 100))
+    expect(reportError).not.toHaveBeenCalled()
   })
 
   it('shows the classroom with unscoped rules when the class has no rules yet', async () => {
