@@ -148,7 +148,7 @@ export default function ProfileClassesSection({ userId }: { userId: string }) {
             {defaultError}
           </p>
         )}
-        {explicitDefault !== null && (classes?.length ?? 0) > 1 && (
+        {classes !== null && explicitDefault !== null && classes.length > 1 && (
           <Button variant="ghost" size="sm" onClick={() => handleSetDefault(null)}>
             Clear default
           </Button>
