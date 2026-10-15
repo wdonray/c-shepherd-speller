@@ -729,4 +729,32 @@ describe('DisplayMode classroom unmount', () => {
     // Give the resolution a chance to run; no state update should happen.
     await new Promise((r) => setTimeout(r, 50))
   })
+
+  it('toggles the rule display on the present chart', async () => {
+    const ruledList: WordList = {
+      ...list,
+      patterns: [
+        {
+          id: 'p1',
+          sound: 'long a',
+          pattern: 'a_e',
+          frequency: 'common',
+          words: ['cake'],
+          rule: 'Magic e.',
+        },
+      ],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(ruledList)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+    })
+    const toggle = screen.getByRole('button', { name: 'Show rules' })
+    fireEvent.click(toggle)
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+  })
 })
