@@ -967,6 +967,26 @@ describe('VoiceRecorderModal', () => {
     expect(screen.getByText('00:01 recorded')).toBeInTheDocument()
   })
 
+  it('keeps the measured recording length when metadata reports zero', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override duration = 0
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    // Let the recording timer measure real seconds.
+    await new Promise((resolve) => setTimeout(resolve, 2100))
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save recording' })).toBeInTheDocument())
+    // A zero metadata duration must not clobber the measured length (#300).
+    expect(screen.getByText('00:02 recorded')).toBeInTheDocument()
+  })
+
   it('ignores a rejected permission query after unmount', async () => {
     let rejectQuery!: (error: unknown) => void
     const query = vi.fn(() => new Promise((_resolve, reject) => (rejectQuery = reject)))

@@ -696,6 +696,32 @@ describe('PatternEditor', () => {
     expect(hasRecording).not.toHaveBeenCalled()
   })
 
+  it('still marks saved recordings when microphone capture is unsupported', async () => {
+    isAudioCaptureSupported.mockReturnValue(false)
+    hasRecording.mockImplementation(async (text: string) => text === 'cake')
+    renderEditor()
+    // The presence lookup only needs storage; a teacher on a device without
+    // a mic can still see which words already have recordings.
+    expect(await screen.findByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
+    expect(hasRecording).toHaveBeenCalled()
+  })
+
+  it('keeps a recording saved while the presence lookup is still pending', async () => {
+    let resolveCake!: (has: boolean) => void
+    hasRecording.mockImplementation((text: string) =>
+      text === 'cake' ? new Promise<boolean>((resolve) => (resolveCake = resolve)) : Promise.resolve(false)
+    )
+    renderEditor()
+    // Save cake while its presence read is still in flight.
+    fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save recording' }))
+    expect(await screen.findByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
+    // The slow lookup resolves "no recording" for cake; the save must survive it.
+    resolveCake(false)
+    await act(async () => {})
+    expect(screen.getByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
+  })
+
   it('ignores a late recording-presence read after unmount', async () => {
     let resolveRead!: (has: boolean) => void
     hasRecording.mockReturnValue(new Promise((resolve) => (resolveRead = resolve)))

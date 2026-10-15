@@ -93,16 +93,27 @@ export default function PatternEditor({
    * built-in voice.
    */
   const [recordedWords, setRecordedWords] = useState<Set<string>>(new Set())
+  /**
+   * Words saved while a recording-presence lookup is in flight. The lookup
+   * resolves with a full replacement set, so without this a slow read could
+   * erase a recording the teacher just saved. Merged into the result below.
+   */
+  const savedDuringLookupRef = useRef<Set<string>>(new Set())
 
   // Load recording presence for this pattern's words. Runs once per word
   // list, not per render: IndexedDB reads are cheap but not free.
   const wordsKey = JSON.stringify(pattern.words)
   useEffect(() => {
-    if (!isAudioCaptureSupported() || !isRecordingStorageSupported()) {
+    // The presence lookup only needs recording *storage*. Microphone capture
+    // support gates recording new audio (see handleMicClick), but a teacher
+    // on a device without a mic should still see which words already have
+    // recordings.
+    if (!isRecordingStorageSupported()) {
       setRecordedWords(new Set())
       return
     }
     let cancelled = false
+    const savedDuringFlight = (savedDuringLookupRef.current = new Set<string>())
     const words: string[] = JSON.parse(wordsKey)
     void Promise.all(
       words.map((word) =>
@@ -112,7 +123,8 @@ export default function PatternEditor({
       )
     ).then((results) => {
       if (!cancelled) {
-        setRecordedWords(new Set(results.filter((result) => result.has).map((result) => result.word)))
+        const found = results.filter((result) => result.has).map((result) => result.word)
+        setRecordedWords(new Set([...found, ...savedDuringFlight]))
       }
     })
     return () => {
@@ -598,7 +610,12 @@ export default function PatternEditor({
             word={recordingWord}
             open={recordingWord !== null}
             microphoneRequest={micRequestRef.current}
-            onSaved={(savedWord) => setRecordedWords((prev) => new Set(prev).add(savedWord))}
+            onSaved={(savedWord) => {
+              // Tracked separately so a pending presence lookup merges rather
+              // than erases this save when it resolves.
+              savedDuringLookupRef.current.add(savedWord)
+              setRecordedWords((prev) => new Set(prev).add(savedWord))
+            }}
             onOpenChange={(open) => {
               if (!open) {
                 micRequestRef.current?.cancel()

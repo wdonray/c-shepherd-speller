@@ -342,7 +342,10 @@ export default function VoiceRecorderModal({
       audioRef.current = audio
       audio.addEventListener('loadedmetadata', () => {
         const duration = audio.duration
-        if (Number.isFinite(duration)) setAudioDuration(duration)
+        // Only trust positive, finite metadata. Some browsers report 0 for a
+        // recording that lasted seconds, which would show "00:00 recorded"
+        // and hide the short-recording warning.
+        if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration)
       })
       audio.addEventListener('ended', () => setPlaying(false))
       setPhase('review')
