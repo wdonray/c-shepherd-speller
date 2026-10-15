@@ -412,7 +412,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
 
     // Chain onto the previous classroom save so PUTs hit the API in order.
     const prevChain = classroomSaveChainRef.current
-    let releaseChain: () => void = () => {}
+    let releaseChain!: () => void
     const thisChain = new Promise<void>((resolve) => {
       releaseChain = resolve
     })
