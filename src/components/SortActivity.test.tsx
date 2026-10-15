@@ -145,6 +145,16 @@ describe('SortActivity', () => {
     expect(onExit).toHaveBeenCalledTimes(1)
   })
 
+  it('shows Try again next to the close button from the start of the sort', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const tryAgain = screen.getByRole('button', { name: 'Try again' })
+    const exit = screen.getByRole('button', { name: 'Exit sort' })
+    // Issue #266: same header cluster, right before the close button.
+    expect(tryAgain.parentElement).toBe(exit.parentElement)
+    // Always visible: pressable at any time, with words still in the bank.
+    expect(tryAgain).toBeVisible()
+  })
+
   it('has a live region for screen reader announcements', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     const live = document.querySelector('[aria-live="polite"][role="status"]')
