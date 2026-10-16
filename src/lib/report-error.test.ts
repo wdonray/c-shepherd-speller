@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import * as Sentry from '@sentry/nextjs'
 import type { ErrorEvent } from '@sentry/nextjs'
-import { isNetworkError, reportError, sentryBeforeSend } from './report-error'
+import { isMediaFormatError, isNetworkError, reportError, sentryBeforeSend } from './report-error'
 
 vi.mock('@sentry/nextjs', () => ({
   withScope: vi.fn(),
@@ -92,6 +92,20 @@ describe('reportError', () => {
     expect(Sentry.withScope).not.toHaveBeenCalled()
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
+
+  it('ignores unplayable-media errors (NotSupportedError, EncodingError)', () => {
+    mockScope()
+
+    reportError(new DOMException('The operation is not supported.', 'NotSupportedError'), {
+      location: 'VoiceRecorderModal.togglePlayback',
+    })
+    reportError(new DOMException('Unable to decode audio data', 'EncodingError'), {
+      location: 'VoiceRecorderModal.drawReviewWaveform',
+    })
+
+    expect(Sentry.withScope).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+  })
 })
 
 describe('isNetworkError', () => {
@@ -127,6 +141,26 @@ describe('isNetworkError', () => {
   })
 })
 
+describe('isMediaFormatError', () => {
+  it('detects NotSupportedError from audio.play()', () => {
+    expect(isMediaFormatError(new DOMException('The operation is not supported.', 'NotSupportedError'))).toBe(true)
+  })
+
+  it('detects EncodingError from decodeAudioData', () => {
+    expect(isMediaFormatError(new DOMException('Unable to decode audio data', 'EncodingError'))).toBe(true)
+  })
+
+  it('rejects other errors', () => {
+    expect(isMediaFormatError(new DOMException('quota exceeded', 'QuotaExceededError'))).toBe(false)
+    expect(isMediaFormatError(new Error('boom'))).toBe(false)
+    expect(isMediaFormatError(new TypeError('Failed to fetch'))).toBe(false)
+    expect(isMediaFormatError('not supported')).toBe(false)
+    expect(isMediaFormatError(undefined)).toBe(false)
+    expect(isMediaFormatError(null)).toBe(false)
+    expect(isMediaFormatError(42)).toBe(false)
+  })
+})
+
 describe('sentryBeforeSend', () => {
   const event = { event_id: 'abc' } as ErrorEvent
 
@@ -138,6 +172,19 @@ describe('sentryBeforeSend', () => {
       })
     ).toBeNull()
     expect(sentryBeforeSend(event, { originalException: new DOMException('offline', 'NetworkError') })).toBeNull()
+  })
+
+  it('drops unplayable-media errors', () => {
+    expect(
+      sentryBeforeSend(event, {
+        originalException: new DOMException('The operation is not supported.', 'NotSupportedError'),
+      })
+    ).toBeNull()
+    expect(
+      sentryBeforeSend(event, {
+        originalException: new DOMException('Unable to decode audio data', 'EncodingError'),
+      })
+    ).toBeNull()
   })
 
   it('keeps other events', () => {
