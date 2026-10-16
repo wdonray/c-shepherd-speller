@@ -87,6 +87,13 @@ describe('FullscreenButton', () => {
     expect(button).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('treats an undefined fullscreenElement as not fullscreen on mount', () => {
+    // jsdom has no Fullscreen API: fullscreenElement is undefined, not null.
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: undefined })
+    render(<FullscreenButton />)
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+  })
+
   it('renders nothing when the Fullscreen API is unavailable', () => {
     setFullscreenApi(false)
     const { container } = render(<FullscreenButton />)
