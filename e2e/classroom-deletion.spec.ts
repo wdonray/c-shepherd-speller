@@ -1,8 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
-import { DynamoDB } from '@aws-sdk/client-dynamodb'
 
-import { ensureE2EUser, sessionCookie, E2E_USER_ID } from './helpers/auth'
+import { ensureE2EUser, sessionCookie } from './helpers/auth'
 
 /**
  * Classroom deletion (issue #309). Each test gets a real next-auth session
@@ -44,37 +42,20 @@ test.describe('classroom deletion', () => {
     await expect(dialog.getByText(`Delete "${className}"? The classroom is empty.`)).toBeVisible()
     await dialog.getByRole('button', { name: 'Delete' }).click()
 
-    // The classroom is gone.
-    await expect(page.getByText(className)).not.toBeVisible()
+    // The dialog closes and the classroom row is removed once the delete lands.
+    await expect(row).not.toBeVisible()
   })
 
   test('disables Delete and explains what is attached for a classroom with saved rules', async ({ page }) => {
-    // Seed a classroom with one saved rule directly in DynamoDB Local.
-    const client = DynamoDBDocument.from(
-      new DynamoDB({
-        region: 'us-east-1',
-        endpoint: process.env.DYNAMODB_ENDPOINT ?? 'http://localhost:8000',
-        credentials: {
-          accessKeyId: '<redacted>',
-          secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-        },
-      })
-    )
-    const classId = `class_e2e_${Date.now()}`
+    // Seed a classroom with one saved rule through the API.
     const className = `E2E Ruled Class ${Date.now()}`
-    await client.put({
-      TableName: process.env.LISTS_TABLE_NAME ?? 'shepherd-speller-lists',
-      Item: {
-        PK: `USER#${E2E_USER_ID}`,
-        SK: `CLASS#${classId}`,
-        id: classId,
-        userId: E2E_USER_ID,
-        name: className,
-        rules: { a_e: { rule: 'When a word has a_e, the a says its name.' } },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+    const createResponse = await page.request.post('/api/classes', { data: { name: className } })
+    expect(createResponse.ok()).toBe(true)
+    const { class: created } = await createResponse.json()
+    const rulesResponse = await page.request.put(`/api/classes/${created.id as string}/rules`, {
+      data: { rules: { a_e: { rule: 'When a word has a_e, the a says its name.' } } },
     })
+    expect(rulesResponse.ok()).toBe(true)
 
     await gotoClassrooms(page)
     const row = page.locator('li', { hasText: className })
