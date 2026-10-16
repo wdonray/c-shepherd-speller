@@ -5,6 +5,7 @@ import { ChevronDownIcon } from 'lucide-react'
 import { Label } from './ui/label'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 
 export interface SelectorClass {
   id: string
@@ -16,8 +17,8 @@ const NEW_CLASS_VALUE = '__new__'
 /**
  * Classroom picker for the list level (issue #263). The teacher assigns a
  * classroom to the list once, at planning time; it flows down silently to
- * present and sort. Includes inline class creation so the old sort-entry
- * picker is not needed.
+ * present and sort. Includes in-flow class creation through a modal dialog
+ * (issue #352) so the old sort-entry picker is not needed.
  */
 export default function ClassroomSelector({
   value,
@@ -61,8 +62,18 @@ export default function ClassroomSelector({
       setCreating(true)
       return
     }
-    setCreating(false)
     onChange(next === '' ? null : next)
+  }
+
+  const handleCancel = () => {
+    setCreateError(null)
+    setCreating(false)
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    // Ignore close requests (Escape, backdrop, the X button) while the
+    // create request is in flight; the modal closes when it resolves.
+    if (!open && !saving) handleCancel()
   }
 
   const handleCreate = async () => {
@@ -127,10 +138,16 @@ export default function ClassroomSelector({
           />
         </div>
       )}
-      {creating && (
-        <div className="space-y-1.5 rounded-xl border-2 border-line bg-card p-3">
-          <Label htmlFor={`${id}-new-name`}>New classroom name</Label>
-          <div className="flex flex-col gap-2 sm:flex-row">
+      <Dialog open={creating} onOpenChange={handleOpenChange}>
+        <DialogContent showCloseButton={!saving}>
+          <DialogHeader>
+            <DialogTitle>New classroom</DialogTitle>
+            <DialogDescription>
+              Create a classroom without leaving this page. It is selected for the list as soon as it is created.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor={`${id}-new-name`}>Classroom name</Label>
             <Input
               id={`${id}-new-name`}
               value={newName}
@@ -141,20 +158,22 @@ export default function ClassroomSelector({
               maxLength={100}
               placeholder="e.g. Period 2"
             />
+            {createError && (
+              <p role="alert" className="text-sm font-bold text-coral-ink">
+                {createError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleCancel} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={handleCreate} disabled={saving || newName.trim() === ''}>
               {saving ? 'Adding…' : 'Add'}
             </Button>
-          </div>
-          {createError && (
-            <p role="alert" className="text-sm font-bold text-coral-ink">
-              {createError}
-            </p>
-          )}
-          <Button variant="ghost" size="sm" onClick={() => setCreating(false)} disabled={saving}>
-            Cancel
-          </Button>
-        </div>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <p className="text-xs text-muted-foreground">
         Rules are saved for this classroom and recalled on the present chart.
       </p>
