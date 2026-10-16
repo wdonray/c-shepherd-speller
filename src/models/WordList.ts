@@ -251,6 +251,8 @@ export function createWordListItem(userId: string, input: CreateWordListInput): 
     name: input.name,
     gradeLevel: input.gradeLevel,
     color: input.color ?? DEFAULT_LIST_COLOR,
+    // New lists inherit the teacher's classroom (issue #345): dropping classId here left new lists with "No class".
+    ...(input.classId ? { classId: input.classId } : {}),
     ...(input.week !== undefined ? { week: input.week.trim() } : {}),
     patterns: input.patterns.map((p) => ({ ...p, id: generatePatternId() })),
     createdAt: now,

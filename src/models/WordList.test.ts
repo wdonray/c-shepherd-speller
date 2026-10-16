@@ -310,6 +310,16 @@ describe('WordList model', () => {
       const list = createWordListItem('u1', { name: 'Test', color: 'coral', patterns: [] })
       expect(list.color).toBe('coral')
     })
+
+    it('stores the classroom from input (issue #345)', () => {
+      const list = createWordListItem('u1', { name: 'Test', classId: 'class_123', patterns: [] })
+      expect(list.classId).toBe('class_123')
+    })
+
+    it('omits classId when none is given', () => {
+      const list = createWordListItem('u1', { name: 'Test', patterns: [] })
+      expect('classId' in list).toBe(false)
+    })
   })
 
   describe('list colors', () => {
