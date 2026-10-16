@@ -373,6 +373,8 @@ export default function PatternEditor({
                 placeholder="e.g. long a"
                 maxLength={50}
                 aria-label="Target sound"
+                // Same sizing as the Spelling pattern input (issue #338).
+                className="h-14 text-xl font-bold"
               />
             </div>
           </div>
