@@ -4,15 +4,22 @@ import {
   __awaitRequestForTests,
   __openDatabaseForTests,
   deleteRecording,
+  deleteSyncOp,
+  enqueueSyncOp,
+  getAllRecordings,
+  getDueSyncOps,
   getRecording,
   hasRecording,
   isAudioCaptureSupported,
   isRecordingStorageSupported,
+  markRecordingSynced,
+  putRecording,
   recordingToBlob,
   requestMicrophoneAccess,
   requestMicrophoneStream,
   saveRecording,
   startRecording,
+  updateSyncOpRetry,
 } from './voice-recordings'
 
 class FakeMediaRecorder {
@@ -376,5 +383,143 @@ describe('startRecording', () => {
     session.cancel()
     expect(recorder.stoppedCount).toBe(1)
     expect(stopped).toHaveLength(2)
+  })
+})
+
+describe('sync fields (v2)', () => {
+  it('stores new recordings unattributed and unsynced', async () => {
+    const saved = await saveRecording('cake', new Blob(['x'], { type: 'audio/webm' }))
+    expect(saved.userId).toBeNull()
+    expect(saved.syncedAt).toBeNull()
+  })
+
+  it('preserves attribution across re-records but resets sync state', async () => {
+    await saveRecording('cake', new Blob(['x'], { type: 'audio/webm' }))
+    await markRecordingSynced('cake', 'u1', 999)
+    const rerecorded = await saveRecording('cake', new Blob(['y'], { type: 'audio/webm' }))
+    expect(rerecorded.userId).toBe('u1')
+    expect(rerecorded.syncedAt).toBeNull()
+  })
+
+  it('migrates v1 records without losing audio', async () => {
+    // Build a v1 database directly, bypassing the v2 open path.
+    const db = await __openDatabaseForTests(1)
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('voice-recordings', 'readwrite')
+      const store = tx.objectStore('voice-recordings')
+      store.put({
+        text: 'cake',
+        audio: new Uint8Array([1, 2, 3]).buffer,
+        mimeType: 'audio/webm',
+        recordedAt: 100,
+      })
+      // A record that already carries sync fields is left untouched.
+      store.put({
+        text: 'bake',
+        audio: new Uint8Array([4]).buffer,
+        mimeType: 'audio/webm',
+        recordedAt: 100,
+        userId: 'u1',
+        syncedAt: 200,
+      })
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(new Error('seed failed'))
+    })
+    db.close()
+    // Opening at v2 runs the migration.
+    const migrated = await getRecording('cake')
+    expect(migrated?.userId).toBeNull()
+    expect(migrated?.syncedAt).toBeNull()
+    expect(Array.from(new Uint8Array(migrated!.audio))).toEqual([1, 2, 3])
+    const untouched = await getRecording('bake')
+    expect(untouched?.userId).toBe('u1')
+    expect(untouched?.syncedAt).toBe(200)
+  })
+
+  it('migrating an empty v1 database is a no-op', async () => {
+    const db = await __openDatabaseForTests(1)
+    db.close()
+    // Opening at v2 runs the migration over zero records.
+    await saveRecording('cake', new Blob(['x'], { type: 'audio/webm' }))
+    await expect(hasRecording('cake')).resolves.toBe(true)
+  })
+
+  it('lists every recording', async () => {
+    await saveRecording('cake', new Blob(['x'], { type: 'audio/webm' }))
+    await saveRecording('bake', new Blob(['y'], { type: 'audio/webm' }))
+    const all = await getAllRecordings()
+    expect(all.map((r) => r.text).sort()).toEqual(['bake', 'cake'])
+  })
+
+  it('writes a recording verbatim with putRecording', async () => {
+    await putRecording({
+      text: 'cake',
+      audio: new Uint8Array([9]).buffer,
+      mimeType: 'audio/webm',
+      recordedAt: 100,
+      userId: 'u1',
+      syncedAt: 200,
+    })
+    const loaded = await getRecording('cake')
+    expect(loaded?.userId).toBe('u1')
+    expect(loaded?.syncedAt).toBe(200)
+    expect(loaded?.recordedAt).toBe(100)
+  })
+
+  it('marks recordings synced with the server timestamp', async () => {
+    await saveRecording('cake', new Blob(['x'], { type: 'audio/webm' }))
+    await markRecordingSynced('cake', 'u1', 999)
+    const loaded = await getRecording('cake')
+    expect(loaded?.userId).toBe('u1')
+    expect(loaded?.syncedAt).toBe(999)
+  })
+
+  it('markRecordingSynced is a no-op when the recording is gone', async () => {
+    await expect(markRecordingSynced('ghost', 'u1', 1)).resolves.toBeUndefined()
+  })
+})
+
+describe('sync queue', () => {
+  it('enqueues and returns due operations oldest first', async () => {
+    await enqueueSyncOp('upload', 'cake')
+    await enqueueSyncOp('delete', 'bake')
+    const due = await getDueSyncOps(Date.now() + 1000)
+    expect(due.map((op) => op.text)).toEqual(['cake', 'bake'])
+    expect(due[0].op).toBe('upload')
+    expect(due[0].attempts).toBe(0)
+  })
+
+  it('dedupes identical pending operations', async () => {
+    await enqueueSyncOp('upload', 'cake')
+    await enqueueSyncOp('upload', 'cake')
+    await enqueueSyncOp('delete', 'cake')
+    const due = await getDueSyncOps(Date.now() + 1000)
+    expect(due).toHaveLength(2)
+  })
+
+  it('hides operations whose backoff has not elapsed', async () => {
+    await enqueueSyncOp('upload', 'cake')
+    expect(await getDueSyncOps(0)).toHaveLength(0)
+  })
+
+  it('deletes queue entries', async () => {
+    await enqueueSyncOp('upload', 'cake')
+    const [op] = await getDueSyncOps(Date.now() + 1000)
+    await deleteSyncOp(op.id!)
+    expect(await getDueSyncOps(Date.now() + 1000)).toHaveLength(0)
+  })
+
+  it('updates retry state', async () => {
+    await enqueueSyncOp('upload', 'cake')
+    const [op] = await getDueSyncOps(Date.now() + 1000)
+    const nextRetryAt = Date.now() + 60_000
+    await updateSyncOpRetry(op.id!, 2, nextRetryAt)
+    expect(await getDueSyncOps(Date.now() + 1000)).toHaveLength(0)
+    const [updated] = await getDueSyncOps(nextRetryAt + 1000)
+    expect(updated.attempts).toBe(2)
+  })
+
+  it('updateSyncOpRetry is a no-op for a missing entry', async () => {
+    await expect(updateSyncOpRetry(12345, 1, Date.now())).resolves.toBeUndefined()
   })
 })

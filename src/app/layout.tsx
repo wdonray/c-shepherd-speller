@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import './globals.css'
 import SessionProvider from '@/components/providers/SessionProvider'
+import VoiceSyncRunner from '@/components/providers/VoiceSyncRunner'
 import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import AnalyticsTracker from '@/components/analytics-tracker'
@@ -71,6 +72,7 @@ export default function RootLayout({
             <AnalyticsTracker />
             <ErrorToaster />
             <VersionReloadToast />
+            <VoiceSyncRunner />
           </ThemeProvider>
         </body>
       </SessionProvider>

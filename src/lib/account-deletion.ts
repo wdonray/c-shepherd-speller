@@ -5,6 +5,7 @@
  * Data owned by one user:
  *  - App user record (profile, photo, settings) in the users table
  *  - Word lists in the lists table (PK USER#<appUserId>)
+ *  - Voice recordings in S3 + the voice metadata table (PK USER#<appUserId>)
  *  - next-auth adapter records (user, accounts, sessions) in the auth table
  *    (pk USER#<nextAuthSub>)
  *  - The Cognito user itself, for email/password accounts (handled in
@@ -17,9 +18,12 @@
  * to sign in and retry, instead of orphaned data with no way back in.
  */
 import { BatchWriteCommand, DeleteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
+import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
 import { USER_TABLE_NAME } from '../models/User'
 import { LISTS_TABLE_NAME } from '../models/WordList'
+import { VOICE_RECORDINGS_TABLE_NAME } from '../models/VoiceRecording'
+import { getVoiceDocClient, listUserS3Keys, deleteS3Objects } from './s3'
 import { getUserKeys } from './db-utils'
 
 function authTableName(): string {
@@ -45,12 +49,13 @@ interface KeyedItem {
 async function queryAllItems(
   tableName: string,
   keyConditionExpression: string,
-  expressionAttributeValues: Record<string, string>
+  expressionAttributeValues: Record<string, string>,
+  client: DynamoDBDocumentClient = docClient
 ): Promise<KeyedItem[]> {
   const items: KeyedItem[] = []
   let exclusiveStartKey: Record<string, unknown> | undefined
   do {
-    const result = await docClient.send(
+    const result = await client.send(
       new QueryCommand({
         TableName: tableName,
         KeyConditionExpression: keyConditionExpression,
@@ -64,10 +69,14 @@ async function queryAllItems(
   return items
 }
 
-async function batchDeleteKeys(tableName: string, keys: Record<string, string>[]): Promise<void> {
+async function batchDeleteKeys(
+  tableName: string,
+  keys: Record<string, string>[],
+  client: DynamoDBDocumentClient = docClient
+): Promise<void> {
   for (let i = 0; i < keys.length; i += 25) {
     const chunk = keys.slice(i, i + 25)
-    await docClient.send(
+    await client.send(
       new BatchWriteCommand({
         RequestItems: {
           [tableName]: chunk.map((Key) => ({ DeleteRequest: { Key } })),
@@ -111,6 +120,29 @@ export async function deleteUserLists(appUserId: string): Promise<void> {
   await batchDeleteKeys(
     LISTS_TABLE_NAME,
     items.map((item) => ({ PK: item.PK as string, SK: item.SK as string }))
+  )
+}
+
+/**
+ * Delete every voice recording owned by an app user: the S3 audio objects
+ * first, then the metadata rows. Idempotent like the rest of this module.
+ * Uses the dedicated voice credentials (the app's main IAM user has no
+ * access to the voice table or bucket).
+ */
+export async function deleteUserVoiceData(appUserId: string): Promise<void> {
+  const voiceClient = getVoiceDocClient()
+  const s3Keys = await listUserS3Keys(appUserId)
+  await deleteS3Objects(s3Keys)
+  const items = await queryAllItems(
+    VOICE_RECORDINGS_TABLE_NAME,
+    'PK = :pk',
+    { ':pk': `USER#${appUserId}` },
+    voiceClient
+  )
+  await batchDeleteKeys(
+    VOICE_RECORDINGS_TABLE_NAME,
+    items.map((item) => ({ PK: item.PK as string, SK: item.SK as string })),
+    voiceClient
   )
 }
 

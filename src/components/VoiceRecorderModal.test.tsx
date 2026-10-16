@@ -38,6 +38,12 @@ vi.mock('@/lib/voice-recordings', () => ({
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
 
+const { notifyRecordingSaved, notifyRecordingDeleted } = vi.hoisted(() => ({
+  notifyRecordingSaved: vi.fn(),
+  notifyRecordingDeleted: vi.fn(),
+}))
+vi.mock('@/lib/voice-sync', () => ({ notifyRecordingSaved, notifyRecordingDeleted }))
+
 import VoiceRecorderModal from './VoiceRecorderModal'
 
 function supported() {
@@ -186,6 +192,8 @@ function renderModal(word = 'cake', props: Partial<{ maxSeconds: number; warning
 describe('VoiceRecorderModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    notifyRecordingSaved.mockResolvedValue('synced')
+    notifyRecordingDeleted.mockResolvedValue(undefined)
     supported()
     stubPermissions('granted')
     stubAudioContext()
@@ -691,6 +699,51 @@ describe('VoiceRecorderModal', () => {
     await waitFor(() => expect(saveRecording).toHaveBeenCalledWith('cake', expect.any(Blob)))
     expect(onSaved).toHaveBeenCalledWith('cake')
     expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('notifies the sync engine after saving a recording', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    const saved = { text: 'cake' }
+    saveRecording.mockResolvedValue(saved)
+    renderModal('cake')
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    const saveButton = await screen.findByRole('button', { name: 'Save recording' })
+    await waitFor(() => expect(saveButton).toBeEnabled())
+    fireEvent.click(saveButton)
+    await waitFor(() => expect(notifyRecordingSaved).toHaveBeenCalledWith(saved))
+  })
+
+  it('shows a notice when cloud storage is full but keeps the local recording', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    saveRecording.mockResolvedValue({ text: 'cake' })
+    notifyRecordingSaved.mockResolvedValue('quota-full')
+    renderModal('cake')
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    const saveButton = await screen.findByRole('button', { name: 'Save recording' })
+    await waitFor(() => expect(saveButton).toBeEnabled())
+    fireEvent.click(saveButton)
+    expect(
+      await screen.findByText(
+        'Your voice storage is full. This recording is saved on this device. Delete some recordings to make room for syncing.'
+      )
+    ).toBeInTheDocument()
+    // The local recording is unaffected: the saved phase still shows.
+    expect(await screen.findByRole('heading', { name: 'Your saved recording' })).toBeInTheDocument()
+  })
+
+  it('notifies the sync engine after deleting a recording', async () => {
+    getRecording.mockResolvedValue({ text: 'cake', audio: new ArrayBuffer(8), mimeType: 'audio/webm', recordedAt: 123 })
+    deleteRecording.mockResolvedValue(undefined)
+    renderModal('cake')
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Tap again to confirm' }))
+    await waitFor(() => expect(notifyRecordingDeleted).toHaveBeenCalledWith('cake'))
   })
 
   it('opens on the saved recording when one exists', async () => {
