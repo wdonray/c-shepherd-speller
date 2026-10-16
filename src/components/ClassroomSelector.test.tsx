@@ -139,19 +139,25 @@ describe('ClassroomSelector', () => {
     await new Promise((r) => setTimeout(r, 10))
   })
 
-  it('stacks the new-classroom input and Add button full-width on mobile', async () => {
-    renderSelector()
+  it('opens creation in a modal dialog rendered outside the page flow', async () => {
+    const { container } = renderSelector()
     const select = await screen.findByLabelText('Classroom')
     await waitFor(() => expect(select).not.toBeDisabled())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
     fireEvent.change(select, { target: { value: '__new__' } })
-    const input = screen.getByLabelText('New classroom name')
-    const container = input.parentElement
-    expect(container?.className).toContain('flex-col')
-    expect(container?.className).toContain('sm:flex-row')
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    // The dialog portals to the document body, so it never shifts the
+    // list edit page layout (issue #352).
+    expect(container.contains(dialog)).toBe(false)
+    expect(screen.getByRole('heading', { name: 'New classroom' })).toBeInTheDocument()
+    const input = screen.getByLabelText('Classroom name')
+    expect(input.className).toContain('w-full')
   })
 
-  it('creates a new classroom inline and selects it', async () => {
+  it('creates a new classroom from the modal and selects it', async () => {
     const fetchMock = vi.fn(async (url: string, init?: { method?: string }) => {
       if (init?.method === 'POST') {
         return { ok: true, json: async () => ({ class: { id: 'c9', name: 'Green group' } }) }
@@ -164,11 +170,13 @@ describe('ClassroomSelector', () => {
     await waitFor(() => expect(select).not.toBeDisabled())
 
     fireEvent.change(select, { target: { value: '__new__' } })
-    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Green group' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Green group' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('c9'))
     expect(fetchMock).toHaveBeenCalledWith('/api/classes', expect.objectContaining({ method: 'POST' }))
+    // The new classroom is selected and the modal closes.
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('creates a new classroom with Enter in the name field', async () => {
@@ -184,7 +192,7 @@ describe('ClassroomSelector', () => {
     await waitFor(() => expect(select).not.toBeDisabled())
 
     fireEvent.change(select, { target: { value: '__new__' } })
-    const input = screen.getByLabelText('New classroom name')
+    const input = screen.getByLabelText('Classroom name')
     fireEvent.change(input, { target: { value: 'Green group' } })
     // Other keys do not submit.
     fireEvent.keyDown(input, { key: 'a' })
@@ -203,7 +211,7 @@ describe('ClassroomSelector', () => {
     await waitFor(() => expect(select).not.toBeDisabled())
 
     fireEvent.change(select, { target: { value: '__new__' } })
-    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Nope' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Nope' } })
     fetchMock.mockRejectedValueOnce(new Error('down'))
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the classroom. Try again.')
@@ -214,10 +222,23 @@ describe('ClassroomSelector', () => {
     const select = await screen.findByLabelText('Classroom')
     await waitFor(() => expect(select).not.toBeDisabled())
     fireEvent.change(select, { target: { value: '__new__' } })
-    expect(screen.getByLabelText('New classroom name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Classroom name')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByLabelText('New classroom name')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('closes the modal with the X button without creating', async () => {
+    const { onChange } = renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    fireEvent.change(select, { target: { value: '__new__' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Typed' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(onChange).not.toHaveBeenCalled()
+    // The select reverts to the stored value ("No class" here).
+    expect((select as HTMLSelectElement).value).toBe('')
   })
 
   it('does not create a classroom with a blank name', async () => {
@@ -225,7 +246,7 @@ describe('ClassroomSelector', () => {
     const select = await screen.findByLabelText('Classroom')
     await waitFor(() => expect(select).not.toBeDisabled())
     fireEvent.change(select, { target: { value: '__new__' } })
-    const input = screen.getByLabelText('New classroom name')
+    const input = screen.getByLabelText('Classroom name')
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
     // Enter with a blank name hits the guard in handleCreate.
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -240,7 +261,7 @@ describe('ClassroomSelector', () => {
     fireEvent.change(select, { target: { value: '__new__' } })
     // Hold the create request open.
     ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}))
-    const input = screen.getByLabelText('New classroom name')
+    const input = screen.getByLabelText('Classroom name')
     fireEvent.change(input, { target: { value: 'Period 9' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     // Second Enter while creating: ignored, no second POST.
@@ -251,17 +272,34 @@ describe('ClassroomSelector', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('disables Cancel while the create request is in flight', async () => {
+  it('disables Cancel and hides the X button while the create request is in flight', async () => {
     renderSelector()
     const select = await screen.findByLabelText('Classroom')
     await waitFor(() => expect(select).not.toBeDisabled())
     fireEvent.change(select, { target: { value: '__new__' } })
     // Hold the create request open.
     ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}))
-    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Period 9' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Period 9' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Adding…' })).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+  })
+
+  it('ignores the Escape close request while the create request is in flight', async () => {
+    renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    fireEvent.change(select, { target: { value: '__new__' } })
+    // Hold the create request open.
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}))
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Period 9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Adding…' })).toBeInTheDocument())
+    fireEvent.keyDown(document, { key: 'Escape' })
+    // The modal stays open until the request resolves.
+    await new Promise((r) => setTimeout(r, 10))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('shows an error when the create request returns an error status', async () => {
@@ -270,7 +308,7 @@ describe('ClassroomSelector', () => {
     await waitFor(() => expect(select).not.toBeDisabled())
     ;(fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, status: 500 })
     fireEvent.change(select, { target: { value: '__new__' } })
-    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Nope' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Nope' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the classroom. Try again.')
   })
@@ -286,7 +324,7 @@ describe('ClassroomSelector', () => {
     const { onChange } = renderSelector()
     const select = screen.getByLabelText('Classroom')
     fireEvent.change(select, { target: { value: '__new__' } })
-    fireEvent.change(screen.getByLabelText('New classroom name'), { target: { value: 'Green group' } })
+    fireEvent.change(screen.getByLabelText('Classroom name'), { target: { value: 'Green group' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('c9'))
   })
