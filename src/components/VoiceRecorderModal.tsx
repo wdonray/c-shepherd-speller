@@ -29,6 +29,108 @@ const WARNING_SECONDS_REMAINING = 30
 /** Recordings shorter than this are almost certainly an accidental tap. */
 const MIN_RECORDING_SECONDS = 2
 
+/** Browser families with meaningfully different microphone-blocked recovery UI. */
+type BrowserFamily = 'chromium' | 'safari' | 'firefox' | 'unknown'
+
+/**
+ * Best-effort browser detection from the user agent, used only to pick the
+ * right recovery instructions on the denied screen. Chrome on iOS (CriOS)
+ * uses WebKit with Safari-style UI, so it maps to 'safari'.
+ */
+function detectBrowserFamily(): BrowserFamily {
+  // Client component: navigator always exists here.
+  const ua = navigator.userAgent
+  if (/firefox|fxios/i.test(ua)) return 'firefox'
+  if (/crios/i.test(ua)) return 'safari'
+  if (/chrome|chromium|edg|opr/i.test(ua)) return 'chromium'
+  if (/safari/i.test(ua)) return 'safari'
+  return 'unknown'
+}
+
+/**
+ * Schematic of the address-bar blocked-microphone icon, so a teacher can
+ * match the instructions to what they see. Deliberately schematic, not a
+ * pixel-perfect browser mock.
+ */
+function AddressBarHint() {
+  return (
+    <div className="flex items-center gap-3 rounded-[12px] bg-muted px-3 py-2">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-coral-soft text-coral-ink ring-2 ring-coral">
+        <MicOffIcon className="size-4" aria-hidden="true" />
+      </span>
+      <p className="text-sm text-muted-foreground">Look for this blocked microphone icon in your address bar.</p>
+    </div>
+  )
+}
+
+/**
+ * Browser-specific recovery steps for the denied phase. Chrome removed the
+ * address-bar lock icon in 2023, so the Chromium path leads with the one-click
+ * blocked-microphone icon instead of the longer site-settings detour. Never
+ * says "lock icon": that UI no longer exists.
+ */
+function DeniedSteps({ family }: { family: BrowserFamily }) {
+  if (family === 'safari') {
+    return (
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+        <li>In the menu bar at the very top of your screen, open the Safari menu.</li>
+        <li>Choose Settings, then Websites, then Microphone.</li>
+        <li>Find this site in the list and set it to Allow.</li>
+        <li>Come back here and tap Try again.</li>
+      </ol>
+    )
+  }
+  if (family === 'firefox') {
+    return (
+      <>
+        <AddressBarHint />
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>Click the microphone icon in the address bar.</li>
+          <li>Choose Allow.</li>
+          <li>Come back here and tap Try again.</li>
+        </ol>
+      </>
+    )
+  }
+  if (family === 'chromium') {
+    return (
+      <>
+        <AddressBarHint />
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>Click the microphone icon with a line through it, in the address bar at the top of your browser.</li>
+          <li>Choose Allow.</li>
+          <li>Come back here and tap Try again.</li>
+        </ol>
+        <p className="text-sm text-muted-foreground">
+          Do not see that icon? Click the tune icon in the address bar, open Site settings, set Microphone to Allow,
+          then tap Try again.
+        </p>
+      </>
+    )
+  }
+  return (
+    <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+      <li>Open your browser's site settings for this page.</li>
+      <li>Set Microphone to Allow.</li>
+      <li>Come back here and tap Try again.</li>
+    </ol>
+  )
+}
+
+/** One-line recovery hint for the no-prompt notice, matched to the browser. */
+function permissionPromptHint(family: BrowserFamily): string {
+  switch (family) {
+    case 'chromium':
+      return 'Click the microphone icon with a line through it in the address bar, set it to Allow, then press Record again.'
+    case 'safari':
+      return 'Open the Safari menu, then Settings, then Websites, then Microphone, set this site to Allow, then press Record again.'
+    case 'firefox':
+      return 'Click the microphone icon in the address bar, choose Allow, then press Record again.'
+    default:
+      return "Open your browser's site settings for this page, set Microphone to Allow, then press Record again."
+  }
+}
+
 type Phase =
   'checking' | 'requesting' | 'ready' | 'denied' | 'unavailable' | 'unsupported' | 'recording' | 'review' | 'saved'
 
@@ -218,9 +320,7 @@ export default function VoiceRecorderModal({
     } else if (name === 'TimeoutError') {
       // The browser never answered the prompt. Give the teacher a way
       // forward instead of hanging on the spinner.
-      setNotice(
-        'The browser did not show a permission prompt. Click the lock or tune icon in the address bar, set Microphone to Allow, then press Record again.'
-      )
+      setNotice(`The browser did not show a permission prompt. ${permissionPromptHint(detectBrowserFamily())}`)
       setPhase('ready')
     } else if (name === 'AbortError') {
       setPhase('ready')
@@ -647,12 +747,7 @@ export default function VoiceRecorderModal({
                 </p>
               </div>
             </div>
-            <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-              <li>Click the lock or tune icon in the address bar.</li>
-              <li>Find Microphone in the site settings.</li>
-              <li>Change it to Allow.</li>
-              <li>Come back here and tap Try again.</li>
-            </ol>
+            <DeniedSteps family={detectBrowserFamily()} />
             <div className="flex gap-2">
               <Button onClick={handleRetryPermission} className="flex-1">
                 Try again
