@@ -6,14 +6,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
+  deleteRecording,
+  getRecording,
   isAudioCaptureSupported,
   isRecordingStorageSupported,
+  recordingToBlob,
   requestMicrophoneStream,
   saveRecording,
   startRecording,
   MICROPHONE_REQUEST_TIMEOUT_MS,
   type MicrophoneRequest,
   type RecordingSession,
+  type VoiceRecording,
 } from '@/lib/voice-recordings'
 import { drawLiveWaveform, drawReviewWaveform } from '@/lib/waveform-draw'
 import { reportError } from '@/lib/report-error'
@@ -25,7 +29,8 @@ const WARNING_SECONDS_REMAINING = 30
 /** Recordings shorter than this are almost certainly an accidental tap. */
 const MIN_RECORDING_SECONDS = 2
 
-type Phase = 'checking' | 'requesting' | 'ready' | 'denied' | 'unavailable' | 'unsupported' | 'recording' | 'review'
+type Phase =
+  'checking' | 'requesting' | 'ready' | 'denied' | 'unavailable' | 'unsupported' | 'recording' | 'review' | 'saved'
 
 interface VoiceRecorderModalProps {
   /** The word being recorded. */
@@ -50,6 +55,11 @@ interface VoiceRecorderModalProps {
    * the opener can mark the word as recorded without re-reading storage.
    */
   onSaved?: (word: string) => void
+  /**
+   * Called with the trimmed word after its recording is deleted, so the
+   * opener can unmark the word without re-reading storage.
+   */
+  onDeleted?: (word: string) => void
 }
 
 function formatTime(totalSeconds: number): string {
@@ -61,11 +71,14 @@ function formatTime(totalSeconds: number): string {
 /**
  * Modal flow for recording the teacher's voice for one word.
  *
- * Phases: checking (mic support and permission preflight) -> ready (press
- * Record) -> requesting (waiting on the browser prompt) -> recording (live
- * waveform, timer, auto-stop at the cap) -> review (playback, Save or
- * Re-record). A denied microphone shows in-modal steps to re-enable it.
- * Nothing records until the teacher presses Record.
+ * Phases: checking (mic support and permission preflight, plus a look for a
+ * saved recording) -> saved (a previous recording: play it, record a new
+ * one, or delete it) -> ready (press Record) -> requesting (waiting on the
+ * browser prompt) -> recording (live waveform, timer, auto-stop at the cap)
+ * -> review (playback, Save or Re-record). Saving lands on the saved phase
+ * so the teacher sees the recording is really there. A denied microphone
+ * shows in-modal steps to re-enable it. Nothing records until the teacher
+ * presses Record.
  *
  * The permission prompt must be requested from a user gesture: browsers
  * silently drop permission requests made from effects or promise callbacks,
@@ -83,6 +96,7 @@ export default function VoiceRecorderModal({
   maxSeconds = MAX_RECORDING_SECONDS,
   warningSeconds = WARNING_SECONDS_REMAINING,
   onSaved,
+  onDeleted,
 }: VoiceRecorderModalProps) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [elapsed, setElapsed] = useState(0)
@@ -92,6 +106,8 @@ export default function VoiceRecorderModal({
   const [audioDuration, setAudioDuration] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [saving, setSaving] = useState(false)
+  /** Two-step delete confirmation: the first tap arms, the second deletes. */
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const sessionRef = useRef<RecordingSession | null>(null)
   const recordedBlobRef = useRef<Blob | null>(null)
@@ -146,6 +162,32 @@ export default function VoiceRecorderModal({
     })
     setPlaying(false)
   }, [])
+
+  /**
+   * Wire a recorded blob up for playback: object URL, audio element, and
+   * duration. Mobile Safari may never fire loadedmetadata, so the review
+   * starts from the measured recording time and only refines when the
+   * browser reports real, finite metadata. Shared by the review phase (the
+   * take just captured) and the saved phase (a recording read from storage).
+   */
+  const attachAudio = useCallback(
+    (blob: Blob, durationFallback: number) => {
+      cleanupAudio()
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+      setAudioDuration(durationFallback)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.addEventListener('loadedmetadata', () => {
+        const duration = audio.duration
+        // Only trust positive, finite metadata. Some browsers report 0 for a
+        // recording that lasted seconds, which would show "00:00 recorded".
+        if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration)
+      })
+      audio.addEventListener('ended', () => setPlaying(false))
+    },
+    [cleanupAudio]
+  )
 
   // Refs so the open/close effect only re-runs when `open` changes,
   // not when the cleanup callbacks are recreated.
@@ -242,46 +284,71 @@ export default function VoiceRecorderModal({
     setNotice(null)
     setAudioDuration(0)
     setSaving(false)
+    setConfirmingDelete(false)
     stoppedAtCapRef.current = false
     recordedBlobRef.current = null
 
-    if (!isRecordingStorageSupported() || !isAudioCaptureSupported()) {
+    if (!isRecordingStorageSupported()) {
       setPhase('unsupported')
       return
     }
+    let loadCancelled = false
     permissionCancelledRef.current = false
-    if (microphoneRequest) {
-      // The opener asked for microphone access from its click gesture.
-      // Await the answer here instead of asking again from this effect,
-      // where the request would be silently dropped with no prompt.
-      setPhase('requesting')
-      const generation = ++warmupGenerationRef.current
-      microphoneRequest.promise.then(
-        (stream) => {
-          // A stale setup (superseded by a newer effect run) must not
-          // touch the stream; the live setup owns it.
-          if (generation !== warmupGenerationRef.current) return
-          if (permissionCancelledRef.current) {
-            stream.getTracks().forEach((track) => track.stop())
-            return
+    void (async () => {
+      // A saved recording opens in its own phase: the teacher reopens this
+      // modal to hear what they saved, and showing only the record screen
+      // made saved recordings look lost (#328). Playback needs no
+      // microphone, so this runs even when capture is unsupported.
+      let existing: VoiceRecording | null = null
+      try {
+        existing = await getRecording(word)
+      } catch (error) {
+        reportError(error, { location: 'VoiceRecorderModal.loadExisting' })
+      }
+      if (loadCancelled) return
+      if (existing) {
+        attachAudio(recordingToBlob(existing), 0)
+        setPhase('saved')
+        return
+      }
+      if (!isAudioCaptureSupported()) {
+        setPhase('unsupported')
+        return
+      }
+      if (microphoneRequest) {
+        // The opener asked for microphone access from its click gesture.
+        // Await the answer here instead of asking again from this effect,
+        // where the request would be silently dropped with no prompt.
+        setPhase('requesting')
+        const generation = ++warmupGenerationRef.current
+        microphoneRequest.promise.then(
+          (stream) => {
+            // A stale setup (superseded by a newer effect run) must not
+            // touch the stream; the live setup owns it.
+            if (generation !== warmupGenerationRef.current) return
+            if (permissionCancelledRef.current) {
+              stream.getTracks().forEach((track) => track.stop())
+              return
+            }
+            pendingStreamRef.current = stream
+            setPhase('ready')
+          },
+          (error: unknown) => {
+            if (generation !== warmupGenerationRef.current) return
+            if (!permissionCancelledRef.current) mapPermissionError(error)
           }
-          pendingStreamRef.current = stream
-          setPhase('ready')
-        },
-        (error: unknown) => {
-          if (generation !== warmupGenerationRef.current) return
-          if (!permissionCancelledRef.current) mapPermissionError(error)
-        }
-      )
-    } else {
-      // No opener request (or an unsupported browser): preflight hint only.
-      // The real request waits for the Record press's user gesture.
-      checkMicrophonePermission()
-    }
+        )
+      } else {
+        // No opener request (or an unsupported browser): preflight hint only.
+        // The real request waits for the Record press's user gesture.
+        checkMicrophonePermission()
+      }
+    })()
     return () => {
+      loadCancelled = true
       permissionCancelledRef.current = true
     }
-  }, [open, microphoneRequest, checkMicrophonePermission, mapPermissionError, releasePendingStream])
+  }, [open, word, microphoneRequest, checkMicrophonePermission, mapPermissionError, releasePendingStream, attachAudio])
 
   // Full cleanup on unmount.
   useEffect(() => {
@@ -335,26 +402,14 @@ export default function VoiceRecorderModal({
       // refine when the browser reports real, finite metadata.
       const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000
       recordedBlobRef.current = blob
-      setAudioDuration(elapsedSeconds)
-      const url = URL.createObjectURL(blob)
-      setAudioUrl(url)
-      const audio = new Audio(url)
-      audioRef.current = audio
-      audio.addEventListener('loadedmetadata', () => {
-        const duration = audio.duration
-        // Only trust positive, finite metadata. Some browsers report 0 for a
-        // recording that lasted seconds, which would show "00:00 recorded"
-        // and hide the short-recording warning.
-        if (Number.isFinite(duration) && duration > 0) setAudioDuration(duration)
-      })
-      audio.addEventListener('ended', () => setPlaying(false))
+      attachAudio(blob, elapsedSeconds)
       setPhase('review')
     } catch (error) {
       reportError(error, { location: 'VoiceRecorderModal.stopAndReview' })
       setNotice('Could not finish the recording. Try again.')
       setPhase('ready')
     }
-  }, [drawReviewWaveform])
+  }, [drawReviewWaveform, attachAudio])
 
   const startTimer = useCallback(() => {
     startTimeRef.current = Date.now()
@@ -446,7 +501,11 @@ export default function VoiceRecorderModal({
     try {
       const saved = await saveRecording(word, blob)
       onSaved?.(saved.text)
-      onOpenChange(false)
+      // Stay open on the saved recording instead of closing: the teacher
+      // just saved this take and should see it is really there (#328). The
+      // review audio element is already wired to the saved blob.
+      setNotice(null)
+      setPhase('saved')
     } catch (error) {
       reportError(error, { location: 'VoiceRecorderModal.handleSave' })
       setNotice('Could not save the recording. Try again.')
@@ -455,15 +514,40 @@ export default function VoiceRecorderModal({
     }
   }
 
-  const handleRerecord = () => {
+  /** Leave the saved recording and go back to the record screen. */
+  const handleRecordNew = () => {
+    setConfirmingDelete(false)
     cleanupAudio()
     recordedBlobRef.current = null
     setAudioDuration(0)
     setPhase('ready')
   }
 
+  const handleRerecord = () => {
+    handleRecordNew()
+  }
+
+  const handleDelete = async () => {
+    // Two-step confirmation: the first tap arms, the second deletes.
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      return
+    }
+    setConfirmingDelete(false)
+    setNotice(null)
+    try {
+      await deleteRecording(word)
+      onDeleted?.(word.trim())
+      handleRecordNew()
+    } catch (error) {
+      reportError(error, { location: 'VoiceRecorderModal.handleDelete' })
+      setNotice('Could not delete the recording. Try again.')
+    }
+  }
+
   const togglePlayback = () => {
-    // The play button only renders in review phase, after the audio element is created.
+    // The play button renders in review and saved phases, after the audio
+    // element is created.
     const audio = audioRef.current!
     if (playing) {
       audio.pause()
@@ -472,7 +556,13 @@ export default function VoiceRecorderModal({
       audio.currentTime = 0
       void audio.play().then(
         () => setPlaying(true),
-        () => setPlaying(false)
+        (error: unknown) => {
+          // A rejected play() used to fail silently, leaving the teacher
+          // tapping a dead button (#328). Say so and report it.
+          reportError(error, { location: 'VoiceRecorderModal.togglePlayback' })
+          setNotice('Could not play the recording. Try again.')
+          setPlaying(false)
+        }
       )
     }
   }
@@ -490,16 +580,26 @@ export default function VoiceRecorderModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>Record your voice</DialogTitle>
+          <DialogTitle>{phase === 'saved' ? 'Your saved recording' : 'Record your voice'}</DialogTitle>
           <DialogDescription>
-            Record yourself saying <strong className="text-ink">{word}</strong>. Your recording plays instead of the
-            built-in voice whenever this word is read aloud.
+            {phase === 'saved' ? (
+              <>
+                Your recording of <strong className="text-ink">{word}</strong>. It plays instead of the built-in voice
+                whenever this word is read aloud.
+              </>
+            ) : (
+              <>
+                Record yourself saying <strong className="text-ink">{word}</strong>. Your recording plays instead of the
+                built-in voice whenever this word is read aloud.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div role="status" aria-live="polite" className="sr-only">
           {phase === 'recording' && 'Recording. Speak now.'}
           {phase === 'review' && 'Recording stopped. Review it, then save or re-record.'}
+          {phase === 'saved' && 'Recording saved. Play it, record a new one, or delete it.'}
         </div>
         {warned && phase === 'recording' && (
           <p role="alert" className="text-sm font-semibold text-amber-700">
@@ -629,6 +729,42 @@ export default function VoiceRecorderModal({
             <Button variant="secondary" onClick={() => void stopAndReview()} className="w-full" size="lg">
               <SquareIcon className="size-5" aria-hidden="true" />
               Stop
+            </Button>
+          </div>
+        )}
+
+        {phase === 'saved' && (
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="secondary"
+                onClick={togglePlayback}
+                aria-label={playing ? 'Pause the recording' : 'Play the recording'}
+                className="flex size-12 items-center justify-center rounded-full p-0"
+              >
+                {playing ? (
+                  <PauseIcon className="size-5" aria-hidden="true" />
+                ) : (
+                  <PlayIcon className="size-5" aria-hidden="true" />
+                )}
+              </Button>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {audioDuration > 0 ? `${formatTime(audioDuration)} recorded` : 'Recording saved'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              {isAudioCaptureSupported() && (
+                <Button variant="secondary" onClick={handleRecordNew} className="flex-1">
+                  <MicIcon className="size-4" aria-hidden="true" />
+                  Record new
+                </Button>
+              )}
+              <Button variant="destructive" onClick={() => void handleDelete()} className="flex-1" aria-live="polite">
+                {confirmingDelete ? 'Tap again to confirm' : 'Delete'}
+              </Button>
+            </div>
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="w-full">
+              Done
             </Button>
           </div>
         )}

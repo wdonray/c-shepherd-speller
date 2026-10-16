@@ -113,6 +113,12 @@ export default function PatternEditor({
    * erase a recording the teacher just saved. Merged into the result below.
    */
   const savedDuringLookupRef = useRef<Set<string>>(new Set())
+  /**
+   * Words deleted while a recording-presence lookup is in flight. Mirrors
+   * savedDuringLookupRef: without this a slow read could resurrect a
+   * recording the teacher just deleted. Subtracted from the result below.
+   */
+  const deletedDuringLookupRef = useRef<Set<string>>(new Set())
 
   // Load recording presence for this pattern's words. Runs once per word
   // list, not per render: IndexedDB reads are cheap but not free.
@@ -128,6 +134,7 @@ export default function PatternEditor({
     }
     let cancelled = false
     const savedDuringFlight = (savedDuringLookupRef.current = new Set<string>())
+    const deletedDuringFlight = (deletedDuringLookupRef.current = new Set<string>())
     const words: string[] = JSON.parse(wordsKey)
     void Promise.all(
       words.map((word) =>
@@ -138,7 +145,7 @@ export default function PatternEditor({
     ).then((results) => {
       if (!cancelled) {
         const found = results.filter((result) => result.has).map((result) => result.word)
-        setRecordedWords(new Set([...found, ...savedDuringFlight]))
+        setRecordedWords(new Set([...found, ...savedDuringFlight].filter((word) => !deletedDuringFlight.has(word))))
       }
     })
     return () => {
@@ -643,6 +650,16 @@ export default function PatternEditor({
               // than erases this save when it resolves.
               savedDuringLookupRef.current.add(savedWord)
               setRecordedWords((prev) => new Set(prev).add(savedWord))
+            }}
+            onDeleted={(deletedWord) => {
+              // Tracked separately so a pending presence lookup subtracts
+              // rather than resurrects this delete when it resolves.
+              deletedDuringLookupRef.current.add(deletedWord)
+              setRecordedWords((prev) => {
+                const next = new Set(prev)
+                next.delete(deletedWord)
+                return next
+              })
             }}
             onOpenChange={(open) => {
               if (!open) {

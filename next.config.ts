@@ -25,7 +25,7 @@ const securityHeaders = [
   },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()',
   },
   {
     key: 'Content-Security-Policy',
@@ -35,6 +35,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
+      // Recorded voice memos play from blob: URLs (see VoiceRecorderModal);
+      // without media-src the media elements fall back to default-src 'self'
+      // and the browser refuses to load them (#328).
+      "media-src 'self' blob:",
       "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io",
       "frame-ancestors 'none'",
       "base-uri 'self'",
