@@ -2,19 +2,35 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import type { RecordingSession, MicrophoneRequest } from '@/lib/voice-recordings'
 
-const { requestMicrophoneStream, startRecording, saveRecording, isRecordingStorageSupported, isAudioCaptureSupported } =
-  vi.hoisted(() => ({
-    requestMicrophoneStream: vi.fn(),
-    startRecording: vi.fn(),
-    saveRecording: vi.fn(),
-    isRecordingStorageSupported: vi.fn(),
-    isAudioCaptureSupported: vi.fn(),
-  }))
+const {
+  requestMicrophoneStream,
+  startRecording,
+  saveRecording,
+  getRecording,
+  deleteRecording,
+  recordingToBlob,
+  isRecordingStorageSupported,
+  isAudioCaptureSupported,
+} = vi.hoisted(() => ({
+  requestMicrophoneStream: vi.fn(),
+  startRecording: vi.fn(),
+  saveRecording: vi.fn(),
+  getRecording: vi.fn(),
+  deleteRecording: vi.fn(),
+  recordingToBlob: vi.fn(
+    (recording: { audio: ArrayBuffer; mimeType: string }) => new Blob([recording.audio], { type: recording.mimeType })
+  ),
+  isRecordingStorageSupported: vi.fn(),
+  isAudioCaptureSupported: vi.fn(),
+}))
 vi.mock('@/lib/voice-recordings', () => ({
   MICROPHONE_REQUEST_TIMEOUT_MS: 15000,
   requestMicrophoneStream,
   startRecording,
   saveRecording,
+  getRecording,
+  deleteRecording,
+  recordingToBlob,
   isRecordingStorageSupported,
   isAudioCaptureSupported,
 }))
@@ -104,6 +120,8 @@ class FakeAudio {
   currentTime = 0
   duration = 5
   paused = true
+  /** Mirrors HTMLMediaElement.readyState; HAVE_METADATA (1) once set. */
+  readyState = 1
   private listeners = new Map<string, Array<() => void>>()
   constructor(src: string) {
     this.src = src
@@ -148,6 +166,16 @@ function makeSession(overrides: Partial<{ stream: MediaStream | undefined }> = {
   }
 }
 
+/** A recording as getRecording returns it from IndexedDB. */
+function savedRecording() {
+  return {
+    text: 'cake',
+    audio: new ArrayBuffer(8),
+    mimeType: 'audio/webm',
+    recordedAt: Date.now(),
+  }
+}
+
 function renderModal(word = 'cake', props: Partial<{ maxSeconds: number; warningSeconds: number }> = {}) {
   const onOpenChange = vi.fn()
   render(<VoiceRecorderModal word={word} open={true} onOpenChange={onOpenChange} {...props} />)
@@ -162,6 +190,8 @@ describe('VoiceRecorderModal', () => {
     stubAudioContext()
     stubCanvas()
     requestMicrophoneStream.mockResolvedValue(fakeMicStream())
+    getRecording.mockResolvedValue(null)
+    deleteRecording.mockResolvedValue(undefined)
     vi.stubGlobal(
       'requestAnimationFrame',
       vi.fn(() => 1)
@@ -911,6 +941,8 @@ describe('VoiceRecorderModal', () => {
     const query = vi.fn(() => new Promise((resolve) => (resolveQuery = resolve)))
     Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true })
     const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    // The saved-recording lookup resolves first; then the permission check starts.
+    await waitFor(() => expect(query).toHaveBeenCalled())
     unmount()
     resolveQuery({ state: 'granted' })
     await act(async () => {})
@@ -992,6 +1024,8 @@ describe('VoiceRecorderModal', () => {
     const query = vi.fn(() => new Promise((_resolve, reject) => (rejectQuery = reject)))
     Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true })
     const { unmount } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    // The saved-recording lookup resolves first; then the permission check starts.
+    await waitFor(() => expect(query).toHaveBeenCalled())
     unmount()
     rejectQuery(new Error('query torn down'))
     await act(async () => {})
@@ -1063,5 +1097,237 @@ describe('VoiceRecorderModal', () => {
     rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={() => {}} />)
     await act(async () => {})
     expect(session.cancel).toHaveBeenCalled()
+  })
+
+  it('opens on the saved recording when one exists', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    renderModal()
+    expect(getRecording).toHaveBeenCalledWith('cake')
+    expect(await screen.findByText(/Your saved recording for/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Play the recording' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Re-record' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete recording' })).toBeInTheDocument()
+  })
+
+  it('plays the saved recording', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Play the recording' }))
+    expect(await screen.findByRole('button', { name: 'Pause the recording' })).toBeInTheDocument()
+  })
+
+  it('deletes the saved recording and notifies the opener', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    const onDeleted = vi.fn()
+    const onOpenChange = vi.fn()
+    render(<VoiceRecorderModal word="cake" open={true} onOpenChange={onOpenChange} onDeleted={onDeleted} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete recording' }))
+    await waitFor(() => expect(deleteRecording).toHaveBeenCalledWith('cake'))
+    expect(onDeleted).toHaveBeenCalledWith('cake')
+    // After deleting, the modal offers a fresh recording.
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('deletes the saved recording without an onDeleted handler', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete recording' }))
+    await waitFor(() => expect(deleteRecording).toHaveBeenCalledWith('cake'))
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('shows a notice when deleting fails', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    deleteRecording.mockRejectedValue(new Error('idb down'))
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete recording' }))
+    expect(await screen.findByText('Could not delete the recording. Try again.')).toBeInTheDocument()
+    expect(reportError).toHaveBeenCalled()
+  })
+
+  it('re-records from the saved recording screen', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Re-record' }))
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('falls through to recording when loading the saved recording fails', async () => {
+    getRecording.mockRejectedValue(new Error('idb down'))
+    renderModal()
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('ignores a stale saved-recording lookup when the effect re-runs', async () => {
+    let resolveCake!: (recording: unknown) => void
+    const cakeLookup = new Promise((resolve) => (resolveCake = resolve))
+    getRecording.mockImplementation((word: string) => (word === 'cake' ? cakeLookup : Promise.resolve(null)))
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    rerender(<VoiceRecorderModal word="bake" open={true} onOpenChange={() => {}} />)
+    // The bake lookup resolves empty; the modal offers a fresh recording.
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    resolveCake(savedRecording())
+    await act(async () => {})
+    // The stale cake lookup must not show its recording.
+    expect(screen.queryByText(/Your saved recording for/)).not.toBeInTheDocument()
+  })
+
+  it('ignores the saved-recording lookup when the modal closes first', async () => {
+    let resolveLoad!: (recording: unknown) => void
+    getRecording.mockReturnValue(new Promise((resolve) => (resolveLoad = resolve)))
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={() => {}} />)
+    resolveLoad(savedRecording())
+    await act(async () => {})
+    expect(screen.queryByText(/Your saved recording for/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the opener microphone stream warm on the saved recording screen', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    const stream = fakeMicStream()
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.resolve(stream))}
+      />
+    )
+    await screen.findByText(/Your saved recording for/)
+    fireEvent.click(screen.getByRole('button', { name: 'Re-record' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    // The warm stream is reused; the browser is not asked again.
+    await waitFor(() => expect(startRecording).toHaveBeenCalledWith(stream))
+    expect(requestMicrophoneStream).not.toHaveBeenCalled()
+  })
+
+  it('asks again from the Record tap when the warmup request fails on the saved screen', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new Error('denied')))}
+      />
+    )
+    await screen.findByText(/Your saved recording for/)
+    fireEvent.click(screen.getByRole('button', { name: 'Re-record' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await waitFor(() => expect(requestMicrophoneStream).toHaveBeenCalled())
+  })
+
+  it('releases a stale warmup stream when the effect re-runs on the saved screen', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    let resolveFirst!: (stream: unknown) => void
+    const first = new Promise((resolve) => (resolveFirst = resolve))
+    const stop = vi.fn()
+    const { rerender } = render(
+      <VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} microphoneRequest={fakeMicRequest(first)} />
+    )
+    await screen.findByText(/Your saved recording for/)
+    rerender(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.resolve(fakeMicStream()))}
+      />
+    )
+    resolveFirst({ getTracks: () => [{ stop }] })
+    await waitFor(() => expect(stop).toHaveBeenCalled())
+  })
+
+  it('releases the warmup stream when the modal closes before it resolves', async () => {
+    getRecording.mockResolvedValue(savedRecording())
+    let resolveRequest!: (stream: unknown) => void
+    const stop = vi.fn()
+    const { rerender } = render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(new Promise((resolve) => (resolveRequest = resolve)))}
+      />
+    )
+    await screen.findByText(/Your saved recording for/)
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={() => {}} />)
+    resolveRequest({ getTracks: () => [{ stop }] })
+    await waitFor(() => expect(stop).toHaveBeenCalled())
+  })
+
+  it('ignores a rejected saved-recording lookup when the effect re-runs', async () => {
+    let rejectCake!: (error: unknown) => void
+    const cakeLookup = new Promise((_resolve, reject) => (rejectCake = reject))
+    getRecording.mockImplementation((word: string) => (word === 'cake' ? cakeLookup : Promise.resolve(null)))
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    rerender(<VoiceRecorderModal word="bake" open={true} onOpenChange={() => {}} />)
+    expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
+    rejectCake(new Error('idb down'))
+    await act(async () => {})
+    // The stale rejection must not restart the microphone flow.
+    expect(screen.getByRole('button', { name: 'Record' })).toBeInTheDocument()
+  })
+
+  it('ignores a rejected saved-recording lookup when the modal closes first', async () => {
+    let rejectLoad!: (error: unknown) => void
+    getRecording.mockReturnValue(new Promise((_resolve, reject) => (rejectLoad = reject)))
+    const { rerender } = render(<VoiceRecorderModal word="cake" open={true} onOpenChange={() => {}} />)
+    rerender(<VoiceRecorderModal word="cake" open={false} onOpenChange={() => {}} />)
+    rejectLoad(new Error('idb down'))
+    await act(async () => {})
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not seek before metadata loads when replaying', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    let audioInstance: FakeAudio | null = null
+    const OriginalAudio = FakeAudio
+    vi.stubGlobal(
+      'Audio',
+      class extends OriginalAudio {
+        override readyState = 0
+        constructor(src: string) {
+          super(src)
+          audioInstance = this as unknown as FakeAudio
+        }
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    // Simulate a mid-clip position with metadata still loading.
+    await screen.findByRole('button', { name: 'Play the recording' })
+    audioInstance!.currentTime = 2.5
+    fireEvent.click(screen.getByRole('button', { name: 'Play the recording' }))
+    await screen.findByRole('button', { name: 'Pause the recording' })
+    // Seeking now would stall iOS Safari; playback starts on its own.
+    expect(audioInstance!.currentTime).toBe(2.5)
+  })
+
+  it('reports a rejected play instead of failing silently', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override play(): Promise<void> {
+          return Promise.reject(new Error('play failed'))
+        }
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Play the recording' }))
+    expect(await screen.findByText('Could not play the recording. Try again.')).toBeInTheDocument()
+    expect(reportError).toHaveBeenCalled()
   })
 })

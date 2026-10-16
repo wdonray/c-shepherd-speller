@@ -25,7 +25,9 @@ const securityHeaders = [
   },
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+    // The voice recorder needs the microphone on the page itself; every
+    // other feature stays denied.
+    value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()',
   },
   {
     key: 'Content-Security-Policy',
@@ -33,6 +35,10 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
+      // Voice recordings play from blob: URLs; media-src must allow them
+      // explicitly (it falls back to default-src otherwise, which blocks
+      // blob: and silently breaks review playback).
+      "media-src 'self' blob:",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io",

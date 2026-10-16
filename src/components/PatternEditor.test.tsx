@@ -9,12 +9,14 @@ vi.mock('./VoiceRecorderModal', () => ({
     open,
     onOpenChange,
     onSaved,
+    onDeleted,
     microphoneRequest,
   }: {
     word: string
     open: boolean
     onOpenChange: (open: boolean) => void
     onSaved?: (word: string) => void
+    onDeleted?: (word: string) => void
     microphoneRequest?: unknown
   }) =>
     open ? (
@@ -29,6 +31,14 @@ vi.mock('./VoiceRecorderModal', () => ({
           }}
         >
           Save recording
+        </button>
+        <button
+          onClick={() => {
+            onDeleted?.(word)
+            onOpenChange(false)
+          }}
+        >
+          Delete recording
         </button>
       </div>
     ) : null,
@@ -761,6 +771,31 @@ describe('PatternEditor', () => {
     resolveCake(false)
     await act(async () => {})
     expect(screen.getByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
+  })
+
+  it('unmarks the mic button after the modal deletes a recording', async () => {
+    hasRecording.mockImplementation(async (text: string) => text === 'cake')
+    renderEditor()
+    expect(await screen.findByRole('button', { name: 'Re-record your voice for cake' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Re-record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete recording' }))
+    expect(await screen.findByRole('button', { name: 'Record your voice for cake' })).toBeInTheDocument()
+  })
+
+  it('does not re-add a recording deleted while the presence lookup is still pending', async () => {
+    let resolveCake!: (has: boolean) => void
+    hasRecording.mockImplementation((text: string) =>
+      text === 'cake' ? new Promise<boolean>((resolve) => (resolveCake = resolve)) : Promise.resolve(false)
+    )
+    renderEditor()
+    // Delete cake while its presence read is still in flight.
+    fireEvent.click(await screen.findByRole('button', { name: 'Record your voice for cake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete recording' }))
+    expect(await screen.findByRole('button', { name: 'Record your voice for cake' })).toBeInTheDocument()
+    // The slow lookup resolves "has recording" for cake; the delete must survive it.
+    resolveCake(true)
+    await act(async () => {})
+    expect(screen.getByRole('button', { name: 'Record your voice for cake' })).toBeInTheDocument()
   })
 
   it('ignores a late recording-presence read after unmount', async () => {

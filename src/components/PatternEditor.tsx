@@ -108,6 +108,13 @@ export default function PatternEditor({
    */
   const [recordedWords, setRecordedWords] = useState<Set<string>>(new Set())
   /**
+   * Words deleted while a recording-presence lookup is in flight. Mirrors
+   * savedDuringLookupRef: the lookup resolves with a full replacement set,
+   * so without this a slow read could re-add a recording the teacher just
+   * deleted. Filtered out of the result below.
+   */
+  const deletedDuringLookupRef = useRef<Set<string>>(new Set())
+  /**
    * Words saved while a recording-presence lookup is in flight. The lookup
    * resolves with a full replacement set, so without this a slow read could
    * erase a recording the teacher just saved. Merged into the result below.
@@ -128,6 +135,7 @@ export default function PatternEditor({
     }
     let cancelled = false
     const savedDuringFlight = (savedDuringLookupRef.current = new Set<string>())
+    const deletedDuringFlight = (deletedDuringLookupRef.current = new Set<string>())
     const words: string[] = JSON.parse(wordsKey)
     void Promise.all(
       words.map((word) =>
@@ -137,7 +145,10 @@ export default function PatternEditor({
       )
     ).then((results) => {
       if (!cancelled) {
-        const found = results.filter((result) => result.has).map((result) => result.word)
+        const found = results
+          .filter((result) => result.has)
+          .map((result) => result.word)
+          .filter((word) => !deletedDuringFlight.has(word))
         setRecordedWords(new Set([...found, ...savedDuringFlight]))
       }
     })
@@ -643,6 +654,17 @@ export default function PatternEditor({
               // than erases this save when it resolves.
               savedDuringLookupRef.current.add(savedWord)
               setRecordedWords((prev) => new Set(prev).add(savedWord))
+            }}
+            onDeleted={(deletedWord) => {
+              // Tracked separately so a pending presence lookup filters
+              // rather than re-adds this delete when it resolves.
+              deletedDuringLookupRef.current.add(deletedWord)
+              savedDuringLookupRef.current.delete(deletedWord)
+              setRecordedWords((prev) => {
+                const next = new Set(prev)
+                next.delete(deletedWord)
+                return next
+              })
             }}
             onOpenChange={(open) => {
               if (!open) {
