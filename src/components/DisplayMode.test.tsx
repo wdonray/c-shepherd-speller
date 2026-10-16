@@ -529,6 +529,84 @@ describe('DisplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Why this chart?' }))
     expect(screen.getByRole('dialog', { name: 'Why this chart?' })).toBeInTheDocument()
   })
+
+  it('truncates a long list name so it cannot push the header controls off (issue #312)', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue({ ...list, name: 'A very long list name that would crowd every control' })
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'A very long list name that would crowd every control' })
+      ).toBeInTheDocument()
+    })
+    const heading = screen.getByRole('heading', { name: 'A very long list name that would crowd every control' })
+    expect(heading).toHaveClass('min-w-0', 'flex-1', 'truncate')
+  })
+
+  it('shows the mobile chart options menu trigger in the chart header (issue #312)', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
+    })
+    // The trigger hides at sm and up; the desktop control bar hides below sm.
+    expect(screen.getByRole('button', { name: 'Open chart options' })).toHaveClass('sm:hidden')
+  })
+
+  it('toggles the rules display from the mobile chart options menu (issue #312)', async () => {
+    const ruledList: WordList = {
+      ...list,
+      patterns: [
+        {
+          id: 'p1',
+          sound: 'long a',
+          pattern: 'a_e',
+          frequency: 'common',
+          words: ['cake'],
+          rule: 'Magic e.',
+        },
+      ],
+    }
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(ruledList)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Open chart options' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Chart options' })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Show rules' }))
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+  })
+
+  it('toggles word underlines from the mobile chart options menu (issue #312)', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Open chart options' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Chart options' })
+    const toggle = within(sheet).getByRole('button', { name: 'Show word underlines' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    // The open sheet hides the chart from the accessibility tree; close it
+    // before asserting on the chart.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Chart options' })).not.toBeInTheDocument()
+    })
+    expect(
+      screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span').length
+    ).toBeGreaterThan(0)
+  })
 })
 
 describe('DisplayMode sort-mode chrome', () => {

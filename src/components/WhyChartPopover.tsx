@@ -9,7 +9,14 @@ import { Button } from '@/components/ui/button'
  * header. The landing page argues the chart format is what teachers
  * choose; in the app the chart just appears, so a teacher wondering "why
  * columns?" gets the answer where the question arises.
+ *
+ * The copy lives in exported constants so the mobile overflow menu
+ * (ChartActionsMenu) shows the identical text without duplicating it.
  */
+export const WHY_CHART_TITLE = 'Why this chart?'
+export const WHY_CHART_BODY =
+  'One column per pattern, all words visible at once. This is the format teachers choose over spelling trees and hand-drawn boards: every word stays readable from the back of the room, and the pattern jumps out because the words are grouped by it.'
+
 export default function WhyChartPopover() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -40,7 +47,7 @@ export default function WhyChartPopover() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="why-chart-popover"
-        aria-label="Why this chart?"
+        aria-label={WHY_CHART_TITLE}
       >
         <InfoIcon className="size-5" aria-hidden="true" />
       </Button>
@@ -48,20 +55,16 @@ export default function WhyChartPopover() {
         <div
           id="why-chart-popover"
           role="dialog"
-          aria-label="Why this chart?"
+          aria-label={WHY_CHART_TITLE}
           className="absolute left-0 z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border-2 border-line bg-card p-5 shadow-lg"
         >
           <div className="flex items-start justify-between gap-2">
-            <h2 className="text-lg font-bold text-ink">Why this chart?</h2>
+            <h2 className="text-lg font-bold text-ink">{WHY_CHART_TITLE}</h2>
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close">
               <XIcon className="size-4" aria-hidden="true" />
             </Button>
           </div>
-          <p className="mt-2 text-[15px] leading-6 text-muted-foreground">
-            One column per pattern, all words visible at once. This is the format teachers choose over spelling trees
-            and hand-drawn boards: every word stays readable from the back of the room, and the pattern jumps out
-            because the words are grouped by it.
-          </p>
+          <p className="mt-2 text-[15px] leading-6 text-muted-foreground">{WHY_CHART_BODY}</p>
         </div>
       )}
     </div>

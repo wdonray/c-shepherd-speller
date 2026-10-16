@@ -95,4 +95,16 @@ describe('FullscreenButton', () => {
     // The button is still there and still offers to enter full screen.
     expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
   })
+
+  it('shows a visible text label with alwaysShowLabel instead of an icon-only button', () => {
+    render(<FullscreenButton alwaysShowLabel />)
+    const button = screen.getByRole('button', { name: 'Full screen' })
+    expect(button).toHaveTextContent('Full screen')
+    expect(button).not.toHaveAttribute('aria-label')
+  })
+
+  it('merges an extra className onto the button', () => {
+    render(<FullscreenButton className="w-full" />)
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toHaveClass('w-full')
+  })
 })

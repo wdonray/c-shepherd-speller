@@ -10,7 +10,17 @@ import { Button } from '@/components/ui/button'
  * Renders nothing when the Fullscreen API is unavailable. Tracks reality via
  * the fullscreenchange event, so an Escape key exit updates the button too.
  */
-export default function FullscreenButton() {
+interface FullscreenButtonProps {
+  /** Extra classes merged onto the button (e.g. a full-width row in a menu sheet). */
+  className?: string
+  /**
+   * Show the text label at every breakpoint. Default follows the header
+   * pattern: icon-only below sm, labeled at sm and up.
+   */
+  alwaysShowLabel?: boolean
+}
+
+export default function FullscreenButton({ className, alwaysShowLabel = false }: FullscreenButtonProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   // Support is detected after mount: the server has no document, so a
   // render-time check would hydrate as unsupported and never recover.
@@ -46,15 +56,19 @@ export default function FullscreenButton() {
       variant="secondary"
       size="sm"
       onClick={toggleFullscreen}
-      aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+      // A visible label names the button; the icon-only form needs the label.
+      aria-label={alwaysShowLabel ? undefined : isFullscreen ? 'Exit full screen' : 'Enter full screen'}
       aria-pressed={isFullscreen}
+      className={className}
     >
       {isFullscreen ? (
         <MinimizeIcon className="size-4" aria-hidden="true" />
       ) : (
         <MaximizeIcon className="size-4" aria-hidden="true" />
       )}
-      <span className="hidden sm:inline-block">{isFullscreen ? 'Exit full screen' : 'Full screen'}</span>
+      <span className={alwaysShowLabel ? undefined : 'hidden sm:inline-block'}>
+        {isFullscreen ? 'Exit full screen' : 'Full screen'}
+      </span>
     </Button>
   )
 }
