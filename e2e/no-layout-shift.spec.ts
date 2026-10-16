@@ -42,7 +42,7 @@ async function installClsObserver(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
     ;(window as unknown as { __clsTotal: number }).__clsTotal = 0
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
+      for (const entry of list.getEntries() as Array<PerformanceEntry & { value: number; hadRecentInput: boolean }>) {
         if (entry.hadRecentInput) continue
         ;(window as unknown as { __clsTotal: number }).__clsTotal += entry.value
       }
