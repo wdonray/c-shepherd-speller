@@ -59,6 +59,11 @@ export function reportError(error: unknown, options: ReportErrorOptions = {}): v
   // Aborted or timed-out requests are benign user/system behavior, not errors.
   // AbortSignal.timeout() rejects with TimeoutError, not AbortError.
   if (error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError')) return
+  // The platform could not decode audio or image bytes: e.g. iOS Safari's
+  // decodeAudioData rejects MediaRecorder-produced blobs with an
+  // EncodingError even though the recording itself plays fine. That is a
+  // known browser limitation, not an app bug.
+  if (error instanceof DOMException && error.name === 'EncodingError') return
   // Transient connectivity blips are environmental noise, not app bugs.
   if (isNetworkError(error)) return
   // Unsupported or undecodable media on this device is environmental noise,

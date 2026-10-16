@@ -48,6 +48,10 @@ export function drawReviewWaveform(
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
+  // Capture narrowed values: narrowing does not survive into the nested
+  // helpers below.
+  const targetCanvas: HTMLCanvasElement = canvas
+  const targetCtx: CanvasRenderingContext2D = ctx
   const AudioContextClass =
     window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!AudioContextClass) return
@@ -56,27 +60,45 @@ export function drawReviewWaveform(
     .arrayBuffer()
     .then((buffer) => audioContext.decodeAudioData(buffer))
     .then((audioBuffer) => {
-      const channelData = audioBuffer.getChannelData(0)
-      const { width, height } = canvas
-      ctx.clearRect(0, 0, width, height)
-      ctx.fillStyle = '#0e7490'
-      const barCount = 96
-      const step = Math.floor(channelData.length / barCount)
-      for (let i = 0; i < barCount; i++) {
-        let max = 0
-        for (let j = 0; j < step; j += 10) {
-          const sample = Math.abs(channelData[i * step + j])
-          if (sample > max) max = sample
-        }
-        const barHeight = Math.max(3, max * height)
-        const x = (i / barCount) * width
-        const y = (height - barHeight) / 2
-        ctx.fillRect(x, y, Math.max(1, width / barCount - 2), barHeight)
-      }
+      drawBars(channelDataToPeaks(audioBuffer.getChannelData(0), 96))
       return audioContext.close().catch(() => {})
     })
     .catch((error: unknown) => {
       onError(error)
+      // decodeAudioData rejects on some platforms (e.g. iOS Safari cannot
+      // decode the MediaRecorder-produced blob) even though the recording
+      // itself plays fine. Draw a neutral flat line so the review canvas
+      // never looks broken instead of leaving it blank.
+      drawBars(new Float32Array(96).fill(0))
       audioContext.close().catch(() => {})
     })
+
+  /** Peak amplitude per bar, normalized 0..1. */
+  function channelDataToPeaks(channelData: Float32Array, barCount: number): Float32Array {
+    const peaks = new Float32Array(barCount)
+    const step = Math.max(1, Math.floor(channelData.length / barCount))
+    for (let i = 0; i < barCount; i++) {
+      let max = 0
+      for (let j = 0; j < step; j += 10) {
+        const sample = Math.abs(channelData[i * step + j])
+        if (sample > max) max = sample
+      }
+      peaks[i] = max
+    }
+    return peaks
+  }
+
+  /** Render normalized peaks as centered bars on the canvas. */
+  function drawBars(peaks: Float32Array): void {
+    const { width, height } = targetCanvas
+    const barCount = peaks.length
+    targetCtx.clearRect(0, 0, width, height)
+    targetCtx.fillStyle = '#0e7490'
+    for (let i = 0; i < barCount; i++) {
+      const barHeight = Math.max(3, peaks[i] * height)
+      const x = (i / barCount) * width
+      const y = (height - barHeight) / 2
+      targetCtx.fillRect(x, y, Math.max(1, width / barCount - 2), barHeight)
+    }
+  }
 }

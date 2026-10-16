@@ -144,6 +144,25 @@ describe('waveform-draw', () => {
       expect(onError).not.toHaveBeenCalled()
     })
 
+    it('draws a flat line instead of leaving the canvas blank when decoding fails', async () => {
+      const ctx = stub2d()
+      class FailingAudioContext extends FakeAudioContext {
+        override decodeAudioData() {
+          return Promise.reject(new DOMException('Decoding failed', 'EncodingError'))
+        }
+      }
+      vi.stubGlobal('AudioContext', FailingAudioContext)
+      const onError = vi.fn()
+      drawReviewWaveform(makeCanvas(), new Blob(['audio']), onError)
+      await vi.waitFor(() => expect(onError).toHaveBeenCalled())
+      // The flat line is drawn at the 3px minimum bar height, one bar per fillRect.
+      expect(ctx.clearRect).toHaveBeenCalled()
+      expect(ctx.fillRect).toHaveBeenCalledTimes(96)
+      for (const call of ctx.fillRect.mock.calls) {
+        expect(call[3]).toBe(3)
+      }
+    })
+
     it('reports decode errors via onError', async () => {
       stub2d()
       class FailingAudioContext extends FakeAudioContext {

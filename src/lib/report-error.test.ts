@@ -63,6 +63,17 @@ describe('reportError', () => {
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
+  it('ignores EncodingError from decodeAudioData', () => {
+    mockScope()
+
+    reportError(new DOMException('Decoding failed', 'EncodingError'), {
+      location: 'VoiceRecorderModal.drawReviewWaveform',
+    })
+
+    expect(Sentry.withScope).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+  })
+
   it('ignores TimeoutError from AbortSignal.timeout', () => {
     mockScope()
 
