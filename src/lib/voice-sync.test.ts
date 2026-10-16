@@ -303,6 +303,87 @@ describe('voice-sync', () => {
       expect(reportError).toHaveBeenCalled()
     })
 
+    it('drops unsyncable recordings instead of retrying them', async () => {
+      getAllRecordings.mockResolvedValue([localRec({ audio: new ArrayBuffer(0) })])
+      await syncNow()
+      // No begin-upload was attempted: empty audio can never validate.
+      const posts = ((fetchMock as Mock).mock.calls as [string, RequestInit | undefined][]).filter(
+        ([url, init]) => url === '/api/voice-recordings' && init?.method === 'POST'
+      )
+      expect(posts).toHaveLength(0)
+      expect(enqueueSyncOp).not.toHaveBeenCalled()
+      expect(markRecordingSynced).not.toHaveBeenCalled()
+      expect(reportError).toHaveBeenCalled()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.name).toBe('UnsyncableRecordingError')
+      expect(reported.message).toContain('byteSize=0')
+    })
+
+    it('drops unsyncable recordings from the retry queue', async () => {
+      getRecording.mockResolvedValue(localRec({ audio: { byteLength: 1.5 } as unknown as ArrayBuffer }))
+      getDueSyncOps.mockResolvedValue([{ id: 7, op: 'upload', text: 'bad', attempts: 3, nextRetryAt: 0 }])
+      await syncNow()
+      expect(deleteSyncOp).toHaveBeenCalledWith(7)
+      expect(updateSyncOpRetry).not.toHaveBeenCalled()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.name).toBe('UnsyncableRecordingError')
+    })
+
+    it('names the failing fields when begin-upload returns 400', async () => {
+      fetchMock.mockImplementation(
+        happyFetch([], {
+          'POST /api/voice-recordings': async () => ({
+            ok: false,
+            status: 400,
+            json: async () => ({ error: 'Invalid upload request', details: { fieldErrors: { byteSize: ['bad'] } } }),
+          }),
+        })
+      )
+      getAllRecordings.mockResolvedValue([localRec()])
+      await syncNow()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.message).toContain('Voice upload begin failed with 400')
+      expect(reported.message).toContain('mimeType=audio/webm')
+      expect(reported.message).toContain('byteSize=8')
+      expect(reported.message).toContain('"byteSize":["bad"]')
+      // Still retryable: a transient server-side rejection may clear.
+      expect(enqueueSyncOp).toHaveBeenCalledWith('upload', 'cake')
+    })
+
+    it('handles an unreadable 400 body', async () => {
+      fetchMock.mockImplementation(
+        happyFetch([], {
+          'POST /api/voice-recordings': async () => ({
+            ok: false,
+            status: 400,
+            json: async () => {
+              throw new Error('no json')
+            },
+          }),
+        })
+      )
+      getAllRecordings.mockResolvedValue([localRec()])
+      await syncNow()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.message).toContain('details=unreadable')
+    })
+
+    it('handles a 400 body with no details', async () => {
+      fetchMock.mockImplementation(
+        happyFetch([], {
+          'POST /api/voice-recordings': async () => ({
+            ok: false,
+            status: 400,
+            json: async () => ({}),
+          }),
+        })
+      )
+      getAllRecordings.mockResolvedValue([localRec()])
+      await syncNow()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.message).toContain('details=null')
+    })
+
     it('enqueues failed uploads and keeps going', async () => {
       fetchMock.mockImplementation(
         happyFetch([], {
@@ -438,6 +519,14 @@ describe('voice-sync', () => {
       )
       expect(await notifyRecordingSaved(saved())).toBe('quota-full')
       expect(enqueueSyncOp).not.toHaveBeenCalled()
+    })
+
+    it('returns skipped for unsyncable recordings without queueing', async () => {
+      expect(await notifyRecordingSaved(saved({ audio: new ArrayBuffer(0) }))).toBe('skipped')
+      expect(enqueueSyncOp).not.toHaveBeenCalled()
+      expect(fetchMock).not.toHaveBeenCalled()
+      const reported = (reportError as Mock).mock.calls[0][0] as Error
+      expect(reported.name).toBe('UnsyncableRecordingError')
     })
 
     it('queues on upload failure', async () => {

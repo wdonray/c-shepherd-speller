@@ -133,6 +133,7 @@ describe('POST /api/voice-recordings', () => {
     for (const body of [
       { ...validBody, text: '' },
       { ...validBody, mimeType: 'video/mp4' },
+      { ...validBody, mimeType: 123 },
       { ...validBody, byteSize: 0 },
       { ...validBody, byteSize: 3_000_000 },
       { ...validBody, recordedAt: -1 },
@@ -140,6 +141,33 @@ describe('POST /api/voice-recordings', () => {
       const res = await POST(jsonRequest(body))
       expect(res.status).toBe(400)
     }
+  })
+
+  it('reports which field failed validation', async () => {
+    requireUser.mockResolvedValue(authed)
+    const res = await POST(jsonRequest({ ...validBody, byteSize: 0 }))
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.details.fieldErrors.byteSize).toBeDefined()
+    expect(reportError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        location: 'POST /api/voice-recordings',
+        extra: expect.objectContaining({ fieldErrors: expect.anything() }),
+      })
+    )
+  })
+
+  it('accepts codec-suffixed and upper-case MIME types', async () => {
+    requireUser.mockResolvedValue(authed)
+    docSend.mockResolvedValue({ Items: [] })
+    for (const mimeType of ['audio/mp4;codecs=mp4a.40.2', 'AUDIO/WEBM']) {
+      const res = await POST(jsonRequest({ ...validBody, mimeType }))
+      expect(res.status).toBe(200)
+    }
+    // The codec suffix is stripped before the presigned URL is minted.
+    expect(getPresignedPutUrl).toHaveBeenCalledWith(expect.any(String), 'audio/mp4', 1000)
+    expect(getPresignedPutUrl).toHaveBeenCalledWith(expect.any(String), 'audio/webm', 1000)
   })
 
   it('begins an upload with a presigned URL', async () => {

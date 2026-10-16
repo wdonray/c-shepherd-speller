@@ -57,6 +57,18 @@ export class QuotaExceededError extends Error {
   }
 }
 
+/**
+ * Thrown when a local recording can never pass begin-upload validation
+ * (e.g. zero bytes of audio). Retrying is pointless: report once and drop
+ * the queued op instead of retrying with backoff forever.
+ */
+export class UnsyncableRecordingError extends Error {
+  constructor(detail: string) {
+    super(`Voice recording cannot be uploaded: ${detail}`)
+    this.name = 'UnsyncableRecordingError'
+  }
+}
+
 interface RemoteRecording {
   text: string
   mimeType: string
@@ -82,18 +94,35 @@ async function getRemoteIndex(): Promise<RemoteRecording[]> {
  * confirm. Returns the server's `updatedAt`, the conflict-resolution clock.
  */
 async function uploadSingle(recording: VoiceRecording): Promise<number> {
+  const byteSize = recording.audio.byteLength
+  if (!Number.isInteger(byteSize) || byteSize < 1) {
+    // Empty audio can never pass begin-upload validation (min 1 byte); the
+    // sync engine treats this as permanent, not retryable.
+    throw new UnsyncableRecordingError(`byteSize=${String(byteSize)}`)
+  }
   const beginRes = await fetch('/api/voice-recordings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       text: recording.text,
       mimeType: recording.mimeType,
-      byteSize: recording.audio.byteLength,
+      byteSize,
       recordedAt: recording.recordedAt,
     }),
   })
   if (beginRes.status === 413) throw new QuotaExceededError()
-  if (!beginRes.ok) throw new Error(`Voice upload begin failed with ${beginRes.status}`)
+  if (!beginRes.ok) {
+    // The server names the failing fields in the 400 body; carry them (and
+    // the sent metadata) into the Sentry report so the cause is visible.
+    const detail = await beginRes
+      .json()
+      .then((data: unknown) => JSON.stringify((data as { details?: unknown })?.details ?? null))
+      .catch(() => 'unreadable')
+    throw new Error(
+      `Voice upload begin failed with ${beginRes.status} ` +
+        `(mimeType=${recording.mimeType} byteSize=${byteSize} textLength=${recording.text.length} details=${detail})`
+    )
+  }
   const { uploadUrl } = (await beginRes.json()) as { uploadUrl: string }
 
   const putRes = await fetch(uploadUrl, {
@@ -177,8 +206,9 @@ async function drainQueue(userId: string): Promise<void> {
       }
       await deleteSyncOp(op.id)
     } catch (error) {
-      if (error instanceof QuotaExceededError) {
-        // Retrying cannot help until the teacher deletes something.
+      if (error instanceof QuotaExceededError || error instanceof UnsyncableRecordingError) {
+        // Retrying cannot help: the quota needs the teacher to delete
+        // something, and an unsyncable recording can never validate.
         reportError(error, { location: 'voice-sync.drainQueue' })
         await deleteSyncOp(op.id)
         continue
@@ -224,6 +254,11 @@ export async function syncNow(options?: { userId?: string }): Promise<void> {
         if (error instanceof QuotaExceededError) {
           reportError(error, { location: 'voice-sync.syncNow' })
           quotaFull = true
+          continue
+        }
+        if (error instanceof UnsyncableRecordingError) {
+          // Retrying cannot help: report once, do not enqueue.
+          reportError(error, { location: 'voice-sync.syncNow' })
           continue
         }
         reportError(error, { location: 'voice-sync.syncNow' })
@@ -291,6 +326,11 @@ export async function notifyRecordingSaved(recording: VoiceRecording): Promise<N
     return 'synced'
   } catch (error) {
     if (error instanceof QuotaExceededError) return 'quota-full'
+    if (error instanceof UnsyncableRecordingError) {
+      // Retrying cannot help: report once, do not enqueue.
+      reportError(error, { location: 'voice-sync.notifyRecordingSaved' })
+      return 'skipped'
+    }
     reportError(error, { location: 'voice-sync.notifyRecordingSaved' })
     try {
       await enqueueSyncOp('upload', recording.text)
