@@ -34,7 +34,12 @@ const TextSchema = z.string().trim().min(1).max(100)
 
 const BeginUploadSchema = z.object({
   text: TextSchema,
-  mimeType: z.enum(VOICE_MIME_ALLOWLIST),
+  // Browsers can report codec parameters (e.g. "audio/mp4;codecs=mp4a.40.2");
+  // match the allowlist on the base type only, case-insensitively.
+  mimeType: z.preprocess(
+    (value) => (typeof value === 'string' ? value.split(';')[0].trim().toLowerCase() : value),
+    z.enum(VOICE_MIME_ALLOWLIST)
+  ),
   byteSize: z.number().int().min(1).max(VOICE_MAX_RECORDING_BYTES),
   recordedAt: z.number().int().positive(),
 })
@@ -119,7 +124,14 @@ export async function POST(request: NextRequest) {
   }
   const parsed = BeginUploadSchema.safeParse(body)
   if (!parsed.success) {
-    return noStoreJson({ error: 'Invalid upload request' }, { status: 400 })
+    const details = parsed.error.flatten()
+    // A bare 400 is undiagnosable: record which field failed so the next
+    // occurrence names its cause (#344).
+    reportError(new Error('Invalid voice upload request'), {
+      location: 'POST /api/voice-recordings',
+      extra: { fieldErrors: details.fieldErrors },
+    })
+    return noStoreJson({ error: 'Invalid upload request', details }, { status: 400 })
   }
   const { text, mimeType, byteSize, recordedAt } = parsed.data
 
