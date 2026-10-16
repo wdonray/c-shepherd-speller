@@ -64,6 +64,19 @@ function stubPermissions(state: PermissionState) {
   return query
 }
 
+const ORIGINAL_UA = window.navigator.userAgent
+const CHROME_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+const SAFARI_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15'
+const FIREFOX_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0'
+const CRIOS_UA =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.0.0 Mobile/15E148 Safari/604.1'
+
+function stubUserAgent(ua: string) {
+  Object.defineProperty(window.navigator, 'userAgent', { value: ua, configurable: true })
+}
+
 class FakeAnalyser {
   fftSize = 0
   frequencyBinCount = 16
@@ -205,6 +218,7 @@ describe('VoiceRecorderModal', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.useRealTimers()
+    Object.defineProperty(window.navigator, 'userAgent', { value: ORIGINAL_UA, configurable: true })
   })
 
   afterAll(() => {
@@ -221,8 +235,46 @@ describe('VoiceRecorderModal', () => {
     stubPermissions('denied')
     renderModal()
     expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
-    expect(screen.getByText(/Click the lock or tune icon/)).toBeInTheDocument()
+    // jsdom's user agent matches no known browser, so the generic steps render.
+    expect(screen.getByText(/Open your browser's site settings/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+  })
+
+  it('shows the one-click blocked-icon steps in Chromium', async () => {
+    stubUserAgent(CHROME_UA)
+    stubPermissions('denied')
+    renderModal()
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+    expect(screen.getByText(/microphone icon with a line through it/)).toBeInTheDocument()
+    expect(screen.getByText(/Look for this blocked microphone icon/)).toBeInTheDocument()
+    expect(screen.getByText(/Do not see that icon/)).toBeInTheDocument()
+    expect(screen.queryByText(/lock icon/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the Safari menu steps in Safari', async () => {
+    stubUserAgent(SAFARI_UA)
+    stubPermissions('denied')
+    renderModal()
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+    expect(screen.getByText(/open the Safari menu/)).toBeInTheDocument()
+    expect(screen.getByText(/Websites, then Microphone/)).toBeInTheDocument()
+  })
+
+  it('shows the address-bar steps in Firefox', async () => {
+    stubUserAgent(FIREFOX_UA)
+    stubPermissions('denied')
+    renderModal()
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+    expect(screen.getByText('Click the microphone icon in the address bar.')).toBeInTheDocument()
+    expect(screen.getByText(/Look for this blocked microphone icon/)).toBeInTheDocument()
+  })
+
+  it('shows the Safari steps for Chrome on iOS', async () => {
+    stubUserAgent(CRIOS_UA)
+    stubPermissions('denied')
+    renderModal()
+    expect(await screen.findByText('Microphone is blocked')).toBeInTheDocument()
+    expect(screen.getByText(/open the Safari menu/)).toBeInTheDocument()
   })
 
   it('does not request permission on open; the Record tap asks from its own gesture', async () => {
@@ -328,6 +380,45 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByText(/did not show a permission prompt/)).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
     expect(reportError).not.toHaveBeenCalled()
+  })
+
+  it('names the blocked microphone icon in the no-prompt guidance on Chromium', async () => {
+    stubUserAgent(CHROME_UA)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('timed out', 'TimeoutError')))}
+      />
+    )
+    expect(await screen.findByText(/microphone icon with a line through it/)).toBeInTheDocument()
+  })
+
+  it('names the Safari menu in the no-prompt guidance on Safari', async () => {
+    stubUserAgent(SAFARI_UA)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('timed out', 'TimeoutError')))}
+      />
+    )
+    expect(await screen.findByText(/Safari menu, then Settings, then Websites/)).toBeInTheDocument()
+  })
+
+  it('names the address-bar microphone icon in the no-prompt guidance on Firefox', async () => {
+    stubUserAgent(FIREFOX_UA)
+    render(
+      <VoiceRecorderModal
+        word="cake"
+        open={true}
+        onOpenChange={() => {}}
+        microphoneRequest={fakeMicRequest(Promise.reject(new DOMException('timed out', 'TimeoutError')))}
+      />
+    )
+    expect(await screen.findByText(/Click the microphone icon in the address bar, choose Allow/)).toBeInTheDocument()
   })
 
   it('ignores a superseded opener request when a newer one arrives', async () => {
