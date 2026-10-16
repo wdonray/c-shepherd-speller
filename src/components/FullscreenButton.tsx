@@ -28,6 +28,9 @@ export default function FullscreenButton({ className, alwaysShowLabel = false }:
 
   useEffect(() => {
     setSupported(typeof document.documentElement.requestFullscreen === 'function')
+    // A remount (for example, reopening the mobile chart menu) must not reset
+    // the button while fullscreen is already active.
+    setIsFullscreen(document.fullscreenElement !== null)
   }, [])
 
   useEffect(() => {

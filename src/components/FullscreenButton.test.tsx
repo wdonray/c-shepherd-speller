@@ -80,6 +80,13 @@ describe('FullscreenButton', () => {
     expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
   })
 
+  it('syncs the initial state when mounting while already in full screen', () => {
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: document.body })
+    render(<FullscreenButton />)
+    const button = screen.getByRole('button', { name: 'Exit full screen' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('renders nothing when the Fullscreen API is unavailable', () => {
     setFullscreenApi(false)
     const { container } = render(<FullscreenButton />)
