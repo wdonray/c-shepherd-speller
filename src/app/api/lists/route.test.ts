@@ -91,6 +91,25 @@ describe('POST /api/lists', () => {
     expect(createList).toHaveBeenCalledWith('u1', { name: 'Week 5', patterns: [] })
   })
 
+  it('passes the teacher classroom through to creation (issue #345)', async () => {
+    requireUser.mockResolvedValue(authed)
+    createList.mockResolvedValue({
+      id: 'l1',
+      name: 'Week 5',
+      userId: 'u1',
+      classId: 'class_9',
+      patterns: [],
+    })
+
+    const res = await POST(jsonRequest({ name: 'Week 5', classId: 'class_9' }))
+    expect(res.status).toBe(201)
+    expect(createList).toHaveBeenCalledWith('u1', {
+      name: 'Week 5',
+      classId: 'class_9',
+      patterns: [],
+    })
+  })
+
   it('returns 400 for invalid input', async () => {
     requireUser.mockResolvedValue(authed)
     const res = await POST(jsonRequest({ name: '' }))
