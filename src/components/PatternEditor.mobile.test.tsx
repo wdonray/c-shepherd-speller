@@ -174,11 +174,11 @@ describe('PatternEditor mobile rule affordance (issue #313)', () => {
     return { onSaveRule }
   }
 
-  it('renders the collapsed rule row at 390px with a 44px touch target', () => {
+  it('renders the collapsed rule row at 390px as a 56px settings row', () => {
     renderWithRule()
     const row = screen.getByRole('button', { name: 'Add rule for a_e' })
     expect(row).toBeInTheDocument()
-    expect(row).toHaveClass('min-h-[44px]')
+    expect(row).toHaveClass('min-h-[56px]')
   })
 
   it('shows the pattern rule preview on the card', () => {

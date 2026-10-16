@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import { wordMatchesPattern } from '@/lib/word-pattern-match'
+import { useMediaQuery } from '@/lib/use-media-query'
 import {
   MICROPHONE_REQUEST_TIMEOUT_MS,
   hasRecording,
@@ -75,6 +76,12 @@ const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; le
     level: 1,
   },
 ]
+
+/** Below this width the words table becomes stacked cards. */
+const MOBILE_QUERY = '(max-width: 767px)'
+
+/** One style for the card's section headings ("Words (n)", "Details"). */
+const SECTION_HEADING_CLASS = 'text-[13px] font-bold uppercase tracking-[0.06em] text-muted-foreground'
 
 /** Editor card for a single spelling pattern (one column of the pattern chart). */
 export default function PatternEditor({
@@ -164,12 +171,13 @@ export default function PatternEditor({
   const isLocked = pattern.isLocked ?? false
 
   // The effective rule: the classroom's rule wins when set. Rendered as a
-  // per-pattern affordance in the card header (issue #313); the standalone
+  // per-pattern affordance in the card's Details well; the standalone
   // Rules section is gone.
   const effectiveRule = classRules?.[pattern.pattern] ?? pattern.rule ?? ''
   const ruleShared = !!classId && classRules?.[pattern.pattern] !== undefined
 
   const accent = LIST_ACCENT_CLASSES[color]
+  const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const update = (updates: Partial<SpellingPattern>) => {
     onChange({ ...pattern, ...updates })
@@ -319,219 +327,245 @@ export default function PatternEditor({
     <TooltipProvider delayDuration={300}>
       <section
         aria-label={pattern.pattern ? `Pattern ${pattern.pattern}` : 'Untitled pattern'}
-        className="relative overflow-hidden rounded-[20px] border-2 border-line bg-card p-6"
+        className="relative overflow-hidden rounded-[20px] border-2 border-line bg-card p-4 sm:p-6"
       >
         <div className={cn('absolute inset-x-0 top-0 h-2', accent.bar)} aria-hidden="true" />
 
-        <div className="flex items-start gap-4">
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
-              {isUnsaved && (
-                <span
-                  role="status"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[12px] font-bold text-amber-700"
-                >
-                  <span aria-hidden="true" className="size-1.5 rounded-full bg-amber-500" />
-                  Unsaved
+        <div className="space-y-6">
+          {/* A. Pattern identity */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
+                {isUnsaved && (
+                  <span
+                    role="status"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[12px] font-bold text-amber-700"
+                  >
+                    <span aria-hidden="true" className="size-1.5 rounded-full bg-amber-500" />
+                    Unsaved
+                  </span>
+                )}
+              </div>
+              <Input
+                id={`pattern-spelling-${pattern.id}`}
+                value={pattern.pattern}
+                onChange={(e) => update({ pattern: e.target.value })}
+                placeholder="e.g. a_e"
+                maxLength={20}
+                aria-label="Pattern spelling"
+                className={cn('h-14 text-xl font-bold', accent.text)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`pattern-sound-${pattern.id}`}>Sound</Label>
+              <Input
+                id={`pattern-sound-${pattern.id}`}
+                value={pattern.sound}
+                onChange={(e) => update({ sound: e.target.value })}
+                placeholder="e.g. long a"
+                maxLength={50}
+                aria-label="Target sound"
+              />
+            </div>
+          </div>
+
+          {/* B. Words */}
+          <div className="space-y-4">
+            <h4 className={SECTION_HEADING_CLASS}>Words ({pattern.words.length})</h4>
+            {suggestions.length > 0 && (
+              <div
+                role="group"
+                aria-labelledby={`suggestions-${pattern.id}`}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <span id={`suggestions-${pattern.id}`} className="text-[13px] font-semibold text-muted-foreground">
+                  Try:
                 </span>
-              )}
-            </div>
-            <Input
-              id={`pattern-spelling-${pattern.id}`}
-              value={pattern.pattern}
-              onChange={(e) => update({ pattern: e.target.value })}
-              placeholder="e.g. a_e"
-              maxLength={20}
-              aria-label="Pattern spelling"
-              className={cn(
-                'h-auto border-2 border-line bg-card px-2 text-xl font-bold',
-                'placeholder:text-muted-foreground',
-                'focus-visible:border-sky-deep focus-visible:ring-[3px]',
-                accent.text
-              )}
-            />
-          </div>
-          <div className="shrink-0 space-y-1.5">
-            <span className="flex items-center text-sm leading-none font-medium select-none">Keyword image</span>
-            <KeywordImagePicker
-              patternName={pattern.pattern}
-              image={pattern.keywordImage}
-              emoji={pattern.keywordEmoji}
-              onImageSelect={(keywordImage) => update({ keywordImage })}
-              onEmojiSelect={(keywordEmoji) => update({ keywordEmoji })}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor={`pattern-sound-${pattern.id}`}>Sound</Label>
-            <Input
-              id={`pattern-sound-${pattern.id}`}
-              value={pattern.sound}
-              onChange={(e) => update({ sound: e.target.value })}
-              placeholder="e.g. long a"
-              maxLength={50}
-              aria-label="Target sound"
-              className="h-11 border-2 border-line bg-card px-3 text-[15px] placeholder:text-muted-foreground focus-visible:border-sky-deep focus-visible:ring-[3px]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <span className="flex items-center gap-1.5">
-              <span id={`frequency-${pattern.id}`} className="text-sm leading-none font-medium select-none">
-                Frequency
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
+                {suggestions.map((word) => (
                   <button
+                    key={word}
                     type="button"
-                    onClick={() => setIsFrequencyHelpOpen(true)}
-                    aria-label="About frequency"
-                    className="flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none transition hover:bg-line/50 hover:text-ink focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                    onClick={() => addSuggestedWord(word)}
+                    className="min-h-[44px] cursor-pointer rounded-full border-2 border-line bg-card px-4 text-[15px] font-bold text-ink outline-none transition hover:border-sky-deep hover:text-sky-ink focus-visible:border-sky-deep focus-visible:text-sky-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
                   >
-                    <InfoIcon className="size-4" aria-hidden="true" />
+                    {word}
                   </button>
-                </TooltipTrigger>
-                <TooltipContent>What does frequency mean?</TooltipContent>
-              </Tooltip>
-            </span>
-            <div
-              role="radiogroup"
-              aria-labelledby={`frequency-${pattern.id}`}
-              className="grid grid-cols-3 gap-1 rounded-2xl border-2 border-line bg-muted/40 p-1"
-            >
-              {FREQUENCIES.map((f) => {
-                const selected = pattern.frequency === f.value
-                return (
-                  <button
-                    key={f.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${f.label}. ${f.meaning}`}
-                    onClick={() => update({ frequency: f.value })}
-                    className={cn(
-                      'flex min-h-[44px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 px-1 py-1.5 transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                      selected
-                        ? cn(
-                            'border-current bg-card shadow-sm hover:brightness-95 focus-visible:brightness-95',
-                            accent.text,
-                            accent.soft
-                          )
-                        : 'border-transparent text-muted-foreground hover:bg-card/70 hover:text-ink focus-visible:bg-card/70 focus-visible:text-ink'
-                    )}
-                  >
-                    <PowerBar level={f.level} filledClassName={accent.fill} />
-                    <span className="text-[12px] leading-none font-bold">{f.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {onSaveRule && (
-          <div className="mt-4">
-            <PatternRuleEditor
-              patternId={pattern.id}
-              patternText={pattern.pattern}
-              initialRule={effectiveRule}
-              shared={ruleShared}
-              className={className}
-              onSave={(rule) => onSaveRule(pattern.id, pattern.pattern, rule)}
-            />
-          </div>
-        )}
-
-        <div className="mt-6">
-          <h4 className="text-[15px] font-bold">Words ({pattern.words.length})</h4>
-          {suggestions.length > 0 && (
-            <div
-              role="group"
-              aria-labelledby={`suggestions-${pattern.id}`}
-              className="mt-2 flex flex-wrap items-center gap-2"
-            >
-              <span id={`suggestions-${pattern.id}`} className="text-[13px] font-semibold text-muted-foreground">
-                Try:
-              </span>
-              {suggestions.map((word) => (
-                <button
-                  key={word}
-                  type="button"
-                  onClick={() => addSuggestedWord(word)}
-                  className="min-h-[44px] cursor-pointer rounded-full border border-sky/60 bg-sky-soft px-3 py-1.5 text-[13px] font-semibold text-sky-ink outline-none transition hover:brightness-95 focus-visible:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                >
-                  {word}
-                </button>
+                ))}
+              </div>
+            )}
+            {pattern.words.length > 0 &&
+              (isMobile ? (
+                // Stacked cards on mobile: the word is the card heading, the
+                // example sentence sits below it as a labeled field.
+                <ul className="space-y-3">
+                  {pattern.words.map((word) => {
+                    const sentence = pattern.sentences?.[word]
+                    return (
+                      <li key={word} className="rounded-2xl border-2 border-line bg-card p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <h5 className="min-w-0 flex-1 truncate text-[17px] font-bold text-ink">{word}</h5>
+                          {renderWordActions(word)}
+                        </div>
+                        <p className="mt-2 text-[13px] font-semibold text-muted-foreground">Example sentence</p>
+                        <p className="mt-1 text-[15px] text-muted-foreground">
+                          {sentence ?? <span aria-hidden="true">—</span>}
+                          {!sentence && <span className="sr-only">No example sentence</span>}
+                        </p>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border-2 border-line">
+                  <table className="w-full text-left text-[15px]">
+                    <thead>
+                      <tr className="border-b-2 border-line bg-muted/50">
+                        <th scope="col" className="px-4 py-3 font-bold text-ink">
+                          Word
+                        </th>
+                        <th scope="col" className="px-4 py-3 font-bold text-ink">
+                          Example sentence
+                        </th>
+                        <th scope="col" className="w-[120px] px-4 py-3 text-right font-bold text-ink">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pattern.words.map((word) => {
+                        const sentence = pattern.sentences?.[word]
+                        return (
+                          <tr key={word} className="border-b border-line last:border-0">
+                            <td className="px-4 py-2 font-semibold text-ink">{word}</td>
+                            <td className="max-w-[300px] truncate px-4 py-2 text-muted-foreground">
+                              {sentence ?? <span aria-hidden="true">—</span>}
+                              {!sentence && <span className="sr-only">No example sentence</span>}
+                            </td>
+                            <td className="px-4 py-2">{renderWordActions(word)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               ))}
+            <div className="flex max-w-md gap-2">
+              <Label htmlFor={`new-word-${pattern.id}`} className="sr-only">
+                New word
+              </Label>
+              <Input
+                id={`new-word-${pattern.id}`}
+                value={newWord}
+                onChange={(e) => setNewWord(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addWord()
+                  }
+                }}
+                placeholder="Add a word"
+                maxLength={50}
+              />
+              <Button onClick={addWord} disabled={!newWord.trim()}>
+                Add
+              </Button>
             </div>
-          )}
-          {pattern.words.length > 0 && (
-            // One uniform layout at every breakpoint: the word is the row heading and the
-            // example sentence sits below it as a labeled field.
-            <ul className="mt-3 divide-y divide-line rounded-2xl border-2 border-line">
-              {pattern.words.map((word) => {
-                const sentence = pattern.sentences?.[word]
-                return (
-                  <li key={word} className="p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <h5 className="min-w-0 flex-1 truncate text-[17px] font-bold text-ink">{word}</h5>
-                      {renderWordActions(word)}
-                    </div>
-                    <p className="mt-2 text-[13px] font-semibold text-muted-foreground">Example sentence</p>
-                    <p className="mt-1 text-[15px] text-muted-foreground">
-                      {sentence ?? <span aria-hidden="true">—</span>}
-                      {!sentence && <span className="sr-only">No example sentence</span>}
-                    </p>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-          <div className="mt-3 flex max-w-md gap-2">
-            <Input
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addWord()
-                }
-              }}
-              placeholder="Add a word"
-              maxLength={50}
-              aria-label="New word"
-            />
-            <Button onClick={addWord} disabled={!newWord.trim()}>
-              Add
-            </Button>
+          </div>
+
+          {/* C. Details */}
+          <div className="space-y-4">
+            <h4 className={SECTION_HEADING_CLASS}>Details</h4>
+            <div className="rounded-2xl border-2 border-line bg-muted/40 p-4">
+              <div className="divide-y divide-line">
+                <div className="flex min-h-[56px] w-full flex-col justify-center gap-3 px-3 py-3">
+                  <span className="flex items-center gap-1.5">
+                    <Label id={`frequency-${pattern.id}`}>Frequency</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setIsFrequencyHelpOpen(true)}
+                          aria-label="About frequency"
+                          className="flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none transition hover:bg-line/50 hover:text-ink focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                        >
+                          <InfoIcon className="size-4" aria-hidden="true" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>What does frequency mean?</TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <div
+                    role="radiogroup"
+                    aria-labelledby={`frequency-${pattern.id}`}
+                    className="flex w-full gap-1 rounded-xl border-2 border-line bg-card p-1"
+                  >
+                    {FREQUENCIES.map((f) => {
+                      const selected = pattern.frequency === f.value
+                      return (
+                        <button
+                          key={f.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          aria-label={`${f.label}. ${f.meaning}`}
+                          onClick={() => update({ frequency: f.value })}
+                          className={cn(
+                            'flex min-h-[44px] min-w-0 flex-1 cursor-pointer flex-wrap items-center justify-center gap-1.5 rounded-lg px-3 text-[13px] font-bold outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                            selected ? 'bg-sky-soft text-sky-ink' : 'text-muted-foreground hover:text-ink'
+                          )}
+                        >
+                          <PowerBar level={f.level} filledClassName={accent.fill} size="sm" />
+                          <span>{f.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                {onSaveRule && (
+                  <div>
+                    <PatternRuleEditor
+                      patternId={pattern.id}
+                      patternText={pattern.pattern}
+                      initialRule={effectiveRule}
+                      shared={ruleShared}
+                      className={className}
+                      onSave={(rule) => onSaveRule(pattern.id, pattern.pattern, rule)}
+                    />
+                  </div>
+                )}
+                <KeywordImagePicker
+                  patternName={pattern.pattern}
+                  image={pattern.keywordImage}
+                  emoji={pattern.keywordEmoji}
+                  onImageSelect={(keywordImage) => update({ keywordImage })}
+                  onEmojiSelect={(keywordEmoji) => update({ keywordEmoji })}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-4">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onRemove}
             aria-label={pattern.pattern ? `Delete pattern ${pattern.pattern}` : 'Delete this pattern'}
-            className="flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-[15px] font-bold text-destructive outline-none transition hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            className="min-h-[44px] px-4 text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:bg-destructive/10"
           >
             <Trash2Icon className="size-5" aria-hidden="true" />
             Delete pattern
-          </button>
+          </Button>
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   aria-pressed={isLocked}
                   onClick={() => update({ isLocked: !isLocked })}
-                  className={cn(
-                    'inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border-2 px-4 py-1.5 text-[13px] font-bold transition outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                    isLocked
-                      ? 'border-sky-deep bg-sky-soft text-sky-ink hover:brightness-95 focus-visible:brightness-95'
-                      : 'border-line bg-transparent text-muted-foreground hover:border-sky-deep hover:text-sky-ink focus-visible:border-sky-deep focus-visible:text-sky-ink'
-                  )}
+                  className="min-h-[44px] rounded-full px-4 text-[13px]"
                 >
                   {isLocked ? (
                     <LockIcon className="size-5 text-sky-deep" aria-hidden="true" />
@@ -539,7 +573,7 @@ export default function PatternEditor({
                     <LockOpenIcon className="size-5" aria-hidden="true" />
                   )}
                   {isLocked ? 'Locked' : 'Lock pattern'}
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-60">
                 Locked patterns are hidden in present mode until you unlock them.

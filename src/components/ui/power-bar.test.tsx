@@ -43,6 +43,16 @@ describe('PowerBar', () => {
     expect(screen.getByRole('img', { name: 'Frequency: Rare' })).toHaveClass('extra')
   })
 
+  it('renders a compact variant with size="sm"', () => {
+    const { container } = render(<PowerBar level={3} size="sm" />)
+    const segments = container.querySelectorAll('span[aria-hidden="true"]')
+    expect(segments).toHaveLength(3)
+    for (const segment of segments) {
+      expect(segment).toHaveClass('h-2', 'w-4')
+      expect(segment).not.toHaveClass('h-2.5', 'w-6')
+    }
+  })
+
   it('exposes all three frequency labels', () => {
     expect(FREQUENCY_LABELS).toEqual({ 1: 'Rare', 2: 'Less common', 3: 'Common' })
   })

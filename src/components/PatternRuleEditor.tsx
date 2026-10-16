@@ -144,14 +144,13 @@ export default function PatternRuleEditor({
           setOpen(true)
         }}
         aria-label={savedRule ? `Edit rule for ${patternText}` : `Add rule for ${patternText}`}
-        className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-line/70 bg-muted/40 px-3 py-2 outline-none transition-colors hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         <ScrollTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        {savedRule ? (
-          <span className="min-w-0 flex-1 truncate text-left text-[15px] text-ink">{savedRule}</span>
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-left text-[15px] text-muted-foreground">Add rule</span>
-        )}
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold text-ink">Spelling rule</span>
+          <span className="block truncate text-[13px] text-muted-foreground">{savedRule || 'Add a rule'}</span>
+        </span>
         <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
       {shared && className && <p className="mt-1 text-xs font-bold text-muted-foreground">Shared with {className}</p>}

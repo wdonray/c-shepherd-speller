@@ -34,9 +34,37 @@ describe('KeywordImagePicker', () => {
     vi.clearAllMocks()
   })
 
-  it('shows an Add placeholder when no image or emoji is set', () => {
+  it('shows a "Not set" summary when no image or emoji is set', () => {
     renderPicker()
-    expect(screen.getByRole('button', { name: 'Keyword image for pattern ee' })).toHaveTextContent('Add')
+    const trigger = screen.getByRole('button', { name: 'Keyword image for pattern ee' })
+    expect(trigger).toHaveTextContent('Keyword image')
+    expect(trigger).toHaveTextContent('Not set')
+  })
+
+  it('exposes the trigger summary to screen readers via aria-describedby', () => {
+    renderPicker({ emoji: '🐝' })
+    const trigger = screen.getByRole('button', { name: 'Keyword image for pattern ee' })
+    const describedBy = trigger.getAttribute('aria-describedby')
+    expect(describedBy).toBeTruthy()
+    const summary = document.getElementById(describedBy!)
+    expect(summary).toHaveTextContent('🐝 Bee')
+  })
+
+  it('shows the curated emoji name in the trigger summary', () => {
+    renderPicker({ emoji: '🐝' })
+    expect(screen.getByRole('button', { name: 'Keyword image for pattern ee' })).toHaveTextContent('🐝 Bee')
+  })
+
+  it('shows a custom emoji without a name in the trigger summary', () => {
+    renderPicker({ emoji: '🦄' })
+    const trigger = screen.getByRole('button', { name: 'Keyword image for pattern ee' })
+    expect(trigger).toHaveTextContent('🦄')
+    expect(trigger).not.toHaveTextContent('Not set')
+  })
+
+  it('shows "Photo" in the trigger summary when a photo is set', () => {
+    renderPicker({ image: 'data:image/jpeg;base64,photo' })
+    expect(screen.getByRole('button', { name: 'Keyword image for pattern ee' })).toHaveTextContent('Photo')
   })
 
   it('shows the uploaded photo in the trigger when set', () => {
