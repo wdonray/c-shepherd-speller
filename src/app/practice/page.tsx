@@ -53,14 +53,14 @@ function PracticeInner() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background" role="status" aria-label="Loading practice" aria-busy="true">
-        <div className="mx-auto max-w-6xl space-y-8 px-4 py-8">
-          {/* Header: matches loaded (back link + h1 + description) */}
+        <div className="mx-auto max-w-6xl space-y-8 px-4 py-6">
+          {/* Header: matches loaded (back link + h1 + multi-line description, issue #341) */}
           <div aria-hidden="true">
             <div className="h-5 w-16 animate-pulse rounded-lg bg-line/60" />
-            <div className="mt-3 h-10 w-72 animate-pulse rounded-xl bg-line/60" />
-            <div className="mt-1 h-5 w-96 max-w-full animate-pulse rounded-lg bg-line/40" />
+            <div className="mt-2 h-[75px] w-72 max-w-full animate-pulse rounded-xl bg-line/60 sm:mt-3 sm:h-10" />
+            <div className="mt-1 h-24 animate-pulse rounded-lg bg-line/40 sm:h-12" />
           </div>
-          {/* List cards: match WordListCard structure */}
+          {/* List cards: match WordListCard structure (href cards have an empty action row) */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
@@ -68,7 +68,7 @@ function PracticeInner() {
                 <div className="flex flex-col gap-3 p-6">
                   <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
                   <div className="h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
-                  <div className="h-20 animate-pulse rounded-xl bg-line/40" />
+                  <div className="pt-2" />
                 </div>
               </div>
             ))}

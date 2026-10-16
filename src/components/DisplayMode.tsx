@@ -153,6 +153,49 @@ function DisplayModeInner() {
   }, [listId])
 
   if (loading) {
+    // No list selected: the picker loads, so the skeleton depicts the picker
+    // (issue #341). With a list selected, the chart skeleton is correct.
+    if (!listId) {
+      return (
+        <div
+          className="flex min-h-screen flex-col bg-background"
+          role="status"
+          aria-label="Loading lists"
+          aria-busy="true"
+        >
+          {/* Subheader: matches the loaded sticky picker subheader */}
+          <div className="sticky top-0 z-10 border-b-2 border-line bg-card" aria-hidden="true">
+            <div className="flex items-center gap-2 px-4 py-3">
+              <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
+              <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
+            </div>
+          </div>
+          {/* Picker: matches the loaded max-w-6xl picker layout */}
+          <div className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-8 sm:px-8" aria-hidden="true">
+            {/* Description: two paragraphs like the loaded copy (issue #341) */}
+            <div className="h-[45px] animate-pulse rounded-lg bg-line/60 sm:h-6" />
+            <div className="mt-2 h-[113px] animate-pulse rounded-lg bg-line/40 sm:h-12" />
+            <div className="flex flex-wrap gap-2">
+              {[0, 1].map((i) => (
+                <div key={i} className="h-9 w-24 animate-pulse rounded-xl bg-line/60" />
+              ))}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
+                  <div className="h-2 w-full animate-pulse bg-line/60" />
+                  <div className="flex flex-col gap-3 p-6">
+                    <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
+                    <div className="h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                    <div className="pt-2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
     return (
       <div
         className="flex min-h-screen flex-col bg-background"
