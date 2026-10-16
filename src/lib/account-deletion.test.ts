@@ -8,17 +8,32 @@ vi.mock('@/lib/dynamodb', () => ({
   client: {},
 }))
 
+const { voiceSend, listUserS3Keys, deleteS3Objects } = vi.hoisted(() => ({
+  voiceSend: vi.fn(),
+  listUserS3Keys: vi.fn(),
+  deleteS3Objects: vi.fn(),
+}))
+vi.mock('@/lib/s3', () => ({
+  getVoiceDocClient: () => ({ send: voiceSend }),
+  listUserS3Keys,
+  deleteS3Objects,
+}))
+
 import {
   COGNITO_PROVIDERS,
   deleteAppUser,
   deleteAuthRecords,
   deleteUserLists,
+  deleteUserVoiceData,
   getAccountProviders,
 } from './account-deletion'
 
 describe('account-deletion', () => {
   beforeEach(() => {
     send.mockReset()
+    voiceSend.mockReset()
+    listUserS3Keys.mockReset()
+    deleteS3Objects.mockReset()
     delete process.env.AUTH_TABLE_NAME
   })
 
@@ -142,5 +157,40 @@ describe('account-deletion', () => {
     it('covers both Cognito-backed providers', () => {
       expect(COGNITO_PROVIDERS).toEqual(expect.arrayContaining(['cognito', 'email-password']))
     })
+  })
+})
+
+describe('deleteUserVoiceData', () => {
+  it('deletes the S3 objects and then the metadata rows', async () => {
+    listUserS3Keys.mockResolvedValue(['voice-recordings/abc-user/a.webm'])
+    voiceSend.mockResolvedValue({
+      Items: [{ PK: 'USER#abc-user', SK: 'VOICE#aaa' }],
+    })
+    await deleteUserVoiceData('abc-user')
+    expect(listUserS3Keys).toHaveBeenCalledWith('abc-user')
+    expect(deleteS3Objects).toHaveBeenCalledWith(['voice-recordings/abc-user/a.webm'])
+    const query = voiceSend.mock.calls[0][0].input
+    expect(query.TableName).toBe('patternspell-voice-recordings')
+    expect(query.ExpressionAttributeValues).toEqual({ ':pk': 'USER#abc-user' })
+    const batch = voiceSend.mock.calls[1][0].input
+    expect(batch.RequestItems['patternspell-voice-recordings']).toEqual([
+      { DeleteRequest: { Key: { PK: 'USER#abc-user', SK: 'VOICE#aaa' } } },
+    ])
+  })
+
+  it('is a no-op when the user has no voice data', async () => {
+    listUserS3Keys.mockResolvedValue([])
+    voiceSend.mockResolvedValue({ Items: [] })
+    await deleteUserVoiceData('abc-user')
+    expect(deleteS3Objects).toHaveBeenCalledWith([])
+    expect(voiceSend).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the dedicated voice credentials, not the app client', async () => {
+    listUserS3Keys.mockResolvedValue([])
+    voiceSend.mockResolvedValue({ Items: [] })
+    await deleteUserVoiceData('abc-user')
+    expect(voiceSend).toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
   })
 })

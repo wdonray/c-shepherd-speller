@@ -31,18 +31,22 @@ const { cognitoVerifyPassword, cognitoDeleteUser, CognitoAuthError } = vi.hoiste
 }))
 vi.mock('@/lib/cognito-auth', () => ({ cognitoVerifyPassword, cognitoDeleteUser, CognitoAuthError }))
 
-const { getAccountProviders, deleteAppUser, deleteAuthRecords, deleteUserLists } = vi.hoisted(() => ({
-  getAccountProviders: vi.fn(),
-  deleteAppUser: vi.fn(),
-  deleteAuthRecords: vi.fn(),
-  deleteUserLists: vi.fn(),
-}))
+const { getAccountProviders, deleteAppUser, deleteAuthRecords, deleteUserLists, deleteUserVoiceData } = vi.hoisted(
+  () => ({
+    getAccountProviders: vi.fn(),
+    deleteAppUser: vi.fn(),
+    deleteAuthRecords: vi.fn(),
+    deleteUserLists: vi.fn(),
+    deleteUserVoiceData: vi.fn(),
+  })
+)
 vi.mock('@/lib/account-deletion', () => ({
   COGNITO_PROVIDERS: ['cognito', 'email-password'],
   getAccountProviders,
   deleteAppUser,
   deleteAuthRecords,
   deleteUserLists,
+  deleteUserVoiceData,
 }))
 
 vi.mock('@/lib/report-error', () => ({ reportError: vi.fn() }))
@@ -165,6 +169,7 @@ describe('DELETE /api/account', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ ok: true })
     expect(deleteUserLists).toHaveBeenCalledWith('abc-user')
+    expect(deleteUserVoiceData).toHaveBeenCalledWith('abc-user')
     expect(deleteAppUser).toHaveBeenCalledWith('abc-user')
     expect(deleteAuthRecords).toHaveBeenCalledWith('sub-1')
     expect(cognitoVerifyPassword).not.toHaveBeenCalled()

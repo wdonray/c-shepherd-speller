@@ -11,6 +11,7 @@ import {
   deleteAppUser,
   deleteAuthRecords,
   deleteUserLists,
+  deleteUserVoiceData,
   getAccountProviders,
 } from '@/lib/account-deletion'
 
@@ -93,6 +94,7 @@ export async function DELETE(request: NextRequest) {
     const dbUser = await getUserByEmail(email)
     if (dbUser) {
       await deleteUserLists(dbUser.id)
+      await deleteUserVoiceData(dbUser.id)
       await deleteAppUser(dbUser.id)
     }
     await deleteAuthRecords(sub)

@@ -2,10 +2,12 @@
  * Teacher-recorded read-aloud audio.
  *
  * Recordings are captured with the device microphone and stored per device
- * in IndexedDB, keyed by the trimmed text that was recorded. They never leave
- * the browser: no upload, no sync, fully offline. When the teacher taps a
- * read-aloud button, speak() plays the recording for that trimmed text when
- * one exists, instead of the neural or built-in voice.
+ * in IndexedDB, keyed by the trimmed text that was recorded. When the
+ * teacher is signed in, recordings also sync to the teacher's cloud storage
+ * (see voice-sync.ts) so they are available on all their devices; sync is
+ * best-effort and the local copy is always the source of truth for playback.
+ * When the teacher taps a read-aloud button, speak() plays the recording for
+ * that trimmed text when one exists, instead of the neural or built-in voice.
  *
  * Audio is stored as an ArrayBuffer (plus its MIME type) rather than a Blob:
  * ArrayBuffers round-trip through structured clone on every IndexedDB
@@ -18,6 +20,27 @@ export interface VoiceRecording {
   audio: ArrayBuffer
   mimeType: string
   recordedAt: number
+  /**
+   * The database user ID that owns this recording, or null until the first
+   * sync attributes it. Lets two teachers sharing one browser keep their
+   * recordings separate once sync runs.
+   */
+  userId: string | null
+  /**
+   * Server timestamp of the last successful cloud confirmation, or null when
+   * never synced (or re-recorded since). Compared against the server's
+   * `updatedAt` for conflict resolution; both are server-clock.
+   */
+  syncedAt: number | null
+}
+
+/** One pending cloud operation for a recording. */
+export interface SyncQueueOp {
+  id?: number
+  op: 'upload' | 'delete'
+  text: string
+  attempts: number
+  nextRetryAt: number
 }
 
 export interface RecordingSession {
@@ -31,7 +54,8 @@ export interface RecordingSession {
 
 const DB_NAME = 'patternspell'
 const STORE_NAME = 'voice-recordings'
-const DB_VERSION = 1
+const QUEUE_STORE_NAME = 'voice-sync-queue'
+const DB_VERSION = 2
 
 /** True when recordings can be stored on this device. */
 export function isRecordingStorageSupported(): boolean {
@@ -59,6 +83,25 @@ function openDatabase(version: number = DB_VERSION): Promise<IDBDatabase> {
       const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'text' })
+      } else {
+        // Backfill sync fields on pre-sync records. Idempotent: records
+        // already carrying the fields are skipped, so re-running this on a
+        // later upgrade is harmless.
+        const store = request.transaction!.objectStore(STORE_NAME)
+        const cursorRequest = store.openCursor()
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result
+          if (cursor) {
+            const value = cursor.value as Partial<VoiceRecording>
+            if (value.userId === undefined || value.syncedAt === undefined) {
+              cursor.update({ ...value, userId: value.userId ?? null, syncedAt: value.syncedAt ?? null })
+            }
+            cursor.continue()
+          }
+        }
+      }
+      if (!db.objectStoreNames.contains(QUEUE_STORE_NAME)) {
+        db.createObjectStore(QUEUE_STORE_NAME, { keyPath: 'id', autoIncrement: true })
       }
     }
     request.onsuccess = () => resolve(request.result)
@@ -107,17 +150,134 @@ export async function hasRecording(text: string): Promise<boolean> {
 export async function saveRecording(text: string, audio: Blob): Promise<VoiceRecording> {
   const db = await openDatabase()
   try {
+    const trimmed = text.trim()
+    // A re-record keeps the owner's attribution but must be re-uploaded:
+    // new audio invalidates the previous sync state.
+    const existing = await awaitRequest<VoiceRecording | undefined>(
+      db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(trimmed),
+      'Could not read the voice recording'
+    )
     const recording: VoiceRecording = {
-      text: text.trim(),
+      text: trimmed,
       audio: await audio.arrayBuffer(),
       mimeType: audio.type || 'audio/webm',
       recordedAt: Date.now(),
+      userId: existing?.userId ?? null,
+      syncedAt: null,
     }
     await awaitRequest(
       db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(recording),
       'Could not save the voice recording'
     )
     return recording
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Write a recording exactly as given (no timestamp or attribution changes).
+ * Used by the sync engine when storing a version downloaded from the cloud.
+ */
+export async function putRecording(recording: VoiceRecording): Promise<void> {
+  const db = await openDatabase()
+  try {
+    await awaitRequest(
+      db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(recording),
+      'Could not save the voice recording'
+    )
+  } finally {
+    db.close()
+  }
+}
+
+/** Every recording on this device. */
+export async function getAllRecordings(): Promise<VoiceRecording[]> {
+  const db = await openDatabase()
+  try {
+    return await awaitRequest<VoiceRecording[]>(
+      db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll(),
+      'Could not read the voice recordings'
+    )
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Mark a recording as successfully synced: attribute it to the teacher and
+ * stamp the server's confirmation time (the conflict-resolution clock).
+ * No-op when the recording no longer exists.
+ */
+export async function markRecordingSynced(text: string, userId: string, syncedAt: number): Promise<void> {
+  const db = await openDatabase()
+  try {
+    const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME)
+    const existing = await awaitRequest<VoiceRecording | undefined>(
+      store.get(text.trim()),
+      'Could not read the voice recording'
+    )
+    if (!existing) return
+    await awaitRequest(store.put({ ...existing, userId, syncedAt }), 'Could not save the voice recording')
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Queue a cloud operation for retry. Deduplicated: an identical pending op
+ * for the same text is kept as-is (its backoff stands).
+ */
+export async function enqueueSyncOp(op: 'upload' | 'delete', text: string): Promise<void> {
+  const db = await openDatabase()
+  try {
+    const store = db.transaction(QUEUE_STORE_NAME, 'readwrite').objectStore(QUEUE_STORE_NAME)
+    const existing = await awaitRequest<SyncQueueOp[]>(store.getAll(), 'Could not read the voice sync queue')
+    if (existing.some((item) => item.op === op && item.text === text.trim())) return
+    await awaitRequest(
+      store.add({ op, text: text.trim(), attempts: 0, nextRetryAt: Date.now() } as SyncQueueOp),
+      'Could not queue the voice sync operation'
+    )
+  } finally {
+    db.close()
+  }
+}
+
+/** Queued operations whose backoff has elapsed, oldest first. */
+export async function getDueSyncOps(now: number = Date.now()): Promise<SyncQueueOp[]> {
+  const db = await openDatabase()
+  try {
+    const ops = await awaitRequest<SyncQueueOp[]>(
+      db.transaction(QUEUE_STORE_NAME, 'readonly').objectStore(QUEUE_STORE_NAME).getAll(),
+      'Could not read the voice sync queue'
+    )
+    return ops.filter((op) => op.nextRetryAt <= now).sort((a, b) => a.nextRetryAt - b.nextRetryAt)
+  } finally {
+    db.close()
+  }
+}
+
+/** Remove a queued operation (it succeeded or became unnecessary). */
+export async function deleteSyncOp(id: number): Promise<void> {
+  const db = await openDatabase()
+  try {
+    await awaitRequest(
+      db.transaction(QUEUE_STORE_NAME, 'readwrite').objectStore(QUEUE_STORE_NAME).delete(id),
+      'Could not update the voice sync queue'
+    )
+  } finally {
+    db.close()
+  }
+}
+
+/** Record a failed attempt and schedule the next retry. */
+export async function updateSyncOpRetry(id: number, attempts: number, nextRetryAt: number): Promise<void> {
+  const db = await openDatabase()
+  try {
+    const store = db.transaction(QUEUE_STORE_NAME, 'readwrite').objectStore(QUEUE_STORE_NAME)
+    const existing = await awaitRequest<SyncQueueOp | undefined>(store.get(id), 'Could not read the voice sync queue')
+    if (!existing) return
+    await awaitRequest(store.put({ ...existing, attempts, nextRetryAt }), 'Could not update the voice sync queue')
   } finally {
     db.close()
   }

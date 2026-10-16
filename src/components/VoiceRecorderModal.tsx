@@ -20,6 +20,7 @@ import {
   type VoiceRecording,
 } from '@/lib/voice-recordings'
 import { drawLiveWaveform, drawReviewWaveform } from '@/lib/waveform-draw'
+import { notifyRecordingSaved, notifyRecordingDeleted } from '@/lib/voice-sync'
 import { reportError } from '@/lib/report-error'
 
 /** Maximum recording length. Long enough for any single word, short enough to stay snappy. */
@@ -606,6 +607,15 @@ export default function VoiceRecorderModal({
       // review audio element is already wired to the saved blob.
       setNotice(null)
       setPhase('saved')
+      // Sync to the teacher's other devices in the background; never blocks
+      // the UI. A full cloud storage reports back so we can explain it.
+      void notifyRecordingSaved(saved).then((result) => {
+        if (result === 'quota-full') {
+          setNotice(
+            'Your voice storage is full. This recording is saved on this device. Delete some recordings to make room for syncing.'
+          )
+        }
+      })
     } catch (error) {
       reportError(error, { location: 'VoiceRecorderModal.handleSave' })
       setNotice('Could not save the recording. Try again.')
@@ -638,6 +648,8 @@ export default function VoiceRecorderModal({
     try {
       await deleteRecording(word)
       onDeleted?.(word.trim())
+      // Remove the cloud copy too (or queue it when offline).
+      void notifyRecordingDeleted(word.trim())
       handleRecordNew()
     } catch (error) {
       reportError(error, { location: 'VoiceRecorderModal.handleDelete' })
