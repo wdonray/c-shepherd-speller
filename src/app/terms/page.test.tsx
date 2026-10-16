@@ -28,6 +28,23 @@ describe('TermsOfServicePage', () => {
     expect(screen.getAllByText(/will not enter student names/i).length).toBeGreaterThan(0)
   })
 
+  it("requires the voice recorder for the teacher's own voice only", () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getAllByText(/use the voice recorder for your own voice only/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/will not record students/i).length).toBeGreaterThan(0)
+  })
+
+  it('caps voice storage at 100 MB in acceptable use', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getByRole('heading', { name: /acceptable use/i, level: 2 })).toBeInTheDocument()
+    expect(screen.getAllByText(/voice storage is limited to 100 MB per account/i).length).toBeGreaterThan(0)
+  })
+
+  it('shows the updated effective date', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getAllByText(/october 16, 2026/i).length).toBeGreaterThan(0)
+  })
+
   it('states the teacher owns their content', () => {
     render(<TermsOfServicePage />)
     expect(screen.getByRole('heading', { name: /your content/i, level: 2 })).toBeInTheDocument()

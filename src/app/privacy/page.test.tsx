@@ -49,4 +49,38 @@ describe('PrivacyPolicyPage', () => {
     expect(screen.getByRole('heading', { name: /your rights/i, level: 2 })).toBeInTheDocument()
     expect(screen.getAllByText(/delete your word lists/i).length).toBeGreaterThan(0)
   })
+
+  it('discloses voice recording collection with no voiceprint analysis', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getAllByText(/voice recordings\./i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/available on all your devices/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/do not analyze your voice, build a voiceprint/i).length).toBeGreaterThan(0)
+  })
+
+  it('has a voice recordings section covering teacher-only use and deletion', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getByRole('heading', { name: /voice recordings/i, level: 2 })).toBeInTheDocument()
+    expect(screen.getAllByText(/record only your own voice/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/do not record children/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/removes it from your devices and from our servers/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/delete your recordings along with the rest of your data/i).length).toBeGreaterThan(0)
+  })
+
+  it('states voice recording retention and rights', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getAllByText(/voice recordings are kept for as long as your account exists/i).length).toBeGreaterThan(
+      0
+    )
+    expect(screen.getAllByText(/delete your voice recordings, individually/i).length).toBeGreaterThan(0)
+  })
+
+  it('names S3 as the voice recording store in the AWS bullet', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getAllByText(/your voice recordings \(S3\)/i).length).toBeGreaterThan(0)
+  })
+
+  it('shows the updated effective date', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getAllByText(/october 16, 2026/i).length).toBeGreaterThan(0)
+  })
 })

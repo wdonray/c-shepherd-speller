@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'How PatternSpell collects, uses, and protects your information.',
 }
 
-const EFFECTIVE_DATE = 'October 10, 2026'
+const EFFECTIVE_DATE = 'October 16, 2026'
 const CONTACT_EMAIL = 'donrayxwilliams@gmail.com'
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -67,6 +67,13 @@ export default function PrivacyPolicyPage() {
                 keyword images. This content belongs to you.
               </li>
               <li>
+                <strong>Voice recordings.</strong> If you use the voice recorder, we store the audio you record so it is
+                available on all your devices. Recordings are stored on Amazon Web Services in the United States,
+                encrypted in transit and at rest. A recording is linked only to the word it was recorded for and to your
+                account. We do not analyze your voice, build a voiceprint, or use recordings for any purpose other than
+                playing them back to you.
+              </li>
+              <li>
                 <strong>Analytics.</strong> We count page views and unique visitors so we can understand usage. A
                 visitor is identified by a one-way salted hash of their IP address and browser type; we never store raw
                 IP addresses. The hash cannot be reversed to identify you, and it is used only for aggregate counting,
@@ -75,6 +82,24 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>Error reports.</strong> When something breaks, our error-reporting service may record technical
                 details (browser type, the page you were on) so we can fix the bug.
+              </li>
+            </ul>
+          </Section>
+
+          <Section id="voice-recordings" title="Voice recordings">
+            <ul className="list-disc space-y-2 pl-6">
+              <li>
+                Record only your own voice. The recorder is for the teacher&rsquo;s read-aloud, not for students. Please
+                do not record children; if a child&rsquo;s voice is captured by accident, delete the recording.
+              </li>
+              <li>
+                You can play, re-record, or delete any recording in the app. Deleting a recording removes it from your
+                devices and from our servers.
+              </li>
+              <li>If you delete your account, we delete your recordings along with the rest of your data.</li>
+              <li>
+                Because a recording is your voice, treat your sign-in credentials as you would for any account holding
+                personal information, especially on shared classroom devices.
               </li>
             </ul>
           </Section>
@@ -132,8 +157,8 @@ export default function PrivacyPolicyPage() {
                 name, email, and profile image with us.
               </li>
               <li>
-                <strong>Amazon Web Services:</strong> hosts the app (Amplify), stores your data (DynamoDB), and manages
-                email/password sign-in (Cognito), all in the United States.
+                <strong>Amazon Web Services:</strong> hosts the app (Amplify), stores your data (DynamoDB) and your
+                voice recordings (S3), and manages email/password sign-in (Cognito), all in the United States.
               </li>
               <li>
                 <strong>Sentry:</strong> error reporting, so we can find and fix bugs.
@@ -148,8 +173,9 @@ export default function PrivacyPolicyPage() {
           <Section id="retention" title="How long we keep information">
             <p>
               Your account data and lists are kept for as long as your account exists. If you delete your account, we
-              delete your profile and lists. Analytics counts are kept indefinitely in aggregate form; because visitor
-              identifiers are one-way hashes, they cannot be tied back to you.
+              delete your profile and lists. Voice recordings are kept for as long as your account exists, or until you
+              delete them. Analytics counts are kept indefinitely in aggregate form; because visitor identifiers are
+              one-way hashes, they cannot be tied back to you.
             </p>
           </Section>
 
@@ -158,6 +184,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc space-y-2 pl-6">
               <li>View and edit your profile information in the app.</li>
               <li>Export or delete your word lists.</li>
+              <li>Delete your voice recordings, individually in the app or all at once by deleting your account.</li>
               <li>
                 Ask us to correct or delete your information by emailing{' '}
                 <a
