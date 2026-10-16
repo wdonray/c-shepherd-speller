@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'The terms governing your use of PatternSpell.',
 }
 
-const EFFECTIVE_DATE = 'October 10, 2026'
+const EFFECTIVE_DATE = 'October 16, 2026'
 const CONTACT_EMAIL = 'donrayxwilliams@gmail.com'
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -79,6 +79,10 @@ export default function TermsOfServicePage() {
                 You will handle any request from a parent to review or delete information related to their child, or
                 direct the parent to contact us at the email address above.
               </li>
+              <li>
+                You will use the voice recorder for your own voice only. You will not record students or capture
+                children&rsquo;s voices, and you will delete any recording that contains a child&rsquo;s voice.
+              </li>
             </ul>
           </Section>
 
@@ -98,6 +102,10 @@ export default function TermsOfServicePage() {
               <li>Attempt to disrupt the service, scrape it aggressively, or inflate usage statistics.</li>
               <li>Share your account with others or let children create accounts.</li>
               <li>Misrepresent your identity or affiliation.</li>
+              <li>
+                Exceed storage limits or use the service to store content unrelated to teaching spelling. Voice storage
+                is limited to 100 MB per account; we may remove content that exceeds the limit after warning you.
+              </li>
             </ul>
           </Section>
 
