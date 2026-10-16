@@ -58,10 +58,11 @@ describe('PatternRuleEditor collapsed state', () => {
     expect(button).toHaveTextContent('ai never ends a word.')
   })
 
-  it('styles the collapsed row as a soft affordance, not a text input', () => {
+  it('styles the collapsed row as a settings row, not a text input', () => {
     renderEditor()
     const row = screen.getByRole('button', { name: 'Add rule for a_e' })
-    expect(row).toHaveClass('bg-muted/40')
+    expect(row).toHaveClass('min-h-[56px]')
+    expect(row).not.toHaveClass('border-2')
     expect(row).not.toHaveClass('bg-background')
   })
 
