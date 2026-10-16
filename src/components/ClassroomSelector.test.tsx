@@ -56,6 +56,30 @@ describe('ClassroomSelector', () => {
     expect((select as HTMLSelectElement).value).toBe('c1')
   })
 
+  it('styles the select to match the page text inputs', async () => {
+    renderSelector()
+    const select = await screen.findByLabelText('Classroom')
+    await waitFor(() => expect(select).not.toBeDisabled())
+    const classes = (select as HTMLSelectElement).className
+    // Same sizing, padding, border, and background as the shadcn Input
+    // (issue #337); the native select arrow is replaced by a chevron.
+    for (const cls of [
+      'h-12',
+      'px-4',
+      'rounded-xl',
+      'border-2',
+      'border-line',
+      'bg-card',
+      'text-base',
+      'appearance-none',
+    ]) {
+      expect(classes).toContain(cls)
+    }
+    expect(classes).not.toContain('h-11')
+    expect(classes).not.toContain('font-bold')
+    expect(select.parentElement?.querySelector('svg')).toBeInTheDocument()
+  })
+
   it('falls back to "No class" when the stored class is gone', async () => {
     ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(mockFetch([]))
     renderSelector('deleted')
