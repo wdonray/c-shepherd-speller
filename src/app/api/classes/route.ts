@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/require-auth'
-import { createClass, getClassesByUser } from '@/lib/classes-db'
+import { createClass, getClassesWithDeletionInfo } from '@/lib/classes-db'
 import { CreateClassSchema } from '@/models/Class'
 import { reportError } from '@/lib/report-error'
 import { noStore, noStoreJson } from '@/lib/no-store'
 
 export const dynamic = 'force-dynamic'
 
-/** GET /api/classes — list all of the caller's classes. */
+/**
+ * GET /api/classes — list all of the caller's classes, each with its
+ * deletion info so the classroom management UI can disable the delete
+ * action and explain what is attached (issue #309).
+ */
 export async function GET() {
   const auth = await requireUser()
   if (auth.response) return noStore(auth.response)
 
   try {
-    const classes = await getClassesByUser(auth.user.id)
+    const classes = await getClassesWithDeletionInfo(auth.user.id)
     return noStoreJson({ classes })
   } catch (error) {
     reportError(error, { location: 'GET /api/classes', extra: { status: 500 } })

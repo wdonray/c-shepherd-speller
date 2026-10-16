@@ -17,6 +17,9 @@ import {
   saveClassRules,
   deleteClassRule,
   resolveDefaultClassId,
+  buildClassDeletionInfo,
+  getClassDeletionInfo,
+  getClassesWithDeletionInfo,
 } from './classes-db'
 import type { Class } from '../models/Class'
 
@@ -219,6 +222,90 @@ describe('classes-db', () => {
 
     it('returns null with multiple classes and no explicit default', () => {
       expect(resolveDefaultClassId({}, twoClasses)).toBeNull()
+    })
+  })
+
+  describe('buildClassDeletionInfo', () => {
+    it('reports an empty classroom as deletable', () => {
+      expect(buildClassDeletionInfo({ id: 'c1', rules: {} }, [])).toEqual({
+        ruleCount: 0,
+        assignedListCount: 0,
+        studentCount: 0,
+        canDelete: true,
+      })
+    })
+
+    it('counts saved rules and tolerates legacy classes without a rules map', () => {
+      const withRules = buildClassDeletionInfo({ id: 'c1', rules: { a_e: { rule: 'x' }, ai: { rule: 'y' } } }, [])
+      expect(withRules.ruleCount).toBe(2)
+      expect(withRules.canDelete).toBe(false)
+
+      const legacy = buildClassDeletionInfo({ id: 'c1' }, [])
+      expect(legacy.ruleCount).toBe(0)
+      expect(legacy.canDelete).toBe(true)
+    })
+
+    it('counts only the lists assigned to this class', () => {
+      const lists = [{ classId: 'c1' }, { classId: 'c2' }, {}]
+      const info = buildClassDeletionInfo({ id: 'c1', rules: {} }, lists)
+      expect(info.assignedListCount).toBe(1)
+      expect(info.canDelete).toBe(false)
+    })
+  })
+
+  describe('getClassDeletionInfo', () => {
+    it('returns deletion info for an empty class', async () => {
+      send.mockResolvedValueOnce({ Item: storedClass })
+      send.mockResolvedValueOnce({ Items: [] })
+
+      const info = await getClassDeletionInfo('u1', 'c1')
+      expect(info).toEqual({ ruleCount: 0, assignedListCount: 0, studentCount: 0, canDelete: true })
+    })
+
+    it('counts saved rules and assigned lists', async () => {
+      send.mockResolvedValueOnce({ Item: { ...storedClass, rules: { a_e: { rule: 'x' } } } })
+      send.mockResolvedValueOnce({
+        Items: [
+          { id: 'l1', classId: 'c1' },
+          { id: 'l2', classId: 'c9' },
+        ],
+      })
+
+      const info = await getClassDeletionInfo('u1', 'c1')
+      expect(info).toEqual({ ruleCount: 1, assignedListCount: 1, studentCount: 0, canDelete: false })
+    })
+
+    it('throws when the class does not exist', async () => {
+      send.mockResolvedValueOnce({})
+      await expect(getClassDeletionInfo('u1', 'c9')).rejects.toThrow('Class not found: c9')
+    })
+  })
+
+  describe('getClassesWithDeletionInfo', () => {
+    it('attaches deletion info to every class with a single lists query', async () => {
+      const c1 = {
+        ...storedClass,
+        id: 'c1',
+        SK: 'CLASS#c1',
+        rules: { a_e: { rule: 'x' } },
+        updatedAt: '2026-10-07T00:00:00.000Z',
+      }
+      const c2 = { ...storedClass, id: 'c2', SK: 'CLASS#c2', rules: {}, updatedAt: '2026-10-06T00:00:00.000Z' }
+      send.mockResolvedValueOnce({ Items: [c1, c2] })
+      send.mockResolvedValueOnce({ Items: [{ id: 'l1', classId: 'c2' }] })
+
+      const classes = await getClassesWithDeletionInfo('u1')
+      expect(classes).toHaveLength(2)
+      expect(classes[0].id).toBe('c1')
+      expect(classes[0].deletion).toEqual({ ruleCount: 1, assignedListCount: 0, studentCount: 0, canDelete: false })
+      expect(classes[1].id).toBe('c2')
+      expect(classes[1].deletion).toEqual({ ruleCount: 0, assignedListCount: 1, studentCount: 0, canDelete: false })
+    })
+
+    it('returns an empty array when the user has no classes', async () => {
+      send.mockResolvedValueOnce({ Items: [] })
+      send.mockResolvedValueOnce({ Items: [] })
+      expect(await getClassesWithDeletionInfo('u1')).toEqual([])
     })
   })
 })

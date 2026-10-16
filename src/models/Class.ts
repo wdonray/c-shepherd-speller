@@ -111,6 +111,51 @@ export function updateClassItem(cls: Class, input: UpdateClassInput): Class {
 }
 
 /**
+ * What is attached to a classroom that blocks its deletion (issue #309).
+ * Donray's decision (2026-10-15): a classroom with saved rules, assigned
+ * lists, or students cannot be deleted. Only an empty, unassigned classroom
+ * can be deleted.
+ */
+export interface ClassDeletionInfo {
+  /** Number of saved spelling rules on the class. */
+  ruleCount: number
+  /** Number of word lists assigned to the class. */
+  assignedListCount: number
+  /**
+   * Number of students in the class. The app stores no per-classroom
+   * student roster, so this is always 0 today; it is part of the shape so
+   * the deletion rule covers all three categories from the decision.
+   */
+  studentCount: number
+  /** True when nothing is attached and the classroom may be deleted. */
+  canDelete: boolean
+}
+
+/**
+ * Deletion is blocked while anything is attached to the classroom
+ * (Donray's decision, 2026-10-15).
+ */
+export function canDeleteClass(
+  info: Pick<ClassDeletionInfo, 'ruleCount' | 'assignedListCount' | 'studentCount'>
+): boolean {
+  return info.ruleCount === 0 && info.assignedListCount === 0 && info.studentCount === 0
+}
+
+/**
+ * Human-readable list of what is attached to the classroom, e.g.
+ * "2 saved rules, assigned to 1 word list". Empty when nothing is attached.
+ */
+export function describeClassroomAttachments(info: ClassDeletionInfo): string {
+  const parts: string[] = []
+  if (info.ruleCount > 0) parts.push(`${info.ruleCount} saved ${info.ruleCount === 1 ? 'rule' : 'rules'}`)
+  if (info.assignedListCount > 0) {
+    parts.push(`assigned to ${info.assignedListCount} ${info.assignedListCount === 1 ? 'word list' : 'word lists'}`)
+  }
+  if (info.studentCount > 0) parts.push(`${info.studentCount} ${info.studentCount === 1 ? 'student' : 'students'}`)
+  return parts.join(', ')
+}
+
+/**
  * Resolve the teacher's effective default classroom.
  *
  * An explicitly set default wins. Otherwise a teacher with exactly one

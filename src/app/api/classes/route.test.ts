@@ -4,11 +4,11 @@ import { NextRequest } from 'next/server'
 const { requireUser } = vi.hoisted(() => ({ requireUser: vi.fn() }))
 vi.mock('@/lib/require-auth', () => ({ requireUser }))
 
-const { createClass, getClassesByUser } = vi.hoisted(() => ({
+const { createClass, getClassesWithDeletionInfo } = vi.hoisted(() => ({
   createClass: vi.fn(),
-  getClassesByUser: vi.fn(),
+  getClassesWithDeletionInfo: vi.fn(),
 }))
-vi.mock('@/lib/classes-db', () => ({ createClass, getClassesByUser }))
+vi.mock('@/lib/classes-db', () => ({ createClass, getClassesWithDeletionInfo }))
 
 import { GET, POST } from './route'
 
@@ -35,20 +35,32 @@ describe('GET /api/classes', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns the caller classes', async () => {
+  it('returns the caller classes with deletion info', async () => {
     requireUser.mockResolvedValue(authed)
-    getClassesByUser.mockResolvedValue([{ id: 'c1', name: 'Period 2' }])
+    getClassesWithDeletionInfo.mockResolvedValue([
+      {
+        id: 'c1',
+        name: 'Period 2',
+        deletion: { ruleCount: 0, assignedListCount: 0, studentCount: 0, canDelete: true },
+      },
+    ])
 
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.classes).toHaveLength(1)
-    expect(getClassesByUser).toHaveBeenCalledWith('u1')
+    expect(body.classes[0].deletion).toEqual({
+      ruleCount: 0,
+      assignedListCount: 0,
+      studentCount: 0,
+      canDelete: true,
+    })
+    expect(getClassesWithDeletionInfo).toHaveBeenCalledWith('u1')
   })
 
   it('sends Cache-Control: no-store', async () => {
     requireUser.mockResolvedValue(authed)
-    getClassesByUser.mockResolvedValue([])
+    getClassesWithDeletionInfo.mockResolvedValue([])
 
     const res = await GET()
     expect(res.headers.get('Cache-Control')).toBe('no-store')
@@ -56,7 +68,7 @@ describe('GET /api/classes', () => {
 
   it('returns 500 when the database fails', async () => {
     requireUser.mockResolvedValue(authed)
-    getClassesByUser.mockRejectedValue(new Error('db down'))
+    getClassesWithDeletionInfo.mockRejectedValue(new Error('db down'))
 
     const res = await GET()
     expect(res.status).toBe(500)
