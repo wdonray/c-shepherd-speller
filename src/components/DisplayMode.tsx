@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getList, getLists, updateList } from '@/lib/lists-api'
 import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
+import ChartActionsMenu from './ChartActionsMenu'
 import FullscreenButton from './FullscreenButton'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
 import WordUnderlineToggle from './WordUnderlineToggle'
@@ -290,29 +291,45 @@ function DisplayModeInner() {
                 <span className="hidden sm:inline-block">Lists</span>
               </Link>
             </Button>
-            <h1 className="text-xl font-bold text-ink">{list.name}</h1>
+            <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink">{list.name}</h1>
             {/* The list's classroom, clearly shown (issue #263): this is what
                 the old sort-entry picker communicated, now visible up front. */}
             <span
-              className="hidden rounded-full border-2 border-line bg-background px-2.5 py-1 text-xs font-extrabold text-muted-foreground sm:inline-block"
+              className="hidden shrink-0 rounded-full border-2 border-line bg-background px-2.5 py-1 text-xs font-extrabold text-muted-foreground sm:inline-block"
               title={className ? `Classroom: ${className}` : 'No classroom assigned'}
             >
               {className ?? 'No class'}
             </span>
-            <WhyChartPopover />
-            <div className="ml-auto flex items-center gap-2">
+            {/* Secondary chart controls: the full bar on desktop, collapsed
+                into the overflow menu on mobile so the title keeps room
+                (issue #312). */}
+            <div className="hidden shrink-0 sm:block">
+              <WhyChartPopover />
+            </div>
+            <div className="hidden shrink-0 items-center gap-2 sm:flex">
               <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
               <WordUnderlineToggle showUnderlines={showUnderlines} onToggle={() => setShowUnderlines((v) => !v)} />
               <Button variant="secondary" size="sm" asChild>
                 <Link href={`/lists/${list.id}/print`}>
                   <PrinterIcon className="size-4" aria-hidden="true" />
-                  <span className="hidden sm:inline-block">Print chart</span>
+                  Print chart
                 </Link>
               </Button>
-              <Button size="sm" onClick={() => setSortMode(true)}>
-                Sort words
-              </Button>
+            </div>
+            <Button size="sm" onClick={() => setSortMode(true)} className="shrink-0">
+              Sort words
+            </Button>
+            <div className="hidden shrink-0 sm:block">
               <FullscreenButton />
+            </div>
+            <div className="shrink-0 sm:hidden">
+              <ChartActionsMenu
+                listId={list.id}
+                showRules={showRules}
+                onToggleRules={() => setShowRules((v) => !v)}
+                showUnderlines={showUnderlines}
+                onToggleUnderlines={() => setShowUnderlines((v) => !v)}
+              />
             </div>
           </div>
         </div>

@@ -80,6 +80,20 @@ describe('FullscreenButton', () => {
     expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
   })
 
+  it('syncs the initial state when mounting while already in full screen', () => {
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: document.body })
+    render(<FullscreenButton />)
+    const button = screen.getByRole('button', { name: 'Exit full screen' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('treats an undefined fullscreenElement as not fullscreen on mount', () => {
+    // jsdom has no Fullscreen API: fullscreenElement is undefined, not null.
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: undefined })
+    render(<FullscreenButton />)
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+  })
+
   it('renders nothing when the Fullscreen API is unavailable', () => {
     setFullscreenApi(false)
     const { container } = render(<FullscreenButton />)
@@ -94,5 +108,17 @@ describe('FullscreenButton', () => {
     })
     // The button is still there and still offers to enter full screen.
     expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+  })
+
+  it('shows a visible text label with alwaysShowLabel instead of an icon-only button', () => {
+    render(<FullscreenButton alwaysShowLabel />)
+    const button = screen.getByRole('button', { name: 'Full screen' })
+    expect(button).toHaveTextContent('Full screen')
+    expect(button).not.toHaveAttribute('aria-label')
+  })
+
+  it('merges an extra className onto the button', () => {
+    render(<FullscreenButton className="w-full" />)
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toHaveClass('w-full')
   })
 })
