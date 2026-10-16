@@ -189,6 +189,14 @@ describe('PatternEditor', () => {
     expect(sound).not.toHaveClass('border-transparent', 'bg-transparent')
   })
 
+  it('sizes the sound input to match the spelling pattern input', () => {
+    renderEditor()
+    // Issue #338: the two pattern-identity inputs must be the same size.
+    for (const input of [screen.getByLabelText('Pattern spelling'), screen.getByLabelText('Target sound')]) {
+      expect(input).toHaveClass('h-14', 'text-xl', 'font-bold')
+    }
+  })
+
   it('changes frequency through the radio buttons', () => {
     const { onChange } = renderEditor()
     const lessCommon = screen.getByRole('radio', { name: /^Less common\./ })
