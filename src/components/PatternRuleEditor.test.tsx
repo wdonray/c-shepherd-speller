@@ -43,14 +43,18 @@ describe('PatternRuleEditor collapsed state', () => {
     vi.clearAllMocks()
   })
 
-  it('shows "Add rule" when there is no rule', () => {
+  it('shows "Add a rule" when there is no rule', () => {
     renderEditor()
-    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toHaveTextContent('Add rule')
+    const button = screen.getByRole('button', { name: 'Add rule for a_e' })
+    expect(button).toHaveTextContent('Spelling rule')
+    expect(button).toHaveTextContent('Add a rule')
   })
 
-  it('shows a one-line preview and an edit label when a rule exists', () => {
+  it('renders the settings-row anatomy with a bold label and a summary line', () => {
     renderEditor({ initialRule: 'ai never ends a word.' })
     const button = screen.getByRole('button', { name: 'Edit rule for a_e' })
+    expect(button).toHaveClass('min-h-[56px]')
+    expect(button).toHaveTextContent('Spelling rule')
     expect(button).toHaveTextContent('ai never ends a word.')
   })
 

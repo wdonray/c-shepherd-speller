@@ -14,20 +14,23 @@ interface PowerBarProps {
   level: PowerBarLevel
   /** Fill color for lit segments; defaults to leaf. */
   filledClassName?: string
+  /** Segment size. `sm` fits tight spots like the card's frequency segmented control. Defaults to `md`. */
+  size?: 'md' | 'sm'
   className?: string
 }
 
 /**
  * 3-segment power bar: how common a spelling pattern is for its sound.
- * Segments are 24x10 with a 6px gap, matching the approved design.
+ * Segments are 24x10 with a 6px gap at `md`, matching the approved design;
+ * `sm` shrinks them for tight controls.
  */
-export function PowerBar({ level, filledClassName = 'bg-leaf', className }: PowerBarProps) {
+export function PowerBar({ level, filledClassName = 'bg-leaf', size = 'md', className }: PowerBarProps) {
   return (
     <span
       role="img"
       aria-label={`Frequency: ${FREQUENCY_LABELS[level]}`}
       data-power-bar
-      className={cn('inline-flex items-center gap-1.5', className)}
+      className={cn('inline-flex items-center', size === 'sm' ? 'gap-1' : 'gap-1.5', className)}
     >
       {[1, 2, 3].map((segment) => (
         <span
@@ -35,7 +38,11 @@ export function PowerBar({ level, filledClassName = 'bg-leaf', className }: Powe
           aria-hidden="true"
           data-power-segment
           data-filled={segment <= level}
-          className={cn('h-2.5 w-6 rounded-full', segment <= level ? filledClassName : 'bg-line')}
+          className={cn(
+            'rounded-full',
+            size === 'sm' ? 'h-2 w-4' : 'h-2.5 w-6',
+            segment <= level ? filledClassName : 'bg-line'
+          )}
         />
       ))}
     </span>

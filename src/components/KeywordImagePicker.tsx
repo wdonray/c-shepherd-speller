@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { processKeywordImage, PROFILE_IMAGE_MIME_TYPES } from '@/lib/profile-image'
-import { ImagePlusIcon, Trash2Icon, UploadIcon } from 'lucide-react'
+import { ChevronRightIcon, ImagePlusIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 
 /** Curated K-3 keyword emojis: animals, food, objects, weather and nature. */
 export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; name: string }[] }[] = [
@@ -100,6 +100,14 @@ export default function KeywordImagePicker({
     ? `Keyword image for pattern ${patternName}`
     : 'Keyword image for this pattern'
 
+  // Summary beside the label keeps the current choice visible without
+  // reopening the picker. Curated emojis show their name; custom emojis and
+  // photos have no name to show.
+  const keywordName = KEYWORD_EMOJI_GROUPS.flatMap((group) => group.choices).find(
+    (choice) => choice.emoji === emoji
+  )?.name
+  const triggerSummary = image ? 'Photo' : emoji ? (keywordName ? `${emoji} ${keywordName}` : emoji) : 'Not set'
+
   const chooseEmoji = (next: string) => {
     if (next === emoji) {
       // Clicking the already-selected emoji removes it.
@@ -156,25 +164,28 @@ export default function KeywordImagePicker({
         <button
           type="button"
           aria-label={triggerLabel}
-          className={cn(
-            'flex size-16 cursor-pointer items-center justify-center rounded-xl border-2 outline-none transition focus-visible:ring-[3px] focus-visible:ring-ring/60',
-            image || emoji
-              ? 'border-line bg-card hover:border-sky-deep'
-              : 'border-dashed border-line bg-card text-muted-foreground hover:border-sky-deep hover:text-sky-ink'
-          )}
+          className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
-          {image ? (
-            <img src={image} alt="" aria-hidden="true" className="size-12 rounded-lg object-cover" />
-          ) : emoji ? (
-            <span className="text-4xl leading-none" aria-hidden="true">
-              {emoji}
-            </span>
-          ) : (
-            <span className="flex flex-col items-center gap-0.5">
-              <ImagePlusIcon className="size-5" aria-hidden="true" />
-              <span className="text-[11px] font-bold">Add</span>
-            </span>
-          )}
+          <span
+            aria-hidden="true"
+            className={cn(
+              'flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2',
+              image || emoji ? 'border-line bg-card' : 'border-dashed border-line text-muted-foreground'
+            )}
+          >
+            {image ? (
+              <img src={image} alt="" className="size-full object-cover" />
+            ) : emoji ? (
+              <span className="text-3xl leading-none">{emoji}</span>
+            ) : (
+              <ImagePlusIcon className="size-5" />
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ink">Keyword image</span>
+            <span className="block truncate text-[13px] text-muted-foreground">{triggerSummary}</span>
+          </span>
+          <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto">

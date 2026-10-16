@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
@@ -214,52 +214,63 @@ describe('PatternEditor', () => {
     expect(screen.getByRole('radio', { name: /Rare.*Teach it last/ })).toBeInTheDocument()
   })
 
-  it('shows the selected frequency label inside its segment', () => {
+  it('shows the selected frequency label inside its radio option', () => {
     const onChange = vi.fn()
     const onRemove = vi.fn()
     const { rerender } = render(<PatternEditor pattern={basePattern} onChange={onChange} onRemove={onRemove} />)
-    expect(screen.getByText('Common')).toBeInTheDocument()
+    const common = screen.getByRole('radio', { name: /^Common\./ })
+    expect(common).toHaveAttribute('aria-checked', 'true')
+    expect(common).toHaveTextContent('Common')
     rerender(
       <PatternEditor pattern={{ ...basePattern, frequency: 'less-common' }} onChange={onChange} onRemove={onRemove} />
     )
-    expect(screen.getByText('Less common')).toBeInTheDocument()
+    const lessCommon = screen.getByRole('radio', { name: /^Less common\./ })
+    expect(lessCommon).toHaveAttribute('aria-checked', 'true')
+    expect(lessCommon).toHaveTextContent('Less common')
+    expect(screen.getByRole('radio', { name: /^Common\./ })).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('gives frequency segments hover and focus-visible treatments in both states', () => {
+  it('groups frequency, rule, and keyword image as uniform rows in the Details well', () => {
+    const onSaveRule = vi.fn().mockResolvedValue(undefined)
+    const { container } = render(
+      <PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} onSaveRule={onSaveRule} />
+    )
+    expect(screen.getByRole('heading', { name: 'Details' })).toBeInTheDocument()
+    // Frequency, rule, and keyword image all render as 56px settings rows.
+    expect(container.querySelectorAll('.min-h-\\[56px\\]')).toHaveLength(3)
+    expect(screen.getByRole('radiogroup', { name: 'Frequency' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Keyword image for pattern a_e' })).toBeInTheDocument()
+  })
+
+  it('saves a rule through the details row', async () => {
+    const onSaveRule = vi.fn().mockResolvedValue(undefined)
+    render(<PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} onSaveRule={onSaveRule} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add rule for a_e' }))
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: 'Rule for a_e' })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText('Rule, in the kids’ words'), {
+      target: { value: 'ai never ends a word.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(onSaveRule).toHaveBeenCalledWith('p1', 'a_e', 'ai never ends a word.')
+    })
+  })
+
+  it('gives frequency radios a uniform segmented style in both states', () => {
     renderEditor()
     const selected = screen.getByRole('radio', { name: /^Common\./ })
-    expect(selected).toHaveClass('hover:brightness-95', 'focus-visible:brightness-95', 'focus-visible:ring-[3px]')
+    expect(selected).toHaveClass('bg-sky-soft', 'text-sky-ink', 'min-h-[44px]', 'focus-visible:ring-[3px]')
     const unselected = screen.getByRole('radio', { name: /^Rare\./ })
-    expect(unselected).toHaveClass('hover:bg-card/70', 'focus-visible:bg-card/70', 'focus-visible:ring-[3px]')
-    // Unselected segments stay fully opaque: they are choices, not disabled controls.
-    expect(unselected).not.toHaveClass('opacity-50')
-  })
-
-  it('renders frequency as one segmented control with the label inside each segment', () => {
-    renderEditor()
-    const group = screen.getByRole('radiogroup', { name: 'Frequency' })
-    const segments = within(group).getAllByRole('radio')
-    expect(segments).toHaveLength(3)
-    expect(segments[0]).toHaveTextContent('Common')
-    expect(segments[1]).toHaveTextContent('Less common')
-    expect(segments[2]).toHaveTextContent('Rare')
-    expect(segments[0]).toHaveAttribute('aria-checked', 'true')
-    expect(segments[1]).toHaveAttribute('aria-checked', 'false')
-  })
-
-  it('renders words as a uniform list instead of a table', () => {
-    renderEditor()
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
-    expect(screen.getByRole('list')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'cake' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'bake' })).toBeInTheDocument()
-  })
-
-  it('labels the sound input with a visible label above the field', () => {
-    renderEditor()
-    const input = screen.getByLabelText('Target sound')
-    expect(input).toHaveAttribute('id', 'pattern-sound-p1')
-    expect(screen.getByText('Sound')).toHaveAttribute('for', 'pattern-sound-p1')
+    expect(unselected).toHaveClass(
+      'text-muted-foreground',
+      'hover:text-ink',
+      'min-h-[44px]',
+      'focus-visible:ring-[3px]'
+    )
+    expect(unselected).not.toHaveClass('bg-sky-soft')
   })
 
   it('renders a lock toggle pill', () => {
@@ -616,12 +627,13 @@ describe('PatternEditor', () => {
     })
   })
 
-  it('shows the keyword image picker next to the pattern spelling input', () => {
+  it('shows the keyword image picker in the details well', () => {
     renderEditor()
     const trigger = screen.getByRole('button', { name: 'Keyword image for pattern a_e' })
     const spelling = screen.getByLabelText('Pattern spelling')
-    // Same top section of the editor card.
+    // Same editor card, but demoted out of the header into the Details group.
     expect(trigger.closest('section')).toBe(spelling.closest('section'))
+    expect(screen.getByRole('heading', { name: 'Details' })).toBeInTheDocument()
   })
 
   it('updates keywordEmoji when an emoji is picked', () => {
