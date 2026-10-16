@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -95,6 +95,9 @@ export default function KeywordImagePicker({
   const [custom, setCustom] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  // Associates the visible summary (Photo / "🐝 Bee" / Not set) with the
+  // trigger button so screen readers announce the current selection.
+  const summaryId = useId()
 
   const triggerLabel = patternName.trim()
     ? `Keyword image for pattern ${patternName}`
@@ -164,6 +167,7 @@ export default function KeywordImagePicker({
         <button
           type="button"
           aria-label={triggerLabel}
+          aria-describedby={summaryId}
           className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
           <span
@@ -183,7 +187,9 @@ export default function KeywordImagePicker({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-ink">Keyword image</span>
-            <span className="block truncate text-[13px] text-muted-foreground">{triggerSummary}</span>
+            <span id={summaryId} className="block truncate text-[13px] text-muted-foreground">
+              {triggerSummary}
+            </span>
           </span>
           <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>

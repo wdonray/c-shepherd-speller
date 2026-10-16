@@ -41,6 +41,15 @@ describe('KeywordImagePicker', () => {
     expect(trigger).toHaveTextContent('Not set')
   })
 
+  it('exposes the trigger summary to screen readers via aria-describedby', () => {
+    renderPicker({ emoji: '🐝' })
+    const trigger = screen.getByRole('button', { name: 'Keyword image for pattern ee' })
+    const describedBy = trigger.getAttribute('aria-describedby')
+    expect(describedBy).toBeTruthy()
+    const summary = document.getElementById(describedBy!)
+    expect(summary).toHaveTextContent('🐝 Bee')
+  })
+
   it('shows the curated emoji name in the trigger summary', () => {
     renderPicker({ emoji: '🐝' })
     expect(screen.getByRole('button', { name: 'Keyword image for pattern ee' })).toHaveTextContent('🐝 Bee')
