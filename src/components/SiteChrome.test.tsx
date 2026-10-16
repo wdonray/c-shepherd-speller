@@ -36,6 +36,19 @@ describe('SiteChrome', () => {
     expect(main.className).toContain('min-h-dvh')
   })
 
+  it('reserves the 74px header space so the header popping in never shifts layout', () => {
+    usePathnameMock.mockReturnValue('/home')
+    const { container } = render(
+      <SiteChrome>
+        <p>page content</p>
+      </SiteChrome>
+    )
+
+    const slot = screen.getByTestId('site-header').parentElement
+    expect(slot?.className).toContain('min-h-[74px]')
+    expect(container.firstChild).toBe(slot)
+  })
+
   it('renders a chrome-free main on the landing page (it has its own header)', () => {
     usePathnameMock.mockReturnValue('/')
     render(

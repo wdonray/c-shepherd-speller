@@ -266,6 +266,20 @@ export default function PatternListsManager() {
           <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
           <div className="h-10 w-28 animate-pulse rounded-2xl bg-line/60" />
         </div>
+        {/* Sticky filter bar: matches the loaded sticky tabs + sort + search (issue #341) */}
+        <div
+          className="sticky top-[72px] z-10 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+          aria-hidden="true"
+        >
+          <div className="inline-flex rounded-full border-2 border-line bg-card p-1">
+            <div className="h-[44px] w-20 animate-pulse rounded-full bg-line/60" />
+            <div className="h-[44px] w-24 animate-pulse rounded-full bg-line/40" />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="h-[44px] w-48 animate-pulse rounded-full bg-line/60" />
+            <div className="h-[44px] min-w-[220px] flex-1 animate-pulse rounded-full bg-line/40 sm:max-w-xs" />
+          </div>
+        </div>
         {/* List cards: match WordListCard structure */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
           {[0, 1].map((i) => (
