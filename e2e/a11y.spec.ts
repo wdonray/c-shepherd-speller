@@ -42,6 +42,41 @@ test.describe('accessibility', () => {
 })
 
 /**
+ * The list edit page hosts the pattern editing card (issue #324), so it gets
+ * its own scan: a seeded list with one pattern renders the full card.
+ */
+test.describe('list edit page accessibility', () => {
+  test.beforeEach(async ({ context }) => {
+    await ensureE2EUser()
+    await context.addCookies([await sessionCookie()])
+  })
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`list edit page has no WCAG 2.2 AA violations in ${theme} mode`, async ({ page }) => {
+      await page.addInitScript((t) => {
+        localStorage.setItem('theme', t)
+      }, theme)
+
+      const created = await page.request.post('/api/lists', {
+        data: {
+          name: 'A11y Week 1',
+          patterns: [{ sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] }],
+        },
+      })
+      expect(created.ok()).toBe(true)
+      const { list } = await created.json()
+
+      await page.goto(`/lists/${list.id}`)
+      // Let the client hydrate and the pattern card render before scanning.
+      await page.waitForTimeout(1000)
+
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+
+      expect(results.violations).toEqual([])
+    })
+  }
+})
+/**
  * The custom email auth pages serve signed-out visitors, so they run without
  * the session cookie the block above installs.
  */
