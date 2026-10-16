@@ -41,8 +41,9 @@ export function sentryBeforeSend(event: Sentry.ErrorEvent, hint: Sentry.EventHin
  * Safe to call when Sentry has no DSN (captureException no-ops).
  */
 export function reportError(error: unknown, options: ReportErrorOptions = {}): void {
-  // Aborted requests are benign user/system behavior, not errors.
-  if (error instanceof DOMException && error.name === 'AbortError') return
+  // Aborted or timed-out requests are benign user/system behavior, not errors.
+  // AbortSignal.timeout() rejects with TimeoutError, not AbortError.
+  if (error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError')) return
   // Transient connectivity blips are environmental noise, not app bugs.
   if (isNetworkError(error)) return
   const err = error instanceof Error ? error : new Error(String(error))

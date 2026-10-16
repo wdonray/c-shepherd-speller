@@ -63,6 +63,17 @@ describe('reportError', () => {
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
+  it('ignores TimeoutError from AbortSignal.timeout', () => {
+    mockScope()
+
+    reportError(new DOMException('The operation was aborted due to timeout', 'TimeoutError'), {
+      location: 'VersionPage.getRecentReleases',
+    })
+
+    expect(Sentry.withScope).not.toHaveBeenCalled()
+    expect(Sentry.captureException).not.toHaveBeenCalled()
+  })
+
   it('reports non-abort DOMExceptions', () => {
     mockScope()
 
