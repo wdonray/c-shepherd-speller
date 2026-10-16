@@ -144,7 +144,7 @@ export default function PatternRuleEditor({
           setOpen(true)
         }}
         aria-label={savedRule ? `Edit rule for ${patternText}` : `Add rule for ${patternText}`}
-        className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-line bg-background px-3 py-2 outline-none transition-colors hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
+        className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border-2 border-line/70 bg-muted/40 px-3 py-2 outline-none transition-colors hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
       >
         <ScrollTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
         {savedRule ? (

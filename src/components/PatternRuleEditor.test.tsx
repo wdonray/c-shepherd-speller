@@ -54,6 +54,13 @@ describe('PatternRuleEditor collapsed state', () => {
     expect(button).toHaveTextContent('ai never ends a word.')
   })
 
+  it('styles the collapsed row as a soft affordance, not a text input', () => {
+    renderEditor()
+    const row = screen.getByRole('button', { name: 'Add rule for a_e' })
+    expect(row).toHaveClass('bg-muted/40')
+    expect(row).not.toHaveClass('bg-background')
+  })
+
   it('shows the shared caption when the rule is shared with a classroom', () => {
     renderEditor({ initialRule: 'Magic e.', shared: true, className: 'Period 2' })
     expect(screen.getByText('Shared with Period 2')).toBeInTheDocument()
