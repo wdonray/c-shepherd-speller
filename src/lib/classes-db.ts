@@ -11,12 +11,16 @@
 import { PutCommand, GetCommand, DeleteCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
 import { LISTS_TABLE_NAME } from '../models/WordList'
+import type { WordList } from '../models/WordList'
+import { getListsByUser } from './lists-db'
 import {
   CLASS_SK_PREFIX,
+  canDeleteClass,
   createClassItem,
   getClassKeys,
   updateClassItem,
   type Class,
+  type ClassDeletionInfo,
   type ClassRule,
   type CreateClassInput,
   type UpdateClassInput,
@@ -178,6 +182,48 @@ export async function deleteClassRule(
   )
   // Absent on legacy classes that predate the rules map.
   return (result.Attributes?.rules as Record<string, ClassRule> | undefined) ?? {}
+}
+
+/**
+ * Build the deletion info for a class from its item and the teacher's word
+ * lists. Pure: no server dependencies, so routes and tests can use it.
+ * Legacy class items predate the rules map, so rules is optional.
+ */
+export function buildClassDeletionInfo(
+  cls: { id: string; rules?: Record<string, ClassRule> },
+  lists: Pick<WordList, 'classId'>[]
+): ClassDeletionInfo {
+  const info = {
+    ruleCount: Object.keys(cls.rules ?? {}).length,
+    assignedListCount: lists.filter((list) => list.classId === cls.id).length,
+    // The app stores no per-classroom student roster.
+    studentCount: 0,
+  }
+  return { ...info, canDelete: canDeleteClass(info) }
+}
+
+/**
+ * Get what is attached to one of the caller's classes for the deletion
+ * guard (issue #309). Throws if the class does not exist or is not owned.
+ */
+export async function getClassDeletionInfo(userId: string, classId: string): Promise<ClassDeletionInfo> {
+  const cls = await getClassById(userId, classId)
+  if (!cls) {
+    throw new Error(`Class not found: ${classId}`)
+  }
+  const lists = await getListsByUser(userId)
+  return buildClassDeletionInfo(cls, lists)
+}
+
+/**
+ * Get all classes for a user with their deletion info attached, for the
+ * classroom management UI (issue #309). One lists query serves every class.
+ */
+export async function getClassesWithDeletionInfo(
+  userId: string
+): Promise<Array<Class & { deletion: ClassDeletionInfo }>> {
+  const [classes, lists] = await Promise.all([getClassesByUser(userId), getListsByUser(userId)])
+  return classes.map((cls) => ({ ...cls, deletion: buildClassDeletionInfo(cls, lists) }))
 }
 
 /**

@@ -4,12 +4,19 @@ import { NextRequest } from 'next/server'
 const { requireUser } = vi.hoisted(() => ({ requireUser: vi.fn() }))
 vi.mock('@/lib/require-auth', () => ({ requireUser }))
 
-const { getClassById, updateClass, deleteClass } = vi.hoisted(() => ({
+const { getClassById, updateClass, deleteClass, getClassDeletionInfo } = vi.hoisted(() => ({
   getClassById: vi.fn(),
   updateClass: vi.fn(),
   deleteClass: vi.fn(),
+  getClassDeletionInfo: vi.fn(),
 }))
-vi.mock('@/lib/classes-db', () => ({ getClassById, updateClass, deleteClass }))
+vi.mock('@/lib/classes-db', () => ({ getClassById, updateClass, deleteClass, getClassDeletionInfo }))
+
+const { getUserById, updateUserDefaultClassId } = vi.hoisted(() => ({
+  getUserById: vi.fn(),
+  updateUserDefaultClassId: vi.fn(),
+}))
+vi.mock('@/lib/db-utils', () => ({ getUserById, updateUserDefaultClassId }))
 
 import { GET, PUT, DELETE } from './route'
 
@@ -128,6 +135,8 @@ describe('DELETE /api/classes/[id]', () => {
     vi.clearAllMocks()
   })
 
+  const emptyDeletion = { ruleCount: 0, assignedListCount: 0, studentCount: 0, canDelete: true }
+
   it('returns 401 when not signed in', async () => {
     requireUser.mockResolvedValue({
       user: null,
@@ -137,19 +146,90 @@ describe('DELETE /api/classes/[id]', () => {
     expect(res.status).toBe(401)
   })
 
-  it('deletes the class', async () => {
+  it('deletes an empty classroom', async () => {
     requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockResolvedValue(emptyDeletion)
+    getUserById.mockResolvedValue({ id: 'u1', defaultClassId: null })
     deleteClass.mockResolvedValue(undefined)
 
     const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.ok).toBe(true)
+    expect(body.defaultCleared).toBe(false)
     expect(deleteClass).toHaveBeenCalledWith('u1', 'c1')
+    expect(updateUserDefaultClassId).not.toHaveBeenCalled()
+  })
+
+  it('clears the default when deleting the default classroom', async () => {
+    requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockResolvedValue(emptyDeletion)
+    getUserById.mockResolvedValue({ id: 'u1', defaultClassId: 'c1' })
+    deleteClass.mockResolvedValue(undefined)
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.defaultCleared).toBe(true)
+    expect(updateUserDefaultClassId).toHaveBeenCalledWith('u1', null)
+    expect(deleteClass).toHaveBeenCalledWith('u1', 'c1')
+  })
+
+  it('deletes when the user record cannot be read', async () => {
+    requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockResolvedValue(emptyDeletion)
+    getUserById.mockResolvedValue(undefined)
+    deleteClass.mockResolvedValue(undefined)
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(200)
+    expect(updateUserDefaultClassId).not.toHaveBeenCalled()
+    expect(deleteClass).toHaveBeenCalledWith('u1', 'c1')
+  })
+
+  it('returns 404 when the class does not exist', async () => {
+    requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockRejectedValue(new Error('Class not found: c1'))
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(404)
+    expect(deleteClass).not.toHaveBeenCalled()
+  })
+
+  it('returns 409 when the classroom has attachments', async () => {
+    requireUser.mockResolvedValue(authed)
+    const deletion = { ruleCount: 2, assignedListCount: 1, studentCount: 0, canDelete: false }
+    getClassDeletionInfo.mockResolvedValue(deletion)
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.blocked).toBe(true)
+    expect(body.deletion).toEqual(deletion)
+    expect(deleteClass).not.toHaveBeenCalled()
+  })
+
+  it('returns 500 when the deletion check fails', async () => {
+    requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockRejectedValue(new Error('db down'))
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(500)
+    expect(deleteClass).not.toHaveBeenCalled()
+  })
+
+  it('returns 500 when the deletion check throws a non-error', async () => {
+    requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockRejectedValue('weird failure')
+
+    const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))
+    expect(res.status).toBe(500)
   })
 
   it('returns 500 when the database fails', async () => {
     requireUser.mockResolvedValue(authed)
+    getClassDeletionInfo.mockResolvedValue(emptyDeletion)
+    getUserById.mockResolvedValue({ id: 'u1', defaultClassId: null })
     deleteClass.mockRejectedValue(new Error('db down'))
 
     const res = await DELETE(new NextRequest('http://localhost/api/classes/c1'), params('c1'))

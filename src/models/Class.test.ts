@@ -11,6 +11,8 @@ import {
   createClassItem,
   updateClassItem,
   resolveDefaultClassId,
+  canDeleteClass,
+  describeClassroomAttachments,
 } from './Class'
 
 describe('Class model', () => {
@@ -141,6 +143,48 @@ describe('Class model', () => {
       expect(updated.name).toBe('Period 2')
       expect(updated.rules).toEqual({})
     })
+  })
+})
+
+describe('canDeleteClass', () => {
+  it('allows deletion only when nothing is attached', () => {
+    expect(canDeleteClass({ ruleCount: 0, assignedListCount: 0, studentCount: 0 })).toBe(true)
+    expect(canDeleteClass({ ruleCount: 1, assignedListCount: 0, studentCount: 0 })).toBe(false)
+    expect(canDeleteClass({ ruleCount: 0, assignedListCount: 2, studentCount: 0 })).toBe(false)
+    expect(canDeleteClass({ ruleCount: 0, assignedListCount: 0, studentCount: 30 })).toBe(false)
+  })
+})
+
+describe('describeClassroomAttachments', () => {
+  const empty = { ruleCount: 0, assignedListCount: 0, studentCount: 0, canDelete: true }
+
+  it('returns an empty string when nothing is attached', () => {
+    expect(describeClassroomAttachments(empty)).toBe('')
+  })
+
+  it('describes saved rules with singular and plural', () => {
+    expect(describeClassroomAttachments({ ...empty, ruleCount: 1, canDelete: false })).toBe('1 saved rule')
+    expect(describeClassroomAttachments({ ...empty, ruleCount: 3, canDelete: false })).toBe('3 saved rules')
+  })
+
+  it('describes assigned lists with singular and plural', () => {
+    expect(describeClassroomAttachments({ ...empty, assignedListCount: 1, canDelete: false })).toBe(
+      'assigned to 1 word list'
+    )
+    expect(describeClassroomAttachments({ ...empty, assignedListCount: 2, canDelete: false })).toBe(
+      'assigned to 2 word lists'
+    )
+  })
+
+  it('describes students with singular and plural', () => {
+    expect(describeClassroomAttachments({ ...empty, studentCount: 1, canDelete: false })).toBe('1 student')
+    expect(describeClassroomAttachments({ ...empty, studentCount: 4, canDelete: false })).toBe('4 students')
+  })
+
+  it('joins multiple attachment kinds with commas', () => {
+    expect(describeClassroomAttachments({ ...empty, ruleCount: 2, assignedListCount: 1, canDelete: false })).toBe(
+      '2 saved rules, assigned to 1 word list'
+    )
   })
 })
 
