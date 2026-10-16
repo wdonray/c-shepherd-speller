@@ -20,6 +20,7 @@ async function seedList(page: Page): Promise<string> {
   const response = await page.request.post('/api/lists', {
     data: {
       name: 'CLS Audit List',
+      week: 'Week 5',
       patterns: [
         {
           id: 'p1',
