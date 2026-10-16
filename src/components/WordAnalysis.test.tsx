@@ -152,10 +152,25 @@ describe('WordAnalysis', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('does not close when the dialog content is clicked', () => {
+  it('closes when the Escape key is pressed', () => {
     const onClose = vi.fn()
     render(<WordAnalysis {...defaultProps} onClose={onClose} />)
-    fireEvent.click(screen.getByText('long a'))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('does not close on other keys', () => {
+    const onClose = vi.fn()
+    render(<WordAnalysis {...defaultProps} onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Enter' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('removes the Escape listener on unmount', () => {
+    const onClose = vi.fn()
+    const { unmount } = render(<WordAnalysis {...defaultProps} onClose={onClose} />)
+    unmount()
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).not.toHaveBeenCalled()
   })
 })

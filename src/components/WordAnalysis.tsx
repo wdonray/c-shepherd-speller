@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Volume2Icon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -87,6 +88,15 @@ export function splitWordParts(word: string): WordParts | null {
  * pronunciation dictionary source; not hand-authored.)
  */
 export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAnalysisProps) {
+  // Hand-rolled dialog, not Radix: add the Escape handling Radix dialogs get for free.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   const match = findPatternInWord(word, pattern.pattern)
   const odd = pattern.oddDucks?.includes(word) ?? false
   const mappingNote = buildMappingNote(pattern.pattern, pattern.sound)
