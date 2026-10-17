@@ -255,9 +255,11 @@ export default function FeedbackForm() {
       </div>
       {turnstileSiteKey ? <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} /> : null}
       <div>
-        <Button type="submit" disabled={sending}>
-          {sending ? 'Sending...' : 'Send message'}
-        </Button>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={sending}>
+            {sending ? 'Sending...' : 'Send message'}
+          </Button>
+        </div>
         <p className="mt-3 text-sm text-muted-foreground">
           Your message is emailed to the PatternSpell developer along with your email address and the app version, so it
           can be followed up if needed.

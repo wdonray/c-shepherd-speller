@@ -223,15 +223,15 @@ export default function SentencePicker({
                 </Button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" data-confirm onClick={handleConfirm} disabled={!selected}>
-                Use this sentence
-              </Button>
+            <div className="flex justify-end gap-2">
               {currentSentence && (
                 <Button size="sm" variant="ghost" onClick={handleClear}>
                   Clear
                 </Button>
               )}
+              <Button size="sm" data-confirm onClick={handleConfirm} disabled={!selected}>
+                Use this sentence
+              </Button>
             </div>
           </div>
         )}
