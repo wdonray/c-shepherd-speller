@@ -36,7 +36,7 @@ import { buildWordBank, checkPlacements, type BankWord } from '@/lib/sort-activi
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { fireWinConfetti } from '@/lib/confetti'
 import { OddDuck } from './OddDuck'
-import RuleCard from './RuleCard'
+import RuleCard, { EmptyRulePlaceholder } from './RuleCard'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import { useMediaQuery } from '@/lib/use-media-query'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
@@ -322,6 +322,7 @@ function DropColumn({
   ghostEntry,
   rule,
   ruleLabel,
+  showRules,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
@@ -329,6 +330,8 @@ function DropColumn({
   ghostEntry: BankWord | null
   rule: string | null
   ruleLabel: string
+  /** When false the rule slot (card or placeholder) is hidden entirely. */
+  showRules: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -349,7 +352,7 @@ function DropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
+        {showRules && (rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />)}
       </div>
       <ul className="flex flex-wrap items-start gap-3">
         {children}
@@ -438,12 +441,15 @@ function MobileDropColumn({
   isOver,
   rule,
   ruleLabel,
+  showRules,
 }: {
   pattern: SpellingPattern
   children: React.ReactNode
   isOver: boolean
   rule: string | null
   ruleLabel: string
+  /** When false the rule slot (card or placeholder) is hidden entirely. */
+  showRules: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
@@ -460,7 +466,7 @@ function MobileDropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {rule && <RuleCard rule={rule} label={ruleLabel} editable={false} />}
+        {showRules && (rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />)}
       </div>
       <ul className="flex flex-wrap items-start gap-3">{children}</ul>
     </section>
@@ -870,8 +876,9 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     key={pattern.id}
                     pattern={pattern}
                     isOver={overId === pattern.id}
-                    rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
+                    rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={classRulePatterns.has(pattern.pattern) ? 'Your class decided:' : 'The rule:'}
+                    showRules={showRules}
                   >
                     {columnWords.map((entry) => (
                       <MobileWordCard
@@ -920,8 +927,9 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     pattern={pattern}
                     isOver={overId === pattern.id}
                     ghostEntry={ghostEntry}
-                    rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
+                    rule={existingRules[pattern.pattern] ?? null}
                     ruleLabel={classRulePatterns.has(pattern.pattern) ? 'Your class decided:' : 'The rule:'}
+                    showRules={showRules}
                   >
                     {columnWords.map((entry) => (
                       <SortableWordCard

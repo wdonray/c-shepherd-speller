@@ -5,6 +5,20 @@ import { cn } from '@/lib/utils'
 const RULE_MAX_LENGTH = 300
 
 /**
+ * Visible placeholder shown under a pattern header when no rule exists
+ * (issue #370). It keeps the column layout the same size as a filled rule
+ * card instead of collapsing to nothing, and the dashed border marks it as
+ * an empty slot rather than a real rule.
+ */
+export function EmptyRulePlaceholder() {
+  return (
+    <div className="mt-3 rounded-xl border-2 border-dashed border-line bg-background p-3 text-left">
+      <p className="text-sm font-bold text-muted-foreground">No rule yet</p>
+    </div>
+  )
+}
+
+/**
  * Displays a spelling rule under a pattern header, with inline editing and
  * deletion. The label distinguishes class rules ("Your class decided:") from
  * unscoped rules ("The rule:").

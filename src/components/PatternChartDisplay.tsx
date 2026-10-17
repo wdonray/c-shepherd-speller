@@ -132,7 +132,16 @@ export default function PatternChartDisplay({
   const renderRuleDisplay = (pattern: SpellingPattern) => {
     if (isPrint || !showRules) return null
     const rule = classRules?.[pattern.pattern] ?? pattern.rule
-    if (!rule) return null
+    // Issue #370: a visible empty placeholder keeps every column the same
+    // size when a pattern has no rule; the dashed border marks it as an
+    // empty slot rather than a real rule.
+    if (!rule) {
+      return (
+        <figure className="mt-3 border-l-4 border-dashed border-line bg-background/50 px-3 py-2 text-left">
+          <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
+        </figure>
+      )
+    }
     const isClassRule = classRules?.[pattern.pattern] !== undefined
     return (
       <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">
