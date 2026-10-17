@@ -1,14 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { MaximizeIcon, MinimizeIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useFullscreen } from '@/hooks/use-fullscreen'
 
 /**
  * Full screen toggle for present mode. Lives in the top right corner of the
  * chart header so teachers can push the pattern chart to the big screen.
- * Renders nothing when the Fullscreen API is unavailable. Tracks reality via
- * the fullscreenchange event, so an Escape key exit updates the button too.
+ * Renders nothing when the Fullscreen API is unavailable. Full screen state
+ * comes from useFullscreen, which tracks reality via the fullscreenchange
+ * event (so an Escape key exit updates the button too) and handles Escape
+ * explicitly while full screen is active.
  */
 interface FullscreenButtonProps {
   /** Extra classes merged onto the button (e.g. a full-width row in a menu sheet). */
@@ -21,40 +23,9 @@ interface FullscreenButtonProps {
 }
 
 export default function FullscreenButton({ className, alwaysShowLabel = false }: FullscreenButtonProps) {
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  // Support is detected after mount: the server has no document, so a
-  // render-time check would hydrate as unsupported and never recover.
-  const [supported, setSupported] = useState(false)
+  const { isFullscreen, isSupported, toggleFullscreen } = useFullscreen()
 
-  useEffect(() => {
-    setSupported(typeof document.documentElement.requestFullscreen === 'function')
-    // A remount (for example, reopening the mobile chart menu) must not reset
-    // the button while fullscreen is already active. Loose null check: the spec
-    // says Element | null, but environments without the Fullscreen API report
-    // undefined, which must also read as "not fullscreen".
-    setIsFullscreen(document.fullscreenElement != null)
-  }, [])
-
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(document.fullscreenElement !== null)
-    document.addEventListener('fullscreenchange', onChange)
-    return () => document.removeEventListener('fullscreenchange', onChange)
-  }, [])
-
-  const toggleFullscreen = useCallback(async () => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen()
-      } else {
-        await document.documentElement.requestFullscreen()
-      }
-    } catch {
-      // Full screen request failed (for example, no user gesture). State
-      // keeps reflecting reality through the fullscreenchange listener.
-    }
-  }, [])
-
-  if (!supported) return null
+  if (!isSupported) return null
 
   return (
     <Button

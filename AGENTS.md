@@ -70,6 +70,13 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **Full screen must own its exit path.** When full screen hides the only
+  visible exit control, register an explicit Escape handler that calls
+  `document.exitFullscreen()`; native Esc-to-exit varies across classroom
+  browsers and automation, so the app cannot rely on it. The handler must
+  not prevent default or stop propagation, so dialogs and popovers keep
+  their own Escape behavior (found 2026-10-17: issue #380, present-mode
+  full screen hid the chart header with the exit button in it).
 - **Autosave modals must not swallow a close while a save is in flight.**
   When the draft is clean (e.g. Clear-then-Done), queue the close and honor
   it when the save settles. If the save fails, discard the queued close and

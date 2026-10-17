@@ -10,6 +10,7 @@ import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import ChartActionsMenu from './ChartActionsMenu'
 import FullscreenButton from './FullscreenButton'
+import { useFullscreen } from '@/hooks/use-fullscreen'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
 import WordUnderlineToggle from './WordUnderlineToggle'
 import SortActivity from './SortActivity'
@@ -64,6 +65,9 @@ function DisplayModeInner() {
   const [toggleError, setToggleError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
+  // Full screen hides the chart header below (issue #380); Escape exits
+  // full screen via the hook since the exit button hides with the header.
+  const { isFullscreen } = useFullscreen()
   /** Selected week chip; null means "All weeks" (every list). */
   const [weekFilter, setWeekFilter] = useState<string | null>(null)
 
@@ -316,9 +320,11 @@ function DisplayModeInner() {
   // Show the pattern chart.
   // In sort mode the sort surface fills the available area: no header, no
   // subheader. SortActivity brings its own Exit control and class pill.
+  // In full screen (issue #380) the chart header is hidden too, so the
+  // chart gets the whole screen for the projector; Escape is the way out.
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {!sortMode && (
+      {!sortMode && !isFullscreen && (
         <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
           <div className="flex items-center gap-2 px-4 py-3">
             <Button variant="ghost" size="sm" asChild>

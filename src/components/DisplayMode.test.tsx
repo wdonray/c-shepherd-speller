@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within, act } from '@testing-library/react'
 import DisplayMode from './DisplayMode'
 import type { WordList } from '@/models/WordList'
 
@@ -632,6 +632,66 @@ describe('DisplayMode', () => {
     expect(
       screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span').length
     ).toBeGreaterThan(0)
+  })
+
+  it('hides the chart header while in full screen (issue #380)', async () => {
+    Object.defineProperty(document.documentElement, 'requestFullscreen', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    })
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+    })
+    // Full screen engaged outside the button: the header tracks reality via
+    // fullscreenchange, the same event a real browser fires.
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        writable: true,
+        value: document.documentElement,
+      })
+      document.dispatchEvent(new Event('fullscreenchange'))
+    })
+    // The top header is gone, including the full screen button itself; the
+    // chart stays on screen.
+    expect(screen.queryByRole('link', { name: 'Choose a different list' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Exit full screen' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
+    // Leaving full screen brings the header back.
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: null })
+      document.dispatchEvent(new Event('fullscreenchange'))
+    })
+    expect(screen.getByRole('button', { name: 'Enter full screen' })).toBeInTheDocument()
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: null })
+  })
+
+  it('exits full screen on Escape (issue #380)', async () => {
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(document, 'exitFullscreen', { configurable: true, writable: true, value: exitFullscreen })
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue(list)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
+    })
+    act(() => {
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        writable: true,
+        value: document.documentElement,
+      })
+      document.dispatchEvent(new Event('fullscreenchange'))
+    })
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(exitFullscreen).toHaveBeenCalledTimes(1)
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, writable: true, value: null })
   })
 })
 
