@@ -33,6 +33,14 @@ const GETTING_STARTED_STEPS = [
   },
 ]
 
+/**
+ * Intro paragraph for the getting-started guide. Shared with the skeleton
+ * below so the skeleton's line-highlight placeholder wraps at exactly the
+ * same points as the real copy at every viewport width (issue #349).
+ */
+const GETTING_STARTED_INTRO =
+  'One pattern learned is dozens of words spelled. When students see words grouped by a shared spelling pattern, they learn the rule behind the words and can spell new words they have never seen. PatternSpell works with the program you already teach: CKLA, Fundations, UFLI, Words Their Way, or your own sequence.'
+
 const ACTIVITY_META: Record<ActivityEvent['kind'], { label: string; chipClasses: string }> = {
   practiced: { label: 'Practiced', chipClasses: 'bg-leaf-soft text-leaf-ink' },
   presented: { label: 'Presented', chipClasses: 'bg-sky-soft text-sky-ink' },
@@ -45,11 +53,7 @@ function GettingStarted() {
   return (
     <section aria-label="Getting started guide" className="space-y-4">
       <h2 className="text-2xl font-bold">Getting started with pattern-based spelling</h2>
-      <p className="max-w-3xl text-muted-foreground">
-        One pattern learned is dozens of words spelled. When students see words grouped by a shared spelling pattern,
-        they learn the rule behind the words and can spell new words they have never seen. PatternSpell works with the
-        program you already teach: CKLA, Fundations, UFLI, Words Their Way, or your own sequence.
-      </p>
+      <p className="max-w-3xl text-muted-foreground">{GETTING_STARTED_INTRO}</p>
       <ol className="grid gap-4 md:grid-cols-3">
         {GETTING_STARTED_STEPS.map((step, i) => (
           <li key={step.title}>
@@ -125,10 +129,43 @@ function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
 }
 
 /**
- * Shared dashboard skeleton (issue #341). Used by Dashboard itself and by
- * the /home page-level loading state so both skeletons are geometrically
- * identical to each other and to the loaded layout: greeting + quick-action
- * row, "My word lists" section, "Getting started" section.
+ * Invisible-copy placeholder (issue #349). Renders the real copy in
+ * transparent text over a per-line highlight span. Because the copy, font,
+ * size, and available width are identical to the loaded element, it wraps at
+ * exactly the same points at every viewport width, so the skeleton occupies
+ * exactly the loaded element's space and nothing shifts on load.
+ */
+function GhostText({ text, highlightClassName }: { text: string; highlightClassName: string }) {
+  return (
+    <span aria-hidden="true" className="select-none text-transparent">
+      <span className={`box-decoration-clone animate-pulse rounded-sm ${highlightClassName}`}>{text}</span>
+    </span>
+  )
+}
+
+/**
+ * Shared dashboard skeleton (issues #341, #349). Used by Dashboard itself
+ * and by the /home page-level loading state so both skeletons are
+ * geometrically identical to each other and to the loaded layout.
+ *
+ * Every block mirrors the loaded component's exact box geometry for the
+ * common case (a teacher with 1-3 lists, each with 1-4 patterns):
+ * - header: greeting (text-3xl) + quick actions (size="lg" buttons, h-14)
+ * - lists header: h2 (text-2xl) + "View all lists" button (default size, h-11)
+ * - list cards: the real Card with the accent bar (h-2), title + badge row,
+ *   count line, pattern-preview grid (same columns, tile padding, gaps, and
+ *   3-segment power-bar placeholders as WordListCard), and the two action
+ *   buttons (size="sm", h-9). The preview shows 2 tiles: at every width that
+ *   is exactly one row for lists with 1-2 patterns (the seeded e2e shape);
+ *   lists with 3-4 patterns wrap to a second row on narrow screens, which a
+ *   skeleton cannot know in advance.
+ * - getting started: GhostText placeholders carry the real copy, so the h2,
+ *   intro paragraph, and step cards wrap exactly like the loaded text at
+ *   every viewport width
+ *
+ * Inherent approximations (unknowable while loading): the exact list count,
+ * badge wrapping on long titles, the "+N more" line past 4 patterns, and the
+ * "showing three most recently used" subline past 3 lists.
  */
 export function DashboardSkeleton() {
   return (
@@ -138,35 +175,71 @@ export function DashboardSkeleton() {
         <div className="h-9 w-64 animate-pulse rounded-xl bg-line/60" />
         <div className="flex flex-wrap gap-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
+            <div key={i} className="h-14 w-32 animate-pulse rounded-2xl bg-line/60" />
           ))}
         </div>
       </div>
-      {/* My word lists: matches the loaded section (h2 + card grid) */}
+      {/* My word lists: matches the loaded section (header row + card grid) */}
       <div className="space-y-4" aria-hidden="true">
-        <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
+          <div className="h-11 w-32 animate-pulse rounded-2xl bg-line/60" />
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-[20px] border-2 border-line bg-card p-6">
-              <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
-              <div className="mt-3 h-5 w-1/2 animate-pulse rounded-lg bg-line/60" />
-              <div className="mt-4 h-20 animate-pulse rounded-xl bg-line/40" />
-            </div>
+            <Card key={i} className="relative overflow-hidden">
+              {/* accent bar */}
+              <div className="h-2 w-full animate-pulse bg-line/60" />
+              <div className="flex flex-1 flex-col gap-3 p-6">
+                {/* title + week badge row */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="h-7 w-2/3 animate-pulse rounded-lg bg-line/60" />
+                  <div className="h-6 w-20 animate-pulse rounded-full bg-line/40" />
+                </div>
+                {/* pattern/word count line */}
+                <div className="h-5 w-1/3 animate-pulse rounded-lg bg-line/60" />
+                {/* pattern preview: same grid, tile padding, gaps, and power-bar segments as WordListCard */}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {[0, 1].map((j) => (
+                    <div key={j} className="flex flex-col gap-1.5 rounded-xl bg-line/20 px-3 py-2">
+                      <div className="h-5 w-3/4 animate-pulse rounded bg-line/40" />
+                      <div className="flex gap-1.5">
+                        {[0, 1, 2].map((k) => (
+                          <div key={k} className="h-2.5 w-6 animate-pulse rounded-full bg-line/40" />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* action buttons: "Edit list" + "Present" (size="sm") */}
+                <div className="mt-auto flex flex-wrap gap-2 pt-2">
+                  <div className="h-9 w-24 animate-pulse rounded-2xl bg-line/60" />
+                  <div className="h-9 w-24 animate-pulse rounded-2xl bg-line/40" />
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       </div>
-      {/* Getting started: matches the loaded section (h2 + text + 3 cards) */}
+      {/* Getting started: matches the loaded section (h2 + intro + 3 cards) */}
       <div className="space-y-4" aria-hidden="true">
-        <div className="h-8 w-72 animate-pulse rounded-xl bg-line/60" />
-        <div className="h-5 w-full max-w-3xl animate-pulse rounded-lg bg-line/60" />
+        <h2 className="text-2xl font-bold">
+          <GhostText text="Getting started with pattern-based spelling" highlightClassName="bg-line/60" />
+        </h2>
+        <p className="max-w-3xl">
+          <GhostText text={GETTING_STARTED_INTRO} highlightClassName="bg-line/40" />
+        </p>
         <div className="grid gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-[20px] border-2 border-line bg-card p-6">
+          {GETTING_STARTED_STEPS.map((step) => (
+            <Card key={step.title} className="p-6">
               <div className="mb-4 size-10 animate-pulse rounded-full bg-line/60" />
-              <div className="mb-2 h-6 w-2/3 animate-pulse rounded-lg bg-line/60" />
-              <div className="h-4 w-full animate-pulse rounded-lg bg-line/40" />
-              <div className="mt-2 h-4 w-5/6 animate-pulse rounded-lg bg-line/40" />
-            </div>
+              <h3 className="mb-2 text-lg font-bold">
+                <GhostText text={step.title} highlightClassName="bg-line/60" />
+              </h3>
+              <p className="text-sm">
+                <GhostText text={step.text} highlightClassName="bg-line/40" />
+              </p>
+            </Card>
           ))}
         </div>
       </div>
