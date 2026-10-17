@@ -41,12 +41,13 @@ export function findPatternInWord(word: string, pattern: string): [number, numbe
 
 /**
  * Build the auto-generated mapping note for a word, from its pattern data.
- * A multi-letter pattern works together to spell one sound; a single letter
- * spells the target sound in that position. Odd ducks follow no pattern.
+ * Only single letters get a note (which letter spells the target sound in
+ * that position). Multi-letter patterns get no note; the "letters work
+ * together" sentence was removed (issue #371).
  */
-export function buildMappingNote(pattern: string, sound: string): string {
+export function buildMappingNote(pattern: string, sound: string): string | null {
   const letterCount = pattern.replace(/_/g, '').length
-  if (letterCount > 1) return `The letters ${pattern} work together to make one sound.`
+  if (letterCount > 1) return null
   return `The letter ${pattern} spells ${sound} here.`
 }
 
@@ -166,7 +167,7 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
           </div>
         )}
 
-        <p className="text-[15px] text-ink">{mappingNote}</p>
+        {mappingNote && <p className="text-[15px] text-ink">{mappingNote}</p>}
 
         {wordParts && (
           <p className="text-[15px] text-ink">

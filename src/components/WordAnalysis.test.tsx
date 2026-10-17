@@ -66,9 +66,9 @@ describe('WordAnalysis', () => {
     expect(screen.queryByText('Odd duck')).not.toBeInTheDocument()
   })
 
-  it('shows the mapping note for a multi-letter pattern', () => {
+  it('does not show a mapping note for a multi-letter pattern', () => {
     render(<WordAnalysis {...defaultProps} />)
-    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
+    expect(screen.queryByText(/work together to make one sound/)).not.toBeInTheDocument()
   })
 
   it('shows the mapping note for a single-letter pattern', () => {
@@ -76,9 +76,9 @@ describe('WordAnalysis', () => {
     expect(screen.getByText('The letter a spells short a here.')).toBeInTheDocument()
   })
 
-  it('shows the regular mapping note even when isOddDuck is set', () => {
+  it('shows no mapping note for a multi-letter pattern even when isOddDuck is set', () => {
     render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.getByText('The letters ai work together to make one sound.')).toBeInTheDocument()
+    expect(screen.queryByText(/work together to make one sound/)).not.toBeInTheDocument()
   })
 
   it('shows word parts for a clean suffix split', () => {
