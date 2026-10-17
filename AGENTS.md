@@ -67,6 +67,14 @@ credentials.
   is worse than a spinner (found 2026-10-17: issue #366, the present-page
   skeletons could never match pattern counts, word counts, rule text, or
   the odd-ducks section).
+- **A second fetch after first paint is layout shift too.** Data that
+  arrives in a follow-up request and changes visible geometry (a header
+  pill, rule text) shifts the loaded page just like a bad skeleton, and no
+  loading-state choice can fix it. Join that data server-side into the
+  initial payload so the single loading state covers it; degrade to the
+  no-data rendering when the join fails rather than failing the whole load
+  (found 2026-10-17: issue #388, the present page's classroom pill and
+  class rules arrived after the chart rendered).
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.

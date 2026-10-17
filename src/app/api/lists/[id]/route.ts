@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/require-auth'
 import { getListById, updateList, deleteList } from '@/lib/lists-db'
+import { getClassById } from '@/lib/classes-db'
 import { UpdateWordListSchema } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import { noStore, noStoreJson } from '@/lib/no-store'
@@ -18,7 +19,30 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!list) {
       return noStoreJson({ error: 'List not found' }, { status: 404 })
     }
-    return noStoreJson({ list })
+    // The present page renders the classroom pill and class rules with the
+    // chart; joining them here keeps the page on a single loading state
+    // instead of shifting the loaded page when a second fetch lands
+    // (issue #388). Rules are flattened to plain text, the shape the chart
+    // consumes. A failed classroom read degrades to null (the old client
+    // behavior): the chart still renders, the pill shows "No class".
+    let classroom: { name: string; rules: Record<string, string> } | null = null
+    if (list.classId) {
+      try {
+        const cls = await getClassById(auth.user.id, list.classId)
+        if (cls) {
+          classroom = {
+            name: cls.name,
+            rules: Object.fromEntries(
+              Object.entries(cls.rules ?? {}).map(([patternText, rule]) => [patternText, rule.rule])
+            ),
+          }
+        }
+      } catch (classError) {
+        reportError(classError, { location: 'GET /api/lists/[id] classroom join', extra: { status: 500 } })
+        console.error('Error joining classroom:', classError)
+      }
+    }
+    return noStoreJson({ list, classroom })
   } catch (error) {
     reportError(error, { location: 'GET /api/lists/[id]', extra: { status: 500 } })
     console.error('Error getting word list:', error)

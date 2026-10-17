@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   getLists,
   getList,
+  getListWithClassroom,
   createList,
   updateList,
   deleteList,
@@ -50,6 +51,22 @@ describe('lists-api', () => {
 
     await getList('a/b')
     expect(fetch).toHaveBeenCalledWith('/api/lists/a%2Fb')
+  })
+
+  it('getListWithClassroom returns the list and the joined classroom (issue #388)', async () => {
+    const list = { id: 'l1', name: 'Week 5', classId: 'c1' }
+    const classroom = { name: 'Period 2', rules: { a_e: 'ai never ends a word.' } }
+    mockFetch().mockResolvedValueOnce({ ok: true, json: async () => ({ list, classroom }) } as Response)
+
+    expect(await getListWithClassroom('l1')).toEqual({ list, classroom })
+    expect(fetch).toHaveBeenCalledWith('/api/lists/l1')
+  })
+
+  it('getListWithClassroom returns classroom: null for lists without one', async () => {
+    const list = { id: 'l1', name: 'Week 5' }
+    mockFetch().mockResolvedValueOnce({ ok: true, json: async () => ({ list, classroom: null }) } as Response)
+
+    expect(await getListWithClassroom('l1')).toEqual({ list, classroom: null })
   })
 
   it('createList POSTs the input', async () => {
