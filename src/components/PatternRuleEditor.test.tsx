@@ -221,6 +221,36 @@ describe('PatternRuleEditor modal', () => {
     await waitFor(() => expect(textarea()).toHaveValue(''))
   })
 
+  it('closes after Clear-then-Done once the in-flight save settles', async () => {
+    // Issue #363: Done pressed right after Clear must not be swallowed
+    // just because the clear save is still running. The draft is clean,
+    // so there is nothing to protect: the close is queued, not dropped.
+    let resolveSave!: () => void
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (resolveSave = resolve)))
+    renderEditor({ onSave, initialRule: 'Magic e.' })
+    openModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onSave).toHaveBeenCalledWith('')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    resolveSave()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toHaveTextContent('Add a rule')
+  })
+
+  it('keeps the modal open with the error when a Clear-then-Done save fails', async () => {
+    // The queued close only fires on success: a failed clear must still
+    // surface its error with the draft intact.
+    const onSave = vi.fn().mockRejectedValue(new Error('down'))
+    renderEditor({ onSave, initialRule: 'Magic e.' })
+    openModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the rule. Try again.')
+    expect(textarea()).toHaveValue('Magic e.')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('ignores a close requested while a save is still running', async () => {
     let resolveSave!: () => void
     const onSave = vi.fn(() => new Promise<void>((resolve) => (resolveSave = resolve)))
