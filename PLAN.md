@@ -1,28 +1,54 @@
-# PLAN.md — Issue #373: Remove the long small sentence under patterns on the present page
+# PLAN.md — Issue #375: Add more emojis to keyword images
 
 ## What
 
-Remove the centered helper caption under the present chart:
-"Tap a word to see its analysis, or press the speaker icon to hear it. Patterns are ordered by how common the spelling is; longer bars mean more common."
+Expand `KEYWORD_EMOJI_GROUPS` in `src/components/KeywordImagePicker.tsx` from
+30 to 66 curated emojis: grow each existing group (Animals, Food, Things,
+Weather and nature) to 12 entries and add three new groups (Play, Home,
+Clothes) with 6 entries each. Existing entries and group order unchanged, so
+stored teacher selections keep working (lookup is by emoji value, not index).
+
+## Research (Donray's comment: "search online to help curate more emojis")
+
+Checked Dolch sight-word noun lists and classroom word-wall lists for
+K-3 concrete nouns. Curation rules applied:
+
+- Monosyllabic concrete nouns preferred: keyword images anchor a phonics
+  pattern, so the name must be instantly sayable (bee, duck, drum, chair).
+- Classroom-safe, no people/gender/skin-tone variants (accounts are
+  educators 18+; kids do not create accounts; keep the picker neutral).
+- Single-codepoint emojis that render consistently; no ZWJ sequences.
+- Never remove existing entries (teachers may already use them).
+- Do not promote 🦄 into the curated set: tests use it as the canonical
+  custom emoji.
+
+## Design
+
+One reasonable approach: extend the existing groups + add new category
+groups. Picked because teachers already know the four existing groups;
+new categories (Play, Home, Clothes) match how K-3 vocab is naturally
+segmented on word walls, and 6 entries each keeps the dialog scannable.
 
 ## Files
 
-1. `src/components/PatternChartDisplay.tsx`
-   - Delete the `CHART_CAPTION` export (its only purpose was this caption and the skeleton's invisible-copy placeholder).
-   - Delete the `{!isPrint && <p className="mt-6 ...">{CHART_CAPTION}</p>}` line.
-2. `src/components/DisplayMode.tsx`
-   - Delete the `CHART_CAPTION` import.
-   - Delete the skeleton caption placeholder block in `DisplayChartSkeleton`
-     (`<p className="mt-6 text-center text-sm"><GhostText text={CHART_CAPTION} .../></p>`):
-     the skeleton must stay geometrically identical to the loaded chart, which no longer has the caption.
-3. `src/components/PatternChartDisplay.test.tsx`
-   - Replace the "explains the frequency encoding in the caption" test (asserts the caption IS present)
-     with a test asserting the caption text is NOT in the document in present mode (issue #373).
-   - The "hides the interactive caption in print" test still passes unchanged (absence holds).
+- `src/components/KeywordImagePicker.tsx` — data only.
+- `PLAN.md` — this file (replaced per repo convention).
 
 ## Test plan
 
-- `npm run format` first (prettier), then `npm run lint`, `npm run typecheck`.
-- Full unit suite with coverage thresholds: `npm run test:unit` (or the repo's coverage command).
-- `e2e/display.spec.ts` regression check (chart renders, no visual difference beyond the removed line).
-- Quick Playwright screenshot before/after is overkill for a line deletion; rely on the spec.
+- Existing `KeywordImagePicker.test.tsx` covers the grid (no count
+  assertions; verified no other file imports KEYWORD_EMOJI_GROUPS).
+- Run `npm run format`, `npm run lint`, `npm run typecheck`, and the full
+  unit suite with coverage thresholds.
+- No e2e: data-only change to an exported constant; unit suite covers the
+  picker component that consumes it.
+
+## Additions
+
+- Animals: 🐔 Chicken, 🦆 Duck
+- Food: 🍇 Grapes, 🍓 Strawberry, 🍑 Peach, 🥛 Milk, 🍳 Egg, 🧀 Cheese
+- Things: 🚲 Bike, 🪁 Kite, 🛹 Skateboard, 🧸 Teddy bear
+- Weather and nature: 🌧️ Rain, ⛄ Snowman, 🌊 Wave, 🌻 Sunflower, 🌵 Cactus, 🍁 Leaf
+- Play (new): ⚾ Baseball, 🏈 Football, 🎾 Tennis, 🥁 Drum, 🎸 Guitar, 🎨 Paint
+- Home (new): 🛏️ Bed, 🪑 Chair, 🚪 Door, 🔔 Bell, 🛋️ Couch, 🛁 Bath
+- Clothes (new): 👕 Shirt, 👖 Pants, 👟 Shoes, 🧢 Cap, 🧥 Coat, 🕶️ Sunglasses
