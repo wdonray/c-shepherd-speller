@@ -353,6 +353,35 @@ describe('PatternEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('says why a duplicate word was not saved', () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'Cake' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onChange).not.toHaveBeenCalled()
+    const notice = screen.getByRole('status')
+    expect(notice).toHaveTextContent('\u201ccake\u201d is already on the list, so it was not added again.')
+  })
+
+  it('clears the duplicate notice when the teacher edits the word', () => {
+    renderEditor()
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'cake' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'cakes' } })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('clears the duplicate notice when a new word is saved', () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'cake' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'late' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, words: ['cake', 'bake', 'late'] })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('adds a word directly when it matches a contiguous pattern', () => {
     const { onChange } = renderEditor({ pattern: 'ee', words: [] })
     fireEvent.change(screen.getByLabelText('New word'), { target: { value: 'meet' } })
