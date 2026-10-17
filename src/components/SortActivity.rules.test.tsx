@@ -272,4 +272,29 @@ describe('SortActivity rule recall', () => {
     expect(within(fallbackColumn).getByText('The rule:')).toBeInTheDocument()
     expect(within(fallbackColumn).getByText('ai never ends a word.')).toBeInTheDocument()
   })
+
+  it('shows a No rule yet placeholder on desktop columns with no rule', async () => {
+    // Issue #370: the placeholder keeps every column the same size.
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai drop column')
+    expect(within(column).getByText('No rule yet')).toBeInTheDocument()
+  })
+
+  it('shows a No rule yet placeholder on mobile columns with no rule', async () => {
+    // Issue #370: the placeholder keeps every column the same size.
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    expect(within(column).getByText('No rule yet')).toBeInTheDocument()
+  })
+
+  it('hides the No rule yet placeholder with the eyeball toggle', async () => {
+    // The toggle hides the whole rule slot, placeholder included.
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    await screen.findAllByText('No rule yet')
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.queryByText('No rule yet')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.getAllByText('No rule yet')).toHaveLength(3)
+  })
 })

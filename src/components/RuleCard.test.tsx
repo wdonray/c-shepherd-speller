@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import RuleCard from './RuleCard'
+import RuleCard, { EmptyRulePlaceholder } from './RuleCard'
 
 function renderCard(overrides: Partial<Parameters<typeof RuleCard>[0]> = {}) {
   const props = {
@@ -136,5 +136,12 @@ describe('RuleCard', () => {
     await waitFor(() => {
       expect(screen.queryByText('Delete this rule?')).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('EmptyRulePlaceholder', () => {
+  it('renders the visible No rule yet box', () => {
+    render(<EmptyRulePlaceholder />)
+    expect(screen.getByText('No rule yet')).toBeInTheDocument()
   })
 })

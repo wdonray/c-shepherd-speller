@@ -505,10 +505,22 @@ describe('PatternChartDisplay', () => {
       expect(screen.queryByText('Magic e.')).not.toBeInTheDocument()
     })
 
-    it('hides the rule block when there is no rule', () => {
+    it('shows a No rule yet placeholder when there is no rule', () => {
       render(<PatternChartDisplay list={list} />)
+      // One placeholder per pattern column, keeping every column the same size.
+      expect(screen.getAllByText('No rule yet')).toHaveLength(3)
       expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
       expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+    })
+
+    it('shows no placeholder in the print variant', () => {
+      render(<PatternChartDisplay list={list} variant="print" />)
+      expect(screen.queryByText('No rule yet')).not.toBeInTheDocument()
+    })
+
+    it('shows no placeholder when showRules is false', () => {
+      render(<PatternChartDisplay list={list} showRules={false} />)
+      expect(screen.queryByText('No rule yet')).not.toBeInTheDocument()
     })
 
     it('hides rules in the print variant', () => {
