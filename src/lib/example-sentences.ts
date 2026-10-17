@@ -1,13 +1,15 @@
 /**
  * Example sentences for spelling words.
  *
- * Primary source: the Free Dictionary API (dictionaryapi.dev), a free,
- * keyless Wiktionary-derived API (CC-BY-SA). The browser calls it directly;
- * CORS is open, so no server proxy is needed.
+ * Primary source: our own dictionary (src/data/fallback-sentences.json),
+ * a curated bank of short, age-appropriate sentences for common spelling
+ * words. It answers instantly with no network involved.
  *
- * When the API has no example, fails, or is unreachable, we fall back to
- * our own dictionary (src/data/fallback-sentences.json): a curated bank of
- * short, age-appropriate sentences for common spelling words.
+ * When our dictionary has no entry, we try the Free Dictionary API
+ * (dictionaryapi.dev), a free, keyless Wiktionary-derived API (CC-BY-SA).
+ * The browser calls it directly; CORS is open, so no server proxy is
+ * needed. The API gets one short attempt: it has proven flaky, and the
+ * dialog must never sit on a spinner for tens of seconds waiting it out.
  *
  * Non-empty results are cached in memory and localStorage along with where
  * they came from, so the UI can attribute API sentences and stay silent for
@@ -20,9 +22,7 @@ import { reportError } from './report-error'
 
 const STORAGE_KEY = 'patternspell-sentences-v2'
 const MAX_CACHE_ENTRIES = 200
-const FETCH_TIMEOUT_MS = 10000
-const MAX_FETCH_ATTEMPTS = 2
-const RETRY_DELAY_MS = 1000
+const FETCH_TIMEOUT_MS = 3000
 const MAX_SENTENCE_LENGTH = 140
 const MAX_RESULTS = 3
 
@@ -140,43 +140,27 @@ async function processApiResponse(word: string, res: Response): Promise<string[]
 
 /**
  * One attempt at the Free Dictionary API. Returns the usable sentences, or
- * null when the request failed at the network level (unreachable, timed
- * out, aborted), which is retryable. A successful response with no usable
- * sentences returns [] and is not retried.
+ * [] when the request failed at the network level (unreachable, timed out,
+ * aborted) or the response had no usable sentences. There is no retry: the
+ * API is a best-effort long-tail fallback, and a slow network must never
+ * hold the dialog open.
  */
-async function fetchOnce(word: string): Promise<string[] | null> {
+async function fetchFromApi(word: string): Promise<string[]> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-  let res: Response
   try {
-    res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`, {
       signal: controller.signal,
     })
+    return await processApiResponse(word, res)
   } catch {
     // The third-party dictionary API is unreachable (network failure,
     // timeout, abort). This is not an application error: our own dictionary
-    // covers it, so there is nothing to report to Sentry.
-    return null
+    // is the primary source, so there is nothing to report to Sentry.
+    return []
   } finally {
     clearTimeout(timeout)
   }
-  return processApiResponse(word, res)
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-/** Fetch from the API, retrying network-level failures with backoff. */
-async function fetchFromApi(word: string): Promise<string[]> {
-  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
-    const result = await fetchOnce(word)
-    if (result !== null) return result
-    if (attempt < MAX_FETCH_ATTEMPTS) {
-      await delay(RETRY_DELAY_MS * 2 ** (attempt - 1))
-    }
-  }
-  return []
 }
 
 function fallbackSentences(word: string): string[] {
@@ -186,16 +170,24 @@ function fallbackSentences(word: string): string[] {
 
 /**
  * Fetch up to 3 example sentences for a word, along with where they came
- * from. Tries the Free Dictionary API first (with one retry on network
- * failure), then our own dictionary. Non-empty results are cached. Misses
- * are never cached, so a transient failure retries on the next request.
- * Never throws; resolves to an empty list when nothing usable is found.
+ * from. Checks our own dictionary first (instant, no network), then the
+ * Free Dictionary API with a single short attempt for words the bank does
+ * not cover. Non-empty results are cached. Misses are never cached, so a
+ * transient failure retries on the next request. Never throws; resolves to
+ * an empty list when nothing usable is found.
  */
 export async function fetchExampleSentences(word: string): Promise<SentenceResult> {
   const trimmed = word.trim().toLowerCase()
   if (!trimmed) return { sentences: [], source: 'local' }
   const cached = getCached(trimmed)
   if (cached) return { sentences: cached.sentences, source: cached.source }
+
+  const fromBank = fallbackSentences(trimmed)
+  if (fromBank.length > 0) {
+    const entry: StoredEntry = { sentences: fromBank, source: 'local' }
+    setCached(trimmed, entry)
+    return entry
+  }
 
   const fromApi = await fetchFromApi(trimmed)
   if (fromApi.length > 0) {
@@ -204,9 +196,7 @@ export async function fetchExampleSentences(word: string): Promise<SentenceResul
     return entry
   }
 
-  const fromBank = fallbackSentences(trimmed)
   // Never cache a miss: caching [] would turn a transient API failure into
   // a permanent "no sentences" for that word.
-  if (fromBank.length > 0) setCached(trimmed, { sentences: fromBank, source: 'local' })
-  return { sentences: fromBank, source: 'local' }
+  return { sentences: [], source: 'local' }
 }

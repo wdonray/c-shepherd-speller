@@ -62,3 +62,12 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+
+## Reliability
+
+- **Prefer our own data over the network, and cap third-party timeouts.**
+  Local-first lookups answer instantly; a flaky external API must never hold
+  UI open. Browser-side calls to third-party services get a short timeout
+  (a few seconds) and no retries (found 2026-10-17: dictionaryapi.dev
+  flaked, and the sentences dialog sat on a spinner for ~21s before falling
+  back to the local bank).
