@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BackLink from '@/components/BackLink'
@@ -62,28 +62,60 @@ function isPayloadSaveable(patterns: SpellingPattern[]): boolean {
 type SaveStatus = 'idle' | 'saving' | 'saved'
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
-function SaveIndicator({ status, isDirty }: { status: SaveStatus; isDirty: boolean }) {
+/**
+ * Floating save-status box, pinned to the bottom-right corner of the
+ * viewport (issue #376). It is `position: fixed`, so it is out of the page
+ * flow and can never shift layout when it appears, changes, or disappears.
+ * Informational only: `pointer-events-none` keeps it from covering real
+ * controls, and z-40 sits above page content but below dialogs (z-50) and
+ * the error toaster (z-100).
+ */
+function SaveStatusBox({ children }: { children: ReactNode }) {
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-40"
+    >
+      <p className="flex items-center gap-1.5 rounded-2xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground shadow-lg">
+        {children}
+      </p>
+    </div>
+  )
+}
+
+function SaveIndicator({
+  status,
+  isDirty,
+  unsavedPatternCount,
+}: {
+  status: SaveStatus
+  isDirty: boolean
+  unsavedPatternCount: number
+}) {
   if (status === 'saving') {
     return (
-      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+      <SaveStatusBox>
+        <span aria-hidden="true" className="size-2 shrink-0 animate-pulse rounded-full bg-sky" />
         Saving...
-      </p>
+      </SaveStatusBox>
     )
   }
   if (isDirty) {
     return (
-      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+      <SaveStatusBox>
         <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
-        Unsaved changes
-      </p>
+        {unsavedPatternCount > 0
+          ? `Unsaved changes (${unsavedPatternCount} ${unsavedPatternCount === 1 ? 'pattern' : 'patterns'})`
+          : 'Unsaved changes'}
+      </SaveStatusBox>
     )
   }
   if (status === 'saved') {
     return (
-      <p aria-live="polite" className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+      <SaveStatusBox>
         <CheckCircle2Icon className="size-4 text-leaf-ink" aria-hidden="true" />
         Saved
-      </p>
+      </SaveStatusBox>
     )
   }
   return null
@@ -668,7 +700,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
         <BackLink href="/lists">My lists</BackLink>
-        <SaveIndicator status={saveStatus} isDirty={isDirty} />
       </div>
 
       <div>
@@ -824,6 +855,8 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SaveIndicator status={saveStatus} isDirty={isDirty} unsavedPatternCount={localOnlyCount} />
     </div>
   )
 }
