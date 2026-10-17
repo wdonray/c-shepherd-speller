@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { processKeywordImage, PROFILE_IMAGE_MIME_TYPES } from '@/lib/profile-image'
+import { KEYWORD_IMAGE_MAX_DIMENSION, processKeywordImage, PROFILE_IMAGE_MIME_TYPES } from '@/lib/profile-image'
 import { ChevronRightIcon, ImagePlusIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 
 /** Curated K-3 keyword emojis: animals, food, things, weather and nature, play, home, and clothes. */
@@ -267,6 +267,10 @@ export default function KeywordImagePicker({
             <UploadIcon className="size-4" aria-hidden="true" />
             {uploading ? 'Uploading photo...' : image ? 'Replace photo' : 'Upload photo'}
           </label>
+          <p className="mt-2 text-[13px] text-muted-foreground">
+            Tip: a square photo at least {KEYWORD_IMAGE_MAX_DIMENSION} × {KEYWORD_IMAGE_MAX_DIMENSION} pixels looks
+            clearest in your chart.
+          </p>
           {uploadError && (
             <p role="alert" className="mt-2 text-[13px] font-bold text-destructive">
               {uploadError}
