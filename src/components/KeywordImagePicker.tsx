@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { processKeywordImage, PROFILE_IMAGE_MIME_TYPES } from '@/lib/profile-image'
 import { ChevronRightIcon, ImagePlusIcon, Trash2Icon, UploadIcon } from 'lucide-react'
 
-/** Curated K-3 keyword emojis: animals, food, objects, weather and nature. */
+/** Curated K-3 keyword emojis: animals, food, things, weather and nature, play, home, and clothes. */
 export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; name: string }[] }[] = [
   {
     label: 'Animals',
@@ -23,6 +23,8 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
       { emoji: '🐵', name: 'Monkey' },
       { emoji: '🐷', name: 'Pig' },
       { emoji: '🐴', name: 'Horse' },
+      { emoji: '🐔', name: 'Chicken' },
+      { emoji: '🦆', name: 'Duck' },
     ],
   },
   {
@@ -34,6 +36,12 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
       { emoji: '🍩', name: 'Donut' },
       { emoji: '🍪', name: 'Cookie' },
       { emoji: '🍉', name: 'Watermelon' },
+      { emoji: '🍇', name: 'Grapes' },
+      { emoji: '🍓', name: 'Strawberry' },
+      { emoji: '🍑', name: 'Peach' },
+      { emoji: '🥛', name: 'Milk' },
+      { emoji: '🍳', name: 'Egg' },
+      { emoji: '🧀', name: 'Cheese' },
     ],
   },
   {
@@ -47,6 +55,10 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
       { emoji: '📚', name: 'Books' },
       { emoji: '🎈', name: 'Balloon' },
       { emoji: '🚂', name: 'Train' },
+      { emoji: '🚲', name: 'Bike' },
+      { emoji: '🪁', name: 'Kite' },
+      { emoji: '🛹', name: 'Skateboard' },
+      { emoji: '🧸', name: 'Teddy bear' },
     ],
   },
   {
@@ -58,6 +70,45 @@ export const KEYWORD_EMOJI_GROUPS: { label: string; choices: { emoji: string; na
       { emoji: '🌙', name: 'Moon' },
       { emoji: '🌳', name: 'Tree' },
       { emoji: '🌸', name: 'Flower' },
+      { emoji: '🌧️', name: 'Rain' },
+      { emoji: '⛄', name: 'Snowman' },
+      { emoji: '🌊', name: 'Wave' },
+      { emoji: '🌻', name: 'Sunflower' },
+      { emoji: '🌵', name: 'Cactus' },
+      { emoji: '🍁', name: 'Leaf' },
+    ],
+  },
+  {
+    label: 'Play',
+    choices: [
+      { emoji: '⚾', name: 'Baseball' },
+      { emoji: '🏈', name: 'Football' },
+      { emoji: '🎾', name: 'Tennis' },
+      { emoji: '🥁', name: 'Drum' },
+      { emoji: '🎸', name: 'Guitar' },
+      { emoji: '🎨', name: 'Paint' },
+    ],
+  },
+  {
+    label: 'Home',
+    choices: [
+      { emoji: '🛏️', name: 'Bed' },
+      { emoji: '🪑', name: 'Chair' },
+      { emoji: '🚪', name: 'Door' },
+      { emoji: '🔔', name: 'Bell' },
+      { emoji: '🛋️', name: 'Couch' },
+      { emoji: '🛁', name: 'Bath' },
+    ],
+  },
+  {
+    label: 'Clothes',
+    choices: [
+      { emoji: '👕', name: 'Shirt' },
+      { emoji: '👖', name: 'Pants' },
+      { emoji: '👟', name: 'Shoes' },
+      { emoji: '🧢', name: 'Cap' },
+      { emoji: '🧥', name: 'Coat' },
+      { emoji: '🕶️', name: 'Sunglasses' },
     ],
   },
 ]
