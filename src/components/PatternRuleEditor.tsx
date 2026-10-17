@@ -46,6 +46,21 @@ export default function PatternRuleEditor({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
+  /**
+   * A close requested while a save was still running and the draft was
+   * clean (Clear-then-Done). Honored once the in-flight save settles
+   * successfully; cleared without closing when the save fails, so the
+   * error stays visible with the restored draft.
+   */
+  const closeAfterSaveRef = useRef(false)
+  /**
+   * The rule value a Clear-triggered save is persisting, or null when no
+   * Clear save is in flight. Distinguishes "Done right after Clear" (the
+   * draft was emptied by Clear itself, nothing to protect) from "Done
+   * while a typed draft is saving" (the modal must stay open so a failed
+   * save can show its error with the draft intact).
+   */
+  const clearingRef = useRef<string | null>(null)
 
   // Refresh the draft when the saved rule changes underneath (e.g. the
   // classroom was switched or the pattern renamed), but never while the
@@ -87,6 +102,10 @@ export default function PatternRuleEditor({
    * Persist one rule. Returns true on success. On failure the modal stays
    * open with the error line and the draft intact, exactly as the old
    * standalone row kept the draft.
+   *
+   * Honors a close queued while this save was running (issue #363): a Done
+   * pressed right after Clear must not be swallowed just because the save
+   * was still in flight.
    */
   const persist = async (rule: string): Promise<boolean> => {
     setSaving(true)
@@ -94,8 +113,13 @@ export default function PatternRuleEditor({
     try {
       await onSave(rule)
       setSavedRule(rule)
+      if (closeAfterSaveRef.current) {
+        closeAfterSaveRef.current = false
+        setOpen(false)
+      }
       return true
     } catch {
+      closeAfterSaveRef.current = false
       setError('Could not save the rule. Try again.')
       return false
     } finally {
@@ -106,12 +130,21 @@ export default function PatternRuleEditor({
   /**
    * Every close path runs through here: Done, the corner X, backdrop
    * click, and Escape. Saves when the draft is dirty, then closes on
-   * success. A close requested while a save is still running is ignored:
-   * the modal stays open so a failed save can show its error with the
+   * success. A close requested while a save is still running is ignored,
+   * except when a Clear save is in flight and the draft still holds the
+   * cleared value (Clear-then-Done): there is nothing to protect, so the
+   * close is queued and honored once the save settles instead of being
+   * swallowed (issue #363). A close during a typed draft's save still
+   * keeps the modal open so a failed save can show its error with the
    * draft intact.
    */
   const closeAndSave = async () => {
-    if (saving) return
+    if (saving) {
+      if (clearingRef.current !== null && draft.trim() === clearingRef.current) {
+        closeAfterSaveRef.current = true
+      }
+      return
+    }
     if (!dirty) {
       setOpen(false)
       return
@@ -126,9 +159,14 @@ export default function PatternRuleEditor({
     if (saving) return
     const previous = draft
     setDraft('')
-    if (!(await persist(''))) {
-      // Save failed: restore the draft so the teacher can retry.
-      setDraft(previous)
+    clearingRef.current = ''
+    try {
+      if (!(await persist(''))) {
+        // Save failed: restore the draft so the teacher can retry.
+        setDraft(previous)
+      }
+    } finally {
+      clearingRef.current = null
     }
   }
 
