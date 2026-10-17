@@ -36,12 +36,6 @@ interface PatternEditorProps {
   onRemove: () => void
   /** List accent color: the card's top bar follows it. Defaults to the default list color. */
   color?: ListColor
-  /**
-   * True when this pattern has edits not yet confirmed saved. Shows an
-   * "Unsaved" badge on the pattern card itself, so the teacher can see which
-   * pattern is still unsaved after moving on to another part of the page.
-   */
-  isUnsaved?: boolean
   /** The list's classroom id, or null/undefined for "No class". */
   classId?: string | null
   /** The classroom's display name, or null when there is no class. */
@@ -89,7 +83,6 @@ export default function PatternEditor({
   onChange,
   onRemove,
   color = DEFAULT_LIST_COLOR,
-  isUnsaved = false,
   classId,
   className = null,
   classRules = null,
@@ -356,15 +349,6 @@ export default function PatternEditor({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label htmlFor={`pattern-spelling-${pattern.id}`}>Spelling pattern</Label>
-                {isUnsaved && (
-                  <span
-                    role="status"
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[12px] font-bold text-amber-700"
-                  >
-                    <span aria-hidden="true" className="size-1.5 rounded-full bg-amber-500" />
-                    Unsaved
-                  </span>
-                )}
               </div>
               <Input
                 id={`pattern-spelling-${pattern.id}`}
