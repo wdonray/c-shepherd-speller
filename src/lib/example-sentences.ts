@@ -5,17 +5,20 @@
  * keyless Wiktionary-derived API (CC-BY-SA). The browser calls it directly;
  * CORS is open, so no server proxy is needed.
  *
- * A curated local fallback bank (src/data/example-sentences.ts) covers
- * common words when the API has no example, fails, or is unreachable.
- * Non-empty results are cached in memory and localStorage. Empty results
- * are never cached, so a transient miss retries on the next request instead
- * of becoming permanent.
+ * When the API has no example, fails, or is unreachable, we fall back to
+ * our own dictionary (src/data/fallback-sentences.json): a curated bank of
+ * short, age-appropriate sentences for common spelling words.
+ *
+ * Non-empty results are cached in memory and localStorage along with where
+ * they came from, so the UI can attribute API sentences and stay silent for
+ * our own dictionary. Empty results are never cached, so a transient miss
+ * retries on the next request instead of becoming permanent.
  */
 
 import { FALLBACK_SENTENCES } from '@/data/example-sentences'
 import { reportError } from './report-error'
 
-const STORAGE_KEY = 'patternspell-sentences'
+const STORAGE_KEY = 'patternspell-sentences-v2'
 const MAX_CACHE_ENTRIES = 200
 const FETCH_TIMEOUT_MS = 10000
 const MAX_FETCH_ATTEMPTS = 2
@@ -23,15 +26,40 @@ const RETRY_DELAY_MS = 1000
 const MAX_SENTENCE_LENGTH = 140
 const MAX_RESULTS = 3
 
-const memoryCache = new Map<string, string[]>()
+/** Where the suggested sentences came from. */
+export type SentenceSource = 'api' | 'local'
 
-function readStorageCache(): Record<string, string[]> {
+export interface SentenceResult {
+  sentences: string[]
+  source: SentenceSource
+}
+
+interface StoredEntry {
+  sentences: string[]
+  source: SentenceSource
+}
+
+const memoryCache = new Map<string, StoredEntry>()
+
+function isValidStoredEntry(value: unknown): value is StoredEntry {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const entry = value as { sentences?: unknown; source?: unknown }
+  if (!Array.isArray(entry.sentences) || entry.sentences.length === 0) return false
+  if (!entry.sentences.every((s) => typeof s === 'string')) return false
+  return entry.source === 'api' || entry.source === 'local'
+}
+
+function readStorageCache(): Record<string, StoredEntry> {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return {}
     const parsed: unknown = JSON.parse(raw)
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, string[]>
+      const valid: Record<string, StoredEntry> = {}
+      for (const [key, value] of Object.entries(parsed)) {
+        if (isValidStoredEntry(value)) valid[key] = value
+      }
+      return valid
     }
     return {}
   } catch (error) {
@@ -40,7 +68,7 @@ function readStorageCache(): Record<string, string[]> {
   }
 }
 
-function writeStorageCache(cache: Record<string, string[]>): void {
+function writeStorageCache(cache: Record<string, StoredEntry>): void {
   try {
     const entries = Object.entries(cache).slice(-MAX_CACHE_ENTRIES)
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)))
@@ -50,24 +78,22 @@ function writeStorageCache(cache: Record<string, string[]>): void {
   }
 }
 
-function getCached(word: string): string[] | undefined {
+function getCached(word: string): StoredEntry | undefined {
   const key = word.toLowerCase()
   if (memoryCache.has(key)) return memoryCache.get(key)
   const stored = readStorageCache()[key]
-  // Empty entries are never cached anymore, but treat legacy empty entries
-  // as misses so a past failure does not block a future retry.
-  if (stored && stored.length > 0) {
+  if (stored) {
     memoryCache.set(key, stored)
     return stored
   }
   return undefined
 }
 
-function setCached(word: string, sentences: string[]): void {
+function setCached(word: string, entry: StoredEntry): void {
   const key = word.toLowerCase()
-  memoryCache.set(key, sentences)
+  memoryCache.set(key, entry)
   const cache = readStorageCache()
-  cache[key] = sentences
+  cache[key] = entry
   writeStorageCache(cache)
 }
 
@@ -128,8 +154,8 @@ async function fetchOnce(word: string): Promise<string[] | null> {
     })
   } catch {
     // The third-party dictionary API is unreachable (network failure,
-    // timeout, abort). This is not an application error: the local fallback
-    // bank covers it, so there is nothing to report to Sentry.
+    // timeout, abort). This is not an application error: our own dictionary
+    // covers it, so there is nothing to report to Sentry.
     return null
   } finally {
     clearTimeout(timeout)
@@ -159,22 +185,28 @@ function fallbackSentences(word: string): string[] {
 }
 
 /**
- * Fetch up to 3 example sentences for a word. Tries the Free Dictionary API
- * first (with one retry on network failure), then the local fallback bank.
- * Non-empty results are cached. Misses are never cached, so a transient
- * failure retries on the next request. Never throws; resolves to [] when
- * nothing usable is found.
+ * Fetch up to 3 example sentences for a word, along with where they came
+ * from. Tries the Free Dictionary API first (with one retry on network
+ * failure), then our own dictionary. Non-empty results are cached. Misses
+ * are never cached, so a transient failure retries on the next request.
+ * Never throws; resolves to an empty list when nothing usable is found.
  */
-export async function fetchExampleSentences(word: string): Promise<string[]> {
+export async function fetchExampleSentences(word: string): Promise<SentenceResult> {
   const trimmed = word.trim().toLowerCase()
-  if (!trimmed) return []
+  if (!trimmed) return { sentences: [], source: 'local' }
   const cached = getCached(trimmed)
-  if (cached) return cached
+  if (cached) return { sentences: cached.sentences, source: cached.source }
 
   const fromApi = await fetchFromApi(trimmed)
-  const sentences = fromApi.length > 0 ? fromApi : fallbackSentences(trimmed)
+  if (fromApi.length > 0) {
+    const entry: StoredEntry = { sentences: fromApi, source: 'api' }
+    setCached(trimmed, entry)
+    return entry
+  }
+
+  const fromBank = fallbackSentences(trimmed)
   // Never cache a miss: caching [] would turn a transient API failure into
   // a permanent "no sentences" for that word.
-  if (sentences.length > 0) setCached(trimmed, sentences)
-  return sentences
+  if (fromBank.length > 0) setCached(trimmed, { sentences: fromBank, source: 'local' })
+  return { sentences: fromBank, source: 'local' }
 }
