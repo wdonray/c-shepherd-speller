@@ -85,6 +85,16 @@ describe('KeywordImagePicker', () => {
     expect(dialog).toHaveClass('max-h-[85dvh]', 'overflow-y-auto')
   })
 
+  it('suggests the clearest photo size under the upload button', () => {
+    renderPicker()
+    openDialog()
+    const hint = screen.getByText(
+      (_, element) =>
+        element?.textContent === 'Tip: a square photo at least 128 × 128 pixels looks clearest in your chart.'
+    )
+    expect(hint).toBeInTheDocument()
+  })
+
   it('picks an emoji from the curated grid and closes the dialog', () => {
     const props = renderPicker()
     openDialog()
