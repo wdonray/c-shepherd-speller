@@ -79,4 +79,21 @@ describe('AnimatedRuleSlot', () => {
     expect(screen.getByText('rule content')).toBeInTheDocument()
     expect(screen.getByTestId('animated-rule-slot')).toHaveClass('opacity-100')
   })
+
+  it('makes the slot inert the moment hiding starts, so collapsed controls leave the tab order', () => {
+    const { rerender } = render(
+      <AnimatedRuleSlot show={true}>
+        <button>Edit rule</button>
+      </AnimatedRuleSlot>
+    )
+    const slot = screen.getByTestId('animated-rule-slot')
+    expect(slot).not.toHaveAttribute('inert')
+    rerender(
+      <AnimatedRuleSlot show={false}>
+        <button>Edit rule</button>
+      </AnimatedRuleSlot>
+    )
+    // Still mounted for the exit transition, but no longer focusable.
+    expect(screen.getByTestId('animated-rule-slot')).toHaveAttribute('inert')
+  })
 })

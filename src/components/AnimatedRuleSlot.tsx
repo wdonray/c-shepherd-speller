@@ -26,7 +26,9 @@ interface AnimatedRuleSlotProps {
  * an opacity fade; the inner content is clipped by overflow-hidden. Pure
  * CSS, so no JS measurement is needed. When hiding, the node stays mounted
  * for one transition duration and is then removed: the exit animation stays
- * visible while "hidden means absent from the DOM" is preserved.
+ * visible while "hidden means absent from the DOM" is preserved. The slot
+ * is inert while collapsed so its controls leave the tab order and the
+ * accessibility tree the moment hiding starts, not just after unmount.
  * prefers-reduced-motion disables the transition (instant toggle).
  */
 export default function AnimatedRuleSlot({ show, children }: AnimatedRuleSlotProps) {
@@ -51,6 +53,7 @@ export default function AnimatedRuleSlot({ show, children }: AnimatedRuleSlotPro
   return (
     <div
       data-testid="animated-rule-slot"
+      inert={!expanded}
       className={cn(
         'grid transition-[grid-template-rows,opacity] ease-in-out motion-reduce:transition-none',
         expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
