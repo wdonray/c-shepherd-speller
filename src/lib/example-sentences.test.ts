@@ -96,14 +96,13 @@ describe('fetchExampleSentences', () => {
   it('returns API sentences that pass the filters, marked as API', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () =>
-        Promise.resolve(apiResponse(['We baked a cake for the party.', 'A cake without frosting', undefined])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka at the zoo.', 'A quokka without a tail', undefined])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('cake')
-    // 'A cake without frosting' has no terminal punctuation, so it is filtered.
-    expect(result).toEqual({ sentences: ['We baked a cake for the party.'], source: 'api' })
+    const result = await fetchExampleSentences('quokka')
+    // 'A quokka without a tail' has no terminal punctuation, so it is filtered.
+    expect(result).toEqual({ sentences: ['We saw a quokka at the zoo.'], source: 'api' })
   })
 
   it('caps results at 3 and dedupes', async () => {
@@ -111,20 +110,26 @@ describe('fetchExampleSentences', () => {
       ok: true,
       json: () =>
         Promise.resolve(
-          apiResponse(['I see a cake.', 'You see a cake.', 'We see a cake.', 'They see a cake.', 'I see a cake.'])
+          apiResponse([
+            'I see a quokka.',
+            'You see a quokka.',
+            'We see a quokka.',
+            'They see a quokka.',
+            'I see a quokka.',
+          ])
         ),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('cake')
+    const result = await fetchExampleSentences('quokka')
     expect(result.sentences).toHaveLength(3)
     expect(result.source).toBe('api')
   })
 
-  it('falls back to our own dictionary when the API has no usable sentences', async () => {
+  it('prefers our own dictionary over the API and never fetches for bank words', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse([undefined])),
+      json: () => Promise.resolve(apiResponse(['We baked a cake for the party.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
@@ -132,33 +137,32 @@ describe('fetchExampleSentences', () => {
     expect(result.sentences.length).toBeGreaterThan(0)
     expect(result.sentences[0]).toContain('cake')
     expect(result.source).toBe('local')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('falls back to our own dictionary on API failure', async () => {
+  it('returns an empty local result on API failure for words outside the bank', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('rain')
-    expect(result.sentences.length).toBeGreaterThan(0)
-    expect(result.source).toBe('local')
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: [], source: 'local' })
   })
 
-  it('caches the fallback source so a repeat lookup does not fetch', async () => {
-    const fetchMock = vi.fn().mockRejectedValue(new Error('network down'))
+  it('serves bank words from cache without fetching on repeat lookups', async () => {
+    const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const first = await fetchExampleSentences('rain')
     const second = await fetchExampleSentences('rain')
     expect(first).toEqual(second)
     expect(second.source).toBe('local')
-    // First call made its two attempts; the second call was served from cache.
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('does not report network failures to Sentry', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('rain')
-    expect(result.sentences.length).toBeGreaterThan(0)
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: [], source: 'local' })
     expect(Sentry.captureException).not.toHaveBeenCalled()
   })
 
@@ -169,8 +173,8 @@ describe('fetchExampleSentences', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('rain')
-    expect(result.sentences.length).toBeGreaterThan(0)
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: [], source: 'local' })
     expect(Sentry.captureException).toHaveBeenCalledTimes(1)
   })
 
@@ -191,12 +195,12 @@ describe('fetchExampleSentences', () => {
   it('caches results so the API is hit once per word', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    await fetchExampleSentences('cake')
-    await fetchExampleSentences('cake')
+    await fetchExampleSentences('quokka')
+    await fetchExampleSentences('quokka')
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
@@ -231,14 +235,14 @@ describe('fetchExampleSentences', () => {
     )
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    // 'cake' has no stored entry; readStorageCache still validates every
-    // malformed entry in the stored object on the way through.
-    const result = await fetchExampleSentences('cake')
-    expect(result).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
+    // 'quokka' has no stored entry and no bank entry; readStorageCache still
+    // validates every malformed entry in the stored object on the way through.
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
@@ -250,15 +254,15 @@ describe('fetchExampleSentences', () => {
     window.localStorage.setItem('patternspell-sentences-v2', stored)
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    expect(await fetchExampleSentences('cake')).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
+    expect(await fetchExampleSentences('quokka')).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it('aborts the API fetch when it times out, then retries once', async () => {
+  it('aborts the API fetch when it times out, with no retry', async () => {
     vi.useFakeTimers()
     try {
       const fetchMock = vi.fn(
@@ -269,29 +273,24 @@ describe('fetchExampleSentences', () => {
       )
       vi.stubGlobal('fetch', fetchMock)
       const { fetchExampleSentences } = await load()
-      const promise = fetchExampleSentences('cake')
-      // Attempt 1 times out at 10s, 1s backoff, attempt 2 times out at 10s.
-      await vi.advanceTimersByTimeAsync(21000)
+      const promise = fetchExampleSentences('quokka')
+      // The single attempt times out at 3s; there is no retry.
+      await vi.advanceTimersByTimeAsync(3000)
       const result = await promise
-      expect(fetchMock).toHaveBeenCalledTimes(2)
-      expect(result.sentences.length).toBeGreaterThan(0)
-      expect(result.sentences[0]).toContain('cake')
-      expect(result.source).toBe('local')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(result).toEqual({ sentences: [], source: 'local' })
     } finally {
       vi.useRealTimers()
     }
   })
 
-  it('retries once on network failure before falling back', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new TypeError('Load failed'))
-      .mockResolvedValue({ ok: true, json: () => Promise.resolve(apiResponse(['We baked a cake.'])) })
+  it('does not retry on network failure', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Load failed'))
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('cake')
-    expect(result).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: [], source: 'local' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not cache empty results, so a transient miss can retry', async () => {
@@ -317,23 +316,23 @@ describe('fetchExampleSentences', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () =>
-        Promise.resolve([{}, { meanings: [{ definitions: [{ example: 'We baked a cake.' }] }] }, { meanings: [{}] }]),
+        Promise.resolve([{}, { meanings: [{ definitions: [{ example: 'We saw a quokka.' }] }] }, { meanings: [{}] }]),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    expect(await fetchExampleSentences('cake')).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
+    expect(await fetchExampleSentences('quokka')).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
   })
 
   it('handles corrupt localStorage gracefully', async () => {
     window.localStorage.setItem('patternspell-sentences-v2', 'not-json{')
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('cake')
-    expect(result).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
   })
 
   it('handles localStorage write errors gracefully', async () => {
@@ -342,12 +341,12 @@ describe('fetchExampleSentences', () => {
     })
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(apiResponse(['We baked a cake.'])),
+      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
     })
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
-    const result = await fetchExampleSentences('cake')
-    expect(result).toEqual({ sentences: ['We baked a cake.'], source: 'api' })
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
     setItem.mockRestore()
   })
 })
