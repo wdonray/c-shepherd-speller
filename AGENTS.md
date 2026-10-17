@@ -59,6 +59,14 @@ credentials.
 
 ## UI conventions
 
+- **Skeleton loaders only when the layout is known.** A skeleton is a
+  promise about geometry: use one only when the loading page's layout is
+  knowable up front. When too much is unknown (item counts, text lengths,
+  conditional sections), use a centered spinner instead. A skeleton that
+  guesses the geometry shifts the page when the real content arrives, which
+  is worse than a spinner (found 2026-10-17: issue #366, the present-page
+  skeletons could never match pattern counts, word counts, rule text, or
+  the odd-ducks section).
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
