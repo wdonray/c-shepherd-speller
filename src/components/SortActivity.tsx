@@ -621,21 +621,26 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
     }
   }, [classId])
 
-  // Existing rules for the column headers: the class's rules when a class
-  // is active, otherwise the unscoped rules on the list's patterns.
-  // Rule capture lives on the list page now (issue #263), never here.
-  const existingRules = useMemo(() => {
+  // Existing rules for the column headers: the list's unscoped rules are the
+  // base, and the class's decided rules overlay them when a class is active
+  // (rule recall). The old exclusive swap made the rule flash and then vanish
+  // once the class fetch completed for a class with no saved rules (issue
+  // #351), and left the show/hide toggle with nothing to control. Rule
+  // capture lives on the list page now (issue #263), never here.
+  const { existingRules, classRulePatterns } = useMemo(() => {
     const map: Record<string, string> = {}
+    for (const p of list.patterns) {
+      if (p.rule) map[p.pattern] = p.rule
+    }
+    const classRules = new Set<string>()
     if (activeClass) {
+      // Class rules are never empty: clearing one deletes it instead.
       for (const [patternText, rule] of Object.entries(activeClass.rules)) {
         map[patternText] = rule.rule
-      }
-    } else {
-      for (const p of list.patterns) {
-        if (p.rule) map[p.pattern] = p.rule
+        classRules.add(patternText)
       }
     }
-    return map
+    return { existingRules: map, classRulePatterns: classRules }
   }, [activeClass, list])
 
   /**
@@ -866,7 +871,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     pattern={pattern}
                     isOver={overId === pattern.id}
                     rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
-                    ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
+                    ruleLabel={classRulePatterns.has(pattern.pattern) ? 'Your class decided:' : 'The rule:'}
                   >
                     {columnWords.map((entry) => (
                       <MobileWordCard
@@ -916,7 +921,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
                     isOver={overId === pattern.id}
                     ghostEntry={ghostEntry}
                     rule={showRules ? (existingRules[pattern.pattern] ?? null) : null}
-                    ruleLabel={activeClass ? 'Your class decided:' : 'The rule:'}
+                    ruleLabel={classRulePatterns.has(pattern.pattern) ? 'Your class decided:' : 'The rule:'}
                   >
                     {columnWords.map((entry) => (
                       <SortableWordCard
