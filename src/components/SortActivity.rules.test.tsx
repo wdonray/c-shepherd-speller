@@ -211,4 +211,65 @@ describe('SortActivity rule recall', () => {
     expect(within(column).getByText('ai never ends a word.')).toBeInTheDocument()
     expect(within(column).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
+
+  it('keeps showing the list rule after the class fetch returns no saved rules', async () => {
+    // Issue #351: the class's empty rule map replaced the list's rules, so
+    // the rule flashed and then vanished. The list rule must survive.
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          class: { id: 'c1', name: 'Period 2', rules: {} },
+        }),
+      })
+    )
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} classId="c1" />)
+    const column = await screen.findByLabelText('Pattern ai column')
+    expect(within(column).getByText('The rule:')).toBeInTheDocument()
+    expect(within(column).getByText('ai never ends a word.')).toBeInTheDocument()
+  })
+
+  it('lets the eyeball toggle hide the fallback rule when the class has no saved rules', async () => {
+    // Issue #351: with an empty rule map the toggle had nothing to hide,
+    // so it appeared dead. It must control the fallback rules too.
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    ;(fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          class: { id: 'c1', name: 'Period 2', rules: {} },
+        }),
+      })
+    )
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} classId="c1" />)
+    await screen.findByText('ai never ends a word.')
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.queryByText('ai never ends a word.')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
+    expect(screen.getByText('ai never ends a word.')).toBeInTheDocument()
+  })
+
+  it('overlays class rules on the list rules and labels each by its source', async () => {
+    // Class rules win where the class decided one; the other patterns keep
+    // the list's rule with the unscoped label.
+    const listWithRule = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.pattern === 'ai' ? { ...p, rule: 'ai never ends a word.' } : p)),
+    } as unknown as WordList
+    window.matchMedia = originalMatchMedia
+    render(<SortActivity list={listWithRule} onExit={vi.fn()} classId="c1" />)
+    const classColumn = await screen.findByLabelText('Pattern a_e drop column')
+    expect(within(classColumn).getByText('Your class decided:')).toBeInTheDocument()
+    expect(within(classColumn).getByText('Magic e.')).toBeInTheDocument()
+    const fallbackColumn = await screen.findByLabelText('Pattern ai drop column')
+    expect(within(fallbackColumn).getByText('The rule:')).toBeInTheDocument()
+    expect(within(fallbackColumn).getByText('ai never ends a word.')).toBeInTheDocument()
+  })
 })
