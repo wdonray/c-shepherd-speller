@@ -627,7 +627,9 @@ describe('DisplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open chart options' }))
     const sheet = await screen.findByRole('dialog', { name: 'Chart options' })
     fireEvent.click(within(sheet).getByRole('button', { name: 'Show rules' }))
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
   })
 
   it('toggles word underlines from the mobile chart options menu (issue #312)', async () => {
@@ -856,7 +858,9 @@ describe('DisplayMode chart display toggles', () => {
     })
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     fireEvent.click(toggle)
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
   })

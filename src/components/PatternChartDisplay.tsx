@@ -11,6 +11,7 @@ import { speak } from '@/lib/tts'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import PatternRuleEditor from './PatternRuleEditor'
+import AnimatedRuleSlot from './AnimatedRuleSlot'
 
 interface PatternChartDisplayProps {
   list: WordList
@@ -137,20 +138,17 @@ export default function PatternChartDisplay({
    * PatternRuleEditor.
    */
   const renderRuleDisplay = (pattern: SpellingPattern) => {
-    if (isPrint || !showRules) return null
+    if (isPrint) return null
     const rule = classRules?.[pattern.pattern] ?? pattern.rule
+    const isClassRule = classRules?.[pattern.pattern] !== undefined
     // Issue #370: a visible empty placeholder keeps every column the same
     // size when a pattern has no rule; the dashed border marks it as an
     // empty slot rather than a real rule.
-    if (!rule) {
-      return (
-        <figure className="mt-3 border-l-4 border-dashed border-line bg-background/50 px-3 py-2 text-left">
-          <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
-        </figure>
-      )
-    }
-    const isClassRule = classRules?.[pattern.pattern] !== undefined
-    return (
+    const content = !rule ? (
+      <figure className="mt-3 border-l-4 border-dashed border-line bg-background/50 px-3 py-2 text-left">
+        <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
+      </figure>
+    ) : (
       <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">
         <figcaption className="flex items-center justify-between gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
           <span>{isClassRule ? 'Our class figured out:' : 'The rule:'}</span>
@@ -179,6 +177,9 @@ export default function PatternChartDisplay({
         <blockquote className="text-lg font-bold leading-snug text-ink">{rule}</blockquote>
       </figure>
     )
+    // Issue #374: the slot smoothly animates in and out when the eye toggle
+    // flips; after the exit transition it leaves the DOM entirely.
+    return <AnimatedRuleSlot show={showRules}>{content}</AnimatedRuleSlot>
   }
 
   /** Lock toggle for an unlocked column header (locked columns render a placeholder instead). */

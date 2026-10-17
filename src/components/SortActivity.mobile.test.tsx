@@ -563,7 +563,7 @@ describe('SortActivity mobile drag visuals', () => {
     spy.mockRestore()
   })
 
-  it('toggles the rule cards under the mobile column headers', () => {
+  it('toggles the rule cards under the mobile column headers', async () => {
     const ruledList: WordList = {
       ...list,
       patterns: [
@@ -582,7 +582,9 @@ describe('SortActivity mobile drag visuals', () => {
     expect(screen.getByText('The rule:')).toBeInTheDocument()
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     fireEvent.click(toggle)
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
   })

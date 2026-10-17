@@ -85,6 +85,12 @@ credentials.
   not prevent default or stop propagation, so dialogs and popovers keep
   their own Escape behavior (found 2026-10-17: issue #380, present-mode
   full screen hid the chart header with the exit button in it).
+- **Prefer CSS transitions over JS animation for show/hide.**
+  motion/AnimatePresence exit animations never complete in this repo's
+  jsdom setup (rAF does not tick), so the exiting node stays mounted
+  forever in tests. A CSS grid-rows/opacity transition with a timed
+  unmount is deterministic under real timers (found 2026-10-17: issue
+  #374, rule slot animation).
 - **Autosave modals must not swallow a close while a save is in flight.**
   When the draft is clean (e.g. Clear-then-Done), queue the close and honor
   it when the save settles. If the save fails, discard the queued close and
