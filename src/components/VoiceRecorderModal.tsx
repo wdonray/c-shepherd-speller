@@ -859,14 +859,14 @@ export default function VoiceRecorderModal({
                 {audioDuration > 0 ? `${formatTime(audioDuration)} recorded` : 'Recording saved'}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               {isAudioCaptureSupported() && (
-                <Button variant="secondary" onClick={handleRecordNew} className="flex-1">
+                <Button variant="secondary" onClick={handleRecordNew} className="w-full">
                   <MicIcon className="size-4" aria-hidden="true" />
                   Record new
                 </Button>
               )}
-              <Button variant="destructive" onClick={() => void handleDelete()} className="flex-1" aria-live="polite">
+              <Button variant="destructive" onClick={() => void handleDelete()} className="w-full" aria-live="polite">
                 {confirmingDelete ? 'Tap again to confirm' : 'Delete'}
               </Button>
             </div>
