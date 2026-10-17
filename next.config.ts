@@ -39,7 +39,10 @@ const securityHeaders = [
       // without media-src the media elements fall back to default-src 'self'
       // and the browser refuses to load them (#328).
       "media-src 'self' blob:",
-      "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io",
+      // Example sentences are fetched in the browser from the Free Dictionary
+      // API (see src/lib/example-sentences.ts); without this entry the
+      // browser refuses the call and every lookup silently falls back (#369).
+      "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io https://api.dictionaryapi.dev",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

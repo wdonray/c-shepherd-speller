@@ -27,7 +27,7 @@ const { reportError } = vi.hoisted(() => ({
 vi.mock('@/lib/report-error', () => ({ reportError }))
 
 vi.mock('@/lib/example-sentences', () => ({
-  fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
+  fetchExampleSentences: vi.fn().mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' }),
 }))
 
 vi.mock('next/link', () => ({

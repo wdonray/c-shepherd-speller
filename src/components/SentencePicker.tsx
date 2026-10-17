@@ -5,7 +5,7 @@ import { MessageCircleIcon, PencilIcon, XIcon } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { fetchExampleSentences } from '@/lib/example-sentences'
+import { fetchExampleSentences, type SentenceSource } from '@/lib/example-sentences'
 import { cn } from '@/lib/utils'
 
 interface SentencePickerProps {
@@ -84,6 +84,7 @@ export default function SentencePicker({
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sentences, setSentences] = useState<string[]>([])
+  const [source, setSource] = useState<SentenceSource | null>(null)
   const [selected, setSelected] = useState<string | undefined>(currentSentence)
   const [customSentence, setCustomSentence] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -92,9 +93,11 @@ export default function SentencePicker({
     if (!open) return
     setLoading(true)
     setSentences([])
+    setSource(null)
     setCustomSentence('')
-    fetchExampleSentences(word).then((results) => {
+    fetchExampleSentences(word).then(({ sentences: results, source: resultSource }) => {
       setSentences(results)
+      setSource(resultSource)
       setLoading(false)
       setSelected((prev) => prev ?? results[0])
     })
@@ -235,9 +238,11 @@ export default function SentencePicker({
             </div>
           </div>
         )}
-        <p className="mt-3 text-[12px] text-muted-foreground">
-          Sentences: Free Dictionary API (dictionaryapi.dev), CC-BY-SA
-        </p>
+        {!loading && source === 'api' && (
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            Sentences: Free Dictionary API (dictionaryapi.dev), CC-BY-SA
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   )

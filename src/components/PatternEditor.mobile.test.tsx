@@ -41,7 +41,7 @@ vi.mock('@/lib/voice-recordings', () => ({
 }))
 
 vi.mock('@/lib/example-sentences', () => ({
-  fetchExampleSentences: vi.fn().mockResolvedValue(['We baked a cake.']),
+  fetchExampleSentences: vi.fn().mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' }),
 }))
 
 vi.mock('@/lib/profile-image', async (importOriginal) => {

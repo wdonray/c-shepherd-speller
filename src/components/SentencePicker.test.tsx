@@ -30,7 +30,7 @@ describe('SentencePicker', () => {
   })
 
   it('opens the dialog and moves focus inside on click', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
@@ -42,18 +42,21 @@ describe('SentencePicker', () => {
   })
 
   it('shows a loading state while fetching', async () => {
-    let resolveFetch: (s: string[]) => void = () => {}
+    let resolveFetch: (result: { sentences: string[]; source: 'api' }) => void = () => {}
     vi.mocked(fetchExampleSentences).mockImplementation(() => new Promise((resolve) => (resolveFetch = resolve)))
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
       expect(screen.getByText('Finding sentences…')).toBeInTheDocument()
     })
-    resolveFetch(['We baked a cake.'])
+    resolveFetch({ sentences: ['We baked a cake.'], source: 'api' })
   })
 
   it('selects a sentence and confirms', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.', 'I like cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({
+      sentences: ['We baked a cake.', 'I like cake.'],
+      source: 'api',
+    })
     const onSelect = vi.fn()
     render(<SentencePicker word="cake" patternId="p1" onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
@@ -66,7 +69,7 @@ describe('SentencePicker', () => {
   })
 
   it('closes on Escape and returns focus to the trigger', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     const trigger = screen.getByRole('button', { name: 'Pick an example sentence for cake' })
     const focusSpy = vi.spyOn(trigger, 'focus')
@@ -82,8 +85,8 @@ describe('SentencePicker', () => {
     focusSpy.mockRestore()
   })
 
-  it('shows attribution', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+  it('shows the attribution when sentences came from the API', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
@@ -91,8 +94,21 @@ describe('SentencePicker', () => {
     })
   })
 
+  it('shows no attribution when sentences came from our own dictionary', async () => {
+    vi.mocked(fetchExampleSentences).mockResolvedValue({
+      sentences: ['The rain fell all day.'],
+      source: 'local',
+    })
+    render(<SentencePicker word="rain" patternId="p1" onSelect={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for rain' }))
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: 'The rain fell all day.' })).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/dictionaryapi.dev/)).not.toBeInTheDocument()
+  })
+
   it('shows an empty state when no sentences are found', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue([])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: [], source: 'local' })
     render(<SentencePicker word="xyzzy" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for xyzzy' }))
     await waitFor(() => {
@@ -105,7 +121,7 @@ describe('SentencePicker', () => {
   })
 
   it('lets the teacher add a custom sentence when none are found', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue([])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: [], source: 'local' })
     const onSelect = vi.fn()
     render(<SentencePicker word="xyzzy" patternId="p1" onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for xyzzy' }))
@@ -121,7 +137,7 @@ describe('SentencePicker', () => {
   })
 
   it('lets the teacher add a custom sentence alongside API sentences', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     const onSelect = vi.fn()
     render(<SentencePicker word="cake" patternId="p1" onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
@@ -136,7 +152,7 @@ describe('SentencePicker', () => {
   })
 
   it('clears the sentence when Clear is clicked', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     const onSelect = vi.fn()
     render(<SentencePicker word="cake" patternId="p1" currentSentence="We baked a cake." onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button', { name: 'Change example sentence for cake' }))
@@ -148,7 +164,7 @@ describe('SentencePicker', () => {
   })
 
   it('closes via the X button', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
@@ -161,7 +177,7 @@ describe('SentencePicker', () => {
   })
 
   it('ignores non-Escape keys', async () => {
-    vi.mocked(fetchExampleSentences).mockResolvedValue(['We baked a cake.'])
+    vi.mocked(fetchExampleSentences).mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' })
     render(<SentencePicker word="cake" patternId="p1" onSelect={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pick an example sentence for cake' }))
     await waitFor(() => {
