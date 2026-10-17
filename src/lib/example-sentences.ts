@@ -1,19 +1,21 @@
 /**
  * Example sentences for spelling words.
  *
- * Primary source: our own dictionary (src/data/fallback-sentences.json),
- * a curated bank of short, age-appropriate sentences for common spelling
- * words. It answers instantly with no network involved.
- *
- * When our dictionary has no entry, we try the Free Dictionary API
- * (dictionaryapi.dev), a free, keyless Wiktionary-derived API (CC-BY-SA).
- * The browser calls it directly; CORS is open, so no server proxy is
- * needed. The API gets one short attempt: it has proven flaky, and the
- * dialog must never sit on a spinner for tens of seconds waiting it out.
+ * Sources, in order:
+ * 1. Our curated dictionary (src/data/fallback-sentences.json): hand-written
+ *    sentences for common spelling words. Bundled with the app, instant.
+ * 2. Our generated bank, served by /api/sentences from
+ *    src/data/generated-sentences.json (100k words, two sentences each,
+ *    written offline). Same-origin and fast; a miss falls through.
+ * 3. The Free Dictionary API (dictionaryapi.dev), a free, keyless
+ *    Wiktionary-derived API (CC-BY-SA). The browser calls it directly; CORS
+ *    is open, so no server proxy is needed. The API gets one short attempt:
+ *    it has proven flaky, and the dialog must never sit on a spinner for
+ *    tens of seconds waiting it out.
  *
  * Non-empty results are cached in memory and localStorage along with where
  * they came from, so the UI can attribute API sentences and stay silent for
- * our own dictionary. Empty results are never cached, so a transient miss
+ * our own banks. Empty results are never cached, so a transient miss
  * retries on the next request instead of becoming permanent.
  */
 
@@ -169,12 +171,40 @@ function fallbackSentences(word: string): string[] {
 }
 
 /**
+ * One attempt at our own sentence bank API (/api/sentences), served from
+ * the generated 100k-word bank on disk. Same-origin and fast; a miss (404)
+ * or any failure returns [] so the caller falls through to the dictionary
+ * API. Sentences are re-validated here because the bank file is generated
+ * data, not hand-reviewed.
+ */
+async function fetchFromBankApi(word: string): Promise<string[]> {
+  try {
+    const res = await fetch(`/api/sentences?word=${encodeURIComponent(word)}`)
+    if (!res.ok) return []
+    const data: unknown = await res.json()
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const { sentences } = data as { sentences?: unknown }
+      if (Array.isArray(sentences)) {
+        return sentences
+          .filter((s): s is string => typeof s === 'string')
+          .filter((s) => isUsableSentence(word, s))
+          .slice(0, MAX_RESULTS)
+      }
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
+/**
  * Fetch up to 3 example sentences for a word, along with where they came
- * from. Checks our own dictionary first (instant, no network), then the
- * Free Dictionary API with a single short attempt for words the bank does
- * not cover. Non-empty results are cached. Misses are never cached, so a
- * transient failure retries on the next request. Never throws; resolves to
- * an empty list when nothing usable is found.
+ * from. Checks our curated dictionary first (instant, no network), then our
+ * generated bank API (same-origin, fast), then the Free Dictionary API with
+ * a single short attempt for words neither bank covers. Non-empty results
+ * are cached. Misses are never cached, so a transient failure retries on
+ * the next request. Never throws; resolves to an empty list when nothing
+ * usable is found.
  */
 export async function fetchExampleSentences(word: string): Promise<SentenceResult> {
   const trimmed = word.trim().toLowerCase()
@@ -185,6 +215,13 @@ export async function fetchExampleSentences(word: string): Promise<SentenceResul
   const fromBank = fallbackSentences(trimmed)
   if (fromBank.length > 0) {
     const entry: StoredEntry = { sentences: fromBank, source: 'local' }
+    setCached(trimmed, entry)
+    return entry
+  }
+
+  const fromBankApi = await fetchFromBankApi(trimmed)
+  if (fromBankApi.length > 0) {
+    const entry: StoredEntry = { sentences: fromBankApi, source: 'local' }
     setCached(trimmed, entry)
     return entry
   }
