@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronRightIcon, ScrollTextIcon } from 'lucide-react'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
@@ -16,7 +16,8 @@ const RULE_MAX_LENGTH = 300
  * pattern card (an "Add rule" affordance or a one-line preview of the
  * effective rule) opens a modal editor. Closing the modal saves: there is
  * no discard path, matching the autosave-on-blur model the standalone
- * Rules section had.
+ * Rules section had. The trigger can be replaced with the `trigger` render
+ * prop (issue #372: the present chart passes a small pencil icon).
  */
 export default function PatternRuleEditor({
   patternId,
@@ -25,6 +26,7 @@ export default function PatternRuleEditor({
   shared,
   className,
   onSave,
+  trigger,
 }: {
   patternId: string
   patternText: string
@@ -39,6 +41,13 @@ export default function PatternRuleEditor({
    * with the draft intact and shows the error.
    */
   onSave: (rule: string) => Promise<void>
+  /**
+   * Optional custom trigger replacing the default settings row (issue #372:
+   * the present chart passes a small pencil icon). Receives the opener, so
+   * the custom trigger stays an accessible button with the same open
+   * behavior. Rendered next to the modal, not inside it.
+   */
+  trigger?: (open: () => void) => ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(initialRule)
@@ -154,6 +163,16 @@ export default function PatternRuleEditor({
     }
   }
 
+  /**
+   * Open the editor. Opening resets the draft to the current saved rule,
+   * so the teacher always writes from the latest known value.
+   */
+  const openEditor = () => {
+    setDraft(savedRule)
+    setError(null)
+    setOpen(true)
+  }
+
   /** Empties the draft and saves the empty rule immediately. */
   const handleClear = async () => {
     if (saving) return
@@ -172,33 +191,35 @@ export default function PatternRuleEditor({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          // Opening resets the draft to the current saved rule, so the
-          // teacher always writes from the latest known value.
-          setDraft(savedRule)
-          setError(null)
-          setOpen(true)
-        }}
-        aria-label={savedRule ? `Edit rule for ${patternText}` : `Add rule for ${patternText}`}
-        className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60"
-      >
-        <ScrollTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold text-ink">Spelling rule</span>
-          <span className="block truncate text-[13px] text-muted-foreground">{savedRule || 'Add a rule'}</span>
-        </span>
-        <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      </button>
-      {shared && className && <p className="mt-1 text-xs font-bold text-muted-foreground">Shared with {className}</p>}
+      {trigger ? (
+        trigger(openEditor)
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={openEditor}
+            aria-label={savedRule ? `Edit rule for ${patternText}` : `Add rule for ${patternText}`}
+            className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left outline-none transition hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            <ScrollTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-ink">Spelling rule</span>
+              <span className="block truncate text-[13px] text-muted-foreground">{savedRule || 'Add a rule'}</span>
+            </span>
+            <ChevronRightIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          </button>
+          {shared && className && (
+            <p className="mt-1 text-xs font-bold text-muted-foreground">Shared with {className}</p>
+          )}
+        </>
+      )}
 
       <Dialog
         open={open}
         onOpenChange={() => {
-          // Opens always go through the button above; Radix only reports
-          // the close paths (Done is handled separately), so every change
-          // here is a close.
+          // Opens always go through the trigger above (the default row or
+          // a custom one); Radix only reports the close paths (Done is
+          // handled separately), so every change here is a close.
           void closeAndSave()
         }}
       >

@@ -883,3 +883,295 @@ describe('DisplayMode classroom unmount', () => {
     expect(screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span')).toHaveLength(0)
   })
 })
+
+describe('DisplayMode present-chart rule editing (issue #372)', () => {
+  const KIDS_WORDS_LABEL = 'Rule, in the kids’ words'
+
+  const classList: WordList = { ...twoPatternList, classId: 'c1' }
+
+  function stubClassFetch(rulesResponse: { ok: boolean; json?: () => Promise<unknown> }) {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/classes/c1' && (!init || !init.method || init.method === 'GET')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Class rule.' } } } }),
+        })
+      }
+      if (url === '/api/classes/c1/rules') {
+        return Promise.resolve({ ok: rulesResponse.ok, json: rulesResponse.json ?? (async () => ({})) })
+      }
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockSearchParams.get.mockReturnValue('l1')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('saves an edited classroom rule with PUT and updates the chart', async () => {
+    getList.mockResolvedValue(classList)
+    const fetchMock = stubClassFetch({ ok: true })
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'Edited rule.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/classes/c1/rules',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ rules: { a_e: { rule: 'Edited rule.' } } }),
+        })
+      )
+    })
+    expect(screen.getByText('Edited rule.')).toBeInTheDocument()
+  })
+
+  it('deletes the classroom rule with DELETE when the teacher clears it', async () => {
+    getList.mockResolvedValue(classList)
+    const fetchMock = stubClassFetch({ ok: true })
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/classes/c1/rules',
+        expect.objectContaining({
+          method: 'DELETE',
+          body: JSON.stringify({ patternText: 'a_e' }),
+        })
+      )
+    })
+    // The class rule is gone and the pattern has no unscoped rule: the
+    // callout disappears.
+    expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
+  })
+
+  it('keeps the modal open with an error when saving the classroom rule fails', async () => {
+    getList.mockResolvedValue(classList)
+    stubClassFetch({ ok: false })
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'Edited rule.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not save the rule. Try again.')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog', { name: 'Rule for a_e' })).toBeInTheDocument()
+    // The displayed rule is unchanged.
+    expect(screen.getByText('Class rule.')).toBeInTheDocument()
+  })
+
+  it('saves the unscoped rule on the pattern when the list has no classroom', async () => {
+    const noClassList: WordList = {
+      ...twoPatternList,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'], rule: 'Magic e.' },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+      ],
+    }
+    getList.mockResolvedValue(noClassList)
+    updateList.mockImplementation((id: string, patch: Partial<WordList>) =>
+      Promise.resolve({ ...noClassList, ...patch, id })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'New unscoped rule.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([
+            expect.objectContaining({ id: 'p1', pattern: 'a_e', rule: 'New unscoped rule.' }),
+          ]),
+        })
+      )
+    })
+    expect(screen.getByText('New unscoped rule.')).toBeInTheDocument()
+  })
+
+  it('clears the unscoped rule on the pattern when the teacher clears it without a classroom', async () => {
+    const noClassList: WordList = {
+      ...twoPatternList,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'], rule: 'Magic e.' },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+      ],
+    }
+    getList.mockResolvedValue(noClassList)
+    updateList.mockImplementation((id: string, patch: Partial<WordList>) =>
+      Promise.resolve({ ...noClassList, ...patch, id })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: expect.arrayContaining([expect.objectContaining({ id: 'p1', rule: undefined })]),
+        })
+      )
+    })
+    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+  })
+})
+
+describe('DisplayMode present-chart rule editing without cached class rules (issue #372)', () => {
+  const KIDS_WORDS_LABEL = 'Rule, in the kids’ words'
+
+  // The list has a classroom, but the class fetch fails, so the chart falls
+  // back to the patterns' unscoped rules. Saving still targets the
+  // classroom, which starts from no cached rules.
+  const classListNoRules: WordList = {
+    ...twoPatternList,
+    classId: 'c1',
+    patterns: [
+      { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'], rule: 'Magic e.' },
+      { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
+    ],
+  }
+
+  function stubRulesOnly(rulesOk: boolean) {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/classes/c1' && (!init || !init.method || init.method === 'GET')) {
+        return Promise.reject(new Error('down'))
+      }
+      if (url === '/api/classes/c1/rules') {
+        return Promise.resolve({ ok: rulesOk, json: async () => ({}) })
+      }
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockSearchParams.get.mockReturnValue('l1')
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('saves to the classroom with PUT when there are no cached class rules', async () => {
+    getList.mockResolvedValue(classListNoRules)
+    const fetchMock = stubRulesOnly(true)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('No class')).toBeInTheDocument()
+    })
+    // The chart falls back to the unscoped rule, still editable.
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    expect(screen.getByLabelText(KIDS_WORDS_LABEL)).toHaveValue('Magic e.')
+    fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'Edited rule.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/classes/c1/rules',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ rules: { a_e: { rule: 'Edited rule.' } } }),
+        })
+      )
+    })
+    expect(screen.getByText('Edited rule.')).toBeInTheDocument()
+    expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+  })
+
+  it('clears the classroom rule with DELETE when there are no cached class rules', async () => {
+    getList.mockResolvedValue(classListNoRules)
+    const fetchMock = stubRulesOnly(true)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('The rule:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/classes/c1/rules',
+        expect.objectContaining({
+          method: 'DELETE',
+          body: JSON.stringify({ patternText: 'a_e' }),
+        })
+      )
+    })
+    // The unscoped fallback remains; only the (absent) class rule was cleared.
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    expect(screen.getByText('Magic e.')).toBeInTheDocument()
+  })
+
+  it('keeps the modal open with an error when clearing the classroom rule fails', async () => {
+    const classList: WordList = { ...twoPatternList, classId: 'c1' }
+    getList.mockResolvedValue(classList)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url === '/api/classes/c1' && (!init || !init.method || init.method === 'GET')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ class: { id: 'c1', name: 'Period 2', rules: { a_e: { rule: 'Class rule.' } } } }),
+          })
+        }
+        if (url === '/api/classes/c1/rules') {
+          return Promise.resolve({ ok: false, status: 500, json: async () => ({}) })
+        }
+        return Promise.resolve({ ok: false, status: 404, json: async () => ({}) })
+      })
+    )
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Our class figured out:')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Could not save the rule. Try again.')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('dialog', { name: 'Rule for a_e' })).toBeInTheDocument()
+    // The chart and the modal draft both still show the old rule.
+    expect(screen.getAllByText('Class rule.')).toHaveLength(2)
+  })
+})

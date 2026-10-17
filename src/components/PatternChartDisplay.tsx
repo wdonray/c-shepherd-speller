@@ -5,22 +5,33 @@ import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
 import { OddDuck } from './OddDuck'
-import { Volume2Icon, LockIcon, LockOpenIcon } from 'lucide-react'
+import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
+import PatternRuleEditor from './PatternRuleEditor'
 
 interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
   /**
-   * The list's classroom rules by pattern text. Rules are display-only on
-   * the chart (issue #263): management moved to the list page. The class
-   * rule wins over the pattern's unscoped rule when both exist.
+   * The list's classroom rules by pattern text. The class rule wins over
+   * the pattern's unscoped rule when both exist (issue #263 moved
+   * management off the chart to the list page; issue #372 put editing back
+   * on the present chart behind a pencil icon).
    */
   classRules?: Record<string, string> | null
+  /**
+   * Persist one pattern's rule from the present chart (issue #372). When
+   * provided, the rule callout gets a pencil icon at its right side that
+   * opens the rule editor modal. Omitted for display-only usages (print,
+   * sample chart).
+   */
+  onSaveRule?: (patternId: string, patternText: string, rule: string) => Promise<void>
+  /** The classroom's display name, shown in the rule editor modal. */
+  className?: string | null
   /**
    * Whether the rule display under the column headers is shown (issue #310).
    * Default true preserves current behavior; the parent renders a toggle.
@@ -79,6 +90,8 @@ export default function PatternChartDisplay({
   list,
   onToggleLock,
   classRules,
+  onSaveRule,
+  className,
   showRules = true,
   variant = 'present',
   showUnderlines = false,
@@ -124,10 +137,12 @@ export default function PatternChartDisplay({
   }
 
   /**
-   * The rule under a column header, display-only (issue #263). The
-   * classroom's rule wins over the pattern's unscoped rule when both
-   * exist. Rendered larger than before so it reads from the back of the
-   * room; rules are managed on the list page, never here.
+   * The rule under a column header (issue #263). The classroom's rule wins
+   * over the pattern's unscoped rule when both exist. Rendered larger than
+   * before so it reads from the back of the room. On the present chart the
+   * callout also carries a pencil icon at its right side that opens the
+   * rule editor modal (issue #372); the modal reuses the list page's
+   * PatternRuleEditor.
    */
   const renderRuleDisplay = (pattern: SpellingPattern) => {
     if (isPrint || !showRules) return null
@@ -145,8 +160,29 @@ export default function PatternChartDisplay({
     const isClassRule = classRules?.[pattern.pattern] !== undefined
     return (
       <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">
-        <figcaption className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-          {isClassRule ? 'Our class figured out:' : 'The rule:'}
+        <figcaption className="flex items-center justify-between gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+          <span>{isClassRule ? 'Our class figured out:' : 'The rule:'}</span>
+          {onSaveRule && (
+            <PatternRuleEditor
+              patternId={pattern.id}
+              patternText={pattern.pattern}
+              initialRule={rule}
+              shared={isClassRule}
+              className={className ?? null}
+              onSave={(next) => onSaveRule(pattern.id, pattern.pattern, next)}
+              trigger={(open) => (
+                <button
+                  type="button"
+                  onClick={open}
+                  aria-label={`Edit rule for ${pattern.pattern}`}
+                  title={`Edit rule for ${pattern.pattern}`}
+                  className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition hover:bg-line/50 hover:text-ink focus-visible:bg-line/50 focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                >
+                  <PencilIcon className="size-4" aria-hidden="true" />
+                </button>
+              )}
+            />
+          )}
         </figcaption>
         <blockquote className="text-lg font-bold leading-snug text-ink">{rule}</blockquote>
       </figure>

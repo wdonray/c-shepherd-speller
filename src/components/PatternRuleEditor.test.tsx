@@ -12,6 +12,7 @@ function renderEditor(
     shared: boolean
     className: string | null
     onSave: (rule: string) => Promise<void>
+    trigger: (open: () => void) => React.ReactNode
   }> = {}
 ) {
   const onSave = overrides.onSave ?? vi.fn().mockResolvedValue(undefined)
@@ -354,5 +355,40 @@ describe('PatternRuleEditor modal', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(onSave).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Edit rule for a_e' })).toHaveTextContent('Classroom rule.')
+  })
+})
+
+describe('PatternRuleEditor custom trigger (issue #372)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const pencilTrigger = (open: () => void) => (
+    <button type="button" onClick={open} aria-label="Custom edit trigger">
+      ✏️
+    </button>
+  )
+
+  it('renders the custom trigger instead of the default settings row', () => {
+    renderEditor({ trigger: pencilTrigger })
+    expect(screen.getByRole('button', { name: 'Custom edit trigger' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^(Add|Edit) rule for/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Spelling rule')).not.toBeInTheDocument()
+  })
+
+  it('opens the modal from the custom trigger and saves through onSave', async () => {
+    const { onSave } = renderEditor({ trigger: pencilTrigger })
+    fireEvent.click(screen.getByRole('button', { name: 'Custom edit trigger' }))
+    expect(screen.getByRole('dialog', { name: 'Rule for a_e' })).toBeInTheDocument()
+    fireEvent.change(textarea(), { target: { value: 'Pencil rule.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith('Pencil rule.')
+    })
+  })
+
+  it('keeps the default row when no trigger is provided', () => {
+    renderEditor()
+    expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
   })
 })
