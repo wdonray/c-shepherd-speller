@@ -112,12 +112,12 @@ export default function NewListForm() {
             {error}
           </p>
         )}
-        <div className="flex gap-3">
-          <Button type="submit" disabled={!canSubmit}>
-            {creating ? 'Creating...' : 'Create list'}
-          </Button>
+        <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={() => router.push('/lists')} disabled={creating}>
             Cancel
+          </Button>
+          <Button type="submit" disabled={!canSubmit}>
+            {creating ? 'Creating...' : 'Create list'}
           </Button>
         </div>
       </form>
