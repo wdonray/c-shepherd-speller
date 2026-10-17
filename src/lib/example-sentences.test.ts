@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as Sentry from '@sentry/nextjs'
 import { FALLBACK_SENTENCES } from '@/data/example-sentences'
+import { fetchExampleSentences as fetchExampleSentencesStatic } from './example-sentences'
 
 vi.mock('@sentry/nextjs', () => ({
   withScope: vi.fn((cb: (scope: unknown) => void) => cb({ setTag: vi.fn(), setExtras: vi.fn() })),
@@ -93,11 +94,28 @@ describe('fetchExampleSentences', () => {
     ]
   }
 
+  /**
+   * Stub fetch so /api/sentences misses by default (falling through to the
+   * dictionary API, preserving the old single-fetch test behavior), while
+   * the dictionary API uses `dictionaryImpl`. Pass `bankImpl` to control
+   * the bank tier per test.
+   */
+  function dispatchFetch(
+    dictionaryImpl: (url: string, opts?: unknown) => unknown,
+    bankImpl: (url: string) => unknown = () => Promise.resolve({ ok: false })
+  ) {
+    return vi.fn((url: string, opts?: unknown) =>
+      String(url).startsWith('/api/sentences') ? bankImpl(url) : dictionaryImpl(url)
+    )
+  }
+
   it('returns API sentences that pass the filters, marked as API', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka at the zoo.', 'A quokka without a tail', undefined])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka at the zoo.', 'A quokka without a tail', undefined])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
@@ -106,19 +124,21 @@ describe('fetchExampleSentences', () => {
   })
 
   it('caps results at 3 and dedupes', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve(
-          apiResponse([
-            'I see a quokka.',
-            'You see a quokka.',
-            'We see a quokka.',
-            'They see a quokka.',
-            'I see a quokka.',
-          ])
-        ),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            apiResponse([
+              'I see a quokka.',
+              'You see a quokka.',
+              'We see a quokka.',
+              'They see a quokka.',
+              'I see a quokka.',
+            ])
+          ),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
@@ -141,7 +161,10 @@ describe('fetchExampleSentences', () => {
   })
 
   it('returns an empty local result on API failure for words outside the bank', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+    vi.stubGlobal(
+      'fetch',
+      dispatchFetch(() => Promise.reject(new Error('network down')))
+    )
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
     expect(result).toEqual({ sentences: [], source: 'local' })
@@ -159,7 +182,10 @@ describe('fetchExampleSentences', () => {
   })
 
   it('does not report network failures to Sentry', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
+    vi.stubGlobal(
+      'fetch',
+      dispatchFetch(() => Promise.reject(new TypeError('Load failed')))
+    )
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
     expect(result).toEqual({ sentences: [], source: 'local' })
@@ -167,10 +193,12 @@ describe('fetchExampleSentences', () => {
   })
 
   it('reports response processing errors to Sentry', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.reject(new SyntaxError('Unexpected token')),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
@@ -179,7 +207,10 @@ describe('fetchExampleSentences', () => {
   })
 
   it('returns an empty local result for unknown words with no fallback', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    vi.stubGlobal(
+      'fetch',
+      dispatchFetch(() => Promise.resolve({ ok: false }))
+    )
     const { fetchExampleSentences } = await load()
     expect(await fetchExampleSentences('xyzzy')).toEqual({ sentences: [], source: 'local' })
   })
@@ -193,15 +224,19 @@ describe('fetchExampleSentences', () => {
   })
 
   it('caches results so the API is hit once per word', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     await fetchExampleSentences('quokka')
     await fetchExampleSentences('quokka')
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    // One lookup hits the bank API (miss) and the dictionary API; the
+    // repeat lookup is served from cache with no fetches at all.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('serves valid stored sentences with their source without fetching', async () => {
@@ -233,17 +268,19 @@ describe('fetchExampleSentences', () => {
         astring: 'hello',
       })
     )
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     // 'quokka' has no stored entry and no bank entry; readStorageCache still
     // validates every malformed entry in the stored object on the way through.
     const result = await fetchExampleSentences('quokka')
     expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it.each([
@@ -252,32 +289,38 @@ describe('fetchExampleSentences', () => {
     ['[1,2,3]', 'array JSON'],
   ])('ignores localStorage containing %s (%s)', async (stored) => {
     window.localStorage.setItem('patternspell-sentences-v2', stored)
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     expect(await fetchExampleSentences('quokka')).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('aborts the API fetch when it times out, with no retry', async () => {
     vi.useFakeTimers()
     try {
-      const fetchMock = vi.fn(
-        (_url: string, opts: { signal: AbortSignal }) =>
-          new Promise<never>((_resolve, reject) => {
-            opts.signal.addEventListener('abort', () => reject(new DOMException('Fetch aborted', 'AbortError')))
-          })
-      )
+      const fetchMock = vi.fn((url: string, opts?: unknown) => {
+        if (String(url).startsWith('/api/sentences')) return Promise.resolve({ ok: false })
+        const { signal } = opts as { signal: AbortSignal }
+        return new Promise<never>((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(new DOMException('Fetch aborted', 'AbortError')))
+        })
+      })
       vi.stubGlobal('fetch', fetchMock)
-      const { fetchExampleSentences } = await load()
-      const promise = fetchExampleSentences('quokka')
-      // The single attempt times out at 3s; there is no retry.
+      // The dynamic load() pattern confuses v8 coverage attribution for the
+      // abort callback, so this test uses the statically imported module
+      // with a unique word to stay isolated from the per-test module cache.
+      const promise = fetchExampleSentencesStatic('quokka-timeout-zzz')
+      // The single dictionary attempt times out at 3s; there is no retry.
+      // The bank API miss resolves immediately before it.
       await vi.advanceTimersByTimeAsync(3000)
       const result = await promise
-      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
       expect(result).toEqual({ sentences: [], source: 'local' })
     } finally {
       vi.useRealTimers()
@@ -285,39 +328,43 @@ describe('fetchExampleSentences', () => {
   })
 
   it('does not retry on network failure', async () => {
-    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Load failed'))
+    const fetchMock = dispatchFetch(() => Promise.reject(new TypeError('Load failed')))
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
     expect(result).toEqual({ sentences: [], source: 'local' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('does not cache empty results, so a transient miss can retry', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false })
+    const fetchMock = dispatchFetch(() => Promise.resolve({ ok: false }))
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     expect(await fetchExampleSentences('xyzzy')).toEqual({ sentences: [], source: 'local' })
     expect(await fetchExampleSentences('xyzzy')).toEqual({ sentences: [], source: 'local' })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
   })
 
   it('returns an empty local result when the API returns non-array JSON', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ title: 'No Definitions Found' }),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ title: 'No Definitions Found' }),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     expect(await fetchExampleSentences('xyzzy')).toEqual({ sentences: [], source: 'local' })
   })
 
   it('handles API entries missing meanings or definitions', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve([{}, { meanings: [{ definitions: [{ example: 'We saw a quokka.' }] }] }, { meanings: [{}] }]),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve([{}, { meanings: [{ definitions: [{ example: 'We saw a quokka.' }] }] }, { meanings: [{}] }]),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     expect(await fetchExampleSentences('quokka')).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
@@ -325,10 +372,12 @@ describe('fetchExampleSentences', () => {
 
   it('handles corrupt localStorage gracefully', async () => {
     window.localStorage.setItem('patternspell-sentences-v2', 'not-json{')
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
@@ -339,14 +388,98 @@ describe('fetchExampleSentences', () => {
     const setItem = vi.spyOn(window.localStorage.__proto__, 'setItem').mockImplementation(() => {
       throw new Error('denied')
     })
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
-    })
+    const fetchMock = dispatchFetch(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(apiResponse(['We saw a quokka.'])),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
     const { fetchExampleSentences } = await load()
     const result = await fetchExampleSentences('quokka')
     expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
     setItem.mockRestore()
+  })
+
+  it('serves bank API sentences as local without touching the dictionary API', async () => {
+    const fetchMock = dispatchFetch(
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve(apiResponse(['We saw a quokka.'])) }),
+      () =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ sentences: ['The lemur sat in the tree.', 'We saw a lemur.'] }),
+        })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const result = await fetchExampleSentences('lemur')
+    expect(result).toEqual({ sentences: ['The lemur sat in the tree.', 'We saw a lemur.'], source: 'local' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/sentences?word=lemur')
+  })
+
+  it('falls through to the dictionary API when the bank API fails at the network level', async () => {
+    const fetchMock = dispatchFetch(
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve(apiResponse(['We saw a quokka.'])) }),
+      () => Promise.reject(new Error('bank down'))
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
+  })
+
+  it('falls through when the bank API response has no usable sentences', async () => {
+    const fetchMock = dispatchFetch(
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve(apiResponse(['We saw a quokka.'])) }),
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve({ sentences: ['not about the word'] }) })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
+  })
+
+  it('filters non-string and unusable bank API sentences', async () => {
+    const fetchMock = dispatchFetch(
+      () => Promise.resolve({ ok: false }),
+      () =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              sentences: ['The lemur sat in the tree.', 42, 'no terminal punctuation', `${'x'.repeat(140)}.`, null],
+            }),
+        })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const result = await fetchExampleSentences('lemur')
+    expect(result).toEqual({ sentences: ['The lemur sat in the tree.'], source: 'local' })
+  })
+
+  it.each([[`{ "sentences": "nope" }`], [`{}`], [`[1,2,3]`], [`null`]])(
+    'falls through on malformed bank API JSON: %s',
+    async (body) => {
+      const fetchMock = dispatchFetch(
+        () => Promise.resolve({ ok: true, json: () => Promise.resolve(apiResponse(['We saw a quokka.'])) }),
+        () => Promise.resolve({ ok: true, json: () => Promise.resolve(JSON.parse(body)) })
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      const { fetchExampleSentences } = await load()
+      const result = await fetchExampleSentences('quokka')
+      expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
+    }
+  )
+
+  it('falls through when the bank API JSON cannot be parsed', async () => {
+    const fetchMock = dispatchFetch(
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve(apiResponse(['We saw a quokka.'])) }),
+      () => Promise.resolve({ ok: true, json: () => Promise.reject(new SyntaxError('bad json')) })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { fetchExampleSentences } = await load()
+    const result = await fetchExampleSentences('quokka')
+    expect(result).toEqual({ sentences: ['We saw a quokka.'], source: 'api' })
   })
 })
