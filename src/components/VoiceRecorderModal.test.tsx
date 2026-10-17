@@ -1326,7 +1326,7 @@ describe('VoiceRecorderModal', () => {
     vi.stubGlobal(
       'Audio',
       class extends FakeAudio {
-        override duration = 1
+        override duration = 0.5
       }
     )
     renderModal()
@@ -1335,6 +1335,23 @@ describe('VoiceRecorderModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     expect(await screen.findByText(/very short/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save recording' })).toBeDisabled()
+  })
+
+  it('allows saving a 1-second recording (#364)', async () => {
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    vi.stubGlobal(
+      'Audio',
+      class extends FakeAudio {
+        override duration = 1
+      }
+    )
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(await screen.findByRole('button', { name: 'Save recording' })).toBeEnabled()
+    expect(screen.queryByText(/very short/)).not.toBeInTheDocument()
   })
 
   it('tolerates AudioContext close failure when stopping', async () => {
