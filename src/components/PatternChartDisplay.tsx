@@ -29,7 +29,7 @@ interface PatternChartDisplayProps {
   /**
    * 'present' is the interactive projector chart. 'print' renders a
    * non-interactive poster: locked patterns are excluded entirely, words are
-   * plain text, and all buttons and the caption are hidden.
+   * plain text, and all buttons are hidden.
    */
   variant?: 'present' | 'print'
   /**
@@ -46,14 +46,6 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
   'less-common': 2,
   rare: 1,
 }
-
-/**
- * Caption under the present chart, exported so the display chart skeleton
- * can render an invisible-copy placeholder that wraps at exactly the same
- * points as the loaded caption (issue #350).
- */
-export const CHART_CAPTION =
-  'Tap a word to see its analysis, or press the speaker icon to hear it. Patterns are ordered by how common the spelling is; longer bars mean more common.'
 
 /**
  * Column border color comes from the pattern's sound type (vowels green,
@@ -388,8 +380,6 @@ export default function PatternChartDisplay({
               </p>
             </section>
           )}
-
-          {!isPrint && <p className="mt-6 text-center text-sm text-muted-foreground">{CHART_CAPTION}</p>}
         </>
       )}
 
