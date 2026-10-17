@@ -11,6 +11,7 @@ import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib
 import type { WordList } from '@/models/WordList'
 import WordListCard from './WordListCard'
 import { PatternMark } from './PatternMark'
+import { GhostText } from './ui/ghost-text'
 import { reportError } from '@/lib/report-error'
 
 interface DashboardProps {
@@ -126,21 +127,6 @@ function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
     if (event.listId === list.id && event.at > latest) latest = event.at
   }
   return latest
-}
-
-/**
- * Invisible-copy placeholder (issue #349). Renders the real copy in
- * transparent text over a per-line highlight span. Because the copy, font,
- * size, and available width are identical to the loaded element, it wraps at
- * exactly the same points at every viewport width, so the skeleton occupies
- * exactly the loaded element's space and nothing shifts on load.
- */
-function GhostText({ text, highlightClassName }: { text: string; highlightClassName: string }) {
-  return (
-    <span aria-hidden="true" className="select-none text-transparent">
-      <span className={`box-decoration-clone animate-pulse rounded-sm ${highlightClassName}`}>{text}</span>
-    </span>
-  )
 }
 
 /**

@@ -14,11 +14,185 @@ import RulesVisibilityToggle from './RulesVisibilityToggle'
 import WordUnderlineToggle from './WordUnderlineToggle'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
-import PresentingTipsBar from './PresentingTipsBar'
+import PresentingTipsBar, { PRESENTING_TIPS_LEAD, PRESENTING_TIPS_BODY } from './PresentingTipsBar'
+import { CHART_CAPTION } from './PatternChartDisplay'
 import WhyChartPopover from './WhyChartPopover'
+import { GhostText } from './ui/ghost-text'
 import { reportError } from '@/lib/report-error'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
+
+/** Picker copy, shared with the picker skeleton's invisible-copy placeholders (issue #350). */
+const PICKER_TITLE = 'Present a list'
+const PICKER_INTRO = 'Choose a list to show its pattern chart on the big screen.'
+const PICKER_DESCRIPTION =
+  'One column per pattern, all words visible at once. Use the fullscreen button for the biggest readable chart, lock patterns you want to hold back, and try Sort words to turn the chart into a class sorting activity.'
+
+/**
+ * Picker skeleton (issue #350): geometrically identical to the loaded list
+ * picker. The title and intro paragraphs use invisible-copy placeholders so
+ * they wrap at exactly the same points as the real copy at every viewport
+ * width; the cards mirror WordListCard as the picker configures it
+ * (accent bar, title + badge row, count line, no pattern preview, empty
+ * action row since the whole card is the link).
+ *
+ * Inherent approximations (unknowable while loading): the list count (three
+ * cards shown), the week chips (always shown; the loaded picker shows them
+ * only when a week is assigned) and their labels, and the card badges (one
+ * shown; a list may have zero, one, or two).
+ */
+export function DisplayPickerSkeleton() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background" role="status" aria-label="Loading lists" aria-busy="true">
+      {/* Subheader: matches the loaded sticky picker subheader */}
+      <div className="sticky top-0 z-10 border-b-2 border-line bg-card" aria-hidden="true">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-xl bg-line/60 sm:w-20" />
+          <p className="text-xl font-bold">
+            <GhostText text={PICKER_TITLE} highlightClassName="bg-line/60" />
+          </p>
+        </div>
+      </div>
+      {/* Picker: matches the loaded max-w-6xl picker layout */}
+      <div className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-8 sm:px-8" aria-hidden="true">
+        <p className="text-[15px] text-muted-foreground">
+          <GhostText text={PICKER_INTRO} highlightClassName="bg-line/40" />
+        </p>
+        <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">
+          <GhostText text={PICKER_DESCRIPTION} highlightClassName="bg-line/40" />
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-9 w-24 animate-pulse rounded-2xl bg-line/60" />
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="relative flex flex-col overflow-hidden rounded-[20px] border-2 border-line bg-card">
+              <div className="h-2 w-full animate-pulse bg-line/60" />
+              <div className="flex flex-1 flex-col gap-3 p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="h-7 w-2/3 animate-pulse rounded-lg bg-line/60" />
+                  <div className="h-6 w-20 animate-pulse rounded-full bg-line/40" />
+                </div>
+                <div className="h-5 w-40 animate-pulse rounded bg-line/40" />
+                {/* Action row: empty in the picker (the whole card is the
+                    link and the Present button is hidden), kept as a spacer
+                    like the loaded card */}
+                <div className="relative z-10 mt-auto pt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Chart skeleton (issue #350): geometrically identical to the loaded present
+ * chart. Shared by the loading state and the Suspense fallback so both paths
+ * show the same geometry.
+ *
+ * Every block mirrors the loaded header and PatternChartDisplay for the
+ * common case (patterns with rules, words with speaker buttons):
+ * - header: sticky like the loaded one, with a block for every control in
+ *   the same order and responsive visibility (back link, flex-1 title, class
+ *   pill, info popover trigger, rules/underline toggles, Print chart, Sort
+ *   words, and the mobile overflow menu trigger). The fullscreen button is
+ *   deliberately absent: it mounts a beat after the loaded header's first
+ *   paint (support is detected in an effect), so the skeleton matches that
+ *   first paint exactly.
+ * - presenting-tips placeholder: always rendered. The real bar's SSR HTML
+ *   includes it, and a fresh browser (the first-present case the tips exist
+ *   for) shows it; a teacher who dismissed it sees a small collapse.
+ * - chart: the PatternChartDisplay wrapper, the list-name title, and the
+ *   capped, centered column grid with one block per pattern column.
+ *
+ * Inherent approximations (unknowable while loading): the pattern count
+ * (three columns shown) and word count (four rows each), the keyword
+ * emoji/image, the rule text (a rule block is shown; a pattern may have no
+ * rule), the odd ducks section, and the class pill label (the loaded pill
+ * flips from "No class" once the class loads).
+ */
+export function DisplayChartSkeleton() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background" role="status" aria-label="Loading chart" aria-busy="true">
+      {/* Header: matches the loaded sticky header */}
+      <div className="sticky top-0 z-10 border-b-2 border-line bg-card" aria-hidden="true">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-xl bg-line/60 sm:w-20" />
+          <div className="h-7 min-w-0 flex-1 animate-pulse rounded-lg bg-line/60" />
+          <div className="hidden h-7 w-24 shrink-0 animate-pulse rounded-full bg-line/40 sm:block" />
+          <div className="hidden size-11 shrink-0 animate-pulse rounded-xl bg-line/40 sm:block" />
+          <div className="hidden shrink-0 items-center gap-2 sm:flex">
+            <div className="size-9 animate-pulse rounded-full bg-line/40" />
+            <div className="size-9 animate-pulse rounded-full bg-line/40" />
+            <div className="h-9 w-28 animate-pulse rounded-2xl bg-line/60" />
+          </div>
+          <div className="h-9 w-24 shrink-0 animate-pulse rounded-2xl bg-line/60" />
+          <div className="size-11 shrink-0 animate-pulse rounded-2xl bg-line/60 sm:hidden" />
+        </div>
+      </div>
+      {/* Chart: matches the loaded main + PatternChartDisplay layout */}
+      <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
+        {/* Presenting tips: matches the loaded one-time tips bar */}
+        <div className="mx-auto mb-6 flex w-full max-w-3xl items-start gap-3 rounded-[20px] border-2 border-line bg-card p-4">
+          <div className="mt-0.5 size-5 shrink-0 animate-pulse rounded-full bg-line/60" />
+          <p className="flex-1 text-[15px] leading-6">
+            <GhostText text={PRESENTING_TIPS_LEAD} highlightClassName="bg-line/60" className="font-bold" />{' '}
+            <GhostText text={PRESENTING_TIPS_BODY} highlightClassName="bg-line/40" />
+          </p>
+          <div className="h-9 w-20 shrink-0 animate-pulse rounded-xl bg-line/60" />
+        </div>
+        <div className="force-light w-full rounded-[20px] bg-background p-6 sm:p-10">
+          <div className="mb-8 text-center">
+            <div className="mx-auto h-10 w-64 animate-pulse rounded-lg bg-line/60" />
+          </div>
+          <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 justify-center gap-6 sm:grid-cols-[repeat(2,minmax(0,420px))] lg:grid-cols-[repeat(3,minmax(0,420px))]">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="min-w-0 rounded-2xl border-[3px] border-line bg-card p-5">
+                <div className="mb-4 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-8 w-28 animate-pulse rounded-lg bg-line/60" />
+                    <div className="size-11 animate-pulse rounded-full bg-line/40" />
+                  </div>
+                  <div className="mt-2 flex items-center justify-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      {[0, 1, 2].map((j) => (
+                        <div key={j} className="h-2.5 w-6 animate-pulse rounded-full bg-line/60" />
+                      ))}
+                    </div>
+                    <div className="h-5 w-20 animate-pulse rounded bg-line/40" />
+                  </div>
+                  <div className="mt-3 border-l-4 border-line bg-line/10 px-3 py-2 text-left">
+                    <div className="h-4 w-24 animate-pulse rounded bg-line/60" />
+                    <div className="mt-1.5 h-6 w-full animate-pulse rounded bg-line/40" />
+                    <div className="mt-1.5 h-6 w-2/3 animate-pulse rounded bg-line/40" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {[0, 1, 2, 3].map((j) => (
+                    <div
+                      key={j}
+                      className="flex min-h-[58px] items-center gap-1 rounded-[14px] border-2 border-line bg-card p-1.5"
+                    >
+                      <div className="h-11 flex-1 animate-pulse rounded-[10px] bg-line/40" />
+                      <div className="size-11 shrink-0 animate-pulse rounded-[10px] bg-line/40" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm">
+            <GhostText text={CHART_CAPTION} highlightClassName="bg-line/40" />
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 /**
  * Display mode: pattern chart for the selected list, sized for projectors
@@ -155,80 +329,7 @@ function DisplayModeInner() {
   if (loading) {
     // No list selected: the picker loads, so the skeleton depicts the picker
     // (issue #341). With a list selected, the chart skeleton is correct.
-    if (!listId) {
-      return (
-        <div
-          className="flex min-h-screen flex-col bg-background"
-          role="status"
-          aria-label="Loading lists"
-          aria-busy="true"
-        >
-          {/* Subheader: matches the loaded sticky picker subheader */}
-          <div className="sticky top-0 z-10 border-b-2 border-line bg-card" aria-hidden="true">
-            <div className="flex items-center gap-2 px-4 py-3">
-              <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
-              <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
-            </div>
-          </div>
-          {/* Picker: matches the loaded max-w-6xl picker layout */}
-          <div className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-8 sm:px-8" aria-hidden="true">
-            {/* Description: two paragraphs like the loaded copy (issue #341) */}
-            <div className="h-[45px] animate-pulse rounded-lg bg-line/60 sm:h-6" />
-            <div className="mt-2 h-[113px] animate-pulse rounded-lg bg-line/40 sm:h-12" />
-            <div className="flex flex-wrap gap-2">
-              {[0, 1].map((i) => (
-                <div key={i} className="h-9 w-24 animate-pulse rounded-xl bg-line/60" />
-              ))}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line bg-card">
-                  <div className="h-2 w-full animate-pulse bg-line/60" />
-                  <div className="flex flex-col gap-3 p-6">
-                    <div className="h-7 w-3/4 animate-pulse rounded-lg bg-line/60" />
-                    <div className="h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
-                    <div className="pt-2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    }
-    return (
-      <div
-        className="flex min-h-screen flex-col bg-background"
-        role="status"
-        aria-label="Loading chart"
-        aria-busy="true"
-      >
-        {/* Header: matches loaded sticky header */}
-        <div className="border-b-2 border-line bg-card" aria-hidden="true">
-          <div className="flex items-center gap-2 px-4 py-3">
-            <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
-            <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
-            <div className="ml-auto h-9 w-24 animate-pulse rounded-xl bg-line/60" />
-          </div>
-        </div>
-        {/* Chart: matches PatternChartDisplay column layout */}
-        <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-2xl border-2 border-line bg-card p-6">
-                <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
-                <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
-                <div className="mt-4 space-y-2">
-                  {[0, 1, 2, 3].map((j) => (
-                    <div key={j} className="h-10 animate-pulse rounded-xl bg-line/40" />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
+    return !listId ? <DisplayPickerSkeleton /> : <DisplayChartSkeleton />
   }
 
   if (loadError) {
@@ -258,17 +359,12 @@ function DisplayModeInner() {
               <ChevronLeftIcon className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline-block">Back</span>
             </Button>
-            <h1 className="text-xl font-bold text-ink">Present a list</h1>
+            <h1 className="text-xl font-bold text-ink">{PICKER_TITLE}</h1>
           </div>
         </div>
         <div className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-8 sm:px-8">
-          <p className="text-[15px] text-muted-foreground">
-            Choose a list to show its pattern chart on the big screen.
-          </p>
-          <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">
-            One column per pattern, all words visible at once. Use the fullscreen button for the biggest readable chart,
-            lock patterns you want to hold back, and try Sort words to turn the chart into a class sorting activity.
-          </p>
+          <p className="text-[15px] text-muted-foreground">{PICKER_INTRO}</p>
+          <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">{PICKER_DESCRIPTION}</p>
           {assignedWeeks.length > 0 && (
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter lists by week">
               <Button
@@ -414,39 +510,7 @@ function DisplayModeInner() {
 
 export default function DisplayMode() {
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex min-h-screen flex-col bg-background"
-          role="status"
-          aria-label="Loading chart"
-          aria-busy="true"
-        >
-          <div className="border-b-2 border-line bg-card" aria-hidden="true">
-            <div className="flex items-center gap-2 px-4 py-3">
-              <div className="h-9 w-20 animate-pulse rounded-xl bg-line/60" />
-              <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
-              <div className="ml-auto h-9 w-24 animate-pulse rounded-xl bg-line/60" />
-            </div>
-          </div>
-          <div className="flex-1 px-4 py-6 sm:px-8" aria-hidden="true">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="rounded-2xl border-2 border-line bg-card p-6">
-                  <div className="h-8 w-2/3 animate-pulse rounded-lg bg-line/60" />
-                  <div className="mt-2 h-5 w-1/2 animate-pulse rounded-lg bg-line/40" />
-                  <div className="mt-4 space-y-2">
-                    {[0, 1, 2, 3].map((j) => (
-                      <div key={j} className="h-10 animate-pulse rounded-xl bg-line/40" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<DisplayChartSkeleton />}>
       <DisplayModeInner />
     </Suspense>
   )

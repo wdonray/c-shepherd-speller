@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button'
 import { dismissPresentingTips, isPresentingTipsDismissed } from '@/lib/presenting-tips'
 
 /**
+ * The tips copy, exported so the display chart skeleton can render an
+ * invisible-copy placeholder that wraps at exactly the same points as the
+ * loaded bar (issue #350).
+ */
+export const PRESENTING_TIPS_LEAD = 'Presenting tips:'
+export const PRESENTING_TIPS_BODY =
+  'Press the fullscreen button for the biggest chart. Lock a pattern to hide it until you are ready to reveal it. Sort words turns the chart into a hands-on sorting activity. Print chart makes a handout of the same layout.'
+
+/**
  * One-time presenting guidance at the top of the present chart view.
  * The fullscreen, lock, sort, and print controls are otherwise only
  * discovered by tapping around, so this bar teaches the presenting
@@ -29,9 +38,7 @@ export default function PresentingTipsBar() {
     >
       <LightbulbIcon className="mt-0.5 size-5 shrink-0 text-sun-ink" aria-hidden="true" />
       <p className="flex-1 text-[15px] leading-6 text-ink">
-        <strong>Presenting tips:</strong> Press the fullscreen button for the biggest chart. Lock a pattern to hide it
-        until you are ready to reveal it. Sort words turns the chart into a hands-on sorting activity. Print chart makes
-        a handout of the same layout.
+        <strong>{PRESENTING_TIPS_LEAD}</strong> {PRESENTING_TIPS_BODY}
       </p>
       <Button variant="ghost" size="sm" onClick={handleDismiss} aria-label="Dismiss presenting tips">
         <XIcon className="size-4" aria-hidden="true" />

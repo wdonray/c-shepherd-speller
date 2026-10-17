@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
-import DisplayMode from './DisplayMode'
+import DisplayMode, { DisplayPickerSkeleton, DisplayChartSkeleton } from './DisplayMode'
 import type { WordList } from '@/models/WordList'
 
 const { getList, getLists, updateList } = vi.hoisted(() => ({
@@ -59,6 +59,27 @@ describe('DisplayMode', () => {
     getLists.mockImplementation(() => new Promise(() => {}))
     render(<DisplayMode />)
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('shows the picker skeleton while the picker loads (issue #350)', () => {
+    getLists.mockImplementation(() => new Promise(() => {}))
+    render(<DisplayMode />)
+    const skeleton = screen.getByRole('status', { name: 'Loading lists' })
+    expect(skeleton).toBeInTheDocument()
+    // Invisible-copy placeholders carry the real picker copy so the text
+    // wraps exactly like the loaded paragraphs.
+    expect(skeleton).toHaveTextContent('Choose a list to show its pattern chart on the big screen.')
+    expect(skeleton).toHaveTextContent('Present a list')
+  })
+
+  it('shows the chart skeleton while a list loads (issue #350)', () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockImplementation(() => new Promise(() => {}))
+    render(<DisplayMode />)
+    const skeleton = screen.getByRole('status', { name: 'Loading chart' })
+    expect(skeleton).toBeInTheDocument()
+    // The sticky header matches the loaded one, including the mobile menu trigger.
+    expect(skeleton.querySelector('.sticky')).toBeInTheDocument()
   })
 
   it('shows the list picker when no list is selected', async () => {
