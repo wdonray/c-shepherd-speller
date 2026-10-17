@@ -850,6 +850,18 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByRole('button', { name: 'Record' })).toBeInTheDocument()
   })
 
+  it('stacks the saved-phase action buttons so the delete confirm cannot overflow the modal', async () => {
+    getRecording.mockResolvedValue({ text: 'cake', audio: new ArrayBuffer(8), mimeType: 'audio/webm', recordedAt: 123 })
+    renderModal('cake')
+    const deleteButton = await screen.findByRole('button', { name: 'Delete' })
+    // The side-by-side buttons overflowed the modal on mobile once Delete
+    // grew into "Tap again to confirm" (#348). They stack vertically now.
+    expect(deleteButton.parentElement).toHaveClass('flex-col')
+    fireEvent.click(deleteButton)
+    const confirmButton = await screen.findByRole('button', { name: 'Tap again to confirm' })
+    expect(confirmButton.parentElement).toHaveClass('flex-col')
+  })
+
   it('deletes without an onDeleted handler', async () => {
     getRecording.mockResolvedValue({ text: 'cake', audio: new ArrayBuffer(8), mimeType: 'audio/webm', recordedAt: 123 })
     deleteRecording.mockResolvedValue(undefined)
