@@ -256,8 +256,9 @@ function DisplayModeInner() {
   }, [])
 
   // The list's classroom rules by pattern text, for the present chart.
-  // Rules are managed on the list page now (issue #263); the chart is
-  // display-only. Null when the list has no classroom.
+  // Rules are edited on the list page (issue #263) and, since issue #372,
+  // also in place on the present chart behind the callout's pencil icon.
+  // Null when the list has no classroom.
   const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
   const [className, setClassName] = useState<string | null>(null)
   // Rule display visibility on the chart (issue #310). Default shown.
@@ -299,6 +300,48 @@ function DisplayModeInner() {
       cancelled = true
     }
   }, [list?.classId])
+
+  /**
+   * Save one spelling rule from the present chart's callout editor
+   * (issue #372). Mirrors the list page's save (issue #313/#307): with a
+   * classroom, the rule is saved to the classroom (shared across its
+   * lists); otherwise it is saved unscoped on the pattern itself. Clearing
+   * a classroom rule deletes it via DELETE: an empty rule fails the rules
+   * API validation, so it cannot go through PUT. Rejects on failure so the
+   * editor keeps the draft and shows the error.
+   */
+  const handleSaveRule = useCallback(
+    async (patternId: string, patternText: string, rule: string, current: WordList): Promise<void> => {
+      if (current.classId) {
+        if (rule === '') {
+          const res = await fetch(`/api/classes/${encodeURIComponent(current.classId)}/rules`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patternText }),
+          })
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          setClassRules((prev) => {
+            const next = { ...(prev ?? {}) }
+            delete next[patternText]
+            return next
+          })
+          return
+        }
+        const res = await fetch(`/api/classes/${encodeURIComponent(current.classId)}/rules`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules: { [patternText]: { rule } } }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
+      } else {
+        const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule: rule || undefined } : p))
+        const saved = await updateList(current.id, { patterns: nextPatterns })
+        setList(saved)
+      }
+    },
+    []
+  )
 
   // Escape never navigates. When the browser is in full screen, Escape exits
   // full screen natively; the app takes no action on Escape at all.
@@ -499,6 +542,8 @@ function DisplayModeInner() {
             list={list}
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
             classRules={classRules}
+            onSaveRule={(patternId, patternText, rule) => handleSaveRule(patternId, patternText, rule, list)}
+            className={className}
             showRules={showRules}
             showUnderlines={showUnderlines}
           />
