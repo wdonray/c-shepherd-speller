@@ -3,12 +3,15 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 import { ensureE2EUser, sessionCookie } from './helpers/auth'
 
 /**
- * Layout-shift regression (issue #341). Every skeleton loader must occupy
- * exactly the space its loaded content will take: navigating each
- * skeleton-bearing route must produce effectively zero cumulative layout
- * shift (CLS <= 0.01) at desktop and mobile viewports.
+ * Layout-shift regression (issues #341, #366). Loading states must never
+ * shift the page: skeleton loaders occupy exactly the space their loaded
+ * content will take, and routes whose layout is unknowable while loading
+ * (the present page, issue #366) show a centered spinner instead, which
+ * draws nothing that could shift. Navigating each route below must produce
+ * effectively zero cumulative layout shift (CLS <= 0.01) at desktop and
+ * mobile viewports.
  *
- * API responses are delayed so the skeleton state is always capturable;
+ * API responses are delayed so the loading state is always capturable;
  * CLS is measured with a PerformanceObserver from navigation until the
  * page settles.
  */
