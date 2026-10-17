@@ -28,7 +28,7 @@ const MAX_RECORDING_SECONDS = 60
 /** Warn once when this many seconds remain. */
 const WARNING_SECONDS_REMAINING = 30
 /** Recordings shorter than this are almost certainly an accidental tap. */
-const MIN_RECORDING_SECONDS = 2
+const MIN_RECORDING_SECONDS = 1
 
 /** Browser families with meaningfully different microphone-blocked recovery UI. */
 type BrowserFamily = 'chromium' | 'safari' | 'firefox' | 'unknown'
