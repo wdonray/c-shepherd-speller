@@ -938,7 +938,17 @@ describe('ListEditorPage', () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
 
-    // Idle and clean: the box is not rendered at all.
+    // The live region stays mounted from page load (so screen readers never
+    // miss the first announcement); only the pill inside comes and goes.
+    const region = document.querySelector('div[aria-live="polite"]')
+    expect(region).toBeInTheDocument()
+    expect(region?.className).toMatch(/(^|\s)fixed(\s|$)/)
+    expect(region?.className).toMatch(/pointer-events-none/)
+    expect(region?.className).toMatch(/bottom-/)
+    expect(region?.className).toMatch(/right-/)
+    expect(region?.className).toMatch(/z-40/)
+
+    // Idle and clean: the region is mounted but shows no status.
     expect(screen.queryByText('Saving...')).not.toBeInTheDocument()
     expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
     expect(screen.queryByText('Saved')).not.toBeInTheDocument()
@@ -950,11 +960,6 @@ describe('ListEditorPage', () => {
     // push content around when it appears, changes, or disappears.
     const box = screen.getByText('Saved').closest('div')
     expect(box).toHaveAttribute('aria-live', 'polite')
-    expect(box?.className).toMatch(/(^|\s)fixed(\s|$)/)
-    expect(box?.className).toMatch(/pointer-events-none/)
-    expect(box?.className).toMatch(/bottom-/)
-    expect(box?.className).toMatch(/right-/)
-    expect(box?.className).toMatch(/z-40/)
   })
 
   it('shows the unsaved pattern count in the floating box', async () => {

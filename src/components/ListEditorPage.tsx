@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BackLink from '@/components/BackLink'
@@ -69,20 +69,11 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
  * Informational only: `pointer-events-none` keeps it from covering real
  * controls, and z-40 sits above page content but below dialogs (z-50) and
  * the error toaster (z-100).
+ *
+ * The live region itself stays mounted from page load; only the pill inside
+ * comes and goes. Mounting the region and its first message in the same
+ * render risks screen readers missing the announcement.
  */
-function SaveStatusBox({ children }: { children: ReactNode }) {
-  return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-40"
-    >
-      <p className="flex items-center gap-1.5 rounded-2xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground shadow-lg">
-        {children}
-      </p>
-    </div>
-  )
-}
-
 function SaveIndicator({
   status,
   isDirty,
@@ -92,30 +83,51 @@ function SaveIndicator({
   isDirty: boolean
   unsavedPatternCount: number
 }) {
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-40"
+    >
+      <SaveStatusPill status={status} isDirty={isDirty} unsavedPatternCount={unsavedPatternCount} />
+    </div>
+  )
+}
+
+function SaveStatusPill({
+  status,
+  isDirty,
+  unsavedPatternCount,
+}: {
+  status: SaveStatus
+  isDirty: boolean
+  unsavedPatternCount: number
+}) {
+  const pillClassName =
+    'flex items-center gap-1.5 rounded-2xl border border-line bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground shadow-lg'
   if (status === 'saving') {
     return (
-      <SaveStatusBox>
+      <p className={pillClassName}>
         <span aria-hidden="true" className="size-2 shrink-0 animate-pulse rounded-full bg-sky" />
         Saving...
-      </SaveStatusBox>
+      </p>
     )
   }
   if (isDirty) {
     return (
-      <SaveStatusBox>
+      <p className={pillClassName}>
         <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
         {unsavedPatternCount > 0
           ? `Unsaved changes (${unsavedPatternCount} ${unsavedPatternCount === 1 ? 'pattern' : 'patterns'})`
           : 'Unsaved changes'}
-      </SaveStatusBox>
+      </p>
     )
   }
   if (status === 'saved') {
     return (
-      <SaveStatusBox>
+      <p className={pillClassName}>
         <CheckCircle2Icon className="size-4 text-leaf-ink" aria-hidden="true" />
         Saved
-      </SaveStatusBox>
+      </p>
     )
   }
   return null
