@@ -934,6 +934,58 @@ describe('ListEditorPage', () => {
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument())
   })
 
+  it('floats the save status box bottom-right without taking layout space', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    // The live region stays mounted from page load (so screen readers never
+    // miss the first announcement); only the pill inside comes and goes.
+    const region = document.querySelector('div[aria-live="polite"]')
+    expect(region).toBeInTheDocument()
+    expect(region?.className).toMatch(/(^|\s)fixed(\s|$)/)
+    expect(region?.className).toMatch(/pointer-events-none/)
+    expect(region?.className).toMatch(/bottom-/)
+    expect(region?.className).toMatch(/right-/)
+    expect(region?.className).toMatch(/z-40/)
+
+    // Idle and clean: the region is mounted but shows no status.
+    expect(screen.queryByText('Saving...')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
+
+    // position: fixed takes the box out of the page flow, so it can never
+    // push content around when it appears, changes, or disappears.
+    const box = screen.getByText('Saved').closest('div')
+    expect(box).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('shows the unsaved pattern count in the floating box', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    expect(screen.getByText('Unsaved changes (1 pattern)')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    expect(screen.getByText('Unsaved changes (2 patterns)')).toBeInTheDocument()
+  })
+
+  it('keeps the floating Unsaved changes box up after a failed save', async () => {
+    updateList.mockRejectedValue(new Error('network down'))
+    await renderReady()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
+    })
+    // The error toast already fired; the floating box stays on Unsaved changes.
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+  })
+
   it('asks for confirmation when leaving with unsaved changes', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
@@ -1010,7 +1062,7 @@ describe('ListEditorPage', () => {
     await renderReady()
 
     fireEvent.click(screen.getByRole('button', { name: '+ Add a pattern' }))
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    expect(screen.getByText('Unsaved changes (1 pattern)')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete this pattern' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
