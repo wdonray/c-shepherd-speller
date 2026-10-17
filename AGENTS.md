@@ -56,3 +56,9 @@ credentials.
 - This repo has GitHub "Allow auto-merge" and "Automatically delete head branches" turned on. Auto-merge only fires when the `main` ruleset's required checks are green (Build, Lint, Unit tests, E2E tests).
 - The `.github/workflows/auto-merge.yml` workflow enables auto-merge on every PR automatically (merge method `--squash`). Agents no longer need to add the `auto-merge` label or run `gh pr merge --auto` themselves.
 - Never disable auto-merge on someone else's PR.
+
+## UI conventions
+
+- **Status indicators must never shift layout.** Things like save/unsaved
+  indicators reserve their space or overlay; they never push content around
+  when they appear, change, or disappear.
