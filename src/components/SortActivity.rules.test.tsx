@@ -251,7 +251,9 @@ describe('SortActivity rule recall', () => {
     render(<SortActivity list={listWithRule} onExit={vi.fn()} classId="c1" />)
     await screen.findByText('ai never ends a word.')
     fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
-    expect(screen.queryByText('ai never ends a word.')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('ai never ends a word.')).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
     expect(screen.getByText('ai never ends a word.')).toBeInTheDocument()
   })
@@ -293,7 +295,9 @@ describe('SortActivity rule recall', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     await screen.findAllByText('No rule yet')
     fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
-    expect(screen.queryByText('No rule yet')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('No rule yet')).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Show rules' }))
     expect(screen.getAllByText('No rule yet')).toHaveLength(3)
   })

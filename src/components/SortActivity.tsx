@@ -25,6 +25,7 @@ import { LIFT_TRANSITION, PICKUP_SHADOW, feedbackAnimate, settleTransition } fro
 import { Button } from '@/components/ui/button'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
+import AnimatedRuleSlot from './AnimatedRuleSlot'
 import {
   playCorrectSound,
   playIncorrectSound,
@@ -352,7 +353,9 @@ function DropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {showRules && (rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />)}
+        <AnimatedRuleSlot show={showRules}>
+          {rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />}
+        </AnimatedRuleSlot>
       </div>
       <ul className="flex flex-wrap items-start gap-3">
         {children}
@@ -466,7 +469,9 @@ function MobileDropColumn({
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
-        {showRules && (rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />)}
+        <AnimatedRuleSlot show={showRules}>
+          {rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />}
+        </AnimatedRuleSlot>
       </div>
       <ul className="flex flex-wrap items-start gap-3">{children}</ul>
     </section>

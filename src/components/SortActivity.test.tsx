@@ -493,21 +493,23 @@ describe('SortActivity rule display toggle', () => {
     ],
   }
 
-  it('shows rule cards by default and hides them when the toggle is pressed', () => {
+  it('shows rule cards by default and hides them when the toggle is pressed', async () => {
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(toggle)
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    // Issue #374: hiding animates the slot out, so it leaves the DOM after
+    // the exit transition instead of vanishing synchronously.
+    await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Show rules' })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('shows the rule cards again when the toggle is pressed twice', () => {
+  it('shows the rule cards again when the toggle is pressed twice', async () => {
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     fireEvent.click(toggle)
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     fireEvent.click(toggle)
     expect(screen.getByText('The rule:')).toBeInTheDocument()
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
