@@ -62,6 +62,11 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **Autosave modals must not swallow a close while a save is in flight.**
+  When the draft is clean (e.g. Clear-then-Done), queue the close and honor
+  it when the save settles. If the save fails, discard the queued close and
+  keep the modal open with the error and the draft intact (found 2026-10-17:
+  issue #363, rules could not be cleared).
 
 ## Reliability
 
