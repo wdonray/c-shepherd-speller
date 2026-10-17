@@ -11,6 +11,9 @@ const { getListById, updateList, deleteList } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/lists-db', () => ({ getListById, updateList, deleteList }))
 
+const { getClassById } = vi.hoisted(() => ({ getClassById: vi.fn() }))
+vi.mock('@/lib/classes-db', () => ({ getClassById }))
+
 import { GET, PUT, DELETE } from './route'
 
 const authed = { user: { id: 'u1', email: 't@example.com' }, response: null }
@@ -47,6 +50,80 @@ describe('GET /api/lists/[id]', () => {
     const body = await res.json()
     expect(body.list.id).toBe('l1')
     expect(getListById).toHaveBeenCalledWith('u1', 'l1')
+  })
+
+  it('returns classroom: null when the list has no classroom', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue(stored)
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.classroom).toBeNull()
+    expect(getClassById).not.toHaveBeenCalled()
+  })
+
+  it('joins the classroom name and flattened rules when the list has one (issue #388)', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue({ ...stored, classId: 'c1' })
+    getClassById.mockResolvedValue({
+      id: 'c1',
+      userId: 'u1',
+      name: 'Sunshine Second Grade Classroom',
+      rules: { a_e: { rule: 'Magic e makes the vowel say its long sound.' } },
+      createdAt: '2026-10-17T00:00:00.000Z',
+      updatedAt: '2026-10-17T00:00:00.000Z',
+    })
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(getClassById).toHaveBeenCalledWith('u1', 'c1')
+    expect(body.classroom).toEqual({
+      name: 'Sunshine Second Grade Classroom',
+      rules: { a_e: 'Magic e makes the vowel say its long sound.' },
+    })
+  })
+
+  it('treats a legacy class without rules as having no rules', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue({ ...stored, classId: 'c1' })
+    getClassById.mockResolvedValue({
+      id: 'c1',
+      userId: 'u1',
+      name: 'Period 2',
+      createdAt: '2026-10-17T00:00:00.000Z',
+      updatedAt: '2026-10-17T00:00:00.000Z',
+    })
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.classroom).toEqual({ name: 'Period 2', rules: {} })
+  })
+
+  it('degrades to classroom: null when the classroom read fails', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue({ ...stored, classId: 'c1' })
+    getClassById.mockRejectedValue(new Error('db down'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.list.id).toBe('l1')
+    expect(body.classroom).toBeNull()
+  })
+
+  it('returns classroom: null when the classroom was deleted', async () => {
+    requireUser.mockResolvedValue(authed)
+    getListById.mockResolvedValue({ ...stored, classId: 'c-gone' })
+    getClassById.mockResolvedValue(undefined)
+
+    const res = await GET(new NextRequest('http://localhost/api/lists/l1'), params)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.classroom).toBeNull()
   })
 
   it('sends Cache-Control: no-store so a refresh never serves a stale list', async () => {

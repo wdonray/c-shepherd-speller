@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon, Loader2, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getList, getLists, updateList } from '@/lib/lists-api'
+import { getListWithClassroom, getLists, updateList } from '@/lib/lists-api'
 import { getAssignedWeeks, type WordList } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import ChartActionsMenu from './ChartActionsMenu'
@@ -116,7 +116,10 @@ function DisplayModeInner() {
   // The list's classroom rules by pattern text, for the present chart.
   // Rules are edited on the list page (issue #263) and, since issue #372,
   // also in place on the present chart behind the callout's pencil icon.
-  // Null when the list has no classroom.
+  // Null when the list has no classroom. Both arrive with the list itself
+  // (issue #388): a second fetch after the chart rendered shifted the
+  // header pill and the rule callouts when it landed, so the classroom is
+  // joined server-side into the single loading state.
   const [classRules, setClassRules] = useState<Record<string, string> | null>(null)
   const [className, setClassName] = useState<string | null>(null)
   // Rule display visibility on the chart (issue #310). Default shown.
@@ -125,39 +128,6 @@ function DisplayModeInner() {
   // underlines stay off when the Present chart loads until the teacher
   // turns them on.
   const [showUnderlines, setShowUnderlines] = useState(false)
-
-  useEffect(() => {
-    const classId = list?.classId
-    if (!classId) {
-      setClassRules(null)
-      setClassName(null)
-      return
-    }
-    let cancelled = false
-    fetch(`/api/classes/${encodeURIComponent(classId)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((body) => {
-        if (cancelled) return
-        const rules: Record<string, string> = {}
-        for (const [patternText, rule] of Object.entries(body.class.rules ?? {})) {
-          rules[patternText] = (rule as { rule: string }).rule
-        }
-        setClassRules(rules)
-        setClassName(body.class.name)
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setClassRules(null)
-          setClassName(null)
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [list?.classId])
 
   /**
    * Save one spelling rule from the present chart's callout editor
@@ -211,8 +181,10 @@ function DisplayModeInner() {
     const load = async () => {
       try {
         if (listId) {
-          const data = await getList(listId)
+          const { list: data, classroom } = await getListWithClassroom(listId)
           setList(data)
+          setClassName(classroom?.name ?? null)
+          setClassRules(classroom ? classroom.rules : null)
         } else {
           const data = await getLists()
           setAllLists(data)

@@ -37,6 +37,21 @@ export async function getList(id: string): Promise<WordList> {
   return data.list
 }
 
+/**
+ * Classroom data joined onto a single-list fetch (issue #388): the class
+ * name for the present page's pill and the class's spelling rules keyed by
+ * pattern text. Null when the list has no classroom.
+ */
+export interface ListClassroom {
+  name: string
+  rules: Record<string, string>
+}
+
+export async function getListWithClassroom(id: string): Promise<{ list: WordList; classroom: ListClassroom | null }> {
+  const res = await fetch(`/api/lists/${encodeURIComponent(id)}`)
+  return handleResponse<{ list: WordList; classroom: ListClassroom | null }>(res)
+}
+
 export async function createList(input: CreateWordListInput): Promise<WordList> {
   const res = await fetch('/api/lists', {
     method: 'POST',

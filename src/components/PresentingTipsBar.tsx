@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button'
 import { dismissPresentingTips, isPresentingTipsDismissed } from '@/lib/presenting-tips'
 
 /**
- * The tips copy, exported so the display chart skeleton can render an
- * invisible-copy placeholder that wraps at exactly the same points as the
- * loaded bar (issue #350).
+ * The tips copy, kept as module constants so the wording lives in one
+ * place. (The display chart skeleton that once mirrored this text was
+ * removed in #366; the present page shows a centered spinner instead.)
  */
 export const PRESENTING_TIPS_LEAD = 'Presenting tips:'
 export const PRESENTING_TIPS_BODY =
