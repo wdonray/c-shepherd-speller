@@ -98,6 +98,12 @@ export default function PatternEditor({
   const [newWord, setNewWord] = useState('')
   const [wordPendingDelete, setWordPendingDelete] = useState<string | null>(null)
   const [mismatchedWord, setMismatchedWord] = useState<string | null>(null)
+  /**
+   * The last word rejected as a duplicate, shown under the word input so the
+   * teacher knows why the word was not added again. Cleared on any edit or
+   * successful save. The notice reserves its space so it never shifts layout.
+   */
+  const [duplicateWord, setDuplicateWord] = useState<string | null>(null)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
   /**
@@ -194,11 +200,17 @@ export default function PatternEditor({
     update({ words: [...pattern.words, word] })
     setNewWord('')
     setMismatchedWord(null)
+    setDuplicateWord(null)
   }
 
   const addWord = () => {
     const word = newWord.trim().toLowerCase()
-    if (!word || pattern.words.includes(word)) return
+    if (!word) return
+    if (pattern.words.includes(word)) {
+      // Say why: a silent no-op left teachers thinking the save failed.
+      setDuplicateWord(word)
+      return
+    }
     if (!wordMatchesPattern(word, pattern.pattern)) {
       // Warn at save time, never block: the match is a heuristic that
       // cannot catch subtle cases like "have" under "a_e".
@@ -459,26 +471,39 @@ export default function PatternEditor({
                   </table>
                 </div>
               ))}
-            <div className="flex max-w-md gap-2">
-              <Label htmlFor={`new-word-${pattern.id}`} className="sr-only">
-                New word
-              </Label>
-              <Input
-                id={`new-word-${pattern.id}`}
-                value={newWord}
-                onChange={(e) => setNewWord(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addWord()
-                  }
-                }}
-                placeholder="Add a word"
-                maxLength={50}
-              />
-              <Button onClick={addWord} disabled={!newWord.trim()}>
-                Add
-              </Button>
+            <div className="max-w-md">
+              <div className="flex gap-2">
+                <Label htmlFor={`new-word-${pattern.id}`} className="sr-only">
+                  New word
+                </Label>
+                <Input
+                  id={`new-word-${pattern.id}`}
+                  value={newWord}
+                  onChange={(e) => {
+                    setNewWord(e.target.value)
+                    setDuplicateWord(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addWord()
+                    }
+                  }}
+                  placeholder="Add a word"
+                  maxLength={50}
+                />
+                <Button onClick={addWord} disabled={!newWord.trim()}>
+                  Add
+                </Button>
+              </div>
+              {/* Reserved so the notice never shifts the layout when it appears. */}
+              <div className="min-h-6 pt-1">
+                {duplicateWord && (
+                  <p role="status" className="text-[13px] text-muted-foreground">
+                    &ldquo;{duplicateWord}&rdquo; is already on the list, so it was not added again.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
