@@ -15,7 +15,6 @@ import WordUnderlineToggle from './WordUnderlineToggle'
 import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import PresentingTipsBar, { PRESENTING_TIPS_LEAD, PRESENTING_TIPS_BODY } from './PresentingTipsBar'
-import { CHART_CAPTION } from './PatternChartDisplay'
 import WhyChartPopover from './WhyChartPopover'
 import { GhostText } from './ui/ghost-text'
 import { reportError } from '@/lib/report-error'
@@ -185,9 +184,6 @@ export function DisplayChartSkeleton() {
               </div>
             ))}
           </div>
-          <p className="mt-6 text-center text-sm">
-            <GhostText text={CHART_CAPTION} highlightClassName="bg-line/40" />
-          </p>
         </div>
       </div>
     </div>

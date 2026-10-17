@@ -97,11 +97,10 @@ describe('PatternChartDisplay', () => {
     })
   })
 
-  it('explains the frequency encoding in the caption', () => {
+  it('does not render a helper caption under the chart (issue #373)', () => {
     render(<PatternChartDisplay list={list} />)
-    expect(
-      screen.getByText(/Patterns are ordered by how common the spelling is; longer bars mean more common/)
-    ).toBeInTheDocument()
+    expect(screen.queryByText(/Tap a word to see its analysis/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/longer bars mean more common/)).not.toBeInTheDocument()
   })
 
   it('opens the word analysis when a word card is tapped', () => {
