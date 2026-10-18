@@ -224,26 +224,37 @@ describe('DisplayMode', () => {
     })
   })
 
-  it('shows a Back button on the list picker', async () => {
+  it('shows a Home breadcrumb link on the list picker', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Present a list' })).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home')
   })
 
-  it('always goes home from the picker Back button', async () => {
+  it('links the picker breadcrumb to home with a plain link, never browser history', async () => {
     getLists.mockResolvedValue([list])
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-    expect(mockPush).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home')
+    expect(mockPush).not.toHaveBeenCalled()
     expect(mockBack).not.toHaveBeenCalled()
+  })
+
+  it('shows a Present a list breadcrumb on the chart header', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getListWithClassroom.mockResolvedValue({ list, classroom: null })
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
+    })
+    expect(screen.getByRole('link', { name: 'Present a list' })).toHaveAttribute('href', '/display')
   })
 
   it('does not navigate on Escape from the list picker', async () => {
@@ -251,7 +262,7 @@ describe('DisplayMode', () => {
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
     })
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(mockPush).not.toHaveBeenCalled()
@@ -682,7 +693,7 @@ describe('DisplayMode', () => {
     })
     // The top header is gone, including the full screen button itself; the
     // chart stays on screen.
-    expect(screen.queryByRole('link', { name: 'Choose a different list' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Present a list' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Exit full screen' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     // Leaving full screen brings the header back.

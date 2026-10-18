@@ -922,7 +922,7 @@ describe('ListEditorPage', () => {
 
   it('links back to the lists overview', async () => {
     await renderReady()
-    expect(screen.getByRole('link', { name: 'My lists' })).toHaveAttribute('href', '/lists')
+    expect(screen.getByRole('link', { name: 'My spelling lists' })).toHaveAttribute('href', '/lists')
   })
 
   it('shows an unsaved-changes indicator until the debounced save completes', async () => {
@@ -1013,7 +1013,7 @@ describe('ListEditorPage', () => {
     await renderReady()
 
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    fireEvent.click(screen.getByRole('link', { name: 'My spelling lists' }))
 
     expect(screen.getByText('Leave without saving?')).toBeInTheDocument()
     expect(
@@ -1030,7 +1030,7 @@ describe('ListEditorPage', () => {
     await renderReady()
 
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    fireEvent.click(screen.getByRole('link', { name: 'My spelling lists' }))
     fireEvent.click(screen.getByRole('button', { name: 'Leave without saving' }))
 
     expect(pushMock).toHaveBeenCalledWith('/lists')
@@ -1040,7 +1040,7 @@ describe('ListEditorPage', () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
 
-    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    fireEvent.click(screen.getByRole('link', { name: 'My spelling lists' }))
 
     expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument()
     expect(pushMock).not.toHaveBeenCalled()
@@ -1071,7 +1071,7 @@ describe('ListEditorPage', () => {
     await renderReady()
 
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('link', { name: 'My lists' }))
+    fireEvent.click(screen.getByRole('link', { name: 'My spelling lists' }))
     expect(screen.getByText('Leave without saving?')).toBeInTheDocument()
 
     fireEvent.keyDown(document, { key: 'Escape' })

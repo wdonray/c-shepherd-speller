@@ -22,10 +22,10 @@ describe('ProfilePage', () => {
     expect(screen.getByTestId('profile-form')).toBeInTheDocument()
   })
 
-  it('links back to home', () => {
+  it('links the back breadcrumb to home with the destination name', () => {
     render(<ProfilePage />)
 
-    expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/home')
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home')
   })
 
   it('renders the delete account section', () => {

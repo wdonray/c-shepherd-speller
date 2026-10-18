@@ -4,13 +4,14 @@ import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Volume2Icon, VolumeXIcon, CheckIcon, StarIcon, ChevronLeftIcon } from 'lucide-react'
+import { Volume2Icon, VolumeXIcon, CheckIcon, StarIcon } from 'lucide-react'
 import { playCorrectSound, playIncorrectSound, isSoundEnabled, setSoundEnabled } from '@/lib/sound-effects'
 import type { WordList } from '@/models/WordList'
 import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { OddDuck } from './OddDuck'
+import BackBreadcrumb from './BackBreadcrumb'
 
 interface PracticeModeProps {
   list: WordList
@@ -191,14 +192,9 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   const header = (title: string, sub: string) => (
     <div>
       <div className="flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={onExit}
-          className="cursor-pointer text-[15px] font-semibold text-sky-ink outline-none hover:underline focus-visible:underline focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          <ChevronLeftIcon className="mr-1 inline size-4" aria-hidden="true" />
-          Exit practice
-        </button>
+        {/* Back breadcrumb (issue #378): names the destination ("Practice",
+            the list picker) instead of the vague "Exit practice". */}
+        <BackBreadcrumb href="/practice" label="Practice" />
         <button
           type="button"
           onClick={toggleSound}

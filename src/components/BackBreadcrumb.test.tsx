@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import BackLink from './BackLink'
+import BackBreadcrumb from './BackBreadcrumb'
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -10,20 +10,16 @@ vi.mock('next/link', () => ({
   ),
 }))
 
-describe('BackLink', () => {
-  it('renders a link with the given href and children', () => {
-    render(<BackLink href="/lists">My lists</BackLink>)
-    const link = screen.getByRole('link', { name: /my lists/i })
+describe('BackBreadcrumb', () => {
+  it('renders a link to the parent with the parent label as its name', () => {
+    render(<BackBreadcrumb href="/lists" label="My spelling lists" />)
+    const link = screen.getByRole('link', { name: 'My spelling lists' })
     expect(link).toHaveAttribute('href', '/lists')
   })
 
   it('applies custom className alongside the base styles', () => {
-    render(
-      <BackLink href="/" className="custom-class">
-        Back
-      </BackLink>
-    )
-    const link = screen.getByRole('link', { name: /back/i })
+    render(<BackBreadcrumb href="/home" label="Home" className="custom-class" />)
+    const link = screen.getByRole('link', { name: 'Home' })
     expect(link).toHaveClass('custom-class')
     expect(link).toHaveClass('inline-flex')
   })

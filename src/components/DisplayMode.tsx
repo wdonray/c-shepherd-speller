@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeftIcon, Loader2, PrinterIcon } from 'lucide-react'
+import { Loader2, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getListWithClassroom, getLists, updateList } from '@/lib/lists-api'
 import { getAssignedWeeks, type WordList } from '@/models/WordList'
@@ -17,6 +17,7 @@ import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
 import WhyChartPopover from './WhyChartPopover'
+import BackBreadcrumb from './BackBreadcrumb'
 import { reportError } from '@/lib/report-error'
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
@@ -56,7 +57,6 @@ export function DisplayLoadingSpinner({ label }: { label: string }) {
  */
 function DisplayModeInner() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const listId = searchParams.get('list')
 
   const [list, setList] = useState<WordList | null>(null)
@@ -87,11 +87,6 @@ function DisplayModeInner() {
       setWeekFilter(null)
     }
   }, [assignedWeeks, weekFilter])
-
-  // Back to the app always goes home.
-  const backToApp = useCallback(() => {
-    router.push('/home')
-  }, [router])
 
   // Escape never navigates. When the browser is in full screen, Escape exits
   // full screen natively; the app takes no action on Escape at all.
@@ -228,10 +223,7 @@ function DisplayModeInner() {
       <div className="flex min-h-screen flex-col bg-background">
         <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
           <div className="flex items-center gap-2 px-4 py-3">
-            <Button variant="ghost" size="sm" onClick={backToApp} aria-label="Back">
-              <ChevronLeftIcon className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline-block">Back</span>
-            </Button>
+            <BackBreadcrumb href="/home" label="Home" />
             <h1 className="text-xl font-bold text-ink">{PICKER_TITLE}</h1>
           </div>
         </div>
@@ -299,12 +291,10 @@ function DisplayModeInner() {
       {!sortMode && !isFullscreen && (
         <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
           <div className="flex items-center gap-2 px-4 py-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/display" aria-label="Choose a different list">
-                <ChevronLeftIcon className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline-block">Lists</span>
-              </Link>
-            </Button>
+            {/* Back breadcrumb (issue #378): names the destination instead of
+                the ambiguous "Lists" label, so the teacher always knows the
+                click returns to the list picker. */}
+            <BackBreadcrumb href="/display" label="Present a list" />
             <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink">{list.name}</h1>
             {/* The list's classroom, clearly shown (issue #263): this is what
                 the old sort-entry picker communicated, now visible up front. */}

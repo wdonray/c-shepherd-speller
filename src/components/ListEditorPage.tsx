@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import BackLink from '@/components/BackLink'
+import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { CheckCircle2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -720,7 +720,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
-        <BackLink href="/lists">My lists</BackLink>
+        <BackBreadcrumb href="/lists" label="My spelling lists" />
       </div>
 
       <div>
