@@ -559,10 +559,24 @@ describe('PatternChartDisplay', () => {
       expect(screen.queryByRole('button', { name: 'Edit rule for a_e' })).not.toBeInTheDocument()
     })
 
-    it('shows no pencil icon for a pattern without a rule', () => {
+    it('shows a pencil icon for a pattern without a rule when onSaveRule is provided (issue #410)', () => {
       const onSaveRule = vi.fn().mockResolvedValue(undefined)
       render(<PatternChartDisplay list={listWithRule} onSaveRule={onSaveRule} />)
-      expect(screen.queryByRole('button', { name: 'Edit rule for ai' })).not.toBeInTheDocument()
+      // Pattern ai has no rule; the pencil opens the same editor with an empty draft.
+      expect(screen.getByRole('button', { name: 'Edit rule for ai' })).toBeInTheDocument()
+    })
+
+    it('opens the rule editor modal from the empty-slot pencil and saves the new rule (issue #410)', async () => {
+      const onSaveRule = vi.fn().mockResolvedValue(undefined)
+      render(<PatternChartDisplay list={listWithRule} onSaveRule={onSaveRule} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Edit rule for ai' }))
+      expect(screen.getByRole('dialog', { name: 'Rule for ai' })).toBeInTheDocument()
+      expect(screen.getByLabelText('Rule, in the kids’ words')).toHaveValue('')
+      fireEvent.change(screen.getByLabelText('Rule, in the kids’ words'), { target: { value: 'New rule.' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+      await waitFor(() => {
+        expect(onSaveRule).toHaveBeenCalledWith('p2', 'ai', 'New rule.')
+      })
     })
 
     it('opens the rule editor modal from the pencil and saves per pattern (issue #372)', async () => {
