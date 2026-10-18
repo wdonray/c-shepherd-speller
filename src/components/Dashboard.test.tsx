@@ -5,7 +5,7 @@ import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
-import { getAllPatternGroups } from '@/data/pattern-videos'
+import { searchSongVideos } from '@/data/pattern-videos'
 import type { WordList } from '@/models/WordList'
 
 const { getLists } = vi.hoisted(() => ({
@@ -411,7 +411,7 @@ describe('Dashboard', () => {
   })
 })
 
-describe('Dashboard song videos (issue #401)', () => {
+describe('Dashboard song videos (issues #401, #439)', () => {
   const defaultProps = {
     onNewList: vi.fn(),
     onEditList: vi.fn(),
@@ -432,69 +432,81 @@ describe('Dashboard song videos (issue #401)', () => {
     })
   }
 
-  it('shows the browse section below My word lists with pattern chips and video cards', async () => {
+  it('shows the spotlight with three featured videos, a search box, and a browse-all link', async () => {
     await loadDashboard()
     const section = screen.getByRole('region', { name: 'Song videos' })
-    const chips = within(screen.getByRole('group', { name: 'Filter videos by pattern' })).getAllByRole('button')
-    expect(chips).toHaveLength(getAllPatternGroups().length + 1)
-    expect(chips[0]).toHaveTextContent('All')
-    // All 19 bank videos show under "All".
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
-    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
+    // Three featured picks, not the whole bank.
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(3)
+    expect(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ })).toBeInTheDocument()
+    // One search box replaces the chip wall.
+    expect(within(section).queryByRole('group', { name: 'Filter videos by pattern' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Search song videos')).toBeInTheDocument()
+    // One link to the full catalog.
+    const browseAll = screen.getByRole('link', { name: 'Browse all 19 song videos' })
+    expect(browseAll).toHaveAttribute('href', '/videos')
   })
 
-  it('filters videos by pattern chip', async () => {
+  it('search narrows the spotlight and the browse link carries the query', async () => {
     await loadDashboard()
-    fireEvent.click(screen.getByRole('button', { name: 'ck' }))
+    fireEvent.change(screen.getByLabelText('Search song videos'), { target: { value: 'Jack Hartmann' } })
     const section = screen.getByRole('region', { name: 'Song videos' })
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'All' }))
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    const expected = searchSongVideos('Jack Hartmann')
+    expect(expected.length).toBeGreaterThan(3)
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(3)
+    const link = screen.getByRole('link', { name: `See all ${expected.length} matching videos` })
+    expect(link).toHaveAttribute('href', '/videos?q=Jack%20Hartmann')
   })
 
   it('opens the player modal in browse-only mode from a video card', async () => {
     await loadDashboard()
-    fireEvent.click(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' }))
+    fireEvent.click(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
     // Browse-only: no suggestions, search, paste, or remove controls.
     expect(within(dialogEl).queryByRole('button', { name: /^(Add|Remove) / })).not.toBeInTheDocument()
     expect(within(dialogEl).queryByLabelText('Search videos by title or channel')).not.toBeInTheDocument()
     // The clicked video plays immediately.
-    const frame = screen.getByTitle('Digraph CK - 4 Minute Phonics')
+    const frame = screen.getByTitle('When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song')
     expect(frame.tagName).toBe('IFRAME')
-    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/qEgggBAF_nw?rel=0&cc_load_policy=1')
+    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/GdmcWQCbqY8?rel=0&cc_load_policy=1')
     fireEvent.click(screen.getByRole('button', { name: 'Back to videos' }))
-    expect(screen.queryByTitle('Digraph CK - 4 Minute Phonics')).not.toBeInTheDocument()
+    expect(
+      screen.queryByTitle('When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song')
+    ).not.toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Song videos' })).not.toBeInTheDocument()
   })
 
-  it('skeleton mirrors the song videos chips and cards while loading', () => {
+  it('skeleton mirrors the song video spotlight while loading', () => {
     getLists.mockImplementation(() => new Promise(() => {}))
     render(<Dashboard {...defaultProps} />)
     const loading = screen.getByRole('status', { name: 'Loading dashboard' })
-    // One chip placeholder per pattern group plus "All".
-    expect(loading.querySelectorAll('div.h-9.w-16')).toHaveLength(getAllPatternGroups().length + 1)
-    // One card placeholder per bank video.
-    expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(19)
+    // One search box placeholder instead of chip placeholders.
+    expect(loading.querySelectorAll('div.h-12')).toHaveLength(1)
+    // Three card placeholders.
+    expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(3)
+    // One browse-all button placeholder.
+    expect(loading.querySelectorAll('div.h-11.w-56')).toHaveLength(1)
   })
 
   describe('hidden videos (issue #443)', () => {
-    it('filters hidden videos out of the browse grid', async () => {
-      mockBlockedVideos({ blockedVideoIds: new Set(['qEgggBAF_nw']) })
+    it('filters hidden videos out of the spotlight', async () => {
+      mockBlockedVideos({ blockedVideoIds: new Set(['GdmcWQCbqY8']) })
       await loadDashboard()
       const section = screen.getByRole('region', { name: 'Song videos' })
-      expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(18)
-      expect(screen.queryByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).not.toBeInTheDocument()
+      expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(2)
+      expect(screen.queryByRole('button', { name: /Play When Two Vowels Go Walking/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Browse all 18 song videos' })).toBeInTheDocument()
     })
 
-    it('hides a video from its browse card', async () => {
+    it('hides a video from its spotlight card', async () => {
       const { blockVideo } = mockBlockedVideos()
       await loadDashboard()
-      fireEvent.click(screen.getByRole('button', { name: 'Hide Digraph CK - 4 Minute Phonics' }))
+      fireEvent.click(screen.getByRole('button', { name: /Hide When Two Vowels Go Walking/ }))
       expect(blockVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ videoId: 'qEgggBAF_nw', title: 'Digraph CK - 4 Minute Phonics' })
+        expect.objectContaining({
+          videoId: 'GdmcWQCbqY8',
+          title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+        })
       )
     })
 

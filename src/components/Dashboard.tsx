@@ -8,13 +8,14 @@ import { Card } from '@/components/ui/card'
 import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
-import { getAllPatternGroups, PATTERN_VIDEOS } from '@/data/pattern-videos'
-import { youtubeThumbnailUrl } from '@/lib/youtube'
+import { getFeaturedVideos, searchSongVideos, PATTERN_VIDEOS, type PatternVideoEntry } from '@/data/pattern-videos'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useBlockedVideos } from '@/hooks/useBlockedVideos'
-import { EyeOffIcon } from 'lucide-react'
 import type { WordList, PatternVideo } from '@/models/WordList'
 import WordListCard from './WordListCard'
 import PatternVideoModal from './PatternVideoModal'
+import SongVideoCard from './SongVideoCard'
 import { PatternMark } from './PatternMark'
 import { GhostText } from './ui/ghost-text'
 import { reportError } from '@/lib/report-error'
@@ -153,10 +154,10 @@ function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
  * - getting started: GhostText placeholders carry the real copy, so the h2,
  *   intro paragraph, and step cards wrap exactly like the loaded text at
  *   every viewport width
- * - song videos: the collection is static bank data, so the skeleton mirrors
- *   it exactly: the h2, the subline, one chip placeholder per pattern group
- *   plus "All", and one card placeholder per bank video (thumbnail,
- *   title line, channel line)
+ * - song videos: the spotlight layout is fixed, so the skeleton mirrors it
+ *   exactly: the h2, the subline, the search box placeholder, three card
+ *   placeholders (thumbnail, title line, channel line), and the browse-all
+ *   button placeholder
  *
  * Inherent approximations (unknowable while loading): the exact list count,
  * badge wrapping on long titles, the "+N more" line past 4 patterns, and the
@@ -217,20 +218,19 @@ export function DashboardSkeleton() {
           ))}
         </div>
       </div>
-      {/* Song videos: matches the loaded browse section (h2 + subline + chips + cards) */}
+      {/* Song videos: matches the loaded spotlight (h2 + subline + search + 3 cards + browse-all) */}
       <div className="space-y-4" aria-hidden="true">
         <div>
           <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
           <div className="mt-1 h-5 w-96 max-w-full animate-pulse rounded-lg bg-line/40" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: getAllPatternGroups().length + 1 }).map((_, i) => (
-            <div key={i} className="h-9 w-16 animate-pulse rounded-2xl bg-line/40" />
-          ))}
+        <div className="max-w-md space-y-1.5">
+          <div className="h-5 w-36 animate-pulse rounded-lg bg-line/40" />
+          <div className="h-12 w-full animate-pulse rounded-xl bg-line/40" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PATTERN_VIDEOS.map((entry) => (
-            <div key={entry.videoId} className="overflow-hidden rounded-[20px] border-2 border-line">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-[20px] border-2 border-line">
               <div className="aspect-video w-full animate-pulse bg-line/60" />
               <div className="space-y-2 p-4">
                 <div className="h-5 w-full animate-pulse rounded-lg bg-line/60" />
@@ -240,6 +240,7 @@ export function DashboardSkeleton() {
             </div>
           ))}
         </div>
+        <div className="h-11 w-56 animate-pulse rounded-2xl bg-line/40" />
       </div>
       {/* Getting started: matches the loaded section (h2 + intro + 3 cards) */}
       <div className="space-y-4" aria-hidden="true">
@@ -268,8 +269,9 @@ export function DashboardSkeleton() {
 }
 
 /**
- * Browse the curated phonics song collection (issue #401). Pattern filter
- * chips narrow the bank; a video card opens the player modal in
+ * Song video spotlight (issues #401, #439): three featured picks plus one
+ * search box instead of the old chip wall, with a single "Browse all" link
+ * to the full /videos catalog. A card opens the player modal in
  * browse-only mode (no attach or hide here). The collection is static local
  * data, so it renders with no loading state of its own; the teacher's
  * hidden videos (issue #443) arrive via props from Dashboard, which gates
@@ -279,97 +281,65 @@ function SongVideosSection({
   blockedVideoIds,
   onHideVideo,
 }: {
-  /** Video IDs the teacher has hidden; filtered out of the browse grid. */
+  /** Video IDs the teacher has hidden; filtered out of the spotlight. */
   blockedVideoIds: Set<string>
   /** Hide a video for this teacher; undefined for signed-out visitors. */
   onHideVideo: ((video: { videoId: string; title: string; channel?: string }) => void) | undefined
 }) {
-  const groups = getAllPatternGroups()
-  const [filter, setFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const [playing, setPlaying] = useState<{ videos: PatternVideo[]; startId: string } | null>(null)
 
-  const entries = (filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS).filter(
-    (entry) => !blockedVideoIds.has(entry.videoId)
-  )
+  const visible = PATTERN_VIDEOS.filter((entry) => !blockedVideoIds.has(entry.videoId))
+  const matches = query.trim() ? searchSongVideos(query).filter((entry) => !blockedVideoIds.has(entry.videoId)) : null
+  const shown = (matches ?? getFeaturedVideos().filter((entry) => !blockedVideoIds.has(entry.videoId))).slice(0, 3)
+
+  const browseHref = query.trim() ? `/videos?q=${encodeURIComponent(query.trim())}` : '/videos'
+  const browseLabel = matches ? `See all ${matches.length} matching videos` : `Browse all ${visible.length} song videos`
+
+  const playEntry = (entry: PatternVideoEntry) => {
+    setPlaying({
+      videos: shown.map((e) => ({
+        videoId: e.videoId,
+        title: e.title,
+        channel: e.channel,
+        source: 'curated' as const,
+      })),
+      startId: entry.videoId,
+    })
+  }
 
   return (
     <section aria-label="Song videos" className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold">Song videos</h2>
         <p className="text-sm text-muted-foreground">
-          Phonics songs for spelling patterns. Pick one to play for the class.
+          Phonics songs for spelling patterns. Search the collection or browse them all.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter videos by pattern">
-        <Button
-          size="sm"
-          variant={filter === null ? 'default' : 'secondary'}
-          onClick={() => setFilter(null)}
-          aria-pressed={filter === null}
-        >
-          All
-        </Button>
-        {groups.map((group) => (
-          <Button
-            key={group}
-            size="sm"
-            variant={filter === group ? 'default' : 'secondary'}
-            onClick={() => setFilter(group)}
-            aria-pressed={filter === group}
-          >
-            {group}
-          </Button>
-        ))}
+      <div className="max-w-md space-y-1.5">
+        <Label htmlFor="song-video-search">Search song videos</Label>
+        <Input
+          id="song-video-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Song title, channel, or pattern (ai, sh, ar)"
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {entries.map((entry) => (
-          <div
+        {shown.map((entry) => (
+          <SongVideoCard
             key={entry.videoId}
-            className="relative overflow-hidden rounded-[20px] border-2 border-line bg-card outline-none transition hover:border-sky-deep focus-within:border-sky-deep focus-within:ring-[3px] focus-within:ring-ring/60"
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setPlaying({
-                  videos: entries.map((e) => ({
-                    videoId: e.videoId,
-                    title: e.title,
-                    channel: e.channel,
-                    source: 'curated' as const,
-                  })),
-                  startId: entry.videoId,
-                })
-              }
-              aria-label={`Play ${entry.title}`}
-              className="block w-full cursor-pointer text-left outline-none"
-            >
-              <img
-                src={youtubeThumbnailUrl(entry.videoId)}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                className="aspect-video w-full object-cover"
-              />
-              <div className="space-y-1 p-4">
-                <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
-                <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
-                <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
-              </div>
-            </button>
-            {onHideVideo && (
-              <button
-                type="button"
-                onClick={() => onHideVideo(entry)}
-                aria-label={`Hide ${entry.title}`}
-                title={`Hide ${entry.title}`}
-                className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[13px] font-bold text-white outline-none transition hover:bg-black/75 focus-visible:ring-[3px] focus-visible:ring-ring/60"
-              >
-                <EyeOffIcon className="size-4" aria-hidden="true" />
-                Hide
-              </button>
-            )}
-          </div>
+            entry={entry}
+            onPlay={playEntry}
+            onHide={onHideVideo ? (video) => onHideVideo(video) : undefined}
+          />
         ))}
+      </div>
+      <div>
+        <Button variant="secondary" asChild>
+          <Link href={browseHref}>{browseLabel}</Link>
+        </Button>
       </div>
       {playing && (
         <PatternVideoModal

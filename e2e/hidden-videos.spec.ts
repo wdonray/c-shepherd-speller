@@ -17,20 +17,18 @@ test.describe('hidden videos', () => {
   test('hide from a browse card, then unhide from profile settings', async ({ page }) => {
     const cardTitle = 'Digraph CK - 4 Minute Phonics'
 
-    await page.goto('/home')
-    const browse = page.getByRole('region', { name: 'Song videos' })
-    await expect(browse).toBeVisible()
-    await expect(browse.getByRole('button', { name: `Play ${cardTitle}` })).toBeVisible()
+    await page.goto('/videos')
+    await expect(page.getByRole('heading', { name: 'Song videos' })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Play ${cardTitle}` })).toBeVisible()
 
     // Hide it from the card.
-    await browse.getByRole('button', { name: `Hide ${cardTitle}` }).click()
-    await expect(browse.getByRole('button', { name: `Play ${cardTitle}` })).not.toBeVisible()
+    await page.getByRole('button', { name: `Hide ${cardTitle}` }).click()
+    await expect(page.getByRole('button', { name: `Play ${cardTitle}` })).not.toBeVisible()
 
     // The block persists across a reload.
     await page.reload()
-    const browseAfterReload = page.getByRole('region', { name: 'Song videos' })
-    await expect(browseAfterReload).toBeVisible()
-    await expect(browseAfterReload.getByRole('button', { name: `Play ${cardTitle}` })).not.toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Song videos' })).toBeVisible()
+    await expect(page.getByRole('button', { name: `Play ${cardTitle}` })).not.toBeVisible()
 
     // Profile settings lists it with an Unhide action.
     await page.goto('/profile')
@@ -39,10 +37,25 @@ test.describe('hidden videos', () => {
     await page.getByRole('button', { name: `Unhide ${cardTitle}` }).click()
     await expect(page.getByText('No hidden videos.')).toBeVisible()
 
-    // The card is back on the home page.
+    // The card is back on the videos page.
+    await page.goto('/videos')
+    await expect(page.getByRole('button', { name: `Play ${cardTitle}` })).toBeVisible()
+  })
+
+  test('home spotlight shows three featured videos with a browse-all link (issue #439)', async ({ page }) => {
     await page.goto('/home')
-    const browseAgain = page.getByRole('region', { name: 'Song videos' })
-    await expect(browseAgain.getByRole('button', { name: `Play ${cardTitle}` })).toBeVisible()
+    const spotlight = page.getByRole('region', { name: 'Song videos' })
+    await expect(spotlight).toBeVisible()
+    // Three cards, not the whole bank; no chip wall.
+    await expect(spotlight.getByRole('button', { name: /^Play / })).toHaveCount(3)
+    await expect(spotlight.getByLabel('Search song videos')).toBeVisible()
+    const browseAll = spotlight.getByRole('link', { name: /Browse all \d+ song videos/ })
+    await expect(browseAll).toHaveAttribute('href', '/videos')
+
+    // The link reaches the full catalog.
+    await browseAll.click()
+    await expect(page.getByRole('heading', { name: 'Song videos' })).toBeVisible()
+    await expect(page.getByText(/Showing 19 of 19 videos/)).toBeVisible()
   })
 
   test('hide from the pattern video suggestions and search', async ({ page }) => {

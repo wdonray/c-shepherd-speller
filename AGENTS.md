@@ -83,6 +83,12 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **Hold teacher-scoped content until the session resolves.** A client page
+  that filters content by the signed-in teacher (e.g. hidden videos) must
+  hold its content while next-auth `status === 'loading'`, not just until
+  the teacher's list loads: on first paint the status is still loading, so
+  the page flashes unfiltered content and churns when the session lands
+  (found 2026-10-18: issue #439, the /videos grid).
 - **A bare `grid` blows out past fixed widths.** An implicit `auto` grid
   column sizes to the largest min-content contribution, so any `nowrap`
   descendant (`truncate` titles, long URLs) forces a fixed-width grid
