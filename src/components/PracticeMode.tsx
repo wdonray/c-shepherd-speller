@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,12 +67,24 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
   const [bestStreak, setBestStreak] = useState(0)
   const [lastCleared, setLastCleared] = useState(false)
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled())
+  // Whether the active word has been heard at least once. After a miss the
+  // "Try again" button stays disabled until the word is played, so the
+  // revealed answer cannot just be read and retyped (issue #412).
+  const [wordPlayed, setWordPlayed] = useState(false)
+
+  // A new word re-arms the gate: each word must be heard before retrying it.
+  // activeWord is undefined for an empty list (early return below), so the
+  // dep is optional-chained like the sentence prompt below.
+  useEffect(() => {
+    setWordPlayed(false)
+  }, [activeWord?.word])
 
   const reviewWords = Array.from(reviewQueue.keys())
 
   const sentencePrompt = activeWord ? buildSentencePrompt(activeWord.word, activeWord.sentence) : ''
 
   const speakWord = () => {
+    setWordPlayed(true)
     speak(activeWord.word)
   }
 
@@ -396,8 +408,14 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
           <p className="text-[22px] font-bold text-coral-ink">Not quite. The word is:</p>
           <p className="mt-1 text-[34px] leading-tight font-extrabold">{activeWord.word}</p>
           {activeWord.pattern ? (
-            <p className="mt-2 text-[15px]">Look at the {activeWord.pattern} pattern, then try again.</p>
+            <p className="mt-2 text-[15px]">
+              Look at the {activeWord.pattern} pattern, listen to the word, then try again.
+            </p>
           ) : null}
+          <Button variant="secondary" onClick={speakWord} className="mt-4">
+            <Volume2Icon className="size-5" aria-hidden="true" />
+            Hear the word
+          </Button>
         </div>
       )}
 
@@ -417,7 +435,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       {phase === 'incorrect' && (
         <>
           <div className="mx-auto flex w-full max-w-2xl gap-3">
-            <Button variant="sunny" onClick={handleTryAgain} className="h-18 flex-1 text-xl">
+            <Button variant="sunny" onClick={handleTryAgain} disabled={!wordPlayed} className="h-18 flex-1 text-xl">
               Try again
             </Button>
             <Button variant="secondary" onClick={handleNext} className="h-18 flex-1 text-xl">
