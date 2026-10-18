@@ -173,7 +173,10 @@ credentials.
   anything not listed, and the failure mode is invisible (blank thumbnails,
   black embed boxes) with no error in the app (found 2026-10-18: issue
   #438, song-video thumbnails broke because `i.ytimg.com` was never added
-  to `img-src`).
+  to `img-src`). When fixing a CSP gap, audit every directive the feature
+  touches in the same change, not just the one in the report: the #438 fix
+  added only `img-src`, so the song-video embeds stayed blocked until
+  #440 added the missing `frame-src` (found 2026-10-18).
 
 - **Prefer our own data over the network, and cap third-party timeouts.**
   Local-first lookups answer instantly; a flaky external API must never hold
