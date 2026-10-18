@@ -142,6 +142,14 @@ credentials.
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Print routes with an interactive first step keep their chrome on
+  screen.** Stripping the site header/footer for a whole `/print` route
+  also strips them from screen-only steps like the sentence gap flow, which
+  then looks nothing like the page it came from. Keep the chrome on screen
+  and hide it only in print CSS (`print:hidden` on the header slot and
+  footer), so interactive steps match the rest of the app and the printed
+  job stays clean (found 2026-10-18: issue #436, Sentences needed page had
+  no header or back button).
 - **Native checkboxes need theme-adaptive accent colors.** A fixed
   accent-color like `accent-black` renders as a washed-out gray in dark
   mode (Chromium brightens dark accent colors under `color-scheme: dark`).
