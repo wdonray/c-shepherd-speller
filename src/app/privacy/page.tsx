@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'How PatternSpell collects, uses, and protects your information.',
 }
 
-const EFFECTIVE_DATE = 'October 16, 2026'
+const EFFECTIVE_DATE = 'October 18, 2026'
 const CONTACT_EMAIL = 'donrayxwilliams@gmail.com'
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -119,7 +119,8 @@ export default function PrivacyPolicyPage() {
               PatternSpell is not directed at children under 13, and we do not knowingly collect personal information
               from children. Because our analytics run on public pages, a classroom device displaying the site may be
               counted as a visitor; that count uses only the anonymous hash described above and is never linked to a
-              child&rsquo;s identity.
+              child&rsquo;s identity. Song videos stream from YouTube&rsquo;s servers and are subject to YouTube&rsquo;s
+              Terms of Service.
             </p>
             <p>
               Our word-list fields are free text. Please do not enter student names or other personal information about
@@ -155,6 +156,20 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>Google:</strong> if you choose Google sign-in, Google handles authentication and shares your
                 name, email, and profile image with us.
+              </li>
+              <li>
+                <strong>YouTube (Google):</strong> song videos play through YouTube&rsquo;s embedded player, using its
+                privacy-enhanced mode. When you play a video, YouTube may collect viewing and device information as
+                described in{' '}
+                <a
+                  href="https://www.google.com/policies/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                >
+                  Google&rsquo;s Privacy Policy
+                </a>
+                .
               </li>
               <li>
                 <strong>Amazon Web Services:</strong> hosts the app (Amplify), stores your data (DynamoDB) and your
