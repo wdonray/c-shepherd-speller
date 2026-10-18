@@ -133,6 +133,13 @@ export default function PatternChartDisplay({
   // are grid items, so no inline flex sizing applies.
   const columnStyle = isPrint ? { flex: '1 1 0', minWidth: 220 } : undefined
 
+  // Issue #420: whether any unlocked column shows a keyword image or emoji.
+  // When true, every present-mode column reserves the same fixed-height
+  // visual slot above the rule callout, so the rule boxes share a top edge
+  // whether or not the column has its own visual. Lists with no visuals
+  // render nothing there, exactly as before.
+  const hasKeywordVisual = columns.some((p) => !p.isLocked && (p.keywordImage || p.keywordEmoji))
+
   // Present-mode grid tracks are capped at a consistent column width and
   // centered, so one or two patterns render at the same size as a full
   // three-column row instead of stretching. The track count follows the
@@ -300,23 +307,48 @@ export default function PatternChartDisplay({
         style={columnStyle}
       >
         <div className="mb-4 text-center">
-          {pattern.keywordImage ? (
-            <img
-              src={pattern.keywordImage}
-              alt={`Keyword image for pattern ${pattern.pattern}`}
-              className="mx-auto mb-2 block size-12 rounded-xl object-cover"
-            />
-          ) : (
-            pattern.keywordEmoji && (
-              <span
-                role="img"
-                aria-label={`Keyword image for pattern ${pattern.pattern}`}
-                className="mb-2 block text-5xl leading-none"
-              >
-                {pattern.keywordEmoji}
-              </span>
+          {isPrint ? (
+            pattern.keywordImage ? (
+              <img
+                src={pattern.keywordImage}
+                alt={`Keyword image for pattern ${pattern.pattern}`}
+                className="mx-auto mb-2 block size-12 rounded-xl object-cover"
+              />
+            ) : (
+              pattern.keywordEmoji && (
+                <span
+                  role="img"
+                  aria-label={`Keyword image for pattern ${pattern.pattern}`}
+                  className="mb-2 block text-5xl leading-none"
+                >
+                  {pattern.keywordEmoji}
+                </span>
+              )
             )
-          )}
+          ) : hasKeywordVisual ? (
+            // Issue #420: the visual row is conditional, so a column with a
+            // keyword image or emoji sat 56px lower than columns without
+            // one, pushing its rule callout out of line. Every column
+            // reserves the same h-12 slot (the image and emoji are both
+            // 48px tall) so the rule boxes below share a top edge.
+            <div data-testid="keyword-visual-slot" className="mb-2 flex h-12 items-center justify-center">
+              {pattern.keywordImage ? (
+                <img
+                  src={pattern.keywordImage}
+                  alt={`Keyword image for pattern ${pattern.pattern}`}
+                  className="block size-12 rounded-xl object-cover"
+                />
+              ) : pattern.keywordEmoji ? (
+                <span
+                  role="img"
+                  aria-label={`Keyword image for pattern ${pattern.pattern}`}
+                  className="block text-5xl leading-none"
+                >
+                  {pattern.keywordEmoji}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex items-center justify-center gap-2">
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
             {renderLockToggle(pattern)}
@@ -325,8 +357,12 @@ export default function PatternChartDisplay({
           {/* Issue #379: the pattern's target sound always reads under the
               pattern name. Present-mode projector size keeps it subtle but
               readable from the back of the room. The print poster keeps its
-              existing layout (see issue #402). */}
-          {!isPrint && <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>}
+              existing layout (see issue #402). Issue #420: min-h reserves
+              one text-lg line even when the sound is empty, so the rule
+              callout below stays level with the other columns. */}
+          {!isPrint && (
+            <p className="mt-1 min-h-[1.75rem] text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
+          )}
           <div className="mt-2 flex items-center justify-center gap-2">
             <PowerBar level={level} filledClassName="bg-ink" />
             <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
