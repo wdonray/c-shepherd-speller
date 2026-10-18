@@ -121,6 +121,13 @@ credentials.
   notice explaining why the change was not applied, and clear it on the
   next accepted edit (found 2026-10-18: issue #414, duplicate pattern
   pairs blocked at the identity inputs).
+- **Conditional elements above aligned content need reserved slots.**
+  When a conditional element (keyword image/emoji) sits above content that
+  must share a top edge across grid columns (the rule callouts), columns
+  with the element sit lower than columns without it. When any column
+  renders the element, every column reserves the same fixed-height slot;
+  when none do, render nothing so no dead space appears (found
+  2026-10-18: issue #420, present-chart rule boxes misaligned by 56px).
 
 ## Reliability
 

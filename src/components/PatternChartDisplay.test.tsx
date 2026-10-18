@@ -345,6 +345,29 @@ describe('PatternChartDisplay', () => {
     expect(screen.getByRole('region', { name: 'Locked pattern' })).toBeInTheDocument()
   })
 
+  it('reserves the keyword visual slot in every column when any pattern has one (issue #420)', () => {
+    const withEmoji: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], keywordEmoji: '🐝' }, ...list.patterns.slice(1)],
+    }
+    render(<PatternChartDisplay list={withEmoji} onToggleLock={vi.fn()} />)
+    // Every column reserves the same fixed-height slot above the rule
+    // callout, so the rule boxes share a top edge whether or not the
+    // column has its own visual.
+    for (const name of ['a_e', 'ai', 'eigh']) {
+      const column = screen.getByRole('region', { name: `Pattern ${name}` })
+      expect(within(column).getByTestId('keyword-visual-slot')).toHaveClass('h-12')
+    }
+    // The column with the emoji still shows it inside its slot.
+    const emojiColumn = screen.getByRole('region', { name: 'Pattern a_e' })
+    expect(within(emojiColumn).getByRole('img', { name: 'Keyword image for pattern a_e' })).toHaveTextContent('🐝')
+  })
+
+  it('renders no visual slot when no pattern has a keyword image or emoji (issue #420)', () => {
+    render(<PatternChartDisplay list={list} onToggleLock={vi.fn()} />)
+    expect(screen.queryByTestId('keyword-visual-slot')).not.toBeInTheDocument()
+  })
+
   describe('print variant', () => {
     const withEmoji: WordList = {
       ...list,
