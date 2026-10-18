@@ -1,918 +1,920 @@
-[
-  {
-    "id": "prebuilt-g4-w01",
-    "title": "Grade 4 - Week 1",
-    "grade": "4",
-    "week": 1,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix un-",
-        "pattern": "un",
-        "frequency": "common",
-        "words": [
-          "unhappy",
-          "unfair",
-          "unlock",
-          "unzip",
-          "unpack",
-          "unable",
-          "unknown",
-          "unsure",
-          "unkind",
-          "untie",
-          "unfold",
-          "unplug"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w02",
-    "title": "Grade 4 - Week 2",
-    "grade": "4",
-    "week": 2,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix re-",
-        "pattern": "re",
-        "frequency": "common",
-        "words": [
-          "really",
-          "research",
-          "remember",
-          "reason",
-          "report",
-          "ready",
-          "results",
-          "record",
-          "return",
-          "result",
-          "received",
-          "relationship"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w03",
-    "title": "Grade 4 - Week 3",
-    "grade": "4",
-    "week": 3,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix dis-",
-        "pattern": "dis",
-        "frequency": "common",
-        "words": [
-          "district",
-          "disease",
-          "distance",
-          "discovered",
-          "discussion",
-          "discuss",
-          "distribution",
-          "display",
-          "discovery",
-          "discussed",
-          "disappointed",
-          "disaster"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w04",
-    "title": "Grade 4 - Week 4",
-    "grade": "4",
-    "week": 4,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix pre-",
-        "pattern": "pre",
-        "frequency": "common",
-        "words": [
-          "president",
-          "pretty",
-          "present",
-          "pressure",
-          "previous",
-          "previously",
-          "prevent",
-          "presented",
-          "prepared",
-          "presence",
-          "prefer",
-          "pregnant"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w05",
-    "title": "Grade 4 - Week 5",
-    "grade": "4",
-    "week": 5,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix mis-",
-        "pattern": "mis",
-        "frequency": "less-common",
-        "words": [
-          "missing",
-          "mission",
-          "missed",
-          "mistake",
-          "mistakes",
-          "missouri",
-          "missions",
-          "mississippi",
-          "missile",
-          "miserable",
-          "mistaken",
-          "missiles"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w06",
-    "title": "Grade 4 - Week 6",
-    "grade": "4",
-    "week": 6,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix non-",
-        "pattern": "non",
-        "frequency": "less-common",
-        "words": [
-          "nonsense",
-          "nonetheless",
-          "nonprofit",
-          "nonstop",
-          "nonlinear",
-          "nonfiction",
-          "nonexistent",
-          "nonviolent",
-          "nonprofits",
-          "nonsensical",
-          "nonpartisan",
-          "nonchalant"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w07",
-    "title": "Grade 4 - Week 7",
-    "grade": "4",
-    "week": 7,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix over-",
-        "pattern": "over",
-        "frequency": "less-common",
-        "words": [
-          "overall",
-          "overseas",
-          "overcome",
-          "overnight",
-          "overview",
-          "overwhelming",
-          "overtime",
-          "overhead",
-          "overwhelmed",
-          "oversight",
-          "overlooked",
-          "overweight"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w08",
-    "title": "Grade 4 - Week 8",
-    "grade": "4",
-    "week": 8,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix under-",
-        "pattern": "under",
-        "frequency": "less-common",
-        "words": [
-          "understand",
-          "understanding",
-          "understood",
-          "underground",
-          "underlying",
-          "understands",
-          "underneath",
-          "underwear",
-          "underwater",
-          "underway",
-          "undergraduate",
-          "undertaken"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w09",
-    "title": "Grade 4 - Week 9",
-    "grade": "4",
-    "week": 9,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefix sub-",
-        "pattern": "sub",
-        "frequency": "less-common",
-        "words": [
-          "subject",
-          "subsequent",
-          "subjects",
-          "substantial",
-          "submitted",
-          "submit",
-          "subsequently",
-          "substance",
-          "substitute",
-          "subtle",
-          "submission",
-          "subscription"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w10",
-    "title": "Grade 4 - Week 10",
-    "grade": "4",
-    "week": 10,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -tion",
-        "pattern": "tion",
-        "frequency": "common",
-        "words": [
-          "information",
-          "question",
-          "education",
-          "action",
-          "position",
-          "production",
-          "attention",
-          "situation",
-          "election",
-          "addition",
-          "association",
-          "population"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w11",
-    "title": "Grade 4 - Week 11",
-    "grade": "4",
-    "week": 11,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -sion",
-        "pattern": "sion",
-        "frequency": "common",
-        "words": [
-          "decision",
-          "version",
-          "commission",
-          "mission",
-          "division",
-          "television",
-          "session",
-          "discussion",
-          "vision",
-          "depression",
-          "expression",
-          "expansion"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w12",
-    "title": "Grade 4 - Week 12",
-    "grade": "4",
-    "week": 12,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ous",
-        "pattern": "ous",
-        "frequency": "common",
-        "words": [
-          "various",
-          "serious",
-          "previous",
-          "religious",
-          "famous",
-          "dangerous",
-          "numerous",
-          "obvious",
-          "ridiculous",
-          "curious",
-          "nervous",
-          "gorgeous"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w13",
-    "title": "Grade 4 - Week 13",
-    "grade": "4",
-    "week": 13,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ive",
-        "pattern": "ive",
-        "frequency": "common",
-        "words": [
-          "positive",
-          "active",
-          "effective",
-          "executive",
-          "receive",
-          "negative",
-          "massive",
-          "alternative",
-          "expensive",
-          "native",
-          "conservative",
-          "creative"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w14",
-    "title": "Grade 4 - Week 14",
-    "grade": "4",
-    "week": 14,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ity",
-        "pattern": "ity",
-        "frequency": "common",
-        "words": [
-          "university",
-          "community",
-          "security",
-          "quality",
-          "ability",
-          "opportunity",
-          "majority",
-          "reality",
-          "activity",
-          "authority",
-          "responsibility",
-          "capacity"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w15",
-    "title": "Grade 4 - Week 15",
-    "grade": "4",
-    "week": 15,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ness",
-        "pattern": "ness",
-        "frequency": "common",
-        "words": [
-          "business",
-          "witness",
-          "awareness",
-          "happiness",
-          "illness",
-          "fitness",
-          "darkness",
-          "weakness",
-          "consciousness",
-          "goodness",
-          "effectiveness",
-          "kindness"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w16",
-    "title": "Grade 4 - Week 16",
-    "grade": "4",
-    "week": 16,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ment",
-        "pattern": "ment",
-        "frequency": "common",
-        "words": [
-          "government",
-          "development",
-          "moment",
-          "department",
-          "management",
-          "treatment",
-          "movement",
-          "statement",
-          "agreement",
-          "comment",
-          "equipment",
-          "environment"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w17",
-    "title": "Grade 4 - Week 17",
-    "grade": "4",
-    "week": 17,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -able",
-        "pattern": "able",
-        "frequency": "common",
-        "words": [
-          "able",
-          "available",
-          "comfortable",
-          "capable",
-          "unable",
-          "reasonable",
-          "cable",
-          "valuable",
-          "stable",
-          "suitable",
-          "enable",
-          "reliable"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w18",
-    "title": "Grade 4 - Week 18",
-    "grade": "4",
-    "week": 18,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ible",
-        "pattern": "ible",
-        "frequency": "less-common",
-        "words": [
-          "possible",
-          "responsible",
-          "impossible",
-          "terrible",
-          "incredible",
-          "bible",
-          "horrible",
-          "visible",
-          "eligible",
-          "accessible",
-          "flexible",
-          "invisible"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w19",
-    "title": "Grade 4 - Week 19",
-    "grade": "4",
-    "week": 19,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root port",
-        "pattern": "port",
-        "frequency": "less-common",
-        "words": [
-          "port",
-          "transport",
-          "import",
-          "export",
-          "portable",
-          "porter",
-          "airport",
-          "seaport",
-          "report",
-          "support",
-          "deport",
-          "teleport"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w20",
-    "title": "Grade 4 - Week 20",
-    "grade": "4",
-    "week": 20,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root form",
-        "pattern": "form",
-        "frequency": "less-common",
-        "words": [
-          "form",
-          "format",
-          "formal",
-          "formula",
-          "inform",
-          "perform",
-          "reform",
-          "transform",
-          "conform",
-          "uniform",
-          "platform",
-          "formless"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w21",
-    "title": "Grade 4 - Week 21",
-    "grade": "4",
-    "week": 21,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root struct",
-        "pattern": "struct",
-        "frequency": "less-common",
-        "words": [
-          "structure",
-          "construct",
-          "instruct",
-          "destruct",
-          "obstruct",
-          "restructure",
-          "structural",
-          "construction",
-          "instructor",
-          "destruction",
-          "infrastructure",
-          "reconstruct"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w22",
-    "title": "Grade 4 - Week 22",
-    "grade": "4",
-    "week": 22,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root spect",
-        "pattern": "spect",
-        "frequency": "less-common",
-        "words": [
-          "inspect",
-          "expect",
-          "respect",
-          "suspect",
-          "prospect",
-          "spectator",
-          "spectacle",
-          "spectrum",
-          "speculate",
-          "inspection",
-          "perspective",
-          "retrospect"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w23",
-    "title": "Grade 4 - Week 23",
-    "grade": "4",
-    "week": 23,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root dict",
-        "pattern": "dict",
-        "frequency": "less-common",
-        "words": [
-          "dictate",
-          "predict",
-          "dictionary",
-          "dictation",
-          "verdict",
-          "contradict",
-          "dictator",
-          "diction",
-          "edict",
-          "indicate",
-          "indict",
-          "benediction"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w24",
-    "title": "Grade 4 - Week 24",
-    "grade": "4",
-    "week": 24,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root ject",
-        "pattern": "ject",
-        "frequency": "less-common",
-        "words": [
-          "reject",
-          "inject",
-          "project",
-          "subject",
-          "eject",
-          "object",
-          "trajectory",
-          "interject",
-          "projectile",
-          "objection",
-          "deject",
-          "abject"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w25",
-    "title": "Grade 4 - Week 25",
-    "grade": "4",
-    "week": 25,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root tract",
-        "pattern": "tract",
-        "frequency": "less-common",
-        "words": [
-          "attract",
-          "contract",
-          "extract",
-          "distract",
-          "tractor",
-          "traction",
-          "subtract",
-          "retract",
-          "protract",
-          "tract",
-          "contraction",
-          "distraction"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w26",
-    "title": "Grade 4 - Week 26",
-    "grade": "4",
-    "week": 26,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "root scrib",
-        "pattern": "scrib",
-        "frequency": "less-common",
-        "words": [
-          "describe",
-          "scribble",
-          "script",
-          "prescription",
-          "inscribe",
-          "transcribe",
-          "scripture",
-          "scribe",
-          "ascribe",
-          "manuscript",
-          "postscript",
-          "scribal"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w27",
-    "title": "Grade 4 - Week 27",
-    "grade": "4",
-    "week": 27,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: prefixes",
-        "pattern": "un",
-        "frequency": "common",
-        "words": [
-          "unhappy",
-          "unfair",
-          "unlock",
-          "unzip",
-          "unpack",
-          "unable",
-          "unknown",
-          "unsure",
-          "unkind",
-          "untie",
-          "unfold",
-          "unplug"
-        ]
-      },
-      {
-        "sound": "review: prefixes",
-        "pattern": "re",
-        "frequency": "common",
-        "words": [
-          "really",
-          "research",
-          "remember",
-          "reason",
-          "report",
-          "ready",
-          "results",
-          "record",
-          "return",
-          "result",
-          "received",
-          "relationship"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w28",
-    "title": "Grade 4 - Week 28",
-    "grade": "4",
-    "week": 28,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: suffixes",
-        "pattern": "tion",
-        "frequency": "common",
-        "words": [
-          "information",
-          "question",
-          "education",
-          "action",
-          "position",
-          "production",
-          "attention",
-          "situation",
-          "election",
-          "addition",
-          "association",
-          "population"
-        ]
-      },
-      {
-        "sound": "review: suffixes",
-        "pattern": "ous",
-        "frequency": "common",
-        "words": [
-          "various",
-          "serious",
-          "previous",
-          "religious",
-          "famous",
-          "dangerous",
-          "numerous",
-          "obvious",
-          "ridiculous",
-          "curious",
-          "nervous",
-          "gorgeous"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w29",
-    "title": "Grade 4 - Week 29",
-    "grade": "4",
-    "week": 29,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: roots",
-        "pattern": "port",
-        "frequency": "less-common",
-        "words": [
-          "port",
-          "transport",
-          "import",
-          "export",
-          "portable",
-          "porter",
-          "airport",
-          "seaport",
-          "report",
-          "support",
-          "deport",
-          "teleport"
-        ]
-      },
-      {
-        "sound": "review: roots",
-        "pattern": "form",
-        "frequency": "less-common",
-        "words": [
-          "form",
-          "format",
-          "formal",
-          "formula",
-          "inform",
-          "perform",
-          "reform",
-          "transform",
-          "conform",
-          "uniform",
-          "platform",
-          "formless"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g4-w30",
-    "title": "Grade 4 - Week 30",
-    "grade": "4",
-    "week": 30,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: all",
-        "pattern": "able",
-        "frequency": "common",
-        "words": [
-          "able",
-          "available",
-          "comfortable",
-          "capable",
-          "unable",
-          "reasonable",
-          "cable",
-          "valuable",
-          "stable",
-          "suitable",
-          "enable",
-          "reliable"
-        ]
-      },
-      {
-        "sound": "review: all",
-        "pattern": "dis",
-        "frequency": "common",
-        "words": [
-          "district",
-          "disease",
-          "distance",
-          "discovered",
-          "discussion",
-          "discuss",
-          "distribution",
-          "display",
-          "discovery",
-          "discussed",
-          "disappointed",
-          "disaster"
-        ]
-      }
-    ]
-  }
-]
+{
+  "weeks": [
+    {
+      "id": "prebuilt-g4-w01",
+      "title": "Grade 4 - Week 1",
+      "grade": "4",
+      "week": 1,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix un-",
+          "pattern": "un",
+          "frequency": "common",
+          "words": [
+            "unhappy",
+            "unfair",
+            "unlock",
+            "unzip",
+            "unpack",
+            "unable",
+            "unknown",
+            "unsure",
+            "unkind",
+            "untie",
+            "unfold",
+            "unplug"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w02",
+      "title": "Grade 4 - Week 2",
+      "grade": "4",
+      "week": 2,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix re-",
+          "pattern": "re",
+          "frequency": "common",
+          "words": [
+            "really",
+            "research",
+            "remember",
+            "reason",
+            "report",
+            "ready",
+            "results",
+            "record",
+            "return",
+            "result",
+            "received",
+            "relationship"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w03",
+      "title": "Grade 4 - Week 3",
+      "grade": "4",
+      "week": 3,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix dis-",
+          "pattern": "dis",
+          "frequency": "common",
+          "words": [
+            "district",
+            "disease",
+            "distance",
+            "discovered",
+            "discussion",
+            "discuss",
+            "distribution",
+            "display",
+            "discovery",
+            "discussed",
+            "disappointed",
+            "disaster"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w04",
+      "title": "Grade 4 - Week 4",
+      "grade": "4",
+      "week": 4,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix pre-",
+          "pattern": "pre",
+          "frequency": "common",
+          "words": [
+            "president",
+            "pretty",
+            "present",
+            "pressure",
+            "previous",
+            "previously",
+            "prevent",
+            "presented",
+            "prepared",
+            "presence",
+            "prefer",
+            "pregnant"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w05",
+      "title": "Grade 4 - Week 5",
+      "grade": "4",
+      "week": 5,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix mis-",
+          "pattern": "mis",
+          "frequency": "less-common",
+          "words": [
+            "missing",
+            "mission",
+            "missed",
+            "mistake",
+            "mistakes",
+            "missouri",
+            "missions",
+            "mississippi",
+            "missile",
+            "miserable",
+            "mistaken",
+            "missiles"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w06",
+      "title": "Grade 4 - Week 6",
+      "grade": "4",
+      "week": 6,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix non-",
+          "pattern": "non",
+          "frequency": "less-common",
+          "words": [
+            "nonsense",
+            "nonetheless",
+            "nonprofit",
+            "nonstop",
+            "nonlinear",
+            "nonfiction",
+            "nonexistent",
+            "nonviolent",
+            "nonprofits",
+            "nonsensical",
+            "nonpartisan",
+            "nonchalant"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w07",
+      "title": "Grade 4 - Week 7",
+      "grade": "4",
+      "week": 7,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix over-",
+          "pattern": "over",
+          "frequency": "less-common",
+          "words": [
+            "overall",
+            "overseas",
+            "overcome",
+            "overnight",
+            "overview",
+            "overwhelming",
+            "overtime",
+            "overhead",
+            "overwhelmed",
+            "oversight",
+            "overlooked",
+            "overweight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w08",
+      "title": "Grade 4 - Week 8",
+      "grade": "4",
+      "week": 8,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix under-",
+          "pattern": "under",
+          "frequency": "less-common",
+          "words": [
+            "understand",
+            "understanding",
+            "understood",
+            "underground",
+            "underlying",
+            "understands",
+            "underneath",
+            "underwear",
+            "underwater",
+            "underway",
+            "undergraduate",
+            "undertaken"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w09",
+      "title": "Grade 4 - Week 9",
+      "grade": "4",
+      "week": 9,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefix sub-",
+          "pattern": "sub",
+          "frequency": "less-common",
+          "words": [
+            "subject",
+            "subsequent",
+            "subjects",
+            "substantial",
+            "submitted",
+            "submit",
+            "subsequently",
+            "substance",
+            "substitute",
+            "subtle",
+            "submission",
+            "subscription"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w10",
+      "title": "Grade 4 - Week 10",
+      "grade": "4",
+      "week": 10,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -tion",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "information",
+            "question",
+            "education",
+            "action",
+            "position",
+            "production",
+            "attention",
+            "situation",
+            "election",
+            "addition",
+            "association",
+            "population"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w11",
+      "title": "Grade 4 - Week 11",
+      "grade": "4",
+      "week": 11,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -sion",
+          "pattern": "sion",
+          "frequency": "common",
+          "words": [
+            "decision",
+            "version",
+            "commission",
+            "mission",
+            "division",
+            "television",
+            "session",
+            "discussion",
+            "vision",
+            "depression",
+            "expression",
+            "expansion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w12",
+      "title": "Grade 4 - Week 12",
+      "grade": "4",
+      "week": 12,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ous",
+          "pattern": "ous",
+          "frequency": "common",
+          "words": [
+            "various",
+            "serious",
+            "previous",
+            "religious",
+            "famous",
+            "dangerous",
+            "numerous",
+            "obvious",
+            "ridiculous",
+            "curious",
+            "nervous",
+            "gorgeous"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w13",
+      "title": "Grade 4 - Week 13",
+      "grade": "4",
+      "week": 13,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ive",
+          "pattern": "ive",
+          "frequency": "common",
+          "words": [
+            "positive",
+            "active",
+            "effective",
+            "executive",
+            "receive",
+            "negative",
+            "massive",
+            "alternative",
+            "expensive",
+            "native",
+            "conservative",
+            "creative"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w14",
+      "title": "Grade 4 - Week 14",
+      "grade": "4",
+      "week": 14,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ity",
+          "pattern": "ity",
+          "frequency": "common",
+          "words": [
+            "university",
+            "community",
+            "security",
+            "quality",
+            "ability",
+            "opportunity",
+            "majority",
+            "reality",
+            "activity",
+            "authority",
+            "responsibility",
+            "capacity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w15",
+      "title": "Grade 4 - Week 15",
+      "grade": "4",
+      "week": 15,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ness",
+          "pattern": "ness",
+          "frequency": "common",
+          "words": [
+            "business",
+            "witness",
+            "awareness",
+            "happiness",
+            "illness",
+            "fitness",
+            "darkness",
+            "weakness",
+            "consciousness",
+            "goodness",
+            "effectiveness",
+            "kindness"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w16",
+      "title": "Grade 4 - Week 16",
+      "grade": "4",
+      "week": 16,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ment",
+          "pattern": "ment",
+          "frequency": "common",
+          "words": [
+            "government",
+            "development",
+            "moment",
+            "department",
+            "management",
+            "treatment",
+            "movement",
+            "statement",
+            "agreement",
+            "comment",
+            "equipment",
+            "environment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w17",
+      "title": "Grade 4 - Week 17",
+      "grade": "4",
+      "week": 17,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -able",
+          "pattern": "able",
+          "frequency": "common",
+          "words": [
+            "able",
+            "available",
+            "comfortable",
+            "capable",
+            "unable",
+            "reasonable",
+            "cable",
+            "valuable",
+            "stable",
+            "suitable",
+            "enable",
+            "reliable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w18",
+      "title": "Grade 4 - Week 18",
+      "grade": "4",
+      "week": 18,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ible",
+          "pattern": "ible",
+          "frequency": "less-common",
+          "words": [
+            "possible",
+            "responsible",
+            "impossible",
+            "terrible",
+            "incredible",
+            "bible",
+            "horrible",
+            "visible",
+            "eligible",
+            "accessible",
+            "flexible",
+            "invisible"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w19",
+      "title": "Grade 4 - Week 19",
+      "grade": "4",
+      "week": 19,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root port",
+          "pattern": "port",
+          "frequency": "less-common",
+          "words": [
+            "port",
+            "transport",
+            "import",
+            "export",
+            "portable",
+            "porter",
+            "airport",
+            "seaport",
+            "report",
+            "support",
+            "deport",
+            "teleport"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w20",
+      "title": "Grade 4 - Week 20",
+      "grade": "4",
+      "week": 20,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root form",
+          "pattern": "form",
+          "frequency": "less-common",
+          "words": [
+            "form",
+            "format",
+            "formal",
+            "formula",
+            "inform",
+            "perform",
+            "reform",
+            "transform",
+            "conform",
+            "uniform",
+            "platform",
+            "formless"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w21",
+      "title": "Grade 4 - Week 21",
+      "grade": "4",
+      "week": 21,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root struct",
+          "pattern": "struct",
+          "frequency": "less-common",
+          "words": [
+            "structure",
+            "construct",
+            "instruct",
+            "destruct",
+            "obstruct",
+            "restructure",
+            "structural",
+            "construction",
+            "instructor",
+            "destruction",
+            "infrastructure",
+            "reconstruct"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w22",
+      "title": "Grade 4 - Week 22",
+      "grade": "4",
+      "week": 22,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root spect",
+          "pattern": "spect",
+          "frequency": "less-common",
+          "words": [
+            "inspect",
+            "expect",
+            "respect",
+            "suspect",
+            "prospect",
+            "spectator",
+            "spectacle",
+            "spectrum",
+            "speculate",
+            "inspection",
+            "perspective",
+            "retrospect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w23",
+      "title": "Grade 4 - Week 23",
+      "grade": "4",
+      "week": 23,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root dict",
+          "pattern": "dict",
+          "frequency": "less-common",
+          "words": [
+            "dictate",
+            "predict",
+            "dictionary",
+            "dictation",
+            "verdict",
+            "contradict",
+            "dictator",
+            "diction",
+            "edict",
+            "indicate",
+            "indict",
+            "benediction"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w24",
+      "title": "Grade 4 - Week 24",
+      "grade": "4",
+      "week": 24,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root ject",
+          "pattern": "ject",
+          "frequency": "less-common",
+          "words": [
+            "reject",
+            "inject",
+            "project",
+            "subject",
+            "eject",
+            "object",
+            "trajectory",
+            "interject",
+            "projectile",
+            "objection",
+            "deject",
+            "abject"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w25",
+      "title": "Grade 4 - Week 25",
+      "grade": "4",
+      "week": 25,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root tract",
+          "pattern": "tract",
+          "frequency": "less-common",
+          "words": [
+            "attract",
+            "contract",
+            "extract",
+            "distract",
+            "tractor",
+            "traction",
+            "subtract",
+            "retract",
+            "protract",
+            "tract",
+            "contraction",
+            "distraction"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w26",
+      "title": "Grade 4 - Week 26",
+      "grade": "4",
+      "week": 26,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "root scrib",
+          "pattern": "scrib",
+          "frequency": "less-common",
+          "words": [
+            "describe",
+            "scribble",
+            "script",
+            "prescription",
+            "inscribe",
+            "transcribe",
+            "scripture",
+            "scribe",
+            "ascribe",
+            "manuscript",
+            "postscript",
+            "scribal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w27",
+      "title": "Grade 4 - Week 27",
+      "grade": "4",
+      "week": 27,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: prefixes",
+          "pattern": "un",
+          "frequency": "common",
+          "words": [
+            "unhappy",
+            "unfair",
+            "unlock",
+            "unzip",
+            "unpack",
+            "unable",
+            "unknown",
+            "unsure",
+            "unkind",
+            "untie",
+            "unfold",
+            "unplug"
+          ]
+        },
+        {
+          "sound": "review: prefixes",
+          "pattern": "re",
+          "frequency": "common",
+          "words": [
+            "really",
+            "research",
+            "remember",
+            "reason",
+            "report",
+            "ready",
+            "results",
+            "record",
+            "return",
+            "result",
+            "received",
+            "relationship"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w28",
+      "title": "Grade 4 - Week 28",
+      "grade": "4",
+      "week": 28,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: suffixes",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "information",
+            "question",
+            "education",
+            "action",
+            "position",
+            "production",
+            "attention",
+            "situation",
+            "election",
+            "addition",
+            "association",
+            "population"
+          ]
+        },
+        {
+          "sound": "review: suffixes",
+          "pattern": "ous",
+          "frequency": "common",
+          "words": [
+            "various",
+            "serious",
+            "previous",
+            "religious",
+            "famous",
+            "dangerous",
+            "numerous",
+            "obvious",
+            "ridiculous",
+            "curious",
+            "nervous",
+            "gorgeous"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w29",
+      "title": "Grade 4 - Week 29",
+      "grade": "4",
+      "week": 29,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: roots",
+          "pattern": "port",
+          "frequency": "less-common",
+          "words": [
+            "port",
+            "transport",
+            "import",
+            "export",
+            "portable",
+            "porter",
+            "airport",
+            "seaport",
+            "report",
+            "support",
+            "deport",
+            "teleport"
+          ]
+        },
+        {
+          "sound": "review: roots",
+          "pattern": "form",
+          "frequency": "less-common",
+          "words": [
+            "form",
+            "format",
+            "formal",
+            "formula",
+            "inform",
+            "perform",
+            "reform",
+            "transform",
+            "conform",
+            "uniform",
+            "platform",
+            "formless"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g4-w30",
+      "title": "Grade 4 - Week 30",
+      "grade": "4",
+      "week": 30,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: all",
+          "pattern": "able",
+          "frequency": "common",
+          "words": [
+            "able",
+            "available",
+            "comfortable",
+            "capable",
+            "unable",
+            "reasonable",
+            "cable",
+            "valuable",
+            "stable",
+            "suitable",
+            "enable",
+            "reliable"
+          ]
+        },
+        {
+          "sound": "review: all",
+          "pattern": "dis",
+          "frequency": "common",
+          "words": [
+            "district",
+            "disease",
+            "distance",
+            "discovered",
+            "discussion",
+            "discuss",
+            "distribution",
+            "display",
+            "discovery",
+            "discussed",
+            "disappointed",
+            "disaster"
+          ]
+        }
+      ]
+    }
+  ]
+}

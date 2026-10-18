@@ -1,1061 +1,1141 @@
-[
-  {
-    "id": "prebuilt-g3-w01",
-    "title": "Grade 3 - Week 1",
-    "grade": "3",
-    "week": 1,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: vowel teams",
-        "pattern": "ai",
-        "frequency": "common",
-        "words": [
-          "rain",
-          "claim",
-          "brain",
-          "train",
-          "afraid",
-          "explain",
-          "detail",
-          "plain",
-          "stain",
-          "chain",
-          "paint",
-          "trail"
-        ]
-      },
-      {
-        "sound": "review: vowel teams",
-        "pattern": "oa",
-        "frequency": "common",
-        "words": [
-          "boat",
-          "road",
-          "coach",
-          "approach",
-          "throat",
-          "float",
-          "unload",
-          "shampoo",
-          "cocoa",
-          "koala",
-          "aboard",
-          "oasis"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w02",
-    "title": "Grade 3 - Week 2",
-    "grade": "3",
-    "week": 2,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: r-controlled",
-        "pattern": "er",
-        "frequency": "common",
-        "words": [
-          "her",
-          "verb",
-          "fern",
-          "clerk",
-          "sister",
-          "mother",
-          "father",
-          "brother",
-          "winter",
-          "summer",
-          "better",
-          "never"
-        ]
-      },
-      {
-        "sound": "review: r-controlled",
-        "pattern": "ar",
-        "frequency": "common",
-        "words": [
-          "car",
-          "star",
-          "park",
-          "yard",
-          "market",
-          "garden",
-          "party",
-          "artist",
-          "marble",
-          "target",
-          "alarm",
-          "charm"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w03",
-    "title": "Grade 3 - Week 3",
-    "grade": "3",
-    "week": 3,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefixes dis-, mis-",
-        "pattern": "dis",
-        "frequency": "common",
-        "words": [
-          "disagree",
-          "disappear",
-          "dislike",
-          "dishonest",
-          "dismay",
-          "displace",
-          "display",
-          "dismount",
-          "disobey",
-          "discover",
-          "discuss",
-          "distance"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w04",
-    "title": "Grade 3 - Week 4",
-    "grade": "3",
-    "week": 4,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffixes",
-        "pattern": "ness",
-        "frequency": "common",
-        "words": [
-          "happiness",
-          "sadness",
-          "kindness",
-          "darkness",
-          "weakness",
-          "goodness",
-          "illness",
-          "fitness",
-          "witness",
-          "business",
-          "madness",
-          "forgiveness"
-        ]
-      },
-      {
-        "sound": "suffixes",
-        "pattern": "ment",
-        "frequency": "common",
-        "words": [
-          "government",
-          "moment",
-          "payment",
-          "movement",
-          "treatment",
-          "statement",
-          "agreement",
-          "comment",
-          "equipment",
-          "environment",
-          "segment",
-          "fragment"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w05",
-    "title": "Grade 3 - Week 5",
-    "grade": "3",
-    "week": 5,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffixes",
-        "pattern": "able",
-        "frequency": "common",
-        "words": [
-          "able",
-          "cable",
-          "stable",
-          "suitable",
-          "capable",
-          "valuable",
-          "reliable",
-          "remarkable",
-          "acceptable",
-          "comfortable",
-          "washable",
-          "breakable"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w06",
-    "title": "Grade 3 - Week 6",
-    "grade": "3",
-    "week": 6,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-tion, -sion",
-        "pattern": "tion",
-        "frequency": "common",
-        "words": [
-          "action",
-          "station",
-          "nation",
-          "motion",
-          "option",
-          "caption",
-          "mention",
-          "fiction",
-          "attention",
-          "question",
-          "fraction",
-          "dictionary"
-        ]
-      },
-      {
-        "sound": "-tion, -sion",
-        "pattern": "sion",
-        "frequency": "less-common",
-        "words": [
-          "mission",
-          "vision",
-          "division",
-          "decision",
-          "television",
-          "session",
-          "passion",
-          "mansion",
-          "tension",
-          "version",
-          "expansion",
-          "explosion"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w07",
-    "title": "Grade 3 - Week 7",
-    "grade": "3",
-    "week": 7,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-ous",
-        "pattern": "ous",
-        "frequency": "common",
-        "words": [
-          "famous",
-          "dangerous",
-          "nervous",
-          "curious",
-          "serious",
-          "various",
-          "previous",
-          "obvious",
-          "jealous",
-          "joyous",
-          "riotous",
-          "piteous"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w08",
-    "title": "Grade 3 - Week 8",
-    "grade": "3",
-    "week": 8,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-ure",
-        "pattern": "ure",
-        "frequency": "common",
-        "words": [
-          "sure",
-          "pure",
-          "cure",
-          "secure",
-          "figure",
-          "picture",
-          "nature",
-          "future",
-          "culture",
-          "feature",
-          "measure",
-          "treasure"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w09",
-    "title": "Grade 3 - Week 9",
-    "grade": "3",
-    "week": 9,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-eer",
-        "pattern": "eer",
-        "frequency": "less-common",
-        "words": [
-          "deer",
-          "peer",
-          "cheer",
-          "sheer",
-          "steer",
-          "career",
-          "engineer",
-          "volunteer",
-          "pioneer",
-          "reindeer",
-          "veneer",
-          "auctioneer"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w10",
-    "title": "Grade 3 - Week 10",
-    "grade": "3",
-    "week": 10,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-age",
-        "pattern": "age",
-        "frequency": "common",
-        "words": [
-          "page",
-          "stage",
-          "image",
-          "village",
-          "damage",
-          "manage",
-          "package",
-          "voyage",
-          "savage",
-          "cabbage",
-          "message",
-          "passage"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w11",
-    "title": "Grade 3 - Week 11",
-    "grade": "3",
-    "week": 11,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-ough",
-        "pattern": "ough",
-        "frequency": "rare",
-        "words": [
-          "though",
-          "through",
-          "thought",
-          "bought",
-          "fought",
-          "sought",
-          "ought",
-          "rough",
-          "tough",
-          "enough",
-          "cough",
-          "trough"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w12",
-    "title": "Grade 3 - Week 12",
-    "grade": "3",
-    "week": 12,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "-eigh",
-        "pattern": "eigh",
-        "frequency": "rare",
-        "words": [
-          "eight",
-          "weight",
-          "height",
-          "weigh",
-          "freight",
-          "neighbor",
-          "sleigh",
-          "eighteen",
-          "eighty",
-          "weighty",
-          "heighten",
-          "weighing"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w13",
-    "title": "Grade 3 - Week 13",
-    "grade": "3",
-    "week": 13,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "ei",
-        "pattern": "ei",
-        "frequency": "less-common",
-        "words": [
-          "receive",
-          "deceive",
-          "conceive",
-          "perceive",
-          "receipt",
-          "either",
-          "neither",
-          "seize",
-          "weird",
-          "protein",
-          "foreign",
-          "heist"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w14",
-    "title": "Grade 3 - Week 14",
-    "grade": "3",
-    "week": 14,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "ey",
-        "pattern": "ey",
-        "frequency": "less-common",
-        "words": [
-          "key",
-          "valley",
-          "journey",
-          "honey",
-          "money",
-          "turkey",
-          "alley",
-          "chimney",
-          "donkey",
-          "hockey",
-          "jockey",
-          "kidney"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w15",
-    "title": "Grade 3 - Week 15",
-    "grade": "3",
-    "week": 15,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "ie",
-        "pattern": "ie",
-        "frequency": "less-common",
-        "words": [
-          "chief",
-          "field",
-          "thief",
-          "piece",
-          "shield",
-          "brief",
-          "grief",
-          "niece",
-          "priest",
-          "relief",
-          "belief",
-          "achieve"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w16",
-    "title": "Grade 3 - Week 16",
-    "grade": "3",
-    "week": 16,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "ew, ue",
-        "pattern": "ew",
-        "frequency": "less-common",
-        "words": ["knew", "view", "crew", "blew", "drew", "grew", "threw", "brew", "stew", "chew", "jewel", "nephew"]
-      },
-      {
-        "sound": "ew, ue",
-        "pattern": "ue",
-        "frequency": "less-common",
-        "words": [
-          "blue",
-          "true",
-          "glue",
-          "clue",
-          "due",
-          "sue",
-          "rescue",
-          "argue",
-          "value",
-          "tissue",
-          "issue",
-          "continue"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w17",
-    "title": "Grade 3 - Week 17",
-    "grade": "3",
-    "week": 17,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "prefixes",
-        "pattern": "un",
-        "frequency": "common",
-        "words": [
-          "until",
-          "unless",
-          "unable",
-          "unlike",
-          "unknown",
-          "unzip",
-          "unlock",
-          "unhappy",
-          "unfair",
-          "unsure",
-          "unkind",
-          "unpack"
-        ]
-      },
-      {
-        "sound": "prefixes",
-        "pattern": "re",
-        "frequency": "common",
-        "words": [
-          "redo",
-          "rewrite",
-          "return",
-          "replay",
-          "refill",
-          "rebuild",
-          "remind",
-          "recall",
-          "review",
-          "repay",
-          "rewind",
-          "recheck"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w18",
-    "title": "Grade 3 - Week 18",
-    "grade": "3",
-    "week": 18,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "suffix -ly",
-        "pattern": "ly",
-        "frequency": "common",
-        "words": [
-          "really",
-          "quickly",
-          "slowly",
-          "sadly",
-          "loudly",
-          "softly",
-          "neatly",
-          "sweetly",
-          "brightly",
-          "clearly",
-          "closely",
-          "proudly"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w19",
-    "title": "Grade 3 - Week 19",
-    "grade": "3",
-    "week": 19,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "consonant -le",
-        "pattern": "le",
-        "frequency": "common",
-        "words": [
-          "people",
-          "able",
-          "single",
-          "table",
-          "apple",
-          "little",
-          "battle",
-          "puzzle",
-          "giggle",
-          "handle",
-          "candle",
-          "needle"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w20",
-    "title": "Grade 3 - Week 20",
-    "grade": "3",
-    "week": 20,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "soft c/g",
-        "pattern": "ce",
-        "frequency": "common",
-        "words": [
-          "place",
-          "face",
-          "price",
-          "space",
-          "dance",
-          "glance",
-          "twice",
-          "slice",
-          "voice",
-          "choice",
-          "notice",
-          "peace"
-        ]
-      },
-      {
-        "sound": "soft c/g",
-        "pattern": "ge",
-        "frequency": "common",
-        "words": ["change", "large", "age", "page", "range", "charge", "image", "cage", "rage", "wage", "stage", "huge"]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w21",
-    "title": "Grade 3 - Week 21",
-    "grade": "3",
-    "week": 21,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "air, ear",
-        "pattern": "air",
-        "frequency": "common",
-        "words": [
-          "air",
-          "hair",
-          "fair",
-          "pair",
-          "chair",
-          "stairs",
-          "repair",
-          "dairy",
-          "fairy",
-          "prairie",
-          "affair",
-          "haircut"
-        ]
-      },
-      {
-        "sound": "air, ear",
-        "pattern": "ear",
-        "frequency": "common",
-        "words": ["hear", "near", "clear", "fear", "dear", "beard", "appear", "rear", "gear", "year", "shear", "rehear"]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w22",
-    "title": "Grade 3 - Week 22",
-    "grade": "3",
-    "week": 22,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "multisyllabic",
-        "pattern": "tion",
-        "frequency": "common",
-        "words": [
-          "information",
-          "question",
-          "education",
-          "action",
-          "position",
-          "production",
-          "attention",
-          "situation",
-          "election",
-          "addition",
-          "association",
-          "population"
-        ]
-      },
-      {
-        "sound": "multisyllabic",
-        "pattern": "ous",
-        "frequency": "common",
-        "words": [
-          "various",
-          "serious",
-          "previous",
-          "religious",
-          "famous",
-          "dangerous",
-          "numerous",
-          "obvious",
-          "ridiculous",
-          "curious",
-          "nervous",
-          "gorgeous"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w23",
-    "title": "Grade 3 - Week 23",
-    "grade": "3",
-    "week": 23,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "multisyllabic",
-        "pattern": "ment",
-        "frequency": "common",
-        "words": [
-          "government",
-          "development",
-          "moment",
-          "department",
-          "management",
-          "treatment",
-          "movement",
-          "statement",
-          "agreement",
-          "comment",
-          "equipment",
-          "environment"
-        ]
-      },
-      {
-        "sound": "multisyllabic",
-        "pattern": "ness",
-        "frequency": "common",
-        "words": [
-          "business",
-          "witness",
-          "awareness",
-          "happiness",
-          "illness",
-          "fitness",
-          "darkness",
-          "weakness",
-          "goodness",
-          "kindness",
-          "madness",
-          "wilderness"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w24",
-    "title": "Grade 3 - Week 24",
-    "grade": "3",
-    "week": 24,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: diphthongs",
-        "pattern": "oi",
-        "frequency": "common",
-        "words": ["oil", "join", "point", "voice", "choice", "noise", "coin", "soil", "boil", "joint", "moist", "spoil"]
-      },
-      {
-        "sound": "review: diphthongs",
-        "pattern": "ou",
-        "frequency": "common",
-        "words": [
-          "out",
-          "house",
-          "mouse",
-          "cloud",
-          "south",
-          "round",
-          "loud",
-          "proud",
-          "shout",
-          "mouth",
-          "count",
-          "ground"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w25",
-    "title": "Grade 3 - Week 25",
-    "grade": "3",
-    "week": 25,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: vowel teams",
-        "pattern": "ee",
-        "frequency": "common",
-        "words": ["see", "need", "feel", "keep", "free", "week", "meet", "tree", "green", "sleep", "street", "agree"]
-      },
-      {
-        "sound": "review: vowel teams",
-        "pattern": "ea",
-        "frequency": "common",
-        "words": ["eat", "team", "read", "sea", "meat", "bean", "clean", "dream", "treat", "beach", "leader", "reason"]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w26",
-    "title": "Grade 3 - Week 26",
-    "grade": "3",
-    "week": 26,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: VCe",
-        "pattern": "a_e",
-        "frequency": "common",
-        "words": ["make", "same", "cake", "name", "game", "take", "brave", "shade", "grade", "blame", "flame", "skate"]
-      },
-      {
-        "sound": "review: VCe",
-        "pattern": "i_e",
-        "frequency": "common",
-        "words": ["like", "time", "bike", "five", "nine", "smile", "white", "drive", "prize", "tribe", "spike", "alive"]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w27",
-    "title": "Grade 3 - Week 27",
-    "grade": "3",
-    "week": 27,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: r-controlled",
-        "pattern": "or",
-        "frequency": "common",
-        "words": [
-          "for",
-          "corn",
-          "storm",
-          "short",
-          "horse",
-          "sport",
-          "north",
-          "morning",
-          "forest",
-          "forget",
-          "normal",
-          "torch"
-        ]
-      },
-      {
-        "sound": "review: r-controlled",
-        "pattern": "ir",
-        "frequency": "common",
-        "words": [
-          "bird",
-          "girl",
-          "first",
-          "shirt",
-          "skirt",
-          "birth",
-          "firm",
-          "thirst",
-          "thirteen",
-          "circus",
-          "dirty",
-          "stir"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w28",
-    "title": "Grade 3 - Week 28",
-    "grade": "3",
-    "week": 28,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: affixes",
-        "pattern": "ful",
-        "frequency": "common",
-        "words": [
-          "careful",
-          "helpful",
-          "painful",
-          "useful",
-          "beautiful",
-          "hopeful",
-          "thankful",
-          "playful",
-          "colorful",
-          "skillful",
-          "blissful",
-          "truthful"
-        ]
-      },
-      {
-        "sound": "review: affixes",
-        "pattern": "dis",
-        "frequency": "common",
-        "words": [
-          "disagree",
-          "disappear",
-          "dislike",
-          "dishonest",
-          "display",
-          "discover",
-          "discuss",
-          "dismount",
-          "disobey",
-          "displace",
-          "dismay",
-          "distance"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w29",
-    "title": "Grade 3 - Week 29",
-    "grade": "3",
-    "week": 29,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: glued sounds",
-        "pattern": "ank",
-        "frequency": "common",
-        "words": [
-          "bank",
-          "tank",
-          "rank",
-          "blank",
-          "drank",
-          "sank",
-          "prank",
-          "flank",
-          "crank",
-          "plank",
-          "thank",
-          "shrank"
-        ]
-      },
-      {
-        "sound": "review: glued sounds",
-        "pattern": "tch",
-        "frequency": "common",
-        "words": [
-          "switch",
-          "pitch",
-          "patch",
-          "scratch",
-          "witch",
-          "sketch",
-          "batch",
-          "ditch",
-          "clutch",
-          "catch",
-          "watch",
-          "match"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prebuilt-g3-w30",
-    "title": "Grade 3 - Week 30",
-    "grade": "3",
-    "week": 30,
-    "source": "prebuilt",
-    "patterns": [
-      {
-        "sound": "review: all",
-        "pattern": "ai",
-        "frequency": "common",
-        "words": [
-          "available",
-          "main",
-          "training",
-          "paid",
-          "daily",
-          "waiting",
-          "straight",
-          "pain",
-          "campaign",
-          "certainly",
-          "claim",
-          "details"
-        ]
-      },
-      {
-        "sound": "review: all",
-        "pattern": "tion",
-        "frequency": "common",
-        "words": [
-          "information",
-          "question",
-          "education",
-          "action",
-          "position",
-          "production",
-          "attention",
-          "situation",
-          "election",
-          "addition",
-          "association",
-          "population"
-        ]
-      }
-    ]
-  }
-]
+{
+  "weeks": [
+    {
+      "id": "prebuilt-g3-w01",
+      "title": "Grade 3 - Week 1",
+      "grade": "3",
+      "week": 1,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ai",
+          "frequency": "common",
+          "words": [
+            "rain",
+            "claim",
+            "brain",
+            "train",
+            "afraid",
+            "explain",
+            "detail",
+            "plain",
+            "stain",
+            "chain",
+            "paint",
+            "trail"
+          ]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "oa",
+          "frequency": "common",
+          "words": [
+            "boat",
+            "road",
+            "coach",
+            "approach",
+            "throat",
+            "float",
+            "unload",
+            "shampoo",
+            "cocoa",
+            "koala",
+            "aboard",
+            "oasis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w02",
+      "title": "Grade 3 - Week 2",
+      "grade": "3",
+      "week": 2,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "er",
+          "frequency": "common",
+          "words": [
+            "her",
+            "verb",
+            "fern",
+            "clerk",
+            "sister",
+            "mother",
+            "father",
+            "brother",
+            "winter",
+            "summer",
+            "better",
+            "never"
+          ]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ar",
+          "frequency": "common",
+          "words": [
+            "car",
+            "star",
+            "park",
+            "yard",
+            "market",
+            "garden",
+            "party",
+            "artist",
+            "marble",
+            "target",
+            "alarm",
+            "charm"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w03",
+      "title": "Grade 3 - Week 3",
+      "grade": "3",
+      "week": 3,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefixes dis-, mis-",
+          "pattern": "dis",
+          "frequency": "common",
+          "words": [
+            "disagree",
+            "disappear",
+            "dislike",
+            "dishonest",
+            "dismay",
+            "displace",
+            "display",
+            "dismount",
+            "disobey",
+            "discover",
+            "discuss",
+            "distance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w04",
+      "title": "Grade 3 - Week 4",
+      "grade": "3",
+      "week": 4,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffixes",
+          "pattern": "ness",
+          "frequency": "common",
+          "words": [
+            "happiness",
+            "sadness",
+            "kindness",
+            "darkness",
+            "weakness",
+            "goodness",
+            "illness",
+            "fitness",
+            "witness",
+            "business",
+            "madness",
+            "forgiveness"
+          ]
+        },
+        {
+          "sound": "suffixes",
+          "pattern": "ment",
+          "frequency": "common",
+          "words": [
+            "government",
+            "moment",
+            "payment",
+            "movement",
+            "treatment",
+            "statement",
+            "agreement",
+            "comment",
+            "equipment",
+            "environment",
+            "segment",
+            "fragment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w05",
+      "title": "Grade 3 - Week 5",
+      "grade": "3",
+      "week": 5,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffixes",
+          "pattern": "able",
+          "frequency": "common",
+          "words": [
+            "able",
+            "cable",
+            "stable",
+            "suitable",
+            "capable",
+            "valuable",
+            "reliable",
+            "remarkable",
+            "acceptable",
+            "comfortable",
+            "washable",
+            "breakable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w06",
+      "title": "Grade 3 - Week 6",
+      "grade": "3",
+      "week": 6,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-tion, -sion",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "action",
+            "station",
+            "nation",
+            "motion",
+            "option",
+            "caption",
+            "mention",
+            "fiction",
+            "attention",
+            "question",
+            "fraction",
+            "dictionary"
+          ]
+        },
+        {
+          "sound": "-tion, -sion",
+          "pattern": "sion",
+          "frequency": "less-common",
+          "words": [
+            "mission",
+            "vision",
+            "division",
+            "decision",
+            "television",
+            "session",
+            "passion",
+            "mansion",
+            "tension",
+            "version",
+            "expansion",
+            "explosion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w07",
+      "title": "Grade 3 - Week 7",
+      "grade": "3",
+      "week": 7,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-ous",
+          "pattern": "ous",
+          "frequency": "common",
+          "words": [
+            "famous",
+            "dangerous",
+            "nervous",
+            "curious",
+            "serious",
+            "various",
+            "previous",
+            "obvious",
+            "jealous",
+            "joyous",
+            "riotous",
+            "piteous"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w08",
+      "title": "Grade 3 - Week 8",
+      "grade": "3",
+      "week": 8,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-ure",
+          "pattern": "ure",
+          "frequency": "common",
+          "words": [
+            "sure",
+            "pure",
+            "cure",
+            "secure",
+            "figure",
+            "picture",
+            "nature",
+            "future",
+            "culture",
+            "feature",
+            "measure",
+            "treasure"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w09",
+      "title": "Grade 3 - Week 9",
+      "grade": "3",
+      "week": 9,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-eer",
+          "pattern": "eer",
+          "frequency": "less-common",
+          "words": [
+            "deer",
+            "peer",
+            "cheer",
+            "sheer",
+            "steer",
+            "career",
+            "engineer",
+            "volunteer",
+            "pioneer",
+            "reindeer",
+            "veneer",
+            "auctioneer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w10",
+      "title": "Grade 3 - Week 10",
+      "grade": "3",
+      "week": 10,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-age",
+          "pattern": "age",
+          "frequency": "common",
+          "words": [
+            "page",
+            "stage",
+            "image",
+            "village",
+            "damage",
+            "manage",
+            "package",
+            "voyage",
+            "savage",
+            "cabbage",
+            "message",
+            "passage"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w11",
+      "title": "Grade 3 - Week 11",
+      "grade": "3",
+      "week": 11,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-ough",
+          "pattern": "ough",
+          "frequency": "rare",
+          "words": [
+            "though",
+            "through",
+            "thought",
+            "bought",
+            "fought",
+            "sought",
+            "ought",
+            "rough",
+            "tough",
+            "enough",
+            "cough",
+            "trough"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w12",
+      "title": "Grade 3 - Week 12",
+      "grade": "3",
+      "week": 12,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "-eigh",
+          "pattern": "eigh",
+          "frequency": "rare",
+          "words": [
+            "eight",
+            "weight",
+            "height",
+            "weigh",
+            "freight",
+            "neighbor",
+            "sleigh",
+            "eighteen",
+            "eighty",
+            "weighty",
+            "heighten",
+            "weighing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w13",
+      "title": "Grade 3 - Week 13",
+      "grade": "3",
+      "week": 13,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "ei",
+          "pattern": "ei",
+          "frequency": "less-common",
+          "words": [
+            "receive",
+            "deceive",
+            "conceive",
+            "perceive",
+            "receipt",
+            "either",
+            "neither",
+            "seize",
+            "weird",
+            "protein",
+            "foreign",
+            "heist"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w14",
+      "title": "Grade 3 - Week 14",
+      "grade": "3",
+      "week": 14,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "ey",
+          "pattern": "ey",
+          "frequency": "less-common",
+          "words": [
+            "key",
+            "valley",
+            "journey",
+            "honey",
+            "money",
+            "turkey",
+            "alley",
+            "chimney",
+            "donkey",
+            "hockey",
+            "jockey",
+            "kidney"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w15",
+      "title": "Grade 3 - Week 15",
+      "grade": "3",
+      "week": 15,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "ie",
+          "pattern": "ie",
+          "frequency": "less-common",
+          "words": [
+            "chief",
+            "field",
+            "thief",
+            "piece",
+            "shield",
+            "brief",
+            "grief",
+            "niece",
+            "priest",
+            "relief",
+            "belief",
+            "achieve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w16",
+      "title": "Grade 3 - Week 16",
+      "grade": "3",
+      "week": 16,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "ew, ue",
+          "pattern": "ew",
+          "frequency": "less-common",
+          "words": ["knew", "view", "crew", "blew", "drew", "grew", "threw", "brew", "stew", "chew", "jewel", "nephew"]
+        },
+        {
+          "sound": "ew, ue",
+          "pattern": "ue",
+          "frequency": "less-common",
+          "words": [
+            "blue",
+            "true",
+            "glue",
+            "clue",
+            "due",
+            "sue",
+            "rescue",
+            "argue",
+            "value",
+            "tissue",
+            "issue",
+            "continue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w17",
+      "title": "Grade 3 - Week 17",
+      "grade": "3",
+      "week": 17,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "prefixes",
+          "pattern": "un",
+          "frequency": "common",
+          "words": [
+            "until",
+            "unless",
+            "unable",
+            "unlike",
+            "unknown",
+            "unzip",
+            "unlock",
+            "unhappy",
+            "unfair",
+            "unsure",
+            "unkind",
+            "unpack"
+          ]
+        },
+        {
+          "sound": "prefixes",
+          "pattern": "re",
+          "frequency": "common",
+          "words": [
+            "redo",
+            "rewrite",
+            "return",
+            "replay",
+            "refill",
+            "rebuild",
+            "remind",
+            "recall",
+            "review",
+            "repay",
+            "rewind",
+            "recheck"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w18",
+      "title": "Grade 3 - Week 18",
+      "grade": "3",
+      "week": 18,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "suffix -ly",
+          "pattern": "ly",
+          "frequency": "common",
+          "words": [
+            "really",
+            "quickly",
+            "slowly",
+            "sadly",
+            "loudly",
+            "softly",
+            "neatly",
+            "sweetly",
+            "brightly",
+            "clearly",
+            "closely",
+            "proudly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w19",
+      "title": "Grade 3 - Week 19",
+      "grade": "3",
+      "week": 19,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "consonant -le",
+          "pattern": "le",
+          "frequency": "common",
+          "words": [
+            "people",
+            "able",
+            "single",
+            "table",
+            "apple",
+            "little",
+            "battle",
+            "puzzle",
+            "giggle",
+            "handle",
+            "candle",
+            "needle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w20",
+      "title": "Grade 3 - Week 20",
+      "grade": "3",
+      "week": 20,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "soft c/g",
+          "pattern": "ce",
+          "frequency": "common",
+          "words": [
+            "place",
+            "face",
+            "price",
+            "space",
+            "dance",
+            "glance",
+            "twice",
+            "slice",
+            "voice",
+            "choice",
+            "notice",
+            "peace"
+          ]
+        },
+        {
+          "sound": "soft c/g",
+          "pattern": "ge",
+          "frequency": "common",
+          "words": [
+            "change",
+            "large",
+            "age",
+            "page",
+            "range",
+            "charge",
+            "image",
+            "cage",
+            "rage",
+            "wage",
+            "stage",
+            "huge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w21",
+      "title": "Grade 3 - Week 21",
+      "grade": "3",
+      "week": 21,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "air, ear",
+          "pattern": "air",
+          "frequency": "common",
+          "words": [
+            "air",
+            "hair",
+            "fair",
+            "pair",
+            "chair",
+            "stairs",
+            "repair",
+            "dairy",
+            "fairy",
+            "prairie",
+            "affair",
+            "haircut"
+          ]
+        },
+        {
+          "sound": "air, ear",
+          "pattern": "ear",
+          "frequency": "common",
+          "words": [
+            "hear",
+            "near",
+            "clear",
+            "fear",
+            "dear",
+            "beard",
+            "appear",
+            "rear",
+            "gear",
+            "year",
+            "shear",
+            "rehear"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w22",
+      "title": "Grade 3 - Week 22",
+      "grade": "3",
+      "week": 22,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "multisyllabic",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "information",
+            "question",
+            "education",
+            "action",
+            "position",
+            "production",
+            "attention",
+            "situation",
+            "election",
+            "addition",
+            "association",
+            "population"
+          ]
+        },
+        {
+          "sound": "multisyllabic",
+          "pattern": "ous",
+          "frequency": "common",
+          "words": [
+            "various",
+            "serious",
+            "previous",
+            "religious",
+            "famous",
+            "dangerous",
+            "numerous",
+            "obvious",
+            "ridiculous",
+            "curious",
+            "nervous",
+            "gorgeous"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w23",
+      "title": "Grade 3 - Week 23",
+      "grade": "3",
+      "week": 23,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "multisyllabic",
+          "pattern": "ment",
+          "frequency": "common",
+          "words": [
+            "government",
+            "development",
+            "moment",
+            "department",
+            "management",
+            "treatment",
+            "movement",
+            "statement",
+            "agreement",
+            "comment",
+            "equipment",
+            "environment"
+          ]
+        },
+        {
+          "sound": "multisyllabic",
+          "pattern": "ness",
+          "frequency": "common",
+          "words": [
+            "business",
+            "witness",
+            "awareness",
+            "happiness",
+            "illness",
+            "fitness",
+            "darkness",
+            "weakness",
+            "goodness",
+            "kindness",
+            "madness",
+            "wilderness"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w24",
+      "title": "Grade 3 - Week 24",
+      "grade": "3",
+      "week": 24,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: diphthongs",
+          "pattern": "oi",
+          "frequency": "common",
+          "words": [
+            "oil",
+            "join",
+            "point",
+            "voice",
+            "choice",
+            "noise",
+            "coin",
+            "soil",
+            "boil",
+            "joint",
+            "moist",
+            "spoil"
+          ]
+        },
+        {
+          "sound": "review: diphthongs",
+          "pattern": "ou",
+          "frequency": "common",
+          "words": [
+            "out",
+            "house",
+            "mouse",
+            "cloud",
+            "south",
+            "round",
+            "loud",
+            "proud",
+            "shout",
+            "mouth",
+            "count",
+            "ground"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w25",
+      "title": "Grade 3 - Week 25",
+      "grade": "3",
+      "week": 25,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ee",
+          "frequency": "common",
+          "words": ["see", "need", "feel", "keep", "free", "week", "meet", "tree", "green", "sleep", "street", "agree"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ea",
+          "frequency": "common",
+          "words": [
+            "eat",
+            "team",
+            "read",
+            "sea",
+            "meat",
+            "bean",
+            "clean",
+            "dream",
+            "treat",
+            "beach",
+            "leader",
+            "reason"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w26",
+      "title": "Grade 3 - Week 26",
+      "grade": "3",
+      "week": 26,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: VCe",
+          "pattern": "a_e",
+          "frequency": "common",
+          "words": [
+            "make",
+            "same",
+            "cake",
+            "name",
+            "game",
+            "take",
+            "brave",
+            "shade",
+            "grade",
+            "blame",
+            "flame",
+            "skate"
+          ]
+        },
+        {
+          "sound": "review: VCe",
+          "pattern": "i_e",
+          "frequency": "common",
+          "words": [
+            "like",
+            "time",
+            "bike",
+            "five",
+            "nine",
+            "smile",
+            "white",
+            "drive",
+            "prize",
+            "tribe",
+            "spike",
+            "alive"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w27",
+      "title": "Grade 3 - Week 27",
+      "grade": "3",
+      "week": 27,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "or",
+          "frequency": "common",
+          "words": [
+            "for",
+            "corn",
+            "storm",
+            "short",
+            "horse",
+            "sport",
+            "north",
+            "morning",
+            "forest",
+            "forget",
+            "normal",
+            "torch"
+          ]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ir",
+          "frequency": "common",
+          "words": [
+            "bird",
+            "girl",
+            "first",
+            "shirt",
+            "skirt",
+            "birth",
+            "firm",
+            "thirst",
+            "thirteen",
+            "circus",
+            "dirty",
+            "stir"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w28",
+      "title": "Grade 3 - Week 28",
+      "grade": "3",
+      "week": 28,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: affixes",
+          "pattern": "ful",
+          "frequency": "common",
+          "words": [
+            "careful",
+            "helpful",
+            "painful",
+            "useful",
+            "beautiful",
+            "hopeful",
+            "thankful",
+            "playful",
+            "colorful",
+            "skillful",
+            "blissful",
+            "truthful"
+          ]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "dis",
+          "frequency": "common",
+          "words": [
+            "disagree",
+            "disappear",
+            "dislike",
+            "dishonest",
+            "display",
+            "discover",
+            "discuss",
+            "dismount",
+            "disobey",
+            "displace",
+            "dismay",
+            "distance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w29",
+      "title": "Grade 3 - Week 29",
+      "grade": "3",
+      "week": 29,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: glued sounds",
+          "pattern": "ank",
+          "frequency": "common",
+          "words": [
+            "bank",
+            "tank",
+            "rank",
+            "blank",
+            "drank",
+            "sank",
+            "prank",
+            "flank",
+            "crank",
+            "plank",
+            "thank",
+            "shrank"
+          ]
+        },
+        {
+          "sound": "review: glued sounds",
+          "pattern": "tch",
+          "frequency": "common",
+          "words": [
+            "switch",
+            "pitch",
+            "patch",
+            "scratch",
+            "witch",
+            "sketch",
+            "batch",
+            "ditch",
+            "clutch",
+            "catch",
+            "watch",
+            "match"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prebuilt-g3-w30",
+      "title": "Grade 3 - Week 30",
+      "grade": "3",
+      "week": 30,
+      "source": "prebuilt",
+      "patterns": [
+        {
+          "sound": "review: all",
+          "pattern": "ai",
+          "frequency": "common",
+          "words": [
+            "available",
+            "main",
+            "training",
+            "paid",
+            "daily",
+            "waiting",
+            "straight",
+            "pain",
+            "campaign",
+            "certainly",
+            "claim",
+            "details"
+          ]
+        },
+        {
+          "sound": "review: all",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "information",
+            "question",
+            "education",
+            "action",
+            "position",
+            "production",
+            "attention",
+            "situation",
+            "election",
+            "addition",
+            "association",
+            "population"
+          ]
+        }
+      ]
+    }
+  ]
+}

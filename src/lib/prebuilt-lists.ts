@@ -53,8 +53,16 @@ export function prebuiltGradeLabel(grade: string): string {
   return grade === 'k' ? 'Kindergarten' : `Grade ${grade}`
 }
 
+/**
+ * Grade files are object-rooted (`{ "weeks": [...] }`), matching the
+ * fallback-sentences.json precedent: vite emits named exports for object
+ * keys, which is what the v8 coverage provider needs to attribute the
+ * import (array-rooted JSON reports 0% even when fully exercised).
+ */
+const PrebuiltGradeFileSchema = z.object({ weeks: z.array(PrebuiltWeekSchema) })
+
 function loadGrade(grade: PrebuiltGrade): PrebuiltWeek[] {
-  return z.array(PrebuiltWeekSchema).parse(GRADE_FILES[grade])
+  return PrebuiltGradeFileSchema.parse(GRADE_FILES[grade]).weeks
 }
 
 /** All prebuilt weeks for a grade, in week order. */
