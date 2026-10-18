@@ -200,7 +200,7 @@ and card `aria-label` are unchanged.
    The "Delete pattern" footer button: ghost button, trash icon, bold label.
    Visible but quiet, per pattern 3. The existing confirm flow is untouched.
 
-Word-row icon buttons (mic, odd-duck, sentence, remove) are already uniform
+Word-row icon buttons (mic, sentence, remove) are already uniform
 44px round buttons; keep them as is.
 
 ### 5e. Settings-row anatomy (Details well)
@@ -368,7 +368,7 @@ already have the anatomy a disclosure would need.
   spans to programmatic labels. Add-word input gets an `sr-only` real label.
 - **Keep accessible names byte-identical** where tests or AT depend on them:
   pattern input `aria-label="Pattern spelling"`, frequency group label,
-  mic/odd-duck/sentence/remove word buttons, delete/lock buttons. Do not
+  mic/sentence/remove word buttons, delete/lock buttons. Do not
   rename; restyle only.
 - **Touch targets:** 44px minimum everywhere (already true for word-row
   buttons; enforce on segmented options `min-h-[44px]`, well rows

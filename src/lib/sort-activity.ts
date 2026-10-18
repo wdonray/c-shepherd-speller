@@ -15,17 +15,12 @@ export interface PlacementResult {
 }
 
 /**
- * Collect every non-odd-duck word into a shuffled bank.
- * Odd-duck words are excluded: they are irregular by definition, so sorting
- * them by pattern is meaningless. They are shown in the odd-ducks section
- * instead.
+ * Collect every word into a shuffled bank. Every word sorts by its pattern.
  */
 export function buildWordBank(list: WordList): BankWord[] {
   const bank: BankWord[] = []
   for (const pattern of list.patterns) {
-    const oddDucks = new Set(pattern.oddDucks ?? [])
     for (const word of pattern.words) {
-      if (oddDucks.has(word)) continue
       bank.push({ id: `${pattern.id}:${word}`, word, patternId: pattern.id })
     }
   }

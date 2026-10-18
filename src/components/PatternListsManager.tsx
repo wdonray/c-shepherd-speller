@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { PlusIcon, SearchIcon, XIcon } from 'lucide-react'
+import { PlusIcon, SearchIcon, XIcon, TriangleAlertIcon } from 'lucide-react'
 import { getLists, deleteList, updateList, notifyListsChanged } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
 import { type WordList, isListFavorite } from '@/models/WordList'
@@ -43,7 +43,6 @@ import {
 import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
-import { OddDuck } from './OddDuck'
 import { touchDragLiftModifier } from './SortActivity'
 
 /** All/Favorites view selection, persisted across sessions. */
@@ -467,7 +466,7 @@ export default function PatternListsManager() {
         {deleteListTarget && (
           <DialogContent className="border-2 border-coral">
             <div className="flex items-start gap-4">
-              <OddDuck className="size-14 shrink-0 text-plum" label="Odd duck illustration" />
+              <TriangleAlertIcon className="size-14 shrink-0 text-coral" aria-label="Warning" />
               <DialogHeader className="text-left">
                 <DialogTitle>Delete this list?</DialogTitle>
                 <DialogDescription>

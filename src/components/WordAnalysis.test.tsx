@@ -42,28 +42,10 @@ describe('WordAnalysis', () => {
     expect(patternCells.length).toBeGreaterThan(0)
   })
 
-  it('does not show an odd duck note even when the pattern has isOddDuck set', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.queryByText('Odd duck')).not.toBeInTheDocument()
-  })
-
-  it('highlights the pattern in sun even when isOddDuck is set', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
+  it('highlights the pattern in sun', () => {
+    render(<WordAnalysis {...defaultProps} />)
     const heading = screen.getByRole('heading', { level: 2 })
     expect(within(heading).getByText('ai').className).toContain('text-sun-ink')
-  })
-
-  it('shows an odd duck badge and note for a word-level odd duck', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, oddDucks: ['rain'] }} />)
-    expect(screen.getByText('Odd duck')).toBeInTheDocument()
-    expect(screen.getByText(/memorize the whole word/)).toBeInTheDocument()
-    const heading = screen.getByRole('heading', { level: 2 })
-    expect(within(heading).getByText('ai').className).toContain('text-plum-ink')
-  })
-
-  it('does not show the odd duck note for a regular word', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, oddDucks: ['pain'] }} />)
-    expect(screen.queryByText('Odd duck')).not.toBeInTheDocument()
   })
 
   it('does not show a mapping note for a multi-letter pattern', () => {
@@ -74,11 +56,6 @@ describe('WordAnalysis', () => {
   it('shows the mapping note for a single-letter pattern', () => {
     render(<WordAnalysis {...defaultProps} word="cat" pattern={{ ...pattern, pattern: 'a', sound: 'short a' }} />)
     expect(screen.getByText('The letter a spells short a here.')).toBeInTheDocument()
-  })
-
-  it('shows no mapping note for a multi-letter pattern even when isOddDuck is set', () => {
-    render(<WordAnalysis {...defaultProps} pattern={{ ...pattern, isOddDuck: true }} />)
-    expect(screen.queryByText(/work together to make one sound/)).not.toBeInTheDocument()
   })
 
   it('shows word parts for a clean suffix split', () => {

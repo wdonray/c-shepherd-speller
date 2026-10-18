@@ -30,7 +30,6 @@ test.describe('display mode', () => {
               pattern: 'eigh',
               frequency: 'rare',
               words: ['eight'],
-              isOddDuck: true,
             },
           ],
         },
@@ -56,9 +55,6 @@ test.describe('display mode', () => {
       for (const word of ['cake', 'bake', 'rain', 'eight']) {
         await expect(page.getByRole('button', { name: `Hear and analyze the word ${word}` })).toBeVisible()
       }
-
-      // Odd ducks get their own band.
-      await expect(page.getByRole('region', { name: 'Odd ducks' })).toBeVisible()
 
       // Tapping a word opens its analysis.
       await page.getByRole('button', { name: 'Hear and analyze the word cake' }).click()

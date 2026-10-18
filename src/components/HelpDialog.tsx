@@ -32,11 +32,6 @@ const FAQS = [
     question: 'Does PatternSpell work offline?',
     answer: 'List viewing works once loaded. Text-to-speech and sentence lookup need an internet connection.',
   },
-  {
-    question: 'What does "odd duck" mean?',
-    answer:
-      'A word whose spelling does not follow the pattern, like "said" for long a. Mark odd ducks so students learn them as exceptions.',
-  },
 ]
 
 export default function HelpDialog({ isOpen, onClose }: HelpDialogProps) {

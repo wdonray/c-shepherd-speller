@@ -53,14 +53,13 @@ describe('HelpDialog', () => {
     expect(screen.getByText(/Wider columns are more common spellings/)).toBeVisible()
   })
 
-  it('renders all six FAQ questions', () => {
+  it('renders all five FAQ questions', () => {
     render(<HelpDialog isOpen onClose={vi.fn()} />)
     expect(screen.getByText('What is a pattern chart?')).toBeInTheDocument()
     expect(screen.getByText('How do I show a list on the projector?')).toBeInTheDocument()
     expect(screen.getByText('Can students practice on their own devices?')).toBeInTheDocument()
     expect(screen.getByText('Where is my data stored?')).toBeInTheDocument()
     expect(screen.getByText('Does PatternSpell work offline?')).toBeInTheDocument()
-    expect(screen.getByText('What does "odd duck" mean?')).toBeInTheDocument()
   })
 
   it('shows troubleshooting guidance', () => {

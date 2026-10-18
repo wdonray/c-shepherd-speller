@@ -13,7 +13,7 @@ const list: WordList = {
   patterns: [
     { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
     { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
-    { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['eight'], isOddDuck: true },
+    { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['eight'] },
   ],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',
@@ -126,46 +126,11 @@ describe('PatternChartDisplay', () => {
     expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
   })
 
-  it('does not show an odd duck band even when a pattern has isOddDuck set', () => {
+  it('does not show an odd ducks section', () => {
     render(<PatternChartDisplay list={list} />)
     expect(screen.queryByRole('region', { name: 'Odd ducks' })).not.toBeInTheDocument()
-    // The pattern gets a regular column instead
+    // Every pattern gets a regular column.
     expect(screen.getByRole('region', { name: 'Pattern eigh' })).toBeInTheDocument()
-  })
-
-  it('marks word-level odd ducks in the print variant', () => {
-    const oddList: WordList = {
-      ...list,
-      patterns: [
-        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
-      ],
-    }
-    render(<PatternChartDisplay list={oddList} variant="print" />)
-    expect(screen.getByRole('region', { name: 'Odd ducks' })).toBeInTheDocument()
-    // Print variant renders words as plain list items, odd ducks get plum styling.
-    const items = screen.getAllByRole('listitem')
-    const cakeItem = items.find((li) => li.textContent === 'cake')
-    expect(cakeItem?.className).toMatch(/border-plum/)
-  })
-
-  it('marks word-level odd ducks with plum styling and an odd ducks section', () => {
-    const oddList: WordList = {
-      ...list,
-      patterns: [
-        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
-        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'less-common', words: ['rain'] },
-      ],
-    }
-    render(<PatternChartDisplay list={oddList} />)
-    const section = screen.getByRole('region', { name: 'Odd ducks' })
-    expect(section).toBeInTheDocument()
-    expect(section).toHaveTextContent('cake')
-    expect(section).toHaveTextContent('these spellings do not follow the patterns')
-    // The odd-duck word card gets plum styling in its column.
-    const cakeCard = screen.getByRole('button', { name: 'Analyze the word cake' }).closest('li')
-    expect(cakeCard?.className).toMatch(/border-plum/)
-    const bakeCard = screen.getByRole('button', { name: 'Analyze the word bake' }).closest('li')
-    expect(bakeCard?.className).not.toMatch(/border-plum/)
   })
 
   it('shows an empty state when the list has no patterns', () => {

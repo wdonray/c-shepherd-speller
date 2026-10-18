@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
-import { OddDuck } from './OddDuck'
 import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
@@ -92,7 +91,7 @@ export default function PatternChartDisplay({
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   const isPrint = variant === 'print'
 
-  const { columns, allLocked, oddDuckWords } = useMemo(() => {
+  const { columns, allLocked } = useMemo(() => {
     // The printed poster matches what is currently taught: locked patterns
     // are excluded entirely.
     const teachable = isPrint ? list.patterns.filter((p) => !p.isLocked) : list.patterns
@@ -100,14 +99,7 @@ export default function PatternChartDisplay({
     // Most common spelling first.
     const columns = [...teachable].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
     const allLocked = columns.length > 0 && columns.every((p) => p.isLocked)
-    const oddDuckWords: string[] = []
-    for (const pattern of teachable) {
-      const odd = new Set(pattern.oddDucks ?? [])
-      for (const word of pattern.words) {
-        if (odd.has(word)) oddDuckWords.push(word)
-      }
-    }
-    return { columns, allLocked, oddDuckWords }
+    return { columns, allLocked }
   }, [list, isPrint])
 
   const openAnalysis = (word: string, pattern: SpellingPattern) => {
@@ -345,17 +337,13 @@ export default function PatternChartDisplay({
   }
 
   const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => {
-    const isOddDuck = pattern.oddDucks?.includes(word) ?? false
     // The printed poster is not interactive: words are plain text, no analysis
     // tap target and no speaker button.
     if (isPrint) {
       return (
         <li
           key={key}
-          className={cn(
-            'flex min-h-[58px] items-center justify-center rounded-[14px] border-2 px-4 py-2 text-center text-[22px] font-bold',
-            isOddDuck ? 'border-plum bg-plum-soft text-plum-ink' : 'border-line bg-card text-ink'
-          )}
+          className="flex min-h-[58px] items-center justify-center rounded-[14px] border-2 border-line bg-card px-4 py-2 text-center text-[22px] font-bold text-ink"
         >
           {word}
         </li>
@@ -369,8 +357,7 @@ export default function PatternChartDisplay({
           // the list picker in issue #268, so hover stays flat on the
           // projector here. The flat card still highlights on keyboard
           // focus-within.
-          'flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 bg-card p-1.5 transition-colors focus-within:border-sky-deep',
-          isOddDuck ? 'border-plum bg-plum-soft' : 'border-line'
+          'flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 border-line bg-card p-1.5 transition-colors focus-within:border-sky-deep'
         )}
       >
         <button
@@ -433,18 +420,6 @@ export default function PatternChartDisplay({
           >
             {columns.map((pattern) => renderColumn(pattern))}
           </div>
-
-          {oddDuckWords.length > 0 && (
-            <section aria-label="Odd ducks" className="mt-6 rounded-2xl border-2 border-plum bg-plum-soft p-5">
-              <div className="mb-2 flex items-center gap-3">
-                <OddDuck className="size-11 text-plum" label="Odd duck" />
-                <h2 className="text-lg font-bold text-plum-ink">Odd ducks</h2>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {oddDuckWords.join(', ')}: these spellings do not follow the patterns, so memorize the whole word.
-              </p>
-            </section>
-          )}
         </>
       )}
 

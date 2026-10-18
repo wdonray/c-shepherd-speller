@@ -130,8 +130,6 @@ describe('PatternEditor mobile words cards', () => {
 
   it('keeps the word actions working on mobile', () => {
     const { onChange } = renderEditor()
-    fireEvent.click(screen.getByRole('button', { name: 'Mark cake as odd duck' }))
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ oddDucks: ['cake'] }))
     expect(screen.getByRole('button', { name: 'Add example sentence for bake' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove bake' }))
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ words: ['cake'] }))

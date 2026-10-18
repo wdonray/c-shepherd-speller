@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Volume2Icon, XIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { SpellingPattern } from '@/models/WordList'
 
 interface WordAnalysisProps {
@@ -99,7 +98,6 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
   }, [onClose])
 
   const match = findPatternInWord(word, pattern.pattern)
-  const odd = pattern.oddDucks?.includes(word) ?? false
   const mappingNote = buildMappingNote(pattern.pattern, pattern.sound)
   const wordParts = splitWordParts(word)
 
@@ -109,12 +107,7 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
     return (
       <span>
         {word.slice(0, start)}
-        <span
-          className={cn(
-            'font-extrabold underline decoration-[8px] underline-offset-8',
-            odd ? 'text-plum-ink decoration-plum' : 'text-sun-ink decoration-sun'
-          )}
-        >
+        <span className="font-extrabold text-sun-ink underline decoration-sun decoration-[8px] underline-offset-8">
           {word.slice(start, end)}
         </span>
         {word.slice(end)}
@@ -155,17 +148,6 @@ export default function WordAnalysis({ word, pattern, onClose, onSpeak }: WordAn
             <span className="font-semibold text-ink">{pattern.pattern}</span>
           </p>
         </div>
-
-        {odd && (
-          <div className="space-y-2">
-            <span className="inline-block rounded-full bg-plum-soft px-4 py-1.5 text-sm font-bold text-plum-ink">
-              Odd duck
-            </span>
-            <p className="text-[15px] text-ink">
-              This spelling is irregular. It does not follow the pattern, so memorize the whole word.
-            </p>
-          </div>
-        )}
 
         {mappingNote && <p className="text-[15px] text-ink">{mappingNote}</p>}
 

@@ -28,6 +28,11 @@ he decides, you execute. He verifies your work as a habit, be precise.
   sentence instead.
 - **Keep the public surface truthful.** If a feature does not exist, do not
   document it as if it does.
+- **Removing a zod schema field needs no data migration.** Zod strips
+  unknown keys by default, so stored DynamoDB items that still carry the
+  removed field keep parsing fine. Add a test asserting the legacy field is
+  stripped rather than building a migration (found 2026-10-18: issue #381
+  odd-ducks removal).
 
 ## Local development loop (DynamoDB Local, no AWS account)
 

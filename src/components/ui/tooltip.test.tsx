@@ -8,11 +8,11 @@ const renderOpenTooltip = (contentClassName?: string) => {
     <TooltipProvider>
       <Tooltip open>
         <TooltipTrigger>Hover me</TooltipTrigger>
-        <TooltipContent className={contentClassName}>Mark as odd duck</TooltipContent>
+        <TooltipContent className={contentClassName}>Save this list</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )
-  return screen.getByText('Mark as odd duck')
+  return screen.getByText('Save this list')
 }
 
 // Bg-ink flips with the theme (dark brown in light mode, cream in dark mode),
@@ -33,12 +33,12 @@ describe('TooltipContent', () => {
       <TooltipProvider>
         <Tooltip open>
           <TooltipTrigger>Hover me</TooltipTrigger>
-          <TooltipContent>Mark as odd duck</TooltipContent>
+          <TooltipContent>Save this list</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     )
     render(<div className="dark">{tooltip}</div>)
-    assertReadableOnInk(screen.getByText('Mark as odd duck'))
+    assertReadableOnInk(screen.getByText('Save this list'))
   })
 
   it('merges a custom className', () => {
