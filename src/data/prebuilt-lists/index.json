@@ -1,0 +1,32 @@
+[
+  {
+    "grade": "k",
+    "weeks": 12,
+    "file": "grade-k.json"
+  },
+  {
+    "grade": "1",
+    "weeks": 30,
+    "file": "grade-1.json"
+  },
+  {
+    "grade": "2",
+    "weeks": 30,
+    "file": "grade-2.json"
+  },
+  {
+    "grade": "3",
+    "weeks": 30,
+    "file": "grade-3.json"
+  },
+  {
+    "grade": "4",
+    "weeks": 30,
+    "file": "grade-4.json"
+  },
+  {
+    "grade": "5",
+    "weeks": 30,
+    "file": "grade-5.json"
+  }
+]

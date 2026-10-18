@@ -1,0 +1,956 @@
+[
+  {
+    "id": "prebuilt-g5-w01",
+    "title": "Grade 5 - Week 1",
+    "grade": "5",
+    "week": 1,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root phon",
+        "pattern": "phon",
+        "frequency": "less-common",
+        "words": [
+          "phone",
+          "telephone",
+          "microphone",
+          "symphony",
+          "headphone",
+          "saxophone",
+          "phonics",
+          "phonetic",
+          "xylophone",
+          "homophone",
+          "megaphone",
+          "euphonium"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w02",
+    "title": "Grade 5 - Week 2",
+    "grade": "5",
+    "week": 2,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root graph",
+        "pattern": "graph",
+        "frequency": "less-common",
+        "words": [
+          "graph",
+          "photograph",
+          "graphic",
+          "paragraph",
+          "geography",
+          "biography",
+          "autograph",
+          "telegraph",
+          "graphite",
+          "calligraphy",
+          "demographic",
+          "hologram"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w03",
+    "title": "Grade 5 - Week 3",
+    "grade": "5",
+    "week": 3,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root scope",
+        "pattern": "scope",
+        "frequency": "less-common",
+        "words": [
+          "scope",
+          "microscope",
+          "telescope",
+          "periscope",
+          "stethoscope",
+          "horoscope",
+          "kaleidoscope",
+          "gyroscope",
+          "endoscope",
+          "telescopic",
+          "microscopic",
+          "spectroscope"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w04",
+    "title": "Grade 5 - Week 4",
+    "grade": "5",
+    "week": 4,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root meter",
+        "pattern": "meter",
+        "frequency": "less-common",
+        "words": [
+          "meter",
+          "thermometer",
+          "kilometer",
+          "centimeter",
+          "diameter",
+          "perimeter",
+          "barometer",
+          "speedometer",
+          "odometer",
+          "millimeter",
+          "parameter",
+          "altimeter"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w05",
+    "title": "Grade 5 - Week 5",
+    "grade": "5",
+    "week": 5,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root bio",
+        "pattern": "bio",
+        "frequency": "less-common",
+        "words": [
+          "biology",
+          "biography",
+          "biologist",
+          "biosphere",
+          "biopsy",
+          "biodegradable",
+          "biohazard",
+          "symbiotic",
+          "antibiotic",
+          "probiotic",
+          "biofuel",
+          "biodiversity"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w06",
+    "title": "Grade 5 - Week 6",
+    "grade": "5",
+    "week": 6,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root geo",
+        "pattern": "geo",
+        "frequency": "less-common",
+        "words": [
+          "geography",
+          "geology",
+          "geometry",
+          "geologist",
+          "geographic",
+          "geothermal",
+          "geocentric",
+          "geoscience",
+          "geode",
+          "geotag",
+          "geopolitics",
+          "geocache"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w07",
+    "title": "Grade 5 - Week 7",
+    "grade": "5",
+    "week": 7,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root therm",
+        "pattern": "therm",
+        "frequency": "rare",
+        "words": [
+          "thermal",
+          "thermometer",
+          "thermostat",
+          "geothermal",
+          "hypothermia",
+          "thermodynamics",
+          "thermos",
+          "thermoplastic",
+          "isotherm",
+          "endothermic",
+          "exothermic",
+          "thermonuclear"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w08",
+    "title": "Grade 5 - Week 8",
+    "grade": "5",
+    "week": 8,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root chron",
+        "pattern": "chron",
+        "frequency": "rare",
+        "words": [
+          "chronic",
+          "chronological",
+          "chronology",
+          "synchronize",
+          "anachronism",
+          "chronicle",
+          "chronometer",
+          "synchronous",
+          "chronograph",
+          "chronicles",
+          "diachronic",
+          "parachronism"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w09",
+    "title": "Grade 5 - Week 9",
+    "grade": "5",
+    "week": 9,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root photo",
+        "pattern": "photo",
+        "frequency": "less-common",
+        "words": [
+          "photo",
+          "photograph",
+          "photographer",
+          "photography",
+          "photosynthesis",
+          "photon",
+          "photocopy",
+          "photogenic",
+          "photobomb",
+          "photojournalism",
+          "phototherapy",
+          "photofinish"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w10",
+    "title": "Grade 5 - Week 10",
+    "grade": "5",
+    "week": 10,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "root tele",
+        "pattern": "tele",
+        "frequency": "less-common",
+        "words": [
+          "telephone",
+          "television",
+          "teleport",
+          "telescope",
+          "telegram",
+          "telepathy",
+          "teleconference",
+          "telecommute",
+          "telemarketing",
+          "telephoto",
+          "telesales",
+          "telethon"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w11",
+    "title": "Grade 5 - Week 11",
+    "grade": "5",
+    "week": 11,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ance",
+        "pattern": "ance",
+        "frequency": "common",
+        "words": [
+          "chance",
+          "performance",
+          "france",
+          "insurance",
+          "dance",
+          "distance",
+          "balance",
+          "appearance",
+          "advance",
+          "finance",
+          "assistance",
+          "instance"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w12",
+    "title": "Grade 5 - Week 12",
+    "grade": "5",
+    "week": 12,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ence",
+        "pattern": "ence",
+        "frequency": "common",
+        "words": [
+          "experience",
+          "evidence",
+          "science",
+          "conference",
+          "difference",
+          "influence",
+          "violence",
+          "reference",
+          "audience",
+          "presence",
+          "intelligence",
+          "confidence"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w13",
+    "title": "Grade 5 - Week 13",
+    "grade": "5",
+    "week": 13,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ant",
+        "pattern": "ant",
+        "frequency": "common",
+        "words": [
+          "important",
+          "significant",
+          "assistant",
+          "restaurant",
+          "relevant",
+          "pregnant",
+          "brilliant",
+          "constant",
+          "lieutenant",
+          "instant",
+          "warrant",
+          "dominant"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w14",
+    "title": "Grade 5 - Week 14",
+    "grade": "5",
+    "week": 14,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ent",
+        "pattern": "ent",
+        "frequency": "common",
+        "words": [
+          "different",
+          "government",
+          "president",
+          "development",
+          "current",
+          "moment",
+          "department",
+          "present",
+          "management",
+          "percent",
+          "recent",
+          "student"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w15",
+    "title": "Grade 5 - Week 15",
+    "grade": "5",
+    "week": 15,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ify",
+        "pattern": "ify",
+        "frequency": "less-common",
+        "words": [
+          "identify",
+          "qualify",
+          "justify",
+          "verify",
+          "clarify",
+          "testify",
+          "modify",
+          "specify",
+          "notify",
+          "spotify",
+          "simplify",
+          "classify"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w16",
+    "title": "Grade 5 - Week 16",
+    "grade": "5",
+    "week": 16,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ize",
+        "pattern": "ize",
+        "frequency": "less-common",
+        "words": [
+          "size",
+          "realize",
+          "recognize",
+          "apologize",
+          "organize",
+          "minimize",
+          "seize",
+          "utilize",
+          "emphasize",
+          "criticize",
+          "maximize",
+          "stabilize"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w17",
+    "title": "Grade 5 - Week 17",
+    "grade": "5",
+    "week": 17,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "prefix anti-",
+        "pattern": "anti",
+        "frequency": "less-common",
+        "words": [
+          "anticipated",
+          "antique",
+          "antibiotics",
+          "anticipation",
+          "anticipate",
+          "antibodies",
+          "antibiotic",
+          "antiques",
+          "antibody",
+          "antiquity",
+          "anticipating",
+          "antitrust"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w18",
+    "title": "Grade 5 - Week 18",
+    "grade": "5",
+    "week": 18,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "prefix inter-",
+        "pattern": "inter",
+        "frequency": "less-common",
+        "words": [
+          "international",
+          "interest",
+          "internet",
+          "interesting",
+          "interested",
+          "interview",
+          "interests",
+          "internal",
+          "interior",
+          "interviews",
+          "interaction",
+          "intervention"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w19",
+    "title": "Grade 5 - Week 19",
+    "grade": "5",
+    "week": 19,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "prefix trans-",
+        "pattern": "trans",
+        "frequency": "less-common",
+        "words": [
+          "transfer",
+          "transport",
+          "transportation",
+          "transition",
+          "translation",
+          "transferred",
+          "transmission",
+          "transactions",
+          "transaction",
+          "transformation",
+          "translated",
+          "transformed"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w20",
+    "title": "Grade 5 - Week 20",
+    "grade": "5",
+    "week": 20,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "prefix super-",
+        "pattern": "super",
+        "frequency": "less-common",
+        "words": [
+          "superior",
+          "superman",
+          "superintendent",
+          "supervisor",
+          "supervision",
+          "supernatural",
+          "superhero",
+          "superstar",
+          "supermarket",
+          "superiority",
+          "supervised",
+          "supervisors"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w21",
+    "title": "Grade 5 - Week 21",
+    "grade": "5",
+    "week": 21,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "prefix semi-",
+        "pattern": "semi",
+        "frequency": "rare",
+        "words": [
+          "seminar",
+          "semitic",
+          "seminary",
+          "semiconductor",
+          "seminars",
+          "semitism",
+          "semifinals",
+          "seminal",
+          "semifinal",
+          "semiconductors",
+          "seminole",
+          "seminoles"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w22",
+    "title": "Grade 5 - Week 22",
+    "grade": "5",
+    "week": 22,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ary",
+        "pattern": "ary",
+        "frequency": "less-common",
+        "words": [
+          "military",
+          "january",
+          "february",
+          "secretary",
+          "necessary",
+          "primary",
+          "library",
+          "anniversary",
+          "secondary",
+          "contemporary",
+          "temporary",
+          "ordinary"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w23",
+    "title": "Grade 5 - Week 23",
+    "grade": "5",
+    "week": 23,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ery",
+        "pattern": "ery",
+        "frequency": "less-common",
+        "words": [
+          "surgery",
+          "delivery",
+          "recovery",
+          "battery",
+          "gallery",
+          "discovery",
+          "mystery",
+          "slavery",
+          "cemetery",
+          "grocery",
+          "machinery",
+          "lottery"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w24",
+    "title": "Grade 5 - Week 24",
+    "grade": "5",
+    "week": 24,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "suffix -ory",
+        "pattern": "ory",
+        "frequency": "less-common",
+        "words": [
+          "history",
+          "theory",
+          "memory",
+          "victory",
+          "territory",
+          "category",
+          "factory",
+          "laboratory",
+          "regulatory",
+          "advisory",
+          "inventory",
+          "mandatory"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w25",
+    "title": "Grade 5 - Week 25",
+    "grade": "5",
+    "week": 25,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "review: roots",
+        "pattern": "phon",
+        "frequency": "less-common",
+        "words": [
+          "phone",
+          "telephone",
+          "microphone",
+          "symphony",
+          "headphone",
+          "saxophone",
+          "phonics",
+          "phonetic",
+          "xylophone",
+          "homophone",
+          "megaphone",
+          "euphonium"
+        ]
+      },
+      {
+        "sound": "review: roots",
+        "pattern": "graph",
+        "frequency": "less-common",
+        "words": [
+          "graph",
+          "photograph",
+          "graphic",
+          "paragraph",
+          "geography",
+          "biography",
+          "autograph",
+          "telegraph",
+          "graphite",
+          "calligraphy",
+          "demographic",
+          "hologram"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w26",
+    "title": "Grade 5 - Week 26",
+    "grade": "5",
+    "week": 26,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "review: suffixes",
+        "pattern": "ance",
+        "frequency": "common",
+        "words": [
+          "chance",
+          "performance",
+          "france",
+          "insurance",
+          "dance",
+          "distance",
+          "balance",
+          "appearance",
+          "advance",
+          "finance",
+          "assistance",
+          "instance"
+        ]
+      },
+      {
+        "sound": "review: suffixes",
+        "pattern": "ence",
+        "frequency": "common",
+        "words": [
+          "experience",
+          "evidence",
+          "science",
+          "conference",
+          "difference",
+          "influence",
+          "violence",
+          "reference",
+          "audience",
+          "presence",
+          "intelligence",
+          "confidence"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w27",
+    "title": "Grade 5 - Week 27",
+    "grade": "5",
+    "week": 27,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "review: prefixes",
+        "pattern": "anti",
+        "frequency": "less-common",
+        "words": [
+          "anticipated",
+          "antique",
+          "antibiotics",
+          "anticipation",
+          "anticipate",
+          "antibodies",
+          "antibiotic",
+          "antiques",
+          "antibody",
+          "antiquity",
+          "anticipating",
+          "antitrust"
+        ]
+      },
+      {
+        "sound": "review: prefixes",
+        "pattern": "trans",
+        "frequency": "less-common",
+        "words": [
+          "transfer",
+          "transport",
+          "transportation",
+          "transition",
+          "translation",
+          "transferred",
+          "transmission",
+          "transactions",
+          "transaction",
+          "transformation",
+          "translated",
+          "transformed"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w28",
+    "title": "Grade 5 - Week 28",
+    "grade": "5",
+    "week": 28,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "multisyllabic",
+        "pattern": "tion",
+        "frequency": "common",
+        "words": [
+          "information",
+          "question",
+          "education",
+          "action",
+          "position",
+          "production",
+          "attention",
+          "situation",
+          "election",
+          "addition",
+          "association",
+          "population"
+        ]
+      },
+      {
+        "sound": "multisyllabic",
+        "pattern": "ity",
+        "frequency": "common",
+        "words": [
+          "university",
+          "community",
+          "security",
+          "quality",
+          "ability",
+          "opportunity",
+          "majority",
+          "reality",
+          "activity",
+          "authority",
+          "responsibility",
+          "capacity"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w29",
+    "title": "Grade 5 - Week 29",
+    "grade": "5",
+    "week": 29,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "multisyllabic",
+        "pattern": "ous",
+        "frequency": "common",
+        "words": [
+          "various",
+          "serious",
+          "previous",
+          "religious",
+          "famous",
+          "dangerous",
+          "numerous",
+          "obvious",
+          "ridiculous",
+          "curious",
+          "nervous",
+          "gorgeous"
+        ]
+      },
+      {
+        "sound": "multisyllabic",
+        "pattern": "able",
+        "frequency": "common",
+        "words": [
+          "able",
+          "available",
+          "comfortable",
+          "capable",
+          "unable",
+          "reasonable",
+          "cable",
+          "valuable",
+          "stable",
+          "suitable",
+          "enable",
+          "reliable"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g5-w30",
+    "title": "Grade 5 - Week 30",
+    "grade": "5",
+    "week": 30,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "review: all",
+        "pattern": "phon",
+        "frequency": "less-common",
+        "words": [
+          "phone",
+          "telephone",
+          "microphone",
+          "symphony",
+          "headphone",
+          "saxophone",
+          "phonics",
+          "phonetic",
+          "xylophone",
+          "homophone",
+          "megaphone",
+          "euphonium"
+        ]
+      },
+      {
+        "sound": "review: all",
+        "pattern": "ance",
+        "frequency": "common",
+        "words": [
+          "chance",
+          "performance",
+          "france",
+          "insurance",
+          "dance",
+          "distance",
+          "balance",
+          "appearance",
+          "advance",
+          "finance",
+          "assistance",
+          "instance"
+        ]
+      }
+    ]
+  }
+]

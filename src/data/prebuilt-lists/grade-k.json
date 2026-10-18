@@ -1,0 +1,208 @@
+[
+  {
+    "id": "prebuilt-gk-w01",
+    "title": "Grade K - Week 1",
+    "grade": "k",
+    "week": 1,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short a",
+        "pattern": "a",
+        "frequency": "common",
+        "words": ["can", "has", "had", "man", "bad", "gas", "ran", "fat", "sad", "mad", "max", "sat"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w02",
+    "title": "Grade K - Week 2",
+    "grade": "k",
+    "week": 2,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short a",
+        "pattern": "a",
+        "frequency": "common",
+        "words": ["can", "has", "had", "man", "bad", "gas", "ran", "fat", "sad", "mad", "max", "sat"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w03",
+    "title": "Grade K - Week 3",
+    "grade": "k",
+    "week": 3,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short i",
+        "pattern": "i",
+        "frequency": "common",
+        "words": ["his", "him", "did", "bit", "fit", "mid", "tip", "rid", "hip", "min", "bid", "pit"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w04",
+    "title": "Grade K - Week 4",
+    "grade": "k",
+    "week": 4,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short i",
+        "pattern": "i",
+        "frequency": "common",
+        "words": ["his", "him", "did", "bit", "fit", "mid", "tip", "rid", "hip", "min", "bid", "pit"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w05",
+    "title": "Grade K - Week 5",
+    "grade": "k",
+    "week": 5,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short o",
+        "pattern": "o",
+        "frequency": "common",
+        "words": ["not", "got", "lot", "god", "mom", "pop", "cop", "com", "gop", "ron", "von", "cos"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w06",
+    "title": "Grade K - Week 6",
+    "grade": "k",
+    "week": 6,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short o",
+        "pattern": "o",
+        "frequency": "common",
+        "words": ["not", "got", "lot", "god", "mom", "pop", "cop", "com", "gop", "ron", "von", "cos"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w07",
+    "title": "Grade K - Week 7",
+    "grade": "k",
+    "week": 7,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short u",
+        "pattern": "u",
+        "frequency": "common",
+        "words": ["gun", "sub", "sum", "pub", "bud", "hub", "gut", "rub", "gum", "dug", "hut", "bum"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w08",
+    "title": "Grade K - Week 8",
+    "grade": "k",
+    "week": 8,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short e",
+        "pattern": "e",
+        "frequency": "common",
+        "words": ["get", "let", "set", "led", "met", "bet", "web", "fed", "les", "beg", "den", "sen"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w09",
+    "title": "Grade K - Week 9",
+    "grade": "k",
+    "week": 9,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "sh",
+        "pattern": "sh",
+        "frequency": "common",
+        "words": [
+          "she",
+          "shows",
+          "share",
+          "shall",
+          "cash",
+          "shown",
+          "shoot",
+          "shape",
+          "shoes",
+          "shots",
+          "shift",
+          "shame"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w10",
+    "title": "Grade K - Week 10",
+    "grade": "k",
+    "week": 10,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "th",
+        "pattern": "th",
+        "frequency": "common",
+        "words": ["the", "they", "their", "there", "them", "other", "than", "then", "both", "death", "month", "worth"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w11",
+    "title": "Grade K - Week 11",
+    "grade": "k",
+    "week": 11,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ch",
+        "pattern": "ch",
+        "frequency": "common",
+        "words": [
+          "which",
+          "each",
+          "child",
+          "chief",
+          "china",
+          "coach",
+          "chris",
+          "cheap",
+          "tech",
+          "chain",
+          "chose",
+          "inch"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-gk-w12",
+    "title": "Grade K - Week 12",
+    "grade": "k",
+    "week": 12,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ck",
+        "pattern": "ck",
+        "frequency": "common",
+        "words": ["pick", "track", "quick", "stock", "lack", "luck", "sick", "click", "jack", "kick", "stuck", "pack"]
+      }
+    ]
+  }
+]

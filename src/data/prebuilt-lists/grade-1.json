@@ -1,0 +1,687 @@
+[
+  {
+    "id": "prebuilt-g1-w01",
+    "title": "Grade 1 - Week 1",
+    "grade": "1",
+    "week": 1,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short a",
+        "pattern": "a",
+        "frequency": "common",
+        "words": ["can", "had", "man", "bad", "ran", "fat", "sad", "mad", "sat", "cat", "hat", "map"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w02",
+    "title": "Grade 1 - Week 2",
+    "grade": "1",
+    "week": 2,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short i",
+        "pattern": "i",
+        "frequency": "common",
+        "words": ["his", "did", "bit", "fit", "tip", "hip", "min", "bid", "pit", "rip", "bin", "sit"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w03",
+    "title": "Grade 1 - Week 3",
+    "grade": "1",
+    "week": 3,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short o",
+        "pattern": "o",
+        "frequency": "common",
+        "words": ["not", "got", "lot", "mom", "pop", "cop", "dot", "hot", "dog", "box", "fox", "pot"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w04",
+    "title": "Grade 1 - Week 4",
+    "grade": "1",
+    "week": 4,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short u",
+        "pattern": "u",
+        "frequency": "common",
+        "words": ["gun", "sub", "sum", "bud", "hub", "gut", "rub", "gum", "dug", "hut", "mug", "cup"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w05",
+    "title": "Grade 1 - Week 5",
+    "grade": "1",
+    "week": 5,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "short e",
+        "pattern": "e",
+        "frequency": "common",
+        "words": ["get", "let", "set", "led", "met", "bet", "web", "fed", "beg", "den", "pen", "ten"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w06",
+    "title": "Grade 1 - Week 6",
+    "grade": "1",
+    "week": 6,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "sh",
+        "pattern": "sh",
+        "frequency": "common",
+        "words": ["she", "share", "shall", "finish", "cash", "ship", "shop", "fish", "dish", "wish", "rush", "shut"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w07",
+    "title": "Grade 1 - Week 7",
+    "grade": "1",
+    "week": 7,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "th",
+        "pattern": "th",
+        "frequency": "common",
+        "words": ["this", "that", "with", "thin", "thick", "bath", "math", "then", "than", "them", "other", "the"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w08",
+    "title": "Grade 1 - Week 8",
+    "grade": "1",
+    "week": 8,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ch",
+        "pattern": "ch",
+        "frequency": "common",
+        "words": ["which", "each", "child", "chance", "church", "chip", "chat", "chin", "much", "such", "rich", "lunch"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w09",
+    "title": "Grade 1 - Week 9",
+    "grade": "1",
+    "week": 9,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "wh",
+        "pattern": "wh",
+        "frequency": "less-common",
+        "words": [
+          "when",
+          "what",
+          "where",
+          "which",
+          "white",
+          "while",
+          "whale",
+          "wheel",
+          "wheat",
+          "whip",
+          "whisper",
+          "whistle"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w10",
+    "title": "Grade 1 - Week 10",
+    "grade": "1",
+    "week": 10,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ck",
+        "pattern": "ck",
+        "frequency": "common",
+        "words": ["pick", "track", "quick", "stock", "lack", "luck", "sick", "click", "kick", "stuck", "pack", "neck"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w11",
+    "title": "Grade 1 - Week 11",
+    "grade": "1",
+    "week": 11,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long a",
+        "pattern": "a_e",
+        "frequency": "common",
+        "words": ["make", "same", "came", "late", "gave", "date", "rate", "save", "cake", "name", "game", "take"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w12",
+    "title": "Grade 1 - Week 12",
+    "grade": "1",
+    "week": 12,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long i",
+        "pattern": "i_e",
+        "frequency": "common",
+        "words": ["life", "nice", "fine", "wife", "site", "size", "mine", "wide", "rise", "like", "time", "bike"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w13",
+    "title": "Grade 1 - Week 13",
+    "grade": "1",
+    "week": 13,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long o",
+        "pattern": "o_e",
+        "frequency": "common",
+        "words": ["vote", "code", "hole", "mode", "tone", "bone", "home", "nose", "rope", "note", "hope", "rode"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w14",
+    "title": "Grade 1 - Week 14",
+    "grade": "1",
+    "week": 14,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long u",
+        "pattern": "u_e",
+        "frequency": "less-common",
+        "words": ["dude", "rude", "mute", "cube", "tube", "huge", "use", "mule", "flute", "prune", "rule", "tune"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w15",
+    "title": "Grade 1 - Week 15",
+    "grade": "1",
+    "week": 15,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long e",
+        "pattern": "ee",
+        "frequency": "common",
+        "words": ["see", "need", "feel", "keep", "free", "week", "meet", "feed", "tree", "green", "sleep", "sheep"]
+      },
+      {
+        "sound": "long e",
+        "pattern": "ea",
+        "frequency": "common",
+        "words": ["eat", "team", "read", "sea", "meat", "bean", "clean", "dream", "treat", "steam", "beach", "peach"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w16",
+    "title": "Grade 1 - Week 16",
+    "grade": "1",
+    "week": 16,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long a",
+        "pattern": "ai",
+        "frequency": "common",
+        "words": ["rain", "pain", "mail", "tail", "wait", "paint", "train", "main", "paid", "claim", "brain", "trail"]
+      },
+      {
+        "sound": "long a",
+        "pattern": "ay",
+        "frequency": "common",
+        "words": ["day", "may", "say", "play", "stay", "way", "bay", "clay", "spray", "tray", "sway", "birthday"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w17",
+    "title": "Grade 1 - Week 17",
+    "grade": "1",
+    "week": 17,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long o",
+        "pattern": "oa",
+        "frequency": "common",
+        "words": ["goal", "coach", "coast", "loan", "load", "coal", "boat", "road", "coat", "soap", "toast", "float"]
+      },
+      {
+        "sound": "long o",
+        "pattern": "ow",
+        "frequency": "common",
+        "words": [
+          "below",
+          "snow",
+          "blow",
+          "show",
+          "grow",
+          "low",
+          "flow",
+          "throw",
+          "window",
+          "yellow",
+          "follow",
+          "pillow"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w18",
+    "title": "Grade 1 - Week 18",
+    "grade": "1",
+    "week": 18,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "long i",
+        "pattern": "igh",
+        "frequency": "common",
+        "words": [
+          "might",
+          "fight",
+          "tonight",
+          "tight",
+          "sight",
+          "night",
+          "light",
+          "high",
+          "sigh",
+          "bright",
+          "flight",
+          "fright"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w19",
+    "title": "Grade 1 - Week 19",
+    "grade": "1",
+    "week": 19,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ar",
+        "pattern": "ar",
+        "frequency": "common",
+        "words": ["part", "far", "art", "car", "star", "hard", "park", "arm", "barn", "yard", "card", "jar"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w20",
+    "title": "Grade 1 - Week 20",
+    "grade": "1",
+    "week": 20,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "or",
+        "pattern": "or",
+        "frequency": "common",
+        "words": ["for", "corn", "horn", "storm", "short", "horse", "fork", "porch", "sport", "north", "torch", "score"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w21",
+    "title": "Grade 1 - Week 21",
+    "grade": "1",
+    "week": 21,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "er, ir, ur",
+        "pattern": "er",
+        "frequency": "common",
+        "words": [
+          "after",
+          "never",
+          "under",
+          "over",
+          "butter",
+          "sister",
+          "her",
+          "fern",
+          "verb",
+          "winter",
+          "summer",
+          "better"
+        ]
+      },
+      {
+        "sound": "er, ir, ur",
+        "pattern": "ir",
+        "frequency": "common",
+        "words": ["bird", "girl", "first", "third", "stir", "dirt", "shirt", "skirt", "birth", "firm", "whirl", "chirp"]
+      },
+      {
+        "sound": "er, ir, ur",
+        "pattern": "ur",
+        "frequency": "less-common",
+        "words": [
+          "turn",
+          "burn",
+          "hurt",
+          "church",
+          "burst",
+          "curl",
+          "surf",
+          "purple",
+          "turtle",
+          "nurse",
+          "curve",
+          "hurl"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w22",
+    "title": "Grade 1 - Week 22",
+    "grade": "1",
+    "week": 22,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "oi, oy",
+        "pattern": "oi",
+        "frequency": "common",
+        "words": ["oil", "join", "point", "voice", "choice", "noise", "coin", "soil", "boil", "joint", "moist", "spoil"]
+      },
+      {
+        "sound": "oi, oy",
+        "pattern": "oy",
+        "frequency": "common",
+        "words": [
+          "boy",
+          "toy",
+          "joy",
+          "enjoy",
+          "royal",
+          "annoy",
+          "oyster",
+          "voyage",
+          "destroy",
+          "employ",
+          "decoy",
+          "alloy"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w23",
+    "title": "Grade 1 - Week 23",
+    "grade": "1",
+    "week": 23,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ou, ow",
+        "pattern": "ou",
+        "frequency": "common",
+        "words": [
+          "out",
+          "house",
+          "mouse",
+          "cloud",
+          "south",
+          "round",
+          "loud",
+          "proud",
+          "shout",
+          "mouth",
+          "count",
+          "found"
+        ]
+      },
+      {
+        "sound": "ou, ow",
+        "pattern": "ow_ou",
+        "frequency": "common",
+        "words": ["cow", "how", "now", "brown", "down", "town", "owl", "towel", "crowd", "powder", "drown", "frown"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w24",
+    "title": "Grade 1 - Week 24",
+    "grade": "1",
+    "week": 24,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "oo",
+        "pattern": "oo",
+        "frequency": "common",
+        "words": ["moon", "soon", "food", "pool", "room", "zoo", "too", "look", "book", "foot", "wood", "spoon"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w25",
+    "title": "Grade 1 - Week 25",
+    "grade": "1",
+    "week": 25,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "au, aw",
+        "pattern": "au",
+        "frequency": "less-common",
+        "words": [
+          "haul",
+          "pause",
+          "cause",
+          "sauce",
+          "auto",
+          "fault",
+          "launch",
+          "author",
+          "daughter",
+          "taught",
+          "naughty",
+          "vault"
+        ]
+      },
+      {
+        "sound": "au, aw",
+        "pattern": "aw",
+        "frequency": "common",
+        "words": ["saw", "paw", "draw", "straw", "claw", "jaw", "law", "raw", "crawl", "dawn", "lawn", "yawn"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w26",
+    "title": "Grade 1 - Week 26",
+    "grade": "1",
+    "week": 26,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "ng, nk",
+        "pattern": "ng",
+        "frequency": "common",
+        "words": [
+          "king",
+          "ring",
+          "sing",
+          "long",
+          "song",
+          "strong",
+          "bring",
+          "thing",
+          "going",
+          "doing",
+          "being",
+          "swing"
+        ]
+      },
+      {
+        "sound": "ng, nk",
+        "pattern": "nk",
+        "frequency": "common",
+        "words": ["bank", "link", "frank", "tank", "pink", "rank", "sink", "blank", "ink", "trunk", "drank", "monk"]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w27",
+    "title": "Grade 1 - Week 27",
+    "grade": "1",
+    "week": 27,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "tch, dge",
+        "pattern": "tch",
+        "frequency": "common",
+        "words": [
+          "switch",
+          "pitch",
+          "patch",
+          "scratch",
+          "witch",
+          "sketch",
+          "batch",
+          "ditch",
+          "clutch",
+          "hatch",
+          "notch",
+          "catch"
+        ]
+      },
+      {
+        "sound": "tch, dge",
+        "pattern": "dge",
+        "frequency": "less-common",
+        "words": [
+          "judge",
+          "bridge",
+          "edge",
+          "badge",
+          "lodge",
+          "hedge",
+          "wedge",
+          "dodge",
+          "ridge",
+          "fridge",
+          "fudge",
+          "smudge"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w28",
+    "title": "Grade 1 - Week 28",
+    "grade": "1",
+    "week": 28,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "inflected -ed",
+        "pattern": "ed",
+        "frequency": "common",
+        "words": [
+          "called",
+          "wanted",
+          "asked",
+          "played",
+          "needed",
+          "added",
+          "worked",
+          "looked",
+          "jumped",
+          "walked",
+          "helped",
+          "started"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w29",
+    "title": "Grade 1 - Week 29",
+    "grade": "1",
+    "week": 29,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "inflected -ing",
+        "pattern": "ing",
+        "frequency": "common",
+        "words": [
+          "having",
+          "getting",
+          "looking",
+          "making",
+          "trying",
+          "working",
+          "coming",
+          "taking",
+          "going",
+          "doing",
+          "being",
+          "seeing"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prebuilt-g1-w30",
+    "title": "Grade 1 - Week 30",
+    "grade": "1",
+    "week": 30,
+    "source": "prebuilt",
+    "patterns": [
+      {
+        "sound": "review: long vowels",
+        "pattern": "a_e",
+        "frequency": "common",
+        "words": ["make", "same", "cake", "name", "game", "take", "late", "gave", "date", "save", "brave", "shame"]
+      },
+      {
+        "sound": "review: long vowels",
+        "pattern": "ai",
+        "frequency": "common",
+        "words": ["rain", "pain", "mail", "wait", "train", "main", "brain", "trail", "paint", "chain", "plain", "stain"]
+      }
+    ]
+  }
+]
