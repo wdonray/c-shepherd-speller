@@ -128,6 +128,12 @@ credentials.
   renders the element, every column reserves the same fixed-height slot;
   when none do, render nothing so no dead space appears (found
   2026-10-18: issue #420, present-chart rule boxes misaligned by 56px).
+- **Sticky chrome must outrank card content, not tie it.** Equal z-index
+  ties break by DOM order, so a sticky bar at z-10 loses to card action
+  rows at z-10 that come later in the DOM: scrolling card buttons paint on
+  top of the stuck bar. Give sticky chrome a strictly higher z-index than
+  anything that scrolls beneath it (found 2026-10-18: issue #421, list
+  card Edit/Present/Delete buttons covered the stuck filter bar).
 
 ## Reliability
 
