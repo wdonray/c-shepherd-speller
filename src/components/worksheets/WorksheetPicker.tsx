@@ -29,7 +29,7 @@ export const WORKSHEET_TYPE_INFO: Record<WorksheetType, { title: string; descrip
   },
   crossword: {
     title: 'Crossword',
-    description: 'Clues are sentences using each word.',
+    description: 'Sentence clues with the word blanked out, plus a word bank.',
   },
   reading: {
     title: 'Reading practice',

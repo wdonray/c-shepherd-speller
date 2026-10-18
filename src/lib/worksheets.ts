@@ -162,3 +162,18 @@ export function blankWordInSentence(sentence: string, word: string, pattern: str
   const blanked = blankWordForPattern(sentence.slice(index, index + word.length), pattern)
   return sentence.slice(0, index) + blanked + sentence.slice(index + word.length)
 }
+
+/**
+ * Replace the first case-insensitive occurrence of `word` in `sentence`
+ * with underscores matching its length, blanking the whole word out.
+ * Used for crossword clues, where the sentence gives the context but the
+ * word itself must not be visible. Returns the sentence unchanged when
+ * the word does not occur in it.
+ */
+export function blankWholeWordInSentence(sentence: string, word: string): string {
+  if (word.length === 0) return sentence
+  const index = sentence.toLowerCase().indexOf(word.toLowerCase())
+  if (index === -1) return sentence
+  const blank = '_'.repeat(sentence.slice(index, index + word.length).length)
+  return sentence.slice(0, index) + blank + sentence.slice(index + word.length)
+}

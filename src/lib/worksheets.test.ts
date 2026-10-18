@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SpellingPattern, WordList } from '@/models/WordList'
 import {
+  blankWholeWordInSentence,
   blankWordForPattern,
   blankWordInSentence,
   extractWorksheetWords,
@@ -217,5 +218,23 @@ describe('blankWordInSentence', () => {
 
   it('returns the sentence unchanged for an empty word', () => {
     expect(blankWordInSentence('The rain fell.', '', 'a_e')).toBe('The rain fell.')
+  })
+})
+
+describe('blankWholeWordInSentence', () => {
+  it('blanks the entire word with matching underscores, keeping sentence casing', () => {
+    expect(blankWholeWordInSentence('We baked a Cake for the party.', 'cake')).toBe('We baked a ____ for the party.')
+  })
+
+  it('blanks only the first occurrence', () => {
+    expect(blankWholeWordInSentence('Cake, cake, cake.', 'cake')).toBe('____, cake, cake.')
+  })
+
+  it('returns the sentence unchanged when the word is absent', () => {
+    expect(blankWholeWordInSentence('The rain fell.', 'cake')).toBe('The rain fell.')
+  })
+
+  it('returns the sentence unchanged for an empty word', () => {
+    expect(blankWholeWordInSentence('The rain fell.', '')).toBe('The rain fell.')
   })
 })
