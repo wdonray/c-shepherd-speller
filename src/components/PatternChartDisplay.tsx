@@ -364,7 +364,11 @@ export default function PatternChartDisplay({
           type="button"
           onClick={() => openAnalysis(word, pattern)}
           aria-label={`Analyze the word ${word}`}
-          className="flex min-h-[44px] flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          // Issue #415: a long word keeps the button at its max-content
+          // width and bleeds past the card edge on the projector. min-w-0
+          // lets the flex item shrink inside the card, break-words wraps
+          // the long word instead of overflowing it.
+          className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold break-words text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
           {showUnderlines ? renderUnderlinedWord(word, pattern) : word}
         </button>

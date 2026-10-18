@@ -164,6 +164,21 @@ describe('PatternChartDisplay', () => {
     )
   })
 
+  it('wraps long words inside their cards instead of overflowing (issue #415)', () => {
+    const longWord = 'antidisestablishmentarianism'
+    const longList: WordList = {
+      ...list,
+      patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: [longWord] }],
+    }
+    render(<PatternChartDisplay list={longList} />)
+    const button = screen.getByRole('button', { name: `Analyze the word ${longWord}` })
+    // The button must be allowed to shrink inside the flex card (min-w-0)
+    // and the long word must wrap (break-words); without both, the button
+    // keeps its max-content width and bleeds past the card edge on the
+    // projector.
+    expect(button).toHaveClass('min-w-0', 'break-words')
+  })
+
   it('renders no lock toggles when onToggleLock is absent', () => {
     render(<PatternChartDisplay list={list} />)
     expect(screen.queryByRole('button', { name: /lock pattern/i })).not.toBeInTheDocument()
