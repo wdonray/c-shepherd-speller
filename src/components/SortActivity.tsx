@@ -18,7 +18,7 @@ import {
   type DragOverEvent,
   type Modifier,
 } from '@dnd-kit/core'
-import { XIcon, CheckIcon, UsersIcon, RotateCcwIcon } from 'lucide-react'
+import { XIcon, CheckIcon, UsersIcon, RotateCcwIcon, GripVerticalIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { LIFT_TRANSITION, PICKUP_SHADOW, feedbackAnimate, settleTransition } from '@/lib/sort-motion'
@@ -279,7 +279,7 @@ function SortableWordCard({
         transition={settleTransition()}
         animate={feedbackAnimate(correct)}
         className={cn(
-          'flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
+          'relative flex min-h-[56px] min-w-[120px] cursor-grab items-center justify-center rounded-[14px] border-2 px-4 py-3 text-[24px] font-bold outline-none transition-colors select-none [-webkit-user-select:none]',
           'border-line bg-card text-ink hover:border-sky-deep hover:bg-sky-soft',
           'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:cursor-grabbing',
           // The DragOverlay renders the floating copy; hide the original
@@ -289,6 +289,14 @@ function SortableWordCard({
           correct === false && 'border-coral bg-coral-soft'
         )}
       >
+        {/* Visual drag affordance (issue #389): the same GripVerticalIcon
+            pattern as list-page reorder mode. Decorative; the button's
+            aria-label remains the accessible name. Absolutely positioned so
+            the word stays centered and card geometry is unchanged. */}
+        <GripVerticalIcon
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/50"
+        />
         {renderWordWithUnderline(entry.word, pattern, correct)}
         {correct && <CheckIcon className="ml-2 size-5 text-leaf-ink" aria-label="Correct" />}
         {correct === false && <XIcon className="ml-2 size-5 text-coral-ink" aria-label="Incorrect" />}

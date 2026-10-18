@@ -79,6 +79,16 @@ describe('SortActivity', () => {
     expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word said' })).toBeInTheDocument()
+    // Every word card shows the subtle, decorative drag grip (issue #389):
+    // the same GripVerticalIcon pattern as list-page reorder mode, hidden
+    // from assistive tech since the button's label is the accessible name.
+    for (const word of ['cake', 'bake', 'rain', 'said']) {
+      const card = screen.getByRole('button', { name: `Drag the word ${word}` })
+      const grip = card.querySelector('svg')
+      expect(grip).not.toBeNull()
+      expect(grip).toHaveAttribute('aria-hidden', 'true')
+      expect(grip).toHaveClass('text-muted-foreground/50')
+    }
     // Columns show drop targets.
     expect(screen.getAllByText('Drop words here')).toHaveLength(3)
   })
