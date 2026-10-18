@@ -747,6 +747,9 @@ describe('ListEditorPage', () => {
       },
       { timeout: 4000 }
     )
+    // After Saved clears, the card returns to the always-present
+    // "nothing changed" status (issue #409).
+    expect(screen.getByText('Nothing to save')).toBeInTheDocument()
   })
 
   it('clears a pending Saved timer when a new save starts', async () => {
@@ -934,6 +937,23 @@ describe('ListEditorPage', () => {
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument())
   })
 
+  it('always shows the floating save card, even when nothing changed (issue #409)', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady()
+
+    // Idle and clean: the floating card is still present, reporting the
+    // "nothing changed" status, so the teacher always has confidence in
+    // the state of the form.
+    expect(screen.getByText('Nothing to save')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
+    await waitForSave()
+    await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Nothing to save')).toBeInTheDocument(), {
+      timeout: 4000,
+    })
+  })
+
   it('floats the save status box bottom-right without taking layout space', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
@@ -948,7 +968,9 @@ describe('ListEditorPage', () => {
     expect(region?.className).toMatch(/right-/)
     expect(region?.className).toMatch(/z-40/)
 
-    // Idle and clean: the region is mounted but shows no status.
+    // Idle and clean (issue #409): the card is always present, showing the
+    // "nothing changed" status.
+    expect(screen.getByText('Nothing to save')).toBeInTheDocument()
     expect(screen.queryByText('Saving...')).not.toBeInTheDocument()
     expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument()
     expect(screen.queryByText('Saved')).not.toBeInTheDocument()

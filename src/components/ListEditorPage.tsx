@@ -70,9 +70,11 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
  * controls, and z-40 sits above page content but below dialogs (z-50) and
  * the error toaster (z-100).
  *
- * The live region itself stays mounted from page load; only the pill inside
- * comes and goes. Mounting the region and its first message in the same
- * render risks screen readers missing the announcement.
+ * The live region itself stays mounted from page load, and the pill is
+ * always rendered with a status for every state (idle, saving, unsaved,
+ * saved; issue #409), so the teacher always has confidence in the state of
+ * the form. Mounting the region and its first message in the same render
+ * risks screen readers missing the announcement.
  */
 function SaveIndicator({
   status,
@@ -130,7 +132,14 @@ function SaveStatusPill({
       </p>
     )
   }
-  return null
+  // Idle and clean (issue #409): the card is always present, so it gets a
+  // status for every state, including "nothing changed".
+  return (
+    <p className={pillClassName}>
+      <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-muted-foreground" />
+      Nothing to save
+    </p>
+  )
 }
 
 function ListEditorSkeleton() {
