@@ -158,7 +158,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
     expect(screen.getByRole('region', { name: 'Pattern a_e' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
@@ -172,7 +173,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
     const printLink = screen.getByRole('link', { name: 'Print chart' })
     expect(printLink).toHaveAttribute('href', '/lists/l1/print')
   })
@@ -185,18 +187,21 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
     // Issue #263: no "Who is sorting?" picker; the list's classroom flows silently.
     expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
   })
 
   it('shows a full screen button in the chart header when supported', async () => {
@@ -277,7 +282,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(mockPush).not.toHaveBeenCalled()
     expect(mockBack).not.toHaveBeenCalled()
@@ -291,7 +297,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(within(screen.getByRole('main')).getByText('Week 5')).toBeInTheDocument()
     })
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    // Issue #379: the pattern sound always renders under the pattern name.
+    expect(screen.getAllByText('long a')).toHaveLength(1)
     fireEvent.keyDown(window, { key: 'Enter' })
     expect(mockPush).not.toHaveBeenCalledWith('/display')
   })

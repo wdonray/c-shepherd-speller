@@ -89,6 +89,14 @@ describe('SortActivity', () => {
     expect(screen.queryByText('Odd ducks, already placed')).not.toBeInTheDocument()
   })
 
+  it('shows each pattern sound under its pattern in the drop columns (issue #379)', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    for (const pattern of ['a_e', 'ai', 'odd']) {
+      const column = screen.getByRole('region', { name: `Pattern ${pattern} drop column` })
+      expect(within(column).getByText('long a')).toBeInTheDocument()
+    }
+  })
+
   it('shows word-level odd ducks as already placed and excludes them from the bank', () => {
     const oddList: WordList = {
       ...list,

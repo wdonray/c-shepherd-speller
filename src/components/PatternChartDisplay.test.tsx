@@ -20,10 +20,11 @@ const list: WordList = {
 }
 
 describe('PatternChartDisplay', () => {
-  it('shows the list name as the header, not a sound', () => {
+  it('shows the list name as the chart header, with each pattern sound under its pattern (issue #379)', () => {
     render(<PatternChartDisplay list={list} />)
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
-    expect(screen.queryByText('long a')).not.toBeInTheDocument()
+    const aE = screen.getByRole('region', { name: 'Pattern a_e' })
+    expect(within(aE).getByText('long a')).toBeInTheDocument()
   })
 
   it('shows the list name even when patterns disagree on sound', () => {
@@ -37,8 +38,15 @@ describe('PatternChartDisplay', () => {
     }
     render(<PatternChartDisplay list={mixed} />)
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    // Issue #379: each column shows its own pattern's sound under the pattern.
+    expect(within(screen.getByRole('region', { name: 'Pattern a_e' })).getByText('long a')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Pattern e' })).getByText('short e')).toBeInTheDocument()
+  })
+
+  it('does not show pattern sounds in the print variant (issue #379 scopes to present and sort)', () => {
+    render(<PatternChartDisplay list={list} variant="print" />)
+    expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     expect(screen.queryByText('long a')).not.toBeInTheDocument()
-    expect(screen.queryByText('short e')).not.toBeInTheDocument()
   })
 
   it('falls back to Untitled list when the list has no name', () => {

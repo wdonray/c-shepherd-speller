@@ -283,6 +283,11 @@ export default function PatternChartDisplay({
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
             {renderLockToggle(pattern)}
           </div>
+          {/* Issue #379: the pattern's target sound always reads under the
+              pattern name. Present-mode projector size keeps it subtle but
+              readable from the back of the room. The print poster keeps its
+              existing layout (see issue #402). */}
+          {!isPrint && <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>}
           <div className="mt-2 flex items-center justify-center gap-2">
             <PowerBar level={level} filledClassName="bg-ink" />
             <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
