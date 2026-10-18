@@ -287,4 +287,28 @@
   body:has(.print-page) .fixed {
     display: none !important;
   }
+
+  /* Worksheet print job (issue #402): one worksheet per unbroken block,
+     the answer key always starts on a fresh page. */
+  .worksheet-sheet {
+    break-inside: avoid;
+  }
+
+  .answer-key-break {
+    break-before: page;
+  }
+
+  /* Blanked pattern letters: spaced underscores with an underline. */
+  .worksheet-blank {
+    letter-spacing: 0.25em;
+    border-bottom: 2px solid #000;
+    font-weight: bold;
+  }
+
+  /* Crossword blocked cells: solid black squares. */
+  .crossword-blocked {
+    background: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

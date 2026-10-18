@@ -130,3 +130,16 @@ credentials.
   (a few seconds) and no retries (found 2026-10-17: dictionaryapi.dev
   flaked, and the sentences dialog sat on a spinner for ~21s before falling
   back to the local bank).
+
+## Testing
+
+- **In Playwright, `page.request` shares the browser context's cookies; the
+  bare `request` fixture does not.** Authenticated API calls in e2e specs
+  must go through `page.request`, or they arrive without the minted session
+  cookie and 401 (found 2026-10-18: issue #402, the worksheets e2e seeded
+  lists through the wrong fixture).
+- **Never key a fetch effect on a derived array.** The fresh array identity
+  re-runs the effect on every render, and the previous run's cleanup cancels
+  the in-flight request, so the data never lands. Fetch per row on mount, or
+  key the effect on a stable scalar (found 2026-10-18: issue #402, the
+  sentence-suggestion fetch).
