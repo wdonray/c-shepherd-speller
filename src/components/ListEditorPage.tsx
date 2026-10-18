@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
-import { CheckCircle2Icon } from 'lucide-react'
+import { CheckCircle2Icon, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -721,6 +721,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
       <div className="flex items-center justify-between gap-4">
         <BackBreadcrumb href="/lists" label="My spelling lists" />
+        <Button asChild variant="secondary" className="shrink-0">
+          <Link href={`/lists/${list.id}/worksheets`}>
+            <PrinterIcon className="size-4" aria-hidden="true" />
+            Worksheets
+          </Link>
+        </Button>
       </div>
 
       <div>
