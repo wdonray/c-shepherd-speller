@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import PracticePage from './page'
 import type { WordList } from '@/models/WordList'
 
@@ -136,5 +136,17 @@ describe('PracticePage', () => {
     })
     expect(screen.getByRole('link', { name: 'Practice' })).toHaveAttribute('href', '/practice')
     expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it('returns to the picker from the empty-list state via the page onExit path', async () => {
+    mockSearchParams.get.mockReturnValue('l1')
+    getList.mockResolvedValue({ ...list, patterns: [] })
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('This list has no words yet')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Back to lists' }))
+    expect(mockPush).toHaveBeenCalledWith('/practice')
   })
 })
