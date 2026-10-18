@@ -73,8 +73,12 @@ test.describe('lists toolbar stacking', () => {
       // The sticky filter bar itself (not the "List views" tablist, which
       // only renders when the teacher has favorites).
       const stickyToolbar = document.querySelector('[data-testid="lists-filter-toolbar"]')
+      const toolbarRect = stickyToolbar?.getBoundingClientRect()
       return {
         buttonCenter: { x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2) },
+        scrollY: Math.round(window.scrollY),
+        toolbarRect: toolbarRect ? { top: Math.round(toolbarRect.top), bottom: Math.round(toolbarRect.bottom) } : null,
+        toolbarZ: stickyToolbar ? getComputedStyle(stickyToolbar).zIndex : 'missing',
         topmostTag: el?.tagName,
         topmostText: (el?.textContent ?? '').slice(0, 40),
         topmostIsToolbar: !!stickyToolbar && stickyToolbar.contains(el),
@@ -83,9 +87,10 @@ test.describe('lists toolbar stacking', () => {
     })
 
     expect(hit.error ?? null).toBeNull()
+    const diag = `hit=${JSON.stringify(hit)}`
     // The toolbar must occlude the card button: the topmost element at the
     // button's center belongs to the toolbar, never to the card.
-    expect(hit.topmostIsToolbar).toBe(true)
-    expect(hit.topmostIsCardButton).toBe(false)
+    expect(hit.topmostIsToolbar, diag).toBe(true)
+    expect(hit.topmostIsCardButton, diag).toBe(false)
   })
 })
