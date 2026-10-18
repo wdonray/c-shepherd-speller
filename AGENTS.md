@@ -83,6 +83,14 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **A bare `grid` blows out past fixed widths.** An implicit `auto` grid
+  column sizes to the largest min-content contribution, so any `nowrap`
+  descendant (`truncate` titles, long URLs) forces a fixed-width grid
+  container wider than its `max-w`. Constrain the column with
+  `minmax(0, 1fr)` (as the shared DialogContent does) or put `min-w-0` on
+  the grid items; `min-w-0` on a deeper flex child is not enough because
+  the blowout is measured at the grid level (found 2026-10-18: issue #434,
+  the song videos modal overflowed its dialog on mobile).
 - **Full screen must own its exit path.** When full screen hides the only
   visible exit control, register an explicit Escape handler that calls
   `document.exitFullscreen()`; native Esc-to-exit varies across classroom
