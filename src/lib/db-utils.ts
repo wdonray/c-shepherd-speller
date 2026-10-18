@@ -1,6 +1,7 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
 import { IUser, USER_TABLE_NAME, createUserItem, updateUserTimestamps } from '../models/User'
+import type { BlockedVideo } from '../models/User'
 import { reportError } from './report-error'
 
 // Helper function to generate consistent DynamoDB keys from userId
@@ -58,6 +59,7 @@ export async function updateUser(
     preferredName?: string
     image?: string
     defaultClassId?: string | null
+    blockedVideos?: BlockedVideo[]
   }
 ): Promise<IUser> {
   // Field-scoped update (issue #263): only the provided attributes are

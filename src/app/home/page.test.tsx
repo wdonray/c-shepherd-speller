@@ -12,6 +12,20 @@ vi.mock('next/navigation', () => ({
 const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+// useBlockedVideos reads the session via useSession, which throws without a
+// SessionProvider; stub the hook so these tests render the real components.
+useBlockedVideos.mockReturnValue({
+  blockedVideos: [],
+  blockedVideoIds: new Set<string>(),
+  isLoaded: true,
+  userId: null,
+  blockVideo: vi.fn(),
+  unblockVideo: vi.fn(),
+})
+
 const list: WordList = {
   id: 'l1',
   userId: 'u1',

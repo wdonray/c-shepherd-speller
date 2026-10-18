@@ -5,12 +5,45 @@ import { UpdateUserBody } from '@/types/User'
 import { requireOwnership } from '@/lib/require-auth'
 import { reportError } from '@/lib/report-error'
 import { noStore, noStoreJson } from '@/lib/no-store'
+import { isYouTubeVideoId } from '@/lib/youtube'
+import type { BlockedVideo } from '@/models/User'
 
 export const dynamic = 'force-dynamic'
 
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(jpeg|png|webp);base64,/
 const IMAGE_MAX_LENGTH = 140_000
 const CLASS_ID_MAX_LENGTH = 100
+const BLOCKED_VIDEO_TITLE_MAX_LENGTH = 200
+const BLOCKED_VIDEO_CHANNEL_MAX_LENGTH = 100
+/** Upper bound on the hidden-video list; a teacher hides a handful, not thousands. */
+const BLOCKED_VIDEOS_MAX_COUNT = 200
+
+/**
+ * Validate and sanitize the teacher's hidden-video list (issue #443).
+ * Entries are title/channel snapshots taken at block time; the list is
+ * deduplicated by video ID (first wins) so repeats are harmless.
+ */
+function parseBlockedVideos(input: unknown): { ok: true; value: BlockedVideo[] } | { ok: false } {
+  if (!Array.isArray(input) || input.length > BLOCKED_VIDEOS_MAX_COUNT) return { ok: false }
+  const seen = new Set<string>()
+  const value: BlockedVideo[] = []
+  for (const entry of input) {
+    if (typeof entry !== 'object' || entry === null) return { ok: false }
+    const { videoId, title, channel } = entry as Record<string, unknown>
+    if (typeof videoId !== 'string' || !isYouTubeVideoId(videoId)) return { ok: false }
+    if (typeof title !== 'string' || !title.trim() || title.length > BLOCKED_VIDEO_TITLE_MAX_LENGTH) {
+      return { ok: false }
+    }
+    if (channel !== undefined && (typeof channel !== 'string' || channel.length > BLOCKED_VIDEO_CHANNEL_MAX_LENGTH)) {
+      return { ok: false }
+    }
+    if (seen.has(videoId)) continue
+    seen.add(videoId)
+    const cleanChannel = typeof channel === 'string' ? channel.trim() : ''
+    value.push({ videoId, title: title.trim(), ...(cleanChannel ? { channel: cleanChannel } : {}) })
+  }
+  return { ok: true, value }
+}
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,7 +53,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (auth.response) return auth.response
 
     const body = await request.json()
-    const { name, gradeLevel, subject, schoolName, classroomSize, preferredName, image, defaultClassId } = body
+    const {
+      name,
+      gradeLevel,
+      subject,
+      schoolName,
+      classroomSize,
+      preferredName,
+      image,
+      defaultClassId,
+      blockedVideos,
+    } = body
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -61,6 +104,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       } else {
         updateData.defaultClassId = null
       }
+    }
+    if (blockedVideos !== undefined) {
+      const parsed = parseBlockedVideos(blockedVideos)
+      if (!parsed.ok) {
+        return NextResponse.json({ error: 'Invalid hidden videos' }, { status: 400 })
+      }
+      updateData.blockedVideos = parsed.value
     }
 
     // A default-class-only update uses a field-scoped write so it cannot

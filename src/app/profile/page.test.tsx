@@ -9,6 +9,9 @@ vi.mock('@/components/ProfileForm', () => ({
 vi.mock('@/components/DeleteAccountSection', () => ({
   default: () => <div data-testid="delete-account-section" />,
 }))
+vi.mock('@/components/HiddenVideosSection', () => ({
+  default: () => <div data-testid="hidden-videos-section" />,
+}))
 
 describe('ProfilePage', () => {
   afterEach(() => {
@@ -32,6 +35,12 @@ describe('ProfilePage', () => {
     render(<ProfilePage />)
 
     expect(screen.getByTestId('delete-account-section')).toBeInTheDocument()
+  })
+
+  it('renders the hidden videos section', () => {
+    render(<ProfilePage />)
+
+    expect(screen.getByTestId('hidden-videos-section')).toBeInTheDocument()
   })
 
   it('does not render a sign out button', () => {
