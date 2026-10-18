@@ -35,8 +35,6 @@ import { getErrorMessage, toastError } from '@/lib/error-toast'
 
 /** How long to wait after the last edit before auto-saving. */
 const SAVE_DEBOUNCE_MS = 500
-/** How long the "Saved" confirmation stays visible. */
-const SAVED_MESSAGE_MS = 2000
 /** How long the bottom "Add a pattern" button's shift animation runs. */
 const BUTTON_SHIFT_MS = 300
 
@@ -195,7 +193,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
    */
   const classRulesSeqRef = useRef(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Latest list waiting for a debounced save; flushed on unmount. */
   const pendingSaveRef = useRef<WordList | null>(null)
   /** Sequence for classroom saves; only the latest may commit or revert. */
@@ -307,7 +304,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
       const pending = pendingSaveRef.current
       pendingSaveRef.current = null
       if (pending && pending.name.trim()) {
@@ -360,10 +356,6 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   async function doSave(next: WordList): Promise<void> {
     pendingSaveRef.current = null
     setHasPendingSave(false)
-    if (savedTimerRef.current) {
-      clearTimeout(savedTimerRef.current)
-      savedTimerRef.current = null
-    }
     // The API requires a non-empty name; skip the save and let the teacher
     // keep typing instead of flashing an error.
     if (!next.name.trim()) {
@@ -409,10 +401,10 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         return stillUnsaved
       })
       setSaveFailed(false)
+      // Once a save succeeds, the status sits on "Saved" until the next
+      // save starts ("Saving...") or unsaved changes appear (issue #417);
+      // the "Nothing to save" status belongs to first load only.
       setSaveStatus('saved')
-      savedTimerRef.current = setTimeout(() => {
-        setSaveStatus('idle')
-      }, SAVED_MESSAGE_MS)
     } catch (error) {
       reportError(error, { location: 'ListEditorPage.doSave' })
       setSaveFailed(true)

@@ -733,7 +733,7 @@ describe('ListEditorPage', () => {
     expect(container.querySelector('.bg-leaf.h-2')).not.toBeInTheDocument()
   })
 
-  it('hides the Saved indicator after two seconds', async () => {
+  it('keeps the Saved indicator after the first save (issue #417)', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
 
@@ -741,18 +741,16 @@ describe('ListEditorPage', () => {
     await waitForSave()
     expect(screen.getByText('Saved')).toBeInTheDocument()
 
-    await waitFor(
-      () => {
-        expect(screen.queryByText('Saved')).not.toBeInTheDocument()
-      },
-      { timeout: 4000 }
-    )
-    // After Saved clears, the card returns to the always-present
-    // "nothing changed" status (issue #409).
-    expect(screen.getByText('Nothing to save')).toBeInTheDocument()
+    // Once a save has succeeded, the card must sit on "Saved" instead of
+    // falling back to the "nothing changed" status (which only belongs on
+    // first load, before anything has been saved). Sleep past the old 2s
+    // auto-clear window to prove the reversion is gone.
+    await new Promise((resolve) => setTimeout(resolve, 2600))
+    expect(screen.getByText('Saved')).toBeInTheDocument()
+    expect(screen.queryByText('Nothing to save')).not.toBeInTheDocument()
   })
 
-  it('clears a pending Saved timer when a new save starts', async () => {
+  it('shows Saved again after a second save, without ever returning to Nothing to save (issue #417)', async () => {
     updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
     await renderReady()
 
@@ -760,11 +758,12 @@ describe('ListEditorPage', () => {
     await waitForSave()
     expect(screen.getByText('Saved')).toBeInTheDocument()
 
-    // A second edit before the 2s Saved timer elapses must clear it.
+    // A second edit starts a new save cycle and lands back on Saved.
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed again' } })
     await waitFor(() => expect(updateList).toHaveBeenCalledTimes(2), { timeout: 3000 })
     await waitFor(() => expect(screen.queryByText('Saving...')).not.toBeInTheDocument(), { timeout: 3000 })
     expect(screen.getByText('Saved')).toBeInTheDocument()
+    expect(screen.queryByText('Nothing to save')).not.toBeInTheDocument()
   })
 
   it('dismisses the delete dialog with the close button', async () => {
@@ -949,9 +948,9 @@ describe('ListEditorPage', () => {
     fireEvent.change(screen.getByLabelText('List name'), { target: { value: 'Renamed' } })
     await waitForSave()
     await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
-    await waitFor(() => expect(screen.getByText('Nothing to save')).toBeInTheDocument(), {
-      timeout: 4000,
-    })
+    // Once a save succeeds the card sits on "Saved" (issue #417); the
+    // "nothing changed" status belongs to first load only.
+    expect(screen.queryByText('Nothing to save')).not.toBeInTheDocument()
   })
 
   it('floats the save status box bottom-right without taking layout space', async () => {
