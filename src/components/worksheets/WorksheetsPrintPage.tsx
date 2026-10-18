@@ -195,16 +195,19 @@ function WorksheetsJob({
       const next = { ...prev }
       for (const word of gapWords) {
         // The button stays disabled until every gap word has loaded its
-        // suggestions, so this lookup always hits.
+        // suggestions, so this lookup always hits an own property.
         const first = suggestionsByWord[word.word][0]
-        if (first !== undefined && (next[word.word] ?? '').trim() === '') {
+        // hasOwn: a word like "constructor" would otherwise read the
+        // inherited Object constructor off the prototype and crash on trim().
+        const typed = Object.hasOwn(next, word.word) ? next[word.word] : ''
+        if (first !== undefined && typed.trim() === '') {
           next[word.word] = first
         }
       }
       return next
     })
   }
-  const allSuggestionsLoaded = gapWords.every((w) => suggestionsByWord[w.word] !== undefined)
+  const allSuggestionsLoaded = gapWords.every((w) => Object.hasOwn(suggestionsByWord, w.word))
 
   const job: PrintJob | null = useMemo(() => {
     if (showGaps) return null
@@ -285,7 +288,9 @@ function WorksheetsJob({
               key={word.word}
               word={word}
               busy={busyWord !== null}
-              typedValue={typedSentences[word.word] ?? ''}
+              // hasOwn: a word like "constructor" would otherwise read the
+              // inherited Object constructor off the prototype.
+              typedValue={Object.hasOwn(typedSentences, word.word) ? typedSentences[word.word] : ''}
               onTypedChange={(value) => setTypedSentences((prev) => ({ ...prev, [word.word]: value }))}
               onSaveSentence={(sentence) => saveSentence(word.word, sentence)}
               onRemove={() => removeWord(word.word)}

@@ -322,6 +322,23 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.getByRole('button', { name: 'Accept all suggestions' })).toBeDisabled()
     })
 
+    it('treats a prototype-named word like an ordinary word', async () => {
+      // "constructor" reads the inherited Object constructor off a plain
+      // object; lookups must be prototype-safe.
+      getList.mockResolvedValue({
+        ...list,
+        patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['constructor'] }],
+      })
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+
+      const acceptAll = screen.getByRole('button', { name: 'Accept all suggestions' })
+      await waitFor(() => expect(acceptAll).toBeEnabled())
+      fireEvent.click(acceptAll)
+      expect(screen.getByLabelText(/Or write your own sentence/)).toHaveValue('Bake the bread.')
+      expect(updateList).not.toHaveBeenCalled()
+    })
+
     it('shows an error state for a non-Error rejection', async () => {
       getList.mockRejectedValueOnce('a string, not an Error')
       render(<WorksheetsPrintPage listId="l1" selectedTypes={ALL_TYPES} />)
