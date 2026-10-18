@@ -59,7 +59,7 @@ const list: WordList = {
   patterns: [
     { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
     { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
-    { id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'], isOddDuck: true },
+    { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['said'] },
   ],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',
@@ -71,46 +71,29 @@ describe('SortActivity', () => {
     playIncorrectSound.mockClear()
   })
 
-  it('starts with all sortable words in the tray and empty columns', () => {
+  it('starts with all words in the tray and empty columns', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
-    // All 3 sortable words in the tray.
+    // All 4 words in the tray.
     expect(screen.getByRole('button', { name: 'Drag the word cake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag the word rain' })).toBeInTheDocument()
-    // Former odd duck words are now in the bank like any other word.
     expect(screen.getByRole('button', { name: 'Drag the word said' })).toBeInTheDocument()
     // Columns show drop targets.
     expect(screen.getAllByText('Drop words here')).toHaveLength(3)
   })
 
-  it('does not show an odd ducks section even when a pattern has isOddDuck set', () => {
+  it('does not show an odd ducks section', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    expect(screen.queryByText('Odd ducks, already placed')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Odd ducks/)).not.toBeInTheDocument()
   })
 
   it('shows each pattern sound under its pattern in the drop columns (issue #379)', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
-    for (const pattern of ['a_e', 'ai', 'odd']) {
+    for (const pattern of ['a_e', 'ai', 'eigh']) {
       const column = screen.getByRole('region', { name: `Pattern ${pattern} drop column` })
       expect(within(column).getByText('long a')).toBeInTheDocument()
     }
-  })
-
-  it('shows word-level odd ducks as already placed and excludes them from the bank', () => {
-    const oddList: WordList = {
-      ...list,
-      patterns: [
-        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
-        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'pain'] },
-      ],
-    }
-    render(<SortActivity list={oddList} onExit={vi.fn()} />)
-    expect(screen.getByText('Odd ducks, already placed')).toBeInTheDocument()
-    expect(screen.getByText(/cake.*these spellings do not follow the patterns/)).toBeInTheDocument()
-    // The odd duck is not in the sortable bank.
-    expect(screen.queryByRole('button', { name: 'Drag the word cake' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Drag the word bake' })).toBeInTheDocument()
   })
 
   it('renders sort columns at equal widths regardless of pattern frequency', () => {

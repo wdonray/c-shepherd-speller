@@ -81,7 +81,7 @@ describe('DisplayMode', () => {
     const loading = screen.getByRole('status', { name: 'Loading chart' })
     expect(loading).toBeInTheDocument()
     // The chart's layout is unknowable while loading (pattern count, word
-    // counts, rule text, odd ducks, keyword media), so the loading state
+    // counts, rule text, keyword media), so the loading state
     // must not mimic page geometry: nothing may shift when the chart arrives.
     expect(loading.querySelector('.sticky')).not.toBeInTheDocument()
     expect(loading.querySelector('[data-chart-columns]')).not.toBeInTheDocument()

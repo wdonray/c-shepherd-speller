@@ -4,13 +4,12 @@ import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Volume2Icon, VolumeXIcon, CheckIcon, StarIcon } from 'lucide-react'
+import { Volume2Icon, VolumeXIcon, CheckIcon, StarIcon, RotateCcwIcon } from 'lucide-react'
 import { playCorrectSound, playIncorrectSound, isSoundEnabled, setSoundEnabled } from '@/lib/sound-effects'
 import type { WordList } from '@/models/WordList'
 import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
-import { OddDuck } from './OddDuck'
 import BackBreadcrumb from './BackBreadcrumb'
 
 interface PracticeModeProps {
@@ -276,7 +275,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
     reviewQueue.size > 0 && !reviewMode ? (
       <div className="mx-auto w-fit">
         <div className="inline-flex items-center gap-2 rounded-full border-2 border-plum bg-plum-soft px-5 py-2.5">
-          <OddDuck className="size-8 text-plum" />
+          <RotateCcwIcon className="size-8 text-plum" aria-hidden="true" />
           <span className="text-[15px] font-bold text-plum-ink">
             {`Review: ${reviewQueue.size} ${reviewQueue.size === 1 ? 'word' : 'words'}`}
           </span>
@@ -358,7 +357,7 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
       {reviewMode ? (
         <div className="rounded-[20px] border-2 border-plum bg-plum-soft p-6">
           <div className="flex items-center gap-4">
-            <OddDuck className="size-[52px] shrink-0 text-plum" label="Odd duck illustration" />
+            <RotateCcwIcon className="size-[52px] shrink-0 text-plum" aria-label="Review illustration" />
             <div>
               <p className="text-xl font-bold text-plum-ink">{`Review ${reviewIndex + 1} of ${reviewWords.length}`}</p>
               <p className="text-sm text-plum-ink">Spell each word right twice to clear it.</p>

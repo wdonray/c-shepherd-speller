@@ -84,7 +84,7 @@ const list: WordList = {
   patterns: [
     { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
     { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] },
-    { id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'], isOddDuck: true },
+    { id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'] },
   ],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',

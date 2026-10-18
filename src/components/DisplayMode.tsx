@@ -32,7 +32,7 @@ const PICKER_DESCRIPTION =
  * Centered loading spinner for the present page (issue #366, per the rule
  * Donray set in #388): skeleton loaders are only for pages whose layout is
  * known while loading. The present page's layout is unknowable up front
- * (pattern count, words per pattern, rule text, odd ducks, keyword media,
+ * (pattern count, words per pattern, rule text, keyword media,
  * class pill), and the skeleton placeholders could never match it, so a
  * centered spinner replaces both of them. Nothing is drawn that could shift
  * when the real content arrives.

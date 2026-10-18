@@ -9,31 +9,18 @@ const list: WordList = {
   patterns: [
     { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'] },
     { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'pain'] },
-    { id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'], isOddDuck: true },
+    { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['said'] },
   ],
   createdAt: '2026-10-06T00:00:00.000Z',
   updatedAt: '2026-10-06T00:00:00.000Z',
 }
 
 describe('buildWordBank', () => {
-  it('collects words from all patterns including former pattern odd ducks', () => {
+  it('collects words from all patterns', () => {
     const bank = buildWordBank(list)
     expect(bank).toHaveLength(5)
     const words = bank.map((b) => b.word).sort()
     expect(words).toEqual(['bake', 'cake', 'pain', 'rain', 'said'])
-  })
-
-  it('excludes word-level odd ducks from the bank', () => {
-    const oddList: WordList = {
-      ...list,
-      patterns: [
-        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake'], oddDucks: ['cake'] },
-        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'pain'] },
-      ],
-    }
-    const bank = buildWordBank(oddList)
-    const words = bank.map((b) => b.word).sort()
-    expect(words).toEqual(['bake', 'pain', 'rain'])
   })
 
   it('tags each word with its pattern id', () => {
@@ -57,14 +44,14 @@ describe('buildWordBank', () => {
     expect(bank[0]!.id).not.toBe(bank[1]!.id)
   })
 
-  it('returns an empty bank when there are no sortable words', () => {
+  it('returns an empty bank when there are no words', () => {
     const empty: WordList = { ...list, patterns: [] }
     expect(buildWordBank(empty)).toEqual([])
-    const onlyOdd: WordList = {
+    const onePattern: WordList = {
       ...list,
-      patterns: [{ id: 'p3', sound: 'long a', pattern: 'odd', frequency: 'rare', words: ['said'], isOddDuck: true }],
+      patterns: [{ id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['said'] }],
     }
-    expect(buildWordBank(onlyOdd)).toHaveLength(1)
+    expect(buildWordBank(onePattern)).toHaveLength(1)
   })
 
   it('shuffles the bank (order varies across runs)', () => {
@@ -76,7 +63,7 @@ describe('buildWordBank', () => {
           .join(',')
       )
     }
-    // With 4! = 24 possible orders, 20 draws should almost never all match.
+    // With 5! = 120 possible orders, 20 draws should almost never all match.
     expect(orders.size).toBeGreaterThan(1)
   })
 })
