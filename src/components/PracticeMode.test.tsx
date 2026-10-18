@@ -167,7 +167,7 @@ describe('PracticeMode', () => {
     const alert = screen.getByRole('alert')
     expect(alert).toHaveTextContent('Not quite. The word is:')
     expect(alert).toHaveTextContent('cake')
-    expect(alert).toHaveTextContent('Look at the a_e pattern, then try again.')
+    expect(alert).toHaveTextContent('Look at the a_e pattern, listen to the word, then try again.')
     expect(answerInput()).toHaveClass('bg-coral-soft')
     expect(screen.getByText('Review: 1 word')).toBeInTheDocument()
     expect(screen.getByText(/"kake" joined your review list/)).toBeInTheDocument()
@@ -209,6 +209,8 @@ describe('PracticeMode', () => {
     render(<PracticeMode list={list} onExit={vi.fn()} />)
     fireEvent.change(answerInput(), { target: { value: 'kake' } })
     check()
+    // The revealed answer must be heard before retrying (issue #412).
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word' }))
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(answerInput()).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Hear the word' })).toBeInTheDocument()
@@ -216,6 +218,34 @@ describe('PracticeMode', () => {
     fireEvent.change(answerInput(), { target: { value: 'cake' } })
     check()
     expect(screen.getByRole('status')).toHaveTextContent('Correct! Nice work.')
+  })
+
+  it('disables Try again until the word is played after a miss', () => {
+    render(<PracticeMode list={list} onExit={vi.fn()} />)
+    fireEvent.change(answerInput(), { target: { value: 'kake' } })
+    check()
+    // The correct word is on screen: retrying must wait for a listen.
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word' }))
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+  })
+
+  it('requires playing each new word before Try again unlocks', () => {
+    render(<PracticeMode list={list} onExit={vi.fn()} />)
+    // Miss cake, play it, retry.
+    fireEvent.change(answerInput(), { target: { value: 'kake' } })
+    check()
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    // Spell cake right, move to bake, miss it: the gate is back up.
+    fireEvent.change(answerInput(), { target: { value: 'cake' } })
+    check()
+    fireEvent.click(screen.getByRole('button', { name: 'Next word' }))
+    fireEvent.change(answerInput(), { target: { value: 'zzz' } })
+    check()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word' }))
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
   })
 
   it('completes the list and logs activity', () => {
@@ -308,6 +338,7 @@ describe('PracticeMode', () => {
     fireEvent.change(answerInput(), { target: { value: 'kake' } })
     check()
     expect(screen.getByText(/"kake" is still your review list/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word' }))
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     // Spell right once: not cleared yet.
