@@ -16,7 +16,8 @@ export default function VideosPage() {
       <div className="mt-2 space-y-1">
         <h1 className="text-3xl font-bold">Song videos</h1>
         <p className="text-[15px] text-muted-foreground">
-          The full collection of phonics songs for spelling patterns. Pick one to play for the class.
+          The full collection of phonics songs for spelling patterns. Pick one to play for the class, or add it to a
+          pattern in one of your spelling lists.
         </p>
       </div>
       <div className="mt-6">

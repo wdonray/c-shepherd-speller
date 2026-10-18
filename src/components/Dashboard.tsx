@@ -272,19 +272,23 @@ export function DashboardSkeleton() {
  * Song video spotlight (issues #401, #439): three featured picks plus one
  * search box instead of the old chip wall, with a single "Browse all" link
  * to the full /videos catalog. A card opens the player modal in
- * browse-only mode (no attach or hide here). The collection is static local
- * data, so it renders with no loading state of its own; the teacher's
- * hidden videos (issue #443) arrive via props from Dashboard, which gates
- * its skeleton on them so the card count never changes after first paint.
+ * browse-only mode (no attach or hide here; signed-in teachers get the
+ * add-to-list flow, issue #449). The collection is static local data, so
+ * it renders with no loading state of its own; the teacher's hidden videos
+ * (issue #443) arrive via props from Dashboard, which gates its skeleton
+ * on them so the card count never changes after first paint.
  */
 function SongVideosSection({
   blockedVideoIds,
   onHideVideo,
+  canAddToList,
 }: {
   /** Video IDs the teacher has hidden; filtered out of the spotlight. */
   blockedVideoIds: Set<string>
   /** Hide a video for this teacher; undefined for signed-out visitors. */
   onHideVideo: ((video: { videoId: string; title: string; channel?: string }) => void) | undefined
+  /** Signed-in teachers get the "Add to list" flow in the player modal. */
+  canAddToList: boolean
 }) {
   const [query, setQuery] = useState('')
   const [playing, setPlaying] = useState<{ videos: PatternVideo[]; startId: string } | null>(null)
@@ -313,7 +317,8 @@ function SongVideosSection({
       <div>
         <h2 className="text-2xl font-bold">Song videos</h2>
         <p className="text-sm text-muted-foreground">
-          Phonics songs for spelling patterns. Search the collection or browse them all.
+          Phonics songs for spelling patterns. Pick one to play it, or add it to a pattern in one of your spelling
+          lists.
         </p>
       </div>
       <div className="max-w-md space-y-1.5">
@@ -346,6 +351,7 @@ function SongVideosSection({
           title="Song videos"
           videos={playing.videos}
           startPlayingId={playing.startId}
+          canAddToList={canAddToList}
           onClose={() => setPlaying(null)}
         />
       )}
@@ -483,6 +489,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
           <SongVideosSection
             blockedVideoIds={blockedVideoIds}
             onHideVideo={userId ? (video) => void blockVideo(video) : undefined}
+            canAddToList={status === 'authenticated'}
           />
 
           <GettingStarted />

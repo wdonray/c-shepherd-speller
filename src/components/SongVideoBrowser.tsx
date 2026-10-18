@@ -138,6 +138,7 @@ export default function SongVideoBrowser() {
           title="Song videos"
           videos={playing.videos}
           startPlayingId={playing.startId}
+          canAddToList={status === 'authenticated'}
           onClose={() => setPlaying(null)}
         />
       )}

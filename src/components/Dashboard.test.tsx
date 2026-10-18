@@ -461,9 +461,11 @@ describe('Dashboard song videos (issues #401, #439)', () => {
     await loadDashboard()
     fireEvent.click(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
-    // Browse-only: no suggestions, search, paste, or remove controls.
-    expect(within(dialogEl).queryByRole('button', { name: /^(Add|Remove) / })).not.toBeInTheDocument()
+    // Browse-only: no suggestions, search, paste, or remove controls. The
+    // signed-in teacher does get the add-to-list flow (issue #449).
+    expect(within(dialogEl).queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument()
     expect(within(dialogEl).queryByLabelText('Search videos by title or channel')).not.toBeInTheDocument()
+    expect(within(dialogEl).getByRole('button', { name: 'Add to list' })).toBeInTheDocument()
     // The clicked video plays immediately.
     const frame = screen.getByTitle('When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song')
     expect(frame.tagName).toBe('IFRAME')
@@ -474,6 +476,17 @@ describe('Dashboard song videos (issues #401, #439)', () => {
     ).not.toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Song videos' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Add to list button in the player modal for signed-out visitors', async () => {
+    mockSession()
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
+    expect(within(dialogEl).queryByRole('button', { name: 'Add to list' })).not.toBeInTheDocument()
   })
 
   it('skeleton mirrors the song video spotlight while loading', () => {

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { getVideosForPattern, searchVideos } from '@/data/pattern-videos'
 import { extractYouTubeId, fetchVideoTitle, youtubeEmbedUrl, youtubeThumbnailUrl } from '@/lib/youtube'
 import type { PatternVideo } from '@/models/WordList'
+import AddVideoToPatternFlow from './AddVideoToPatternFlow'
 
 interface PatternVideoModalProps {
   /** Dialog heading, e.g. "Song videos for pattern ai". */
@@ -44,6 +45,14 @@ interface PatternVideoModalProps {
    * lives on the browse cards instead.
    */
   onHideVideo?: (video: PatternVideo) => void
+  /**
+   * Show the add-to-list flow in the player view (issue #449). Only the
+   * browse surfaces (home spotlight, /videos catalog) pass this: in edit
+   * mode the modal already attaches videos to the pattern it is open for,
+   * so a cross-list add would be a second, confusing attach path. Signed-
+   * out visitors never see the button; they can only play.
+   */
+  canAddToList?: boolean
   onClose: () => void
 }
 
@@ -108,15 +117,25 @@ export default function PatternVideoModal({
   saveError,
   blockedVideoIds,
   onHideVideo,
+  canAddToList,
   onClose,
 }: PatternVideoModalProps) {
   const [playingId, setPlayingId] = useState<string | null>(startPlayingId ?? null)
+  const [adding, setAdding] = useState(false)
   const [query, setQuery] = useState('')
   const [pasteValue, setPasteValue] = useState('')
   const [pasteError, setPasteError] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
 
   const playing = videos.find((video) => video.videoId === playingId)
+
+  // Browse-only mode for signed-in teachers: the player gets an
+  // "Add to list" button that opens the list/pattern picker flow.
+  const showAddToList = !onChange && canAddToList
+
+  const browseDescription = canAddToList
+    ? 'Phonics songs for spelling patterns. Pick one to play, or add it to a pattern in one of your spelling lists.'
+    : 'Phonics songs for spelling patterns. Pick one to play.'
 
   const attachedIds = new Set(videos.map((video) => video.videoId))
   const blockedIds = new Set(blockedVideoIds ?? [])
@@ -205,9 +224,7 @@ export default function PatternVideoModal({
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-ink">{title}</DialogTitle>
           <DialogDescription className="text-[14px] text-muted-foreground">
-            {onChange
-              ? 'Play a song for the class, or attach videos to this pattern.'
-              : 'Phonics songs for these spelling patterns. Pick one to play.'}
+            {onChange ? 'Play a song for the class, or attach videos to this pattern.' : browseDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -221,25 +238,43 @@ export default function PatternVideoModal({
         )}
 
         {playing ? (
-          <div className="space-y-4">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setPlayingId(null)} className="gap-2">
-              <ArrowLeftIcon className="size-4" aria-hidden="true" />
-              Back to videos
-            </Button>
-            <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
-              <iframe
-                src={youtubeEmbedUrl(playing.videoId)}
-                title={playing.title}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+          showAddToList && adding ? (
+            <AddVideoToPatternFlow video={playing} onBack={() => setAdding(false)} onDone={onClose} />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPlayingId(null)}
+                  className="gap-2"
+                >
+                  <ArrowLeftIcon className="size-4" aria-hidden="true" />
+                  Back to videos
+                </Button>
+                {showAddToList && (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setAdding(true)} className="gap-2">
+                    <PlusIcon className="size-4" aria-hidden="true" />
+                    Add to list
+                  </Button>
+                )}
+              </div>
+              <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
+                <iframe
+                  src={youtubeEmbedUrl(playing.videoId)}
+                  title={playing.title}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-ink">{playing.title}</p>
+                {playing.channel && <p className="text-[13px] text-muted-foreground">{playing.channel}</p>}
+              </div>
             </div>
-            <div>
-              <p className="text-[15px] font-bold text-ink">{playing.title}</p>
-              {playing.channel && <p className="text-[13px] text-muted-foreground">{playing.channel}</p>}
-            </div>
-          </div>
+          )
         ) : (
           <div className="space-y-6">
             <section aria-label={onChange ? 'Attached videos' : 'Videos'} className="space-y-3">

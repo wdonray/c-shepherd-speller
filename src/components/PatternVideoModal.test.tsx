@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import PatternVideoModal from './PatternVideoModal'
-import type { PatternVideo } from '@/models/WordList'
+import type { PatternVideo, WordList } from '@/models/WordList'
+
+const { getLists, updateList, notifyListsChanged } = vi.hoisted(() => ({
+  getLists: vi.fn(),
+  updateList: vi.fn(),
+  notifyListsChanged: vi.fn(),
+}))
+vi.mock('@/lib/lists-api', () => ({ getLists, updateList, notifyListsChanged }))
 
 const curatedAi: PatternVideo = {
   videoId: 'GdmcWQCbqY8',
@@ -337,6 +344,89 @@ describe('PatternVideoModal (browse-only)', () => {
     render(<PatternVideoModal title="Song videos" videos={[curatedAi]} startPlayingId="bogus" onClose={vi.fn()} />)
     expect(screen.getByRole('region', { name: 'Videos' })).toBeInTheDocument()
     expect(screen.queryByTitle(curatedAi.title)).not.toBeInTheDocument()
+  })
+})
+
+describe('PatternVideoModal add to list (issue #449)', () => {
+  const aiList: WordList = {
+    id: 'l1',
+    userId: 'u1',
+    name: 'Week 5: Long A',
+    patterns: [{ id: 'p1', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain'] }],
+    createdAt: '2026-10-06T00:00:00.000Z',
+    updatedAt: '2026-10-06T00:00:00.000Z',
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getLists.mockResolvedValue([aiList])
+    updateList.mockResolvedValue(aiList)
+  })
+
+  function renderPlayer(overrides: { canAddToList?: boolean; onChange?: (videos: PatternVideo[]) => void } = {}) {
+    const onClose = vi.fn()
+    render(
+      <PatternVideoModal
+        title="Song videos"
+        videos={[curatedAi]}
+        startPlayingId={curatedAi.videoId}
+        canAddToList={overrides.canAddToList}
+        onChange={overrides.onChange}
+        suggestionPattern="ai"
+        onClose={onClose}
+      />
+    )
+    return { onClose }
+  }
+
+  it('opens the add-to-list flow from the player button and back returns to the player', async () => {
+    renderPlayer({ canAddToList: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Add to list' }))
+    expect(getLists).toHaveBeenCalledTimes(1)
+    // The player is replaced by the list picker.
+    expect(screen.queryByTitle(curatedAi.title)).not.toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Pick a list' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    // Back from the flow restores the player, which keeps playing.
+    expect(screen.getByTitle(curatedAi.title)).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Pick a list' })).not.toBeInTheDocument()
+  })
+
+  it('attaching through the flow and pressing Done closes the modal', async () => {
+    const { onClose } = renderPlayer({ canAddToList: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Add to list' }))
+    fireEvent.click((await screen.findByRole('region', { name: 'Pick a list' })).querySelector('button')!)
+    fireEvent.click((await screen.findByRole('region', { name: 'Pick a pattern' })).querySelector('button')!)
+    expect(await screen.findByText('Added to Week 5: Long A, pattern ai.')).toBeInTheDocument()
+    expect(updateList).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides the Add to list button for signed-out visitors', () => {
+    renderPlayer()
+    expect(screen.getByTitle(curatedAi.title)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add to list' })).not.toBeInTheDocument()
+  })
+
+  it('hides the Add to list button in edit mode even when canAddToList is set', () => {
+    renderPlayer({ canAddToList: true, onChange: vi.fn() })
+    expect(screen.getByTitle(curatedAi.title)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add to list' })).not.toBeInTheDocument()
+  })
+
+  it('states the video purpose for signed-in teachers in browse-only mode', () => {
+    renderPlayer({ canAddToList: true })
+    expect(
+      screen.getByText(
+        'Phonics songs for spelling patterns. Pick one to play, or add it to a pattern in one of your spelling lists.'
+      )
+    ).toBeInTheDocument()
+  })
+
+  it('omits the add-to-list purpose for signed-out visitors', () => {
+    renderPlayer()
+    expect(screen.getByText('Phonics songs for spelling patterns. Pick one to play.')).toBeInTheDocument()
   })
 })
 
