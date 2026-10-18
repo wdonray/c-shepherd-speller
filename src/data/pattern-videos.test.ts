@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   PATTERN_VIDEOS,
-  getAllPatternGroups,
+  getFeaturedVideos,
+  getPatternGroups,
   getVideosForPattern,
   normalizePattern,
+  searchSongVideos,
   searchVideos,
 } from './pattern-videos'
 
@@ -121,11 +123,65 @@ describe('searchVideos', () => {
   })
 })
 
-describe('getAllPatternGroups', () => {
-  it('returns every covered pattern, sorted', () => {
-    const groups = getAllPatternGroups()
-    expect(groups).toEqual([...groups].sort())
-    expect(groups).toEqual(expect.arrayContaining(['ai', 'a_e', 'ee', 'sh', 'ar', 'er', 'oi', 'au', 'a']))
-    expect(new Set(groups).size).toBe(groups.length)
+describe('getPatternGroups', () => {
+  it('returns six plain-language groups', () => {
+    const groups = getPatternGroups()
+    expect(groups.map((g) => g.label)).toEqual([
+      'Short vowels',
+      'Long vowel teams',
+      'Silent e',
+      'Digraphs',
+      'Bossy r',
+      'Diphthongs',
+    ])
+  })
+
+  it('covers every bank pattern exactly once', () => {
+    const grouped = getPatternGroups().flatMap((g) => g.patterns)
+    const bank = [...new Set(PATTERN_VIDEOS.flatMap((e) => e.patterns))].sort()
+    expect([...grouped].sort()).toEqual(bank)
+    expect(new Set(grouped).size).toBe(grouped.length)
+  })
+})
+
+describe('getFeaturedVideos', () => {
+  it('returns three bank entries in spotlight order', () => {
+    const featured = getFeaturedVideos()
+    expect(featured).toHaveLength(3)
+    expect(featured.map((e) => e.videoId)).toEqual(['GdmcWQCbqY8', 'mxVWScxsOsc', 'NK8_Tvu6bJk'])
+    for (const entry of featured) {
+      expect(PATTERN_VIDEOS).toContainEqual(entry)
+    }
+  })
+})
+
+describe('searchSongVideos', () => {
+  it('matches titles case-insensitively', () => {
+    const results = searchSongVideos('silent e')
+    expect(results.map((e) => e.videoId)).toContain('mxVWScxsOsc')
+  })
+
+  it('matches channels case-insensitively', () => {
+    const results = searchSongVideos('jack hartmann')
+    expect(results.length).toBeGreaterThan(1)
+    for (const entry of results) {
+      expect(entry.channel.toLowerCase()).toContain('jack hartmann')
+    }
+  })
+
+  it('matches pattern tags', () => {
+    const results = searchSongVideos('ck')
+    expect(results.map((e) => e.videoId)).toContain('qEgggBAF_nw')
+  })
+
+  it('returns bank order and no matches for a blank query', () => {
+    expect(searchSongVideos('   ')).toEqual([])
+    const results = searchSongVideos('phonics')
+    const ids = results.map((e) => e.videoId)
+    expect(ids).toEqual(
+      [...ids].sort(
+        (a, b) => PATTERN_VIDEOS.findIndex((e) => e.videoId === a) - PATTERN_VIDEOS.findIndex((e) => e.videoId === b)
+      )
+    )
   })
 })

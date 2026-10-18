@@ -179,13 +179,58 @@ export function searchVideos(query: string, extra: PatternVideo[] = []): Pattern
 }
 
 /**
- * Every spelling pattern covered by the bank, sorted alphabetically.
- * Drives the home page's browse filter chips.
+ * Plain-language pattern groups for the browse filter (issue #439). The
+ * bank's 30+ raw pattern tags collapsed into one dropdown would still be a
+ * 30-choice decision behind a click; these six teacher-friendly groups keep
+ * the choice small. Every bank pattern belongs to exactly one group (pinned
+ * by test).
  */
-export function getAllPatternGroups(): string[] {
-  const groups = new Set<string>()
-  for (const entry of PATTERN_VIDEOS) {
-    for (const pattern of entry.patterns) groups.add(pattern)
-  }
-  return [...groups].sort()
+export interface PatternVideoGroup {
+  /** Teacher-facing label, e.g. "Bossy r". */
+  label: string
+  /** Bank pattern tags in this group. */
+  patterns: string[]
+}
+
+export const PATTERN_GROUPS: PatternVideoGroup[] = [
+  { label: 'Short vowels', patterns: ['a', 'e', 'i', 'o', 'u'] },
+  { label: 'Long vowel teams', patterns: ['ai', 'ay', 'ea', 'ee', 'ie', 'oa', 'ue'] },
+  { label: 'Silent e', patterns: ['a_e', 'i_e', 'o_e', 'u_e'] },
+  { label: 'Digraphs', patterns: ['sh', 'th', 'ch', 'wh', 'ck'] },
+  { label: 'Bossy r', patterns: ['ar', 'or', 'er', 'ir', 'ur'] },
+  { label: 'Diphthongs', patterns: ['oi', 'oy', 'ou', 'ow', 'au', 'aw'] },
+]
+
+/** The plain-language pattern groups driving the browse page filter. */
+export function getPatternGroups(): PatternVideoGroup[] {
+  return PATTERN_GROUPS
+}
+
+/**
+ * The homepage spotlight (issue #439): three featured picks from the
+ * curated bank, chosen for diverse coverage (vowel teams, silent e,
+ * digraphs). Explicit IDs, not bank order, so reordering the bank never
+ * silently changes the homepage.
+ */
+const FEATURED_VIDEO_IDS = ['GdmcWQCbqY8', 'mxVWScxsOsc', 'NK8_Tvu6bJk']
+
+export function getFeaturedVideos(): PatternVideoEntry[] {
+  const byId = new Map(PATTERN_VIDEOS.map((entry) => [entry.videoId, entry]))
+  return FEATURED_VIDEO_IDS.map((id) => byId.get(id)).filter((entry) => entry !== undefined)
+}
+
+/**
+ * Search the curated bank by title, channel, or pattern tag,
+ * case-insensitive, in bank order. Blank query returns no matches; callers
+ * show featured picks or the full bank instead.
+ */
+export function searchSongVideos(query: string): PatternVideoEntry[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  return PATTERN_VIDEOS.filter(
+    (entry) =>
+      entry.title.toLowerCase().includes(q) ||
+      entry.channel.toLowerCase().includes(q) ||
+      entry.patterns.some((pattern) => pattern.includes(q))
+  )
 }
