@@ -36,6 +36,22 @@ export function highlightWord(sentence: string, word: string): ReactNode {
   )
 }
 
+/**
+ * Fisher-Yates shuffle (issue #452). Returns a new array; the input is not
+ * mutated. Used for the cut-and-sort word bank so same-pattern words do not
+ * sit next to each other and give away the sort.
+ */
+export function shuffleWords(words: string[]): string[] {
+  const copy = [...words]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = temp
+  }
+  return copy
+}
+
 /** One worksheet section of the print job. Never splits across pages. */
 export function WorksheetSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -82,7 +98,9 @@ export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
  * empty columns to sort them under. Key: the columns filled in.
  */
 export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]; answerKey: boolean }) {
-  const words = groups.flatMap((group) => group.words)
+  // The student cut-out bank is shuffled so same-pattern words do not sit
+  // next to each other. The answer-key columns stay grouped by pattern.
+  const words = shuffleWords(groups.flatMap((group) => group.words))
   return (
     <WorksheetSection title="Cut and sort">
       {!answerKey && (
@@ -92,7 +110,7 @@ export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]
             {words.map((word) => (
               <div
                 key={word}
-                className="flex min-h-12 min-w-24 items-center justify-center rounded-lg border-2 border-dashed border-black px-4 py-2 text-lg font-bold text-black"
+                className="flex min-h-20 min-w-36 items-center justify-center rounded-lg border-2 border-dashed border-black px-6 py-4 text-2xl font-bold text-black"
               >
                 {word}
               </div>
