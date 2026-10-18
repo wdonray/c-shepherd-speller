@@ -70,7 +70,9 @@ test.describe('lists toolbar stacking', () => {
       const rect = button?.getBoundingClientRect()
       if (!rect) return { error: 'no Edit list button found' }
       const el = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
-      const stickyToolbar = document.querySelector('[aria-label="List views"]')?.closest('div.sticky')
+      // The sticky filter bar itself (not the "List views" tablist, which
+      // only renders when the teacher has favorites).
+      const stickyToolbar = document.querySelector('[data-testid="lists-filter-toolbar"]')
       return {
         buttonCenter: { x: Math.round(rect.x + rect.width / 2), y: Math.round(rect.y + rect.height / 2) },
         topmostTag: el?.tagName,

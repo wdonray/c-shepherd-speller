@@ -271,6 +271,7 @@ export default function PatternListsManager() {
             scrolling buttons painted on top of the stuck bar. */}
         <div
           className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+          data-testid="lists-filter-toolbar"
           aria-hidden="true"
         >
           <div className="inline-flex rounded-full border-2 border-line bg-card p-1">
@@ -341,7 +342,10 @@ export default function PatternListsManager() {
             and equal z-index ties break by DOM order, so at z-10 the
             scrolling buttons painted on top of the stuck bar (issue #421).
           */}
-          <div className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]">
+          <div
+            className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+            data-testid="lists-filter-toolbar"
+          >
             {showFavoritesTab && !searching && (
               <div
                 role="tablist"
