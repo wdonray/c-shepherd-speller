@@ -1202,3 +1202,79 @@ describe('DisplayMode present-chart rule editing without cached class rules (iss
     expect(screen.getAllByText('Class rule.')).toHaveLength(2)
   })
 })
+
+describe('DisplayMode song videos (issue #401)', () => {
+  const video = {
+    videoId: 'GdmcWQCbqY8',
+    title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+    channel: 'Jack Hartmann Kids Music Channel',
+    source: 'curated' as const,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockSearchParams.get.mockReturnValue('l1')
+  })
+
+  async function openVideoModal(current: WordList = twoPatternList) {
+    getListWithClassroom.mockResolvedValue({ list: current, classroom: null })
+    render(<DisplayMode />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Song videos for pattern ai' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    return screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+  }
+
+  it('attaches a suggested video optimistically and persists via updateList', async () => {
+    const saved: WordList = {
+      ...twoPatternList,
+      patterns: [twoPatternList.patterns[0], { ...twoPatternList.patterns[1], videos: [video] }],
+      updatedAt: '2026-10-09T00:00:00.000Z',
+    }
+    updateList.mockResolvedValue(saved)
+    const dialogEl = await openVideoModal()
+
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    const expectedPatterns = [twoPatternList.patterns[0], { ...twoPatternList.patterns[1], videos: [video] }]
+    expect(updateList).toHaveBeenCalledWith('l1', { patterns: expectedPatterns })
+    // The saved list flows back into the chart and the open modal.
+    await waitFor(() => {
+      expect(within(dialogEl).getByText('Attached videos (1)')).toBeInTheDocument()
+    })
+  })
+
+  it('drops the videos field when the last video is removed', async () => {
+    const withVideo: WordList = {
+      ...twoPatternList,
+      patterns: [twoPatternList.patterns[0], { ...twoPatternList.patterns[1], videos: [video] }],
+    }
+    updateList.mockResolvedValue(twoPatternList)
+    const dialogEl = await openVideoModal(withVideo)
+
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Remove ${video.title}` }))
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalledWith('l1', {
+        patterns: [twoPatternList.patterns[0], twoPatternList.patterns[1]],
+      })
+    })
+  })
+
+  it('reverts the optimistic update and shows the error when the save fails', async () => {
+    updateList.mockRejectedValue(new Error('offline'))
+    const dialogEl = await openVideoModal()
+
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    // The error shows inside the open modal: the DisplayMode alert renders
+    // behind the dialog (aria-hidden) while it is open.
+    await waitFor(() => {
+      expect(within(dialogEl).getByRole('alert')).toHaveTextContent(
+        'Could not save the videos. Check your connection and try again.'
+      )
+    })
+    // The optimistic attach is reverted: the modal is back to zero videos.
+    await waitFor(() => {
+      expect(within(dialogEl).getByText('Attached videos (0)')).toBeInTheDocument()
+    })
+  })
+})

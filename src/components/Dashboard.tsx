@@ -8,8 +8,11 @@ import { Card } from '@/components/ui/card'
 import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
-import type { WordList } from '@/models/WordList'
+import { getAllPatternGroups, PATTERN_VIDEOS } from '@/data/pattern-videos'
+import { youtubeThumbnailUrl } from '@/lib/youtube'
+import type { WordList, PatternVideo } from '@/models/WordList'
 import WordListCard from './WordListCard'
+import PatternVideoModal from './PatternVideoModal'
 import { PatternMark } from './PatternMark'
 import { GhostText } from './ui/ghost-text'
 import { reportError } from '@/lib/report-error'
@@ -148,10 +151,15 @@ function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
  * - getting started: GhostText placeholders carry the real copy, so the h2,
  *   intro paragraph, and step cards wrap exactly like the loaded text at
  *   every viewport width
+ * - song videos: the collection is static bank data, so the skeleton mirrors
+ *   it exactly: the h2, the subline, one chip placeholder per pattern group
+ *   plus "All", and one card placeholder per bank video (thumbnail,
+ *   title line, channel line)
  *
  * Inherent approximations (unknowable while loading): the exact list count,
  * badge wrapping on long titles, the "+N more" line past 4 patterns, and the
- * "showing three most recently used" subline past 3 lists.
+ * "showing three most recently used" subline past 3 lists. The song-video
+ * card titles wrap to two lines on long titles; the skeleton shows one.
  */
 export function DashboardSkeleton() {
   return (
@@ -207,6 +215,30 @@ export function DashboardSkeleton() {
           ))}
         </div>
       </div>
+      {/* Song videos: matches the loaded browse section (h2 + subline + chips + cards) */}
+      <div className="space-y-4" aria-hidden="true">
+        <div>
+          <div className="h-8 w-48 animate-pulse rounded-xl bg-line/60" />
+          <div className="mt-1 h-5 w-96 max-w-full animate-pulse rounded-lg bg-line/40" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: getAllPatternGroups().length + 1 }).map((_, i) => (
+            <div key={i} className="h-9 w-16 animate-pulse rounded-2xl bg-line/40" />
+          ))}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {PATTERN_VIDEOS.map((entry) => (
+            <div key={entry.videoId} className="overflow-hidden rounded-[20px] border-2 border-line">
+              <div className="aspect-video w-full animate-pulse bg-line/60" />
+              <div className="space-y-2 p-4">
+                <div className="h-5 w-full animate-pulse rounded-lg bg-line/60" />
+                <div className="h-4 w-1/2 animate-pulse rounded-lg bg-line/40" />
+                <div className="h-4 w-2/3 animate-pulse rounded-lg bg-line/40" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
       {/* Getting started: matches the loaded section (h2 + intro + 3 cards) */}
       <div className="space-y-4" aria-hidden="true">
         <h2 className="text-2xl font-bold">
@@ -230,6 +262,94 @@ export function DashboardSkeleton() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Browse the curated phonics song collection (issue #401). Pattern filter
+ * chips narrow the bank; a video card opens the player modal in
+ * browse-only mode (no attach or hide here). The collection is static local
+ * data, so it renders with no loading state of its own.
+ */
+function SongVideosSection() {
+  const groups = getAllPatternGroups()
+  const [filter, setFilter] = useState<string | null>(null)
+  const [playing, setPlaying] = useState<{ videos: PatternVideo[]; startId: string } | null>(null)
+
+  const entries = filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS
+
+  return (
+    <section aria-label="Song videos" className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold">Song videos</h2>
+        <p className="text-sm text-muted-foreground">
+          Phonics songs for spelling patterns. Pick one to play for the class.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter videos by pattern">
+        <Button
+          size="sm"
+          variant={filter === null ? 'default' : 'secondary'}
+          onClick={() => setFilter(null)}
+          aria-pressed={filter === null}
+        >
+          All
+        </Button>
+        {groups.map((group) => (
+          <Button
+            key={group}
+            size="sm"
+            variant={filter === group ? 'default' : 'secondary'}
+            onClick={() => setFilter(group)}
+            aria-pressed={filter === group}
+          >
+            {group}
+          </Button>
+        ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {entries.map((entry) => (
+          <button
+            key={entry.videoId}
+            type="button"
+            onClick={() =>
+              setPlaying({
+                videos: entries.map((e) => ({
+                  videoId: e.videoId,
+                  title: e.title,
+                  channel: e.channel,
+                  source: 'curated' as const,
+                })),
+                startId: entry.videoId,
+              })
+            }
+            aria-label={`Play ${entry.title}`}
+            className="cursor-pointer overflow-hidden rounded-[20px] border-2 border-line bg-card text-left outline-none transition hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          >
+            <img
+              src={youtubeThumbnailUrl(entry.videoId)}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="aspect-video w-full object-cover"
+            />
+            <div className="space-y-1 p-4">
+              <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
+              <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
+              <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      {playing && (
+        <PatternVideoModal
+          title="Song videos"
+          videos={playing.videos}
+          startPlayingId={playing.startId}
+          onClose={() => setPlaying(null)}
+        />
+      )}
+    </section>
   )
 }
 
@@ -353,6 +473,8 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
               </div>
             )}
           </section>
+
+          <SongVideosSection />
 
           <GettingStarted />
           <RecentActivity events={activity} />

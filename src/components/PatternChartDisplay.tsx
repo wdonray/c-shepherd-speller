@@ -2,14 +2,15 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import type { WordList, SpellingPattern, PatternFrequency } from '@/models/WordList'
+import type { WordList, SpellingPattern, PatternFrequency, PatternVideo } from '@/models/WordList'
 import WordAnalysis from './WordAnalysis'
-import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon } from 'lucide-react'
+import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon, PlayIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
 import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/lib/sound-type'
 import PatternRuleEditor from './PatternRuleEditor'
+import PatternVideoModal from './PatternVideoModal'
 import AnimatedRuleSlot from './AnimatedRuleSlot'
 
 interface PatternChartDisplayProps {
@@ -30,6 +31,13 @@ interface PatternChartDisplayProps {
    * sample chart).
    */
   onSaveRule?: (patternId: string, patternText: string, rule: string) => Promise<void>
+  /**
+   * Persist one pattern's attached song videos (issue #401). When provided,
+   * each present-mode column header gets a subtle play button next to the
+   * lock toggle that opens the video modal. Omitted for display-only usages
+   * (print, sample chart).
+   */
+  onSaveVideos?: (patternId: string, videos: PatternVideo[]) => Promise<void>
   /** The classroom's display name, shown in the rule editor modal. */
   className?: string | null
   /**
@@ -83,12 +91,27 @@ export default function PatternChartDisplay({
   onToggleLock,
   classRules,
   onSaveRule,
+  onSaveVideos,
   className,
   showRules = true,
   variant = 'present',
   showUnderlines = false,
 }: PatternChartDisplayProps) {
   const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
+  /**
+   * The pattern whose song-video modal is open (issue #401). Stored as an
+   * id and resolved against the live list each render, so the modal always
+   * sees the latest attached videos after a save.
+   */
+  const [videoPatternId, setVideoPatternId] = useState<string | null>(null)
+  const videoPattern = videoPatternId ? list.patterns.find((p) => p.id === videoPatternId) : undefined
+  /**
+   * The last song-video save failure, shown inside the modal (issue #401).
+   * The modal applies edits immediately, so a rejected save reverts the
+   * list behind it; this tells the teacher why. Cleared on the next save
+   * attempt and whenever the modal opens.
+   */
+  const [videoSaveError, setVideoSaveError] = useState<string | null>(null)
   const isPrint = variant === 'print'
 
   const { columns, allLocked } = useMemo(() => {
@@ -214,6 +237,29 @@ export default function PatternChartDisplay({
     )
   }
 
+  /**
+   * Subtle play button opening the pattern's song videos (issue #401).
+   * Present variant only, next to the lock toggle; the printed poster
+   * hides all buttons.
+   */
+  const renderVideoButton = (pattern: SpellingPattern) => {
+    if (!onSaveVideos || isPrint) return null
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setVideoPatternId(pattern.id)
+          setVideoSaveError(null)
+        }}
+        aria-label={`Song videos for pattern ${pattern.pattern}`}
+        title={`Song videos for pattern ${pattern.pattern}`}
+        className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none transition hover:bg-line/50 hover:text-ink focus-visible:bg-line/50 focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+      >
+        <PlayIcon className="size-5" aria-hidden="true" />
+      </button>
+    )
+  }
+
   const renderColumn = (pattern: SpellingPattern) => {
     const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
     const level = FREQUENCY_LEVEL[pattern.frequency]
@@ -274,6 +320,7 @@ export default function PatternChartDisplay({
           <div className="flex items-center justify-center gap-2">
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
             {renderLockToggle(pattern)}
+            {renderVideoButton(pattern)}
           </div>
           {/* Issue #379: the pattern's target sound always reads under the
               pattern name. Present-mode projector size keeps it subtle but
@@ -429,6 +476,25 @@ export default function PatternChartDisplay({
           pattern={selected.pattern}
           onClose={() => setSelected(null)}
           onSpeak={speak}
+        />
+      )}
+
+      {!isPrint && onSaveVideos && videoPattern && (
+        <PatternVideoModal
+          title={`Song videos for pattern ${videoPattern.pattern}`}
+          videos={videoPattern.videos ?? []}
+          onChange={(videos) => {
+            setVideoSaveError(null)
+            // The modal applies edits immediately, so a rejected save would
+            // otherwise revert silently behind it. Surface the failure
+            // inside the modal; the rejection is handled here.
+            onSaveVideos(videoPattern.id, videos).catch(() =>
+              setVideoSaveError('Could not save the videos. Check your connection and try again.')
+            )
+          }}
+          suggestionPattern={videoPattern.pattern}
+          saveError={videoSaveError}
+          onClose={() => setVideoPatternId(null)}
         />
       )}
     </div>

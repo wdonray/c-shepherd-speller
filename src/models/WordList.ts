@@ -16,6 +16,22 @@ import { z } from 'zod'
 export const PatternFrequencySchema = z.enum(['common', 'less-common', 'rare'])
 export type PatternFrequency = z.infer<typeof PatternFrequencySchema>
 
+/**
+ * One YouTube video attached to a spelling pattern (issue #401). Videos are
+ * stored as 11-character IDs; URLs are never stored.
+ */
+export const PatternVideoSchema = z.object({
+  /** The 11-character YouTube video ID. */
+  videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  /** Verified title at paste time (oEmbed) or the curated bank's title. */
+  title: z.string().min(1).max(200),
+  /** Channel name, when known. */
+  channel: z.string().min(1).max(100).optional(),
+  /** Curated bank suggestions vs. teacher-added links. */
+  source: z.enum(['curated', 'custom']),
+})
+export type PatternVideo = z.infer<typeof PatternVideoSchema>
+
 /** One spelling pattern within a list (one column of the pattern chart). */
 export const SpellingPatternSchema = z.object({
   id: z.string().min(1),
@@ -49,6 +65,12 @@ export const SpellingPatternSchema = z.object({
     .optional(),
   /** Teacher-picked example sentences, keyed by word */
   sentences: z.record(z.string().min(1).max(50), z.string().min(1).max(300)).optional(),
+  /**
+   * Teacher-attached song videos for this pattern (issue #401), playable
+   * from present mode. Optional and capped at 20; absent on legacy lists
+   * and on patterns with nothing attached.
+   */
+  videos: z.array(PatternVideoSchema).max(20).optional(),
 })
 export type SpellingPattern = z.infer<typeof SpellingPatternSchema>
 

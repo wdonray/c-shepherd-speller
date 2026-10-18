@@ -101,6 +101,20 @@ credentials.
   it when the save settles. If the save fails, discard the queued close and
   keep the modal open with the error and the draft intact (found 2026-10-17:
   issue #363, rules could not be cleared).
+- **Testing Library does not normalize query strings.** getByText and
+  getByTitle collapse whitespace in the DOM text but match the query
+  string literally, so a double space in verbatim bank data (video titles,
+  sentences) needs a single-space or regex query to match. Keep the data
+  verbatim; write the query to match (found 2026-10-18: issue #401 video
+  bank titles).
+- **Modal save failures must surface inside the modal.** A modal that
+  applies edits immediately has no draft to keep, so a rejected save
+  reverts the list behind it. Radix marks background content aria-hidden
+  while a dialog is open, so a page-level error alert behind the modal is
+  invisible to the teacher (and unfindable by role in tests). Pass the
+  failure into the modal as a saveError prop and render it there; clear it
+  on the next save attempt and when the modal opens (found 2026-10-18:
+  issue #401, song-video saves from the present chart).
 - **Blocked keystrokes need a visible reason.** When a controlled input
   rejects an update (validation block), the input silently reverts to its
   previous value, which reads as a swallowed keystroke. Always show a

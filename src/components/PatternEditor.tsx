@@ -12,6 +12,7 @@ import SentencePicker from './SentencePicker'
 import KeywordImagePicker from './KeywordImagePicker'
 import VoiceRecorderModal from './VoiceRecorderModal'
 import PatternRuleEditor from './PatternRuleEditor'
+import PatternVideoModal from './PatternVideoModal'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
@@ -115,6 +116,10 @@ export default function PatternEditor({
   const [duplicatePatternPair, setDuplicatePatternPair] = useState(false)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
+  /** Whether the song-videos modal (issue #401) is open. */
+  const [videosOpen, setVideosOpen] = useState(false)
+  /** Attached song-video count; undefined reads as zero. */
+  const videoCount = pattern.videos?.length ?? 0
   /**
    * Words in this pattern that already have a saved voice recording. The
    * mic button renders in its recorded state for these, so the teacher can
@@ -562,6 +567,31 @@ export default function PatternEditor({
                   onImageSelect={(keywordImage) => update({ keywordImage })}
                   onEmojiSelect={(keywordEmoji) => update({ keywordEmoji })}
                 />
+                <div className="flex min-h-[56px] w-full items-center justify-between gap-3 px-3 py-3">
+                  <div>
+                    <p className="text-[15px] font-bold text-ink">Song videos</p>
+                    <p className="text-[13px] text-muted-foreground">
+                      {videoCount === 0
+                        ? 'No videos attached'
+                        : videoCount === 1
+                          ? '1 video attached'
+                          : `${videoCount} videos attached`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setVideosOpen(true)}
+                    aria-label={
+                      pattern.pattern
+                        ? `Manage song videos for pattern ${pattern.pattern}`
+                        : 'Manage song videos for this pattern'
+                    }
+                    className="min-h-[44px] shrink-0"
+                  >
+                    {videoCount === 0 ? 'Add videos' : 'Manage videos'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -654,6 +684,15 @@ export default function PatternEditor({
           onClose={() => setIsFrequencyHelpOpen(false)}
           accentFill={accent.fill}
         />
+        {videosOpen && (
+          <PatternVideoModal
+            title={pattern.pattern ? `Song videos for pattern ${pattern.pattern}` : 'Song videos for this pattern'}
+            videos={pattern.videos ?? []}
+            onChange={(videos) => update({ videos: videos.length > 0 ? videos : undefined })}
+            suggestionPattern={pattern.pattern}
+            onClose={() => setVideosOpen(false)}
+          />
+        )}
         {recordingWord && (
           <VoiceRecorderModal
             word={recordingWord}
