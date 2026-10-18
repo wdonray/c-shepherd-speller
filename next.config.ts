@@ -37,6 +37,11 @@ const securityHeaders = [
       // (src/lib/youtube.ts youtubeThumbnailUrl); without this entry the
       // browser refuses them and every thumbnail renders blank (#438).
       "img-src 'self' data: blob: https://i.ytimg.com",
+      // Song-video embeds load from the privacy-enhanced YouTube host
+      // (src/lib/youtube.ts youtubeEmbedUrl); with no frame-src the
+      // default-src 'self' fallback refuses every embed and the player
+      // shows the browser's blocked-frame page (#440).
+      'frame-src https://www.youtube-nocookie.com',
       "font-src 'self' data:",
       // Recorded voice memos play from blob: URLs (see VoiceRecorderModal);
       // without media-src the media elements fall back to default-src 'self'
@@ -45,7 +50,10 @@ const securityHeaders = [
       // Example sentences are fetched in the browser from the Free Dictionary
       // API (see src/lib/example-sentences.ts); without this entry the
       // browser refuses the call and every lookup silently falls back (#369).
-      "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io https://api.dictionaryapi.dev",
+      // Pasted song-video links are verified through YouTube oEmbed
+      // (src/lib/youtube.ts fetchVideoTitle); without this entry the
+      // browser refuses the call and every paste fails verification (#440).
+      "connect-src 'self' https://api.github.com https://*.ingest.us.sentry.io https://api.dictionaryapi.dev https://www.youtube.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
