@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import PatternEditor from './PatternEditor'
 import type { SpellingPattern } from '@/models/WordList'
 
@@ -235,17 +235,18 @@ describe('PatternEditor', () => {
     expect(screen.getByRole('radio', { name: /^Common\./ })).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('groups frequency, rule, and keyword image as uniform rows in the Details well', () => {
+  it('groups frequency, rule, keyword image, and song videos as uniform rows in the Details well', () => {
     const onSaveRule = vi.fn().mockResolvedValue(undefined)
     const { container } = render(
       <PatternEditor pattern={basePattern} onChange={vi.fn()} onRemove={vi.fn()} onSaveRule={onSaveRule} />
     )
     expect(screen.getByRole('heading', { name: 'Details' })).toBeInTheDocument()
-    // Frequency, rule, and keyword image all render as 56px settings rows.
-    expect(container.querySelectorAll('.min-h-\\[56px\\]')).toHaveLength(3)
+    // Frequency, rule, keyword image, and song videos all render as 56px settings rows.
+    expect(container.querySelectorAll('.min-h-\\[56px\\]')).toHaveLength(4)
     expect(screen.getByRole('radiogroup', { name: 'Frequency' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add rule for a_e' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Keyword image for pattern a_e' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Manage song videos for pattern a_e' })).toBeInTheDocument()
   })
 
   it('saves a rule through the details row', async () => {
@@ -919,5 +920,70 @@ describe('PatternEditor duplicate pattern pairs (issue #414)', () => {
     )
     fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'a_e' } })
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'a_e' }))
+  })
+})
+
+describe('PatternEditor song videos (issue #401)', () => {
+  const video = {
+    videoId: 'GdmcWQCbqY8',
+    title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+    channel: 'Jack Hartmann Kids Music Channel',
+    source: 'curated' as const,
+  }
+
+  it('shows the attached count and an Add videos button when empty', () => {
+    renderEditor()
+    expect(screen.getByText('Song videos')).toBeInTheDocument()
+    expect(screen.getByText('No videos attached')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Manage song videos for pattern a_e' })).toHaveTextContent('Add videos')
+  })
+
+  it('shows the singular and plural attached counts', () => {
+    const { rerender } = render(
+      <PatternEditor pattern={{ ...basePattern, videos: [video] }} onChange={vi.fn()} onRemove={vi.fn()} />
+    )
+    expect(screen.getByText('1 video attached')).toBeInTheDocument()
+    rerender(
+      <PatternEditor
+        pattern={{ ...basePattern, videos: [video, { ...video, videoId: 'mxVWScxsOsc' }] }}
+        onChange={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    )
+    expect(screen.getByText('2 videos attached')).toBeInTheDocument()
+  })
+
+  it('opens the video modal and attaches a suggestion through onChange', () => {
+    const { onChange } = renderEditor({ pattern: 'ai' })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    expect(onChange).toHaveBeenCalledWith({
+      ...basePattern,
+      pattern: 'ai',
+      videos: [expect.objectContaining({ videoId: video.videoId, source: 'curated' })],
+    })
+  })
+
+  it('drops the videos field when the last video is removed', () => {
+    const { onChange } = renderEditor({ videos: [video] })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern a_e' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern a_e' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Remove ${video.title}` }))
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, videos: undefined })
+  })
+
+  it('titles the modal for an untitled pattern', () => {
+    renderEditor({ pattern: '' })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for this pattern' }))
+    expect(screen.getByRole('dialog', { name: 'Song videos for this pattern' })).toBeInTheDocument()
+  })
+
+  it('closes the video modal', () => {
+    renderEditor()
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern a_e' }))
+    expect(screen.getByRole('dialog', { name: 'Song videos for pattern a_e' })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Song videos for pattern a_e' })).not.toBeInTheDocument()
   })
 })

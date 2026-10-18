@@ -4,6 +4,7 @@ import {
   CreateWordListSchema,
   UpdateWordListSchema,
   SpellingPatternSchema,
+  PatternVideoSchema,
   ListColorSchema,
   DEFAULT_LIST_COLOR,
   LIST_COLORS,
@@ -614,6 +615,72 @@ describe('WordList model', () => {
         { ...validList, id: 'b', week: '2' },
       ]
       expect(getAssignedWeeks(lists)).toEqual(['2', '10'])
+    })
+  })
+
+  describe('pattern videos (issue #401)', () => {
+    const validVideo = {
+      videoId: 'GdmcWQCbqY8',
+      title: 'When Two Vowels Go Walking',
+      channel: 'Jack Hartmann Kids Music Channel',
+      source: 'curated' as const,
+    }
+
+    it('PatternVideoSchema accepts a curated video', () => {
+      expect(PatternVideoSchema.parse(validVideo)).toEqual(validVideo)
+    })
+
+    it('PatternVideoSchema accepts a custom video without a channel', () => {
+      const video = { videoId: 'dQw4w9WgXcQ', title: 'My song', source: 'custom' as const }
+      expect(PatternVideoSchema.parse(video)).toEqual(video)
+    })
+
+    it('PatternVideoSchema rejects a non-YouTube video ID', () => {
+      expect(() => PatternVideoSchema.parse({ ...validVideo, videoId: 'too-short' })).toThrow()
+      expect(() => PatternVideoSchema.parse({ ...validVideo, videoId: 'has space!!' })).toThrow()
+    })
+
+    it('PatternVideoSchema rejects an unknown source', () => {
+      expect(() => PatternVideoSchema.parse({ ...validVideo, source: 'vimeo' })).toThrow()
+    })
+
+    it('PatternVideoSchema rejects a blank title', () => {
+      expect(() => PatternVideoSchema.parse({ ...validVideo, title: '' })).toThrow()
+    })
+
+    it('SpellingPatternSchema accepts patterns without videos (legacy)', () => {
+      expect(SpellingPatternSchema.parse(validPattern).videos).toBeUndefined()
+    })
+
+    it('SpellingPatternSchema accepts attached videos', () => {
+      const parsed = SpellingPatternSchema.parse({ ...validPattern, videos: [validVideo] })
+      expect(parsed.videos).toEqual([validVideo])
+    })
+
+    it('SpellingPatternSchema rejects more than 20 videos', () => {
+      const videos = Array.from({ length: 21 }, (_, i) => ({
+        ...validVideo,
+        videoId: `GdmcWQCbqY${i % 10}`,
+      }))
+      expect(() => SpellingPatternSchema.parse({ ...validPattern, videos })).toThrow()
+    })
+
+    it('SpellingPatternSchema rejects a malformed video entry', () => {
+      expect(() => SpellingPatternSchema.parse({ ...validPattern, videos: [{ videoId: 'x' }] })).toThrow()
+    })
+
+    it('UpdateWordListSchema accepts pattern video changes', () => {
+      const input = UpdateWordListSchema.parse({
+        patterns: [{ ...validPattern, videos: [validVideo] }],
+      })
+      expect(input.patterns?.[0].videos).toEqual([validVideo])
+    })
+
+    it('updateWordListItem persists attached videos', () => {
+      const updated = updateWordListItem(validList, {
+        patterns: [{ ...validPattern, videos: [validVideo] }],
+      })
+      expect(updated.patterns[0].videos).toEqual([validVideo])
     })
   })
 })

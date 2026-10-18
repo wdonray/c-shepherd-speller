@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Loader2, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getListWithClassroom, getLists, updateList } from '@/lib/lists-api'
-import { getAssignedWeeks, type WordList } from '@/models/WordList'
+import { getAssignedWeeks, type WordList, type PatternVideo } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import ChartActionsMenu from './ChartActionsMenu'
 import FullscreenButton from './FullscreenButton'
@@ -105,6 +105,27 @@ function DisplayModeInner() {
     } catch {
       setList(current)
       setToggleError(LOAD_ERROR)
+    }
+  }, [])
+
+  // Save a pattern's attached song videos in present mode (issue #401):
+  // optimistic update, then persist, mirroring the lock toggle above. An
+  // emptied video list drops the field so legacy reads stay clean. Rethrows
+  // after the revert so the video modal can show its own save error; the
+  // present chart handles the rejection.
+  const handleSaveVideos = useCallback(async (patternId: string, videos: PatternVideo[], current: WordList) => {
+    const nextPatterns = current.patterns.map((p) =>
+      p.id === patternId ? { ...p, videos: videos.length > 0 ? videos : undefined } : p
+    )
+    setList({ ...current, patterns: nextPatterns })
+    setToggleError(null)
+    try {
+      const saved = await updateList(current.id, { patterns: nextPatterns })
+      setList(saved)
+    } catch {
+      setList(current)
+      setToggleError(LOAD_ERROR)
+      throw new Error('Failed to save pattern videos')
     }
   }, [])
 
@@ -365,6 +386,7 @@ function DisplayModeInner() {
             onToggleLock={(patternId) => handleToggleLock(patternId, list)}
             classRules={classRules}
             onSaveRule={(patternId, patternText, rule) => handleSaveRule(patternId, patternText, rule, list)}
+            onSaveVideos={(patternId, videos) => handleSaveVideos(patternId, videos, list)}
             className={className}
             showRules={showRules}
             showUnderlines={showUnderlines}

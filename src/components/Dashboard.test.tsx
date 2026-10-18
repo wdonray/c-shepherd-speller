@@ -5,6 +5,7 @@ import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
+import { getAllPatternGroups } from '@/data/pattern-videos'
 import type { WordList } from '@/models/WordList'
 
 const { getLists } = vi.hoisted(() => ({
@@ -379,5 +380,74 @@ describe('Dashboard', () => {
       expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
     })
     expect(screen.queryByText('Recent activity')).not.toBeInTheDocument()
+  })
+})
+
+describe('Dashboard song videos (issue #401)', () => {
+  const defaultProps = {
+    onNewList: vi.fn(),
+    onEditList: vi.fn(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearActivity()
+    mockSession('Donray Williams')
+  })
+
+  async function loadDashboard() {
+    getLists.mockResolvedValue([])
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+    })
+  }
+
+  it('shows the browse section below My word lists with pattern chips and video cards', async () => {
+    await loadDashboard()
+    const section = screen.getByRole('region', { name: 'Song videos' })
+    const chips = within(screen.getByRole('group', { name: 'Filter videos by pattern' })).getAllByRole('button')
+    expect(chips).toHaveLength(getAllPatternGroups().length + 1)
+    expect(chips[0]).toHaveTextContent('All')
+    // All 19 bank videos show under "All".
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
+  })
+
+  it('filters videos by pattern chip', async () => {
+    await loadDashboard()
+    fireEvent.click(screen.getByRole('button', { name: 'ck' }))
+    const section = screen.getByRole('region', { name: 'Song videos' })
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+  })
+
+  it('opens the player modal in browse-only mode from a video card', async () => {
+    await loadDashboard()
+    fireEvent.click(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
+    // Browse-only: no suggestions, search, paste, or remove controls.
+    expect(within(dialogEl).queryByRole('button', { name: /^(Add|Remove) / })).not.toBeInTheDocument()
+    expect(within(dialogEl).queryByLabelText('Search videos by title or channel')).not.toBeInTheDocument()
+    // The clicked video plays immediately.
+    const frame = screen.getByTitle('Digraph CK - 4 Minute Phonics')
+    expect(frame.tagName).toBe('IFRAME')
+    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/qEgggBAF_nw?rel=0&cc_load_policy=1')
+    fireEvent.click(screen.getByRole('button', { name: 'Back to videos' }))
+    expect(screen.queryByTitle('Digraph CK - 4 Minute Phonics')).not.toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Song videos' })).not.toBeInTheDocument()
+  })
+
+  it('skeleton mirrors the song videos chips and cards while loading', () => {
+    getLists.mockImplementation(() => new Promise(() => {}))
+    render(<Dashboard {...defaultProps} />)
+    const loading = screen.getByRole('status', { name: 'Loading dashboard' })
+    // One chip placeholder per pattern group plus "All".
+    expect(loading.querySelectorAll('div.h-9.w-16')).toHaveLength(getAllPatternGroups().length + 1)
+    // One card placeholder per bank video.
+    expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(19)
   })
 })

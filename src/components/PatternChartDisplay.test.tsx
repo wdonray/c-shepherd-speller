@@ -660,3 +660,115 @@ describe('PatternChartDisplay', () => {
     })
   })
 })
+
+describe('PatternChartDisplay song videos (issue #401)', () => {
+  const video = {
+    videoId: 'GdmcWQCbqY8',
+    title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+    channel: 'Jack Hartmann Kids Music Channel',
+    source: 'curated' as const,
+  }
+
+  it('shows a play button in each unlocked column header when onSaveVideos is provided', () => {
+    render(<PatternChartDisplay list={list} onSaveVideos={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Song videos for pattern a_e' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Song videos for pattern ai' })).toBeInTheDocument()
+  })
+
+  it('shows no play button without onSaveVideos', () => {
+    render(<PatternChartDisplay list={list} />)
+    expect(screen.queryByRole('button', { name: 'Song videos for pattern a_e' })).not.toBeInTheDocument()
+  })
+
+  it('shows no play button on the printed poster', () => {
+    render(<PatternChartDisplay list={list} variant="print" onSaveVideos={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Song videos for pattern a_e' })).not.toBeInTheDocument()
+  })
+
+  it('shows no play button on a locked column', () => {
+    const locked = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.id === 'p1' ? { ...p, isLocked: true } : p)),
+    }
+    render(<PatternChartDisplay list={locked} onSaveVideos={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Song videos for pattern a_e' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Song videos for pattern ai' })).toBeInTheDocument()
+  })
+
+  it('opens the video modal and attaches a suggestion through onSaveVideos', async () => {
+    const onSaveVideos = vi.fn().mockResolvedValue(undefined)
+    render(<PatternChartDisplay list={list} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    expect(within(dialogEl).getByText('Attached videos (0)')).toBeInTheDocument()
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    expect(onSaveVideos).toHaveBeenCalledWith('p2', [expect.objectContaining({ videoId: video.videoId })])
+    await waitFor(() => expect(onSaveVideos).toHaveBeenCalledTimes(1))
+  })
+
+  it('shows attached videos in the modal and closes it', () => {
+    const onSaveVideos = vi.fn().mockResolvedValue(undefined)
+    const withVideo = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.id === 'p2' ? { ...p, videos: [video] } : p)),
+    }
+    render(<PatternChartDisplay list={withVideo} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    expect(within(dialogEl).getByText('Attached videos (1)')).toBeInTheDocument()
+    expect(within(dialogEl).getByText(video.title)).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Song videos for pattern ai' })).not.toBeInTheDocument()
+  })
+
+  it('resolves the modal pattern against the live list, so saves refresh the modal', () => {
+    const onSaveVideos = vi.fn().mockResolvedValue(undefined)
+    const { rerender } = render(<PatternChartDisplay list={list} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    expect(screen.getByText('Attached videos (0)')).toBeInTheDocument()
+
+    const withVideo = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.id === 'p2' ? { ...p, videos: [video] } : p)),
+    }
+    rerender(<PatternChartDisplay list={withVideo} onSaveVideos={onSaveVideos} />)
+    expect(screen.getByText('Attached videos (1)')).toBeInTheDocument()
+  })
+})
+
+describe('PatternChartDisplay song video save errors (issue #401)', () => {
+  const video = {
+    videoId: 'GdmcWQCbqY8',
+    title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+    channel: 'Jack Hartmann Kids Music Channel',
+    source: 'curated' as const,
+  }
+
+  it('shows a save error inside the modal when onSaveVideos rejects', async () => {
+    const onSaveVideos = vi.fn().mockRejectedValue(new Error('offline'))
+    render(<PatternChartDisplay list={list} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    await waitFor(() => {
+      expect(within(dialogEl).getByRole('alert')).toHaveTextContent(
+        'Could not save the videos. Check your connection and try again.'
+      )
+    })
+  })
+
+  it('clears the save error when the modal reopens', async () => {
+    const onSaveVideos = vi.fn().mockRejectedValue(new Error('offline'))
+    render(<PatternChartDisplay list={list} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Add ${video.title}` }))
+    await waitFor(() => {
+      expect(within(dialogEl).getByRole('alert')).toBeInTheDocument()
+    })
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
