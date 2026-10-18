@@ -142,6 +142,12 @@ credentials.
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Native checkboxes need theme-adaptive accent colors.** A fixed
+  accent-color like `accent-black` renders as a washed-out gray in dark
+  mode (Chromium brightens dark accent colors under `color-scheme: dark`).
+  Use a token that adapts, e.g. `accent-ink`, which also matches the
+  checked card's `border-ink` highlight (found 2026-10-18: issue #435,
+  worksheet picker checkboxes).
 
 ## Reliability
 

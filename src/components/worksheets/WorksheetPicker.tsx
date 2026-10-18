@@ -177,7 +177,7 @@ export default function WorksheetPicker({ listId }: { listId: string }) {
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleType(type)}
-                    className="mt-1 h-5 w-5 shrink-0 accent-black"
+                    className="mt-1 h-5 w-5 shrink-0 accent-ink"
                     aria-label={info.title}
                   />
                   <span>

@@ -133,6 +133,21 @@ describe('WorksheetPicker', () => {
     expect(screen.getByRole('checkbox', { name: 'Word search' })).toBeChecked()
   })
 
+  it('uses a theme-adaptive accent color for the type checkboxes', async () => {
+    // Issue #435: accent-black renders as a washed-out gray in dark mode
+    // (Chromium brightens dark accent colors under color-scheme: dark).
+    // accent-ink follows the theme's ink token, matching the checked card's
+    // border-ink highlight in both themes.
+    render(<WorksheetPicker listId="l1" />)
+    await screen.findByRole('heading', { name: 'Printable worksheets' })
+    const boxes = screen.getAllByRole('checkbox')
+    expect(boxes).toHaveLength(7)
+    boxes.forEach((box) => {
+      expect(box).not.toHaveClass('accent-black')
+      expect(box).toHaveClass('accent-ink')
+    })
+  })
+
   it('clear disables printing with a hint; select all restores it', async () => {
     render(<WorksheetPicker listId="l1" />)
     await screen.findByRole('heading', { name: 'Printable worksheets' })
