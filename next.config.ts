@@ -33,7 +33,10 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      // Song-video thumbnails load from YouTube's thumbnail host
+      // (src/lib/youtube.ts youtubeThumbnailUrl); without this entry the
+      // browser refuses them and every thumbnail renders blank (#438).
+      "img-src 'self' data: blob: https://i.ytimg.com",
       "font-src 'self' data:",
       // Recorded voice memos play from blob: URLs (see VoiceRecorderModal);
       // without media-src the media elements fall back to default-src 'self'

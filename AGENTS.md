@@ -165,6 +165,16 @@ credentials.
 
 ## Reliability
 
+- **A new third-party origin means a CSP update.** When a feature pulls
+  images, embeds, or API calls from an origin the app has not used before,
+  add that origin to the matching Content-Security-Policy directive in
+  `next.config.ts` in the same change: `img-src` for images, `frame-src`
+  for iframes, `connect-src` for fetches. The shipped CSP silently blocks
+  anything not listed, and the failure mode is invisible (blank thumbnails,
+  black embed boxes) with no error in the app (found 2026-10-18: issue
+  #438, song-video thumbnails broke because `i.ytimg.com` was never added
+  to `img-src`).
+
 - **Prefer our own data over the network, and cap third-party timeouts.**
   Local-first lookups answer instantly; a flaky external API must never hold
   UI open. Browser-side calls to third-party services get a short timeout
