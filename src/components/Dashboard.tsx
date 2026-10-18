@@ -10,6 +10,8 @@ import { HttpError } from '@/lib/error-toast'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
 import { getAllPatternGroups, PATTERN_VIDEOS } from '@/data/pattern-videos'
 import { youtubeThumbnailUrl } from '@/lib/youtube'
+import { useBlockedVideos } from '@/hooks/useBlockedVideos'
+import { EyeOffIcon } from 'lucide-react'
 import type { WordList, PatternVideo } from '@/models/WordList'
 import WordListCard from './WordListCard'
 import PatternVideoModal from './PatternVideoModal'
@@ -269,14 +271,26 @@ export function DashboardSkeleton() {
  * Browse the curated phonics song collection (issue #401). Pattern filter
  * chips narrow the bank; a video card opens the player modal in
  * browse-only mode (no attach or hide here). The collection is static local
- * data, so it renders with no loading state of its own.
+ * data, so it renders with no loading state of its own; the teacher's
+ * hidden videos (issue #443) arrive via props from Dashboard, which gates
+ * its skeleton on them so the card count never changes after first paint.
  */
-function SongVideosSection() {
+function SongVideosSection({
+  blockedVideoIds,
+  onHideVideo,
+}: {
+  /** Video IDs the teacher has hidden; filtered out of the browse grid. */
+  blockedVideoIds: Set<string>
+  /** Hide a video for this teacher; undefined for signed-out visitors. */
+  onHideVideo: ((video: { videoId: string; title: string; channel?: string }) => void) | undefined
+}) {
   const groups = getAllPatternGroups()
   const [filter, setFilter] = useState<string | null>(null)
   const [playing, setPlaying] = useState<{ videos: PatternVideo[]; startId: string } | null>(null)
 
-  const entries = filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS
+  const entries = (filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS).filter(
+    (entry) => !blockedVideoIds.has(entry.videoId)
+  )
 
   return (
     <section aria-label="Song videos" className="space-y-4">
@@ -309,36 +323,52 @@ function SongVideosSection() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {entries.map((entry) => (
-          <button
+          <div
             key={entry.videoId}
-            type="button"
-            onClick={() =>
-              setPlaying({
-                videos: entries.map((e) => ({
-                  videoId: e.videoId,
-                  title: e.title,
-                  channel: e.channel,
-                  source: 'curated' as const,
-                })),
-                startId: entry.videoId,
-              })
-            }
-            aria-label={`Play ${entry.title}`}
-            className="cursor-pointer overflow-hidden rounded-[20px] border-2 border-line bg-card text-left outline-none transition hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
+            className="relative overflow-hidden rounded-[20px] border-2 border-line bg-card outline-none transition hover:border-sky-deep focus-within:border-sky-deep focus-within:ring-[3px] focus-within:ring-ring/60"
           >
-            <img
-              src={youtubeThumbnailUrl(entry.videoId)}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              className="aspect-video w-full object-cover"
-            />
-            <div className="space-y-1 p-4">
-              <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
-              <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
-              <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() =>
+                setPlaying({
+                  videos: entries.map((e) => ({
+                    videoId: e.videoId,
+                    title: e.title,
+                    channel: e.channel,
+                    source: 'curated' as const,
+                  })),
+                  startId: entry.videoId,
+                })
+              }
+              aria-label={`Play ${entry.title}`}
+              className="block w-full cursor-pointer text-left outline-none"
+            >
+              <img
+                src={youtubeThumbnailUrl(entry.videoId)}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="aspect-video w-full object-cover"
+              />
+              <div className="space-y-1 p-4">
+                <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
+                <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
+                <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
+              </div>
+            </button>
+            {onHideVideo && (
+              <button
+                type="button"
+                onClick={() => onHideVideo(entry)}
+                aria-label={`Hide ${entry.title}`}
+                title={`Hide ${entry.title}`}
+                className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[13px] font-bold text-white outline-none transition hover:bg-black/75 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+              >
+                <EyeOffIcon className="size-4" aria-hidden="true" />
+                Hide
+              </button>
+            )}
+          </div>
         ))}
       </div>
       {playing && (
@@ -355,8 +385,9 @@ function SongVideosSection() {
 
 export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
   const { data: session, status } = useSession()
+  const { blockedVideoIds, blockVideo, userId, isLoaded: blockedLoaded } = useBlockedVideos()
   const [lists, setLists] = useState<WordList[]>([])
-  const [loading, setLoading] = useState(true)
+  const [listsLoading, setListsLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [activity, setActivity] = useState<ActivityEvent[]>([])
 
@@ -367,10 +398,10 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
     if (status !== 'authenticated') {
       setLists([])
       setLoadError(false)
-      if (status !== 'loading') setLoading(false)
+      if (status !== 'loading') setListsLoading(false)
       return
     }
-    setLoading(true)
+    setListsLoading(true)
     setLoadError(false)
     getLists()
       .then(setLists)
@@ -384,7 +415,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
         reportError(error, { location: 'Dashboard.loadLists' })
         setLoadError(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => setListsLoading(false))
   }, [status])
 
   useEffect(() => {
@@ -400,6 +431,11 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
 
   const firstName = session?.user?.name?.trim().split(/\s+/)[0]
   const greeting = `${greetingForHour(new Date().getHours())}${firstName ? `, ${firstName}` : ''}`
+
+  // The hidden-video list changes the browse card count, so it resolves
+  // inside the same loading state as the lists: a second fetch after first
+  // paint would shift the page (issue #443).
+  const loading = listsLoading || (status === 'authenticated' && !blockedLoaded)
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
@@ -474,7 +510,10 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
             )}
           </section>
 
-          <SongVideosSection />
+          <SongVideosSection
+            blockedVideoIds={blockedVideoIds}
+            onHideVideo={userId ? (video) => void blockVideo(video) : undefined}
+          />
 
           <GettingStarted />
           <RecentActivity events={activity} />

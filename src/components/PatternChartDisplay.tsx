@@ -12,6 +12,7 @@ import { getSoundType, SOUND_TYPE_BORDER, SOUND_TYPE_UNDERLINE_COLOR } from '@/l
 import PatternRuleEditor from './PatternRuleEditor'
 import PatternVideoModal from './PatternVideoModal'
 import AnimatedRuleSlot from './AnimatedRuleSlot'
+import { useBlockedVideos } from '@/hooks/useBlockedVideos'
 
 interface PatternChartDisplayProps {
   list: WordList
@@ -112,6 +113,8 @@ export default function PatternChartDisplay({
    * attempt and whenever the modal opens.
    */
   const [videoSaveError, setVideoSaveError] = useState<string | null>(null)
+  /** The teacher's hidden videos, for filtering video suggestions and search (issue #443). */
+  const { blockedVideoIds, blockVideo, userId } = useBlockedVideos()
   const isPrint = variant === 'print'
 
   const { columns, allLocked } = useMemo(() => {
@@ -534,6 +537,8 @@ export default function PatternChartDisplay({
           }}
           suggestionPattern={videoPattern.pattern}
           saveError={videoSaveError}
+          blockedVideoIds={[...blockedVideoIds]}
+          onHideVideo={userId ? (video) => void blockVideo(video) : undefined}
           onClose={() => setVideoPatternId(null)}
         />
       )}

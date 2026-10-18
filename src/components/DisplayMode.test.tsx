@@ -10,6 +10,20 @@ const { getListWithClassroom, getLists, updateList } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/lists-api', () => ({ getListWithClassroom, getLists, updateList }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+// useBlockedVideos reads the session via useSession, which throws without a
+// SessionProvider; stub the hook so these tests render the real components.
+useBlockedVideos.mockReturnValue({
+  blockedVideos: [],
+  blockedVideoIds: new Set<string>(),
+  isLoaded: true,
+  userId: null,
+  blockVideo: vi.fn(),
+  unblockVideo: vi.fn(),
+})
+
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
 const mockPush = vi.hoisted(() => vi.fn())
 const mockBack = vi.hoisted(() => vi.fn())

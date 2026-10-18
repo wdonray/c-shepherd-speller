@@ -64,6 +64,28 @@ vi.mock('@/lib/example-sentences', () => ({
   fetchExampleSentences: vi.fn().mockResolvedValue({ sentences: ['We baked a cake.'], source: 'api' }),
 }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+function mockBlockedVideos(
+  overrides: {
+    blockedVideoIds?: Set<string>
+    userId?: string | null
+    blockVideo?: ReturnType<typeof vi.fn>
+  } = {}
+) {
+  const blockVideo = overrides.blockVideo ?? vi.fn()
+  useBlockedVideos.mockReturnValue({
+    blockedVideos: [],
+    blockedVideoIds: overrides.blockedVideoIds ?? new Set<string>(),
+    isLoaded: true,
+    userId: overrides.userId ?? null,
+    blockVideo,
+    unblockVideo: vi.fn(),
+  })
+  return { blockVideo }
+}
+
 vi.mock('@/lib/profile-image', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/lib/profile-image')>()
   return {
@@ -91,6 +113,7 @@ function renderEditor(overrides: Partial<SpellingPattern> = {}) {
 describe('PatternEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockBlockedVideos()
     isAudioCaptureSupported.mockReturnValue(true)
     isRecordingStorageSupported.mockReturnValue(true)
     hasRecording.mockResolvedValue(false)
@@ -837,6 +860,7 @@ describe('PatternEditor', () => {
 describe('PatternEditor duplicate pattern pairs (issue #414)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockBlockedVideos()
     isAudioCaptureSupported.mockReturnValue(true)
     isRecordingStorageSupported.mockReturnValue(true)
     hasRecording.mockResolvedValue(false)
@@ -985,5 +1009,30 @@ describe('PatternEditor song videos (issue #401)', () => {
     expect(screen.getByRole('dialog', { name: 'Song videos for pattern a_e' })).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Song videos for pattern a_e' })).not.toBeInTheDocument()
+  })
+
+  it('filters hidden videos out of the modal suggestions', () => {
+    mockBlockedVideos({ blockedVideoIds: new Set([video.videoId]), userId: 'u1' })
+    renderEditor({ pattern: 'ai' })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    expect(within(dialogEl).queryByRole('region', { name: 'Suggestions' })).not.toBeInTheDocument()
+  })
+
+  it('hides a suggested video through the modal Hide button', () => {
+    const { blockVideo } = mockBlockedVideos({ userId: 'u1' })
+    renderEditor({ pattern: 'ai' })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Hide ${video.title}` }))
+    expect(blockVideo).toHaveBeenCalledWith(expect.objectContaining({ videoId: video.videoId, title: video.title }))
+  })
+
+  it('shows no Hide buttons in the modal when signed out', () => {
+    mockBlockedVideos({ userId: null })
+    renderEditor({ pattern: 'ai' })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    expect(within(dialogEl).queryByRole('button', { name: `Hide ${video.title}` })).not.toBeInTheDocument()
   })
 })

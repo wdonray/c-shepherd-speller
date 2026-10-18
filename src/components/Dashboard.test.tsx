@@ -17,6 +17,33 @@ vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+interface MockBlockedVideos {
+  blockedVideos: { videoId: string; title: string; channel?: string }[]
+  blockedVideoIds: Set<string>
+  isLoaded: boolean
+  userId: string | null
+  blockVideo: ReturnType<typeof vi.fn>
+  unblockVideo: ReturnType<typeof vi.fn>
+}
+
+function mockBlockedVideos(overrides: Partial<MockBlockedVideos> = {}) {
+  const blockVideo = vi.fn()
+  const unblockVideo = vi.fn()
+  useBlockedVideos.mockReturnValue({
+    blockedVideos: [],
+    blockedVideoIds: new Set<string>(),
+    isLoaded: true,
+    userId: 'u1',
+    blockVideo,
+    unblockVideo,
+    ...overrides,
+  })
+  return { blockVideo, unblockVideo }
+}
+
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...rest}>
@@ -53,6 +80,7 @@ describe('Dashboard', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
+    mockBlockedVideos()
   })
 
   it('greets the teacher by first name', async () => {
@@ -393,6 +421,7 @@ describe('Dashboard song videos (issue #401)', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
+    mockBlockedVideos()
   })
 
   async function loadDashboard() {
@@ -449,5 +478,55 @@ describe('Dashboard song videos (issue #401)', () => {
     expect(loading.querySelectorAll('div.h-9.w-16')).toHaveLength(getAllPatternGroups().length + 1)
     // One card placeholder per bank video.
     expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(19)
+  })
+
+  describe('hidden videos (issue #443)', () => {
+    it('filters hidden videos out of the browse grid', async () => {
+      mockBlockedVideos({ blockedVideoIds: new Set(['qEgggBAF_nw']) })
+      await loadDashboard()
+      const section = screen.getByRole('region', { name: 'Song videos' })
+      expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(18)
+      expect(screen.queryByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).not.toBeInTheDocument()
+    })
+
+    it('hides a video from its browse card', async () => {
+      const { blockVideo } = mockBlockedVideos()
+      await loadDashboard()
+      fireEvent.click(screen.getByRole('button', { name: 'Hide Digraph CK - 4 Minute Phonics' }))
+      expect(blockVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ videoId: 'qEgggBAF_nw', title: 'Digraph CK - 4 Minute Phonics' })
+      )
+    })
+
+    it('shows no Hide buttons when signed out', async () => {
+      mockSession()
+      mockBlockedVideos({ userId: null })
+      await loadDashboard()
+      expect(screen.queryByRole('button', { name: /^Hide / })).not.toBeInTheDocument()
+    })
+
+    it('holds the loading state until the hidden-video list resolves', async () => {
+      mockBlockedVideos({ isLoaded: false })
+      getLists.mockResolvedValue([])
+      const { rerender } = render(<Dashboard {...defaultProps} />)
+      await waitFor(() => expect(getLists).toHaveBeenCalled())
+      // Lists are in, but the hidden-video list is not: still loading.
+      expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
+      mockBlockedVideos({ isLoaded: true })
+      rerender(<Dashboard {...defaultProps} />)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+      })
+    })
+
+    it('does not hold the loading state for signed-out visitors', async () => {
+      mockSession()
+      mockBlockedVideos({ isLoaded: false, userId: null })
+      getLists.mockResolvedValue([])
+      render(<Dashboard {...defaultProps} />)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+      })
+    })
   })
 })

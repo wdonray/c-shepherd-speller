@@ -3,6 +3,8 @@
  * These functions make HTTP requests to the API routes
  */
 
+import type { BlockedVideo } from '@/models/User'
+
 export interface User {
   id: string
   email: string
@@ -19,6 +21,8 @@ export interface User {
   preferredName?: string
   /** The teacher's default classroom id. Absent until set. */
   defaultClassId?: string | null
+  /** Videos the teacher has hidden (issue #443). Absent until set. */
+  blockedVideos?: BlockedVideo[]
 }
 
 export interface SpellingData {

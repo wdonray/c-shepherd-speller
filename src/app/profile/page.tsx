@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
 import ProfileForm from '@/components/ProfileForm'
+import HiddenVideosSection from '@/components/HiddenVideosSection'
 import DeleteAccountSection from '@/components/DeleteAccountSection'
 
 export const metadata: Metadata = {
   title: 'Profile | PatternSpell',
-  description: 'Manage your PatternSpell profile: photo, name, teaching information, and account deletion.',
+  description:
+    'Manage your PatternSpell profile: photo, name, teaching information, hidden videos, and account deletion.',
 }
 
 export default function ProfilePage() {
@@ -16,8 +18,9 @@ export default function ProfilePage() {
       <p className="mt-2 max-w-xl text-[15px] text-muted-foreground">
         Your personal and teaching details. Changes save automatically as you edit.
       </p>
-      <div className="mt-8">
+      <div className="mt-8 space-y-6">
         <ProfileForm />
+        <HiddenVideosSection />
       </div>
       <DeleteAccountSection />
     </div>

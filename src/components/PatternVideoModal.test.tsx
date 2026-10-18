@@ -368,3 +368,86 @@ describe('PatternVideoModal save errors', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
+
+describe('PatternVideoModal hidden videos (issue #443)', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function renderWithHide(
+    overrides: {
+      videos?: PatternVideo[]
+      blockedVideoIds?: string[]
+      onHideVideo?: ((video: PatternVideo) => void) | undefined
+    } = {}
+  ) {
+    const onChange = vi.fn()
+    const onHideVideo = 'onHideVideo' in overrides ? overrides.onHideVideo : vi.fn()
+    render(
+      <PatternVideoModal
+        title="Song videos for pattern ai"
+        videos={overrides.videos ?? []}
+        onChange={onChange}
+        suggestionPattern="ai"
+        blockedVideoIds={overrides.blockedVideoIds}
+        onHideVideo={onHideVideo}
+        onClose={vi.fn()}
+      />
+    )
+    return { onChange, onHideVideo: onHideVideo as ReturnType<typeof vi.fn> }
+  }
+
+  it('shows suggestions unfiltered when nothing is hidden', () => {
+    renderWithHide()
+    expect(suggestionsSection().getByText(curatedAi.title)).toBeInTheDocument()
+    expect(suggestionsSection().getByRole('button', { name: `Hide ${curatedAi.title}` })).toBeInTheDocument()
+  })
+
+  it('filters hidden videos out of the suggestions', () => {
+    renderWithHide({ blockedVideoIds: [curatedAi.videoId] })
+    expect(screen.queryByRole('region', { name: 'Suggestions' })).not.toBeInTheDocument()
+  })
+
+  it('filters hidden videos out of search results', () => {
+    renderWithHide({ blockedVideoIds: [curatedAi.videoId] })
+    fireEvent.change(searchSection().getByLabelText('Search videos by title or channel'), {
+      target: { value: 'scratch' },
+    })
+    const results = searchSection()
+    expect(results.queryByText(curatedAi.title)).not.toBeInTheDocument()
+    // The bank title carries a double space; Testing Library collapses it.
+    expect(results.getByText('The Vowel Teams Song | The Long E Sound | Phonics Song')).toBeInTheDocument()
+  })
+
+  it('hides a suggested video without detaching anything', () => {
+    const { onChange, onHideVideo } = renderWithHide()
+    fireEvent.click(suggestionsSection().getByRole('button', { name: `Hide ${curatedAi.title}` }))
+    expect(onHideVideo).toHaveBeenCalledWith(curatedAi)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('hiding an attached video removes it from the list and blocks it', () => {
+    const { onChange, onHideVideo } = renderWithHide({ videos: [curatedAi] })
+    fireEvent.click(attachedSection().getByRole('button', { name: `Hide ${curatedAi.title}` }))
+    expect(onChange).toHaveBeenCalledWith([])
+    expect(onHideVideo).toHaveBeenCalledWith(curatedAi)
+  })
+
+  it('hides a search result via the Hide button', () => {
+    const { onHideVideo } = renderWithHide()
+    fireEvent.change(searchSection().getByLabelText('Search videos by title or channel'), {
+      target: { value: 'scratch' },
+    })
+    fireEvent.click(searchSection().getByRole('button', { name: /Hide The Vowel Teams Song/ }))
+    expect(onHideVideo).toHaveBeenCalledWith(expect.objectContaining({ videoId: curatedEe.videoId, source: 'curated' }))
+  })
+
+  it('shows no Hide buttons when onHideVideo is omitted', () => {
+    renderWithHide({ videos: [curatedAi], onHideVideo: undefined })
+    expect(screen.queryByRole('button', { name: `Hide ${curatedAi.title}` })).not.toBeInTheDocument()
+    expect(attachedSection().getByRole('button', { name: `Remove ${curatedAi.title}` })).toBeInTheDocument()
+  })
+})

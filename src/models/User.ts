@@ -35,6 +35,27 @@ export interface IUser {
    * storing it (see resolveDefaultClassId).
    */
   defaultClassId?: string
+  /**
+   * Videos the teacher has hidden (issue #443: "don't ever show me this
+   * video again"). Suggestions, in-app search results, and the home browse
+   * section filter these out for this teacher. Entries snapshot the
+   * title/channel at block time so the profile settings list can show them
+   * without another lookup (custom pasted videos have no bank entry).
+   * Unique by videoId; absent until the teacher hides their first video.
+   */
+  blockedVideos?: BlockedVideo[]
+}
+
+/**
+ * One hidden video on a teacher's profile (issue #443).
+ */
+export interface BlockedVideo {
+  /** The 11-character YouTube video ID. */
+  videoId: string
+  /** Title snapshot taken when the teacher hid the video. */
+  title: string
+  /** Channel name snapshot, when known. */
+  channel?: string
 }
 
 export const USER_TABLE_NAME = process.env.USER_TABLE_NAME || 'c-shepherd-users'
