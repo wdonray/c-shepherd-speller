@@ -49,15 +49,35 @@ test.describe('lists toolbar stacking', () => {
     await page.goto('/lists')
     await page.getByTestId('lists-grid').waitFor()
 
-    // Scroll the first card's action button so it sits underneath the
-    // stuck toolbar, the real-world scroll position from issue #421.
+    // Scroll the first card's action button so its center sits underneath
+    // the stuck toolbar, the real-world scroll position from issue #421.
+    // The toolbar's height varies with content and fonts, so anchor the
+    // scroll to the toolbar's own rect: the button center lands on the
+    // toolbar's vertical middle, guaranteed beneath the stuck bar.
+    // Two phases: the first scroll pins the toolbar (its rect is only
+    // meaningful once stuck), the second anchors precisely to that rect.
     await page.evaluate(() => {
       const grid = document.querySelector('[data-testid="lists-grid"]')
       const button = Array.from(grid?.querySelectorAll('button') ?? []).find((b) =>
         b.textContent?.includes('Edit list')
       )
       const rect = button?.getBoundingClientRect()
-      if (rect) window.scrollBy(0, rect.top - 200)
+      if (rect) window.scrollBy(0, rect.top - 120)
+    })
+    await page.waitForTimeout(300)
+    await page.evaluate(() => {
+      const toolbar = document.querySelector('[data-testid="lists-filter-toolbar"]')
+      const grid = document.querySelector('[data-testid="lists-grid"]')
+      const button = Array.from(grid?.querySelectorAll('button') ?? []).find((b) =>
+        b.textContent?.includes('Edit list')
+      )
+      const toolbarRect = toolbar?.getBoundingClientRect()
+      const rect = button?.getBoundingClientRect()
+      if (toolbarRect && rect) {
+        const buttonCenterY = rect.top + rect.height / 2
+        const toolbarMiddleY = toolbarRect.top + toolbarRect.height / 2
+        window.scrollBy(0, buttonCenterY - toolbarMiddleY)
+      }
     })
     // Let the scroll settle and the sticky toolbar pin.
     await page.waitForTimeout(500)
