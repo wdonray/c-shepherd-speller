@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { Button } from '@/components/ui/button'
@@ -141,6 +141,13 @@ function WorksheetsJob({
   const [busyWord, setBusyWord] = useState<string | null>(null)
   const [gapError, setGapError] = useState<string | null>(null)
   const [seed] = useState(() => Date.now())
+  /** First-sentence suggestions each gap word loaded, keyed by word. */
+  const [suggestionsByWord, setSuggestionsByWord] = useState<Record<string, string[]>>({})
+
+  /** Rows report their suggestions on load; stable so the per-row fetch effect never re-runs. */
+  const handleSuggestionsLoaded = useCallback((word: string, sentences: string[]) => {
+    setSuggestionsByWord((prev) => ({ ...prev, [word]: sentences }))
+  }, [])
 
   const words = useMemo(
     () => extractWorksheetWords(list).filter((w) => !removedWords.has(w.word)),
@@ -176,6 +183,28 @@ function WorksheetsJob({
   const removeWord = (word: string) => {
     setRemovedWords((prev) => new Set(prev).add(word))
   }
+
+  /**
+   * Fill every gap word's first suggestion into its typed box. Words with no
+   * suggestions are skipped; boxes the teacher already typed in are left
+   * alone. Fills only, nothing is saved: each sentence can still be reviewed
+   * and changed with the per-word "Use this sentence" button.
+   */
+  const acceptAllSuggestions = () => {
+    setTypedSentences((prev) => {
+      const next = { ...prev }
+      for (const word of gapWords) {
+        // The button stays disabled until every gap word has loaded its
+        // suggestions, so this lookup always hits.
+        const first = suggestionsByWord[word.word][0]
+        if (first !== undefined && (next[word.word] ?? '').trim() === '') {
+          next[word.word] = first
+        }
+      }
+      return next
+    })
+  }
+  const allSuggestionsLoaded = gapWords.every((w) => suggestionsByWord[w.word] !== undefined)
 
   const job: PrintJob | null = useMemo(() => {
     if (showGaps) return null
@@ -241,6 +270,15 @@ function WorksheetsJob({
             {gapError}
           </p>
         )}
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            disabled={busyWord !== null || !allSuggestionsLoaded}
+            onClick={acceptAllSuggestions}
+          >
+            Accept all suggestions
+          </Button>
+        </div>
         <div className="mt-6 space-y-4">
           {gapWords.map((word) => (
             <GapWordRow
@@ -251,6 +289,7 @@ function WorksheetsJob({
               onTypedChange={(value) => setTypedSentences((prev) => ({ ...prev, [word.word]: value }))}
               onSaveSentence={(sentence) => saveSentence(word.word, sentence)}
               onRemove={() => removeWord(word.word)}
+              onSuggestionsLoaded={handleSuggestionsLoaded}
             />
           ))}
         </div>
@@ -318,6 +357,7 @@ function GapWordRow({
   onTypedChange,
   onSaveSentence,
   onRemove,
+  onSuggestionsLoaded,
 }: {
   word: WorksheetWord
   busy: boolean
@@ -325,18 +365,22 @@ function GapWordRow({
   onTypedChange: (value: string) => void
   onSaveSentence: (sentence: string) => void
   onRemove: () => void
+  onSuggestionsLoaded: (word: string, sentences: string[]) => void
 }) {
   // Suggestions load per word, so one slow word never blocks the others.
   const [suggestions, setSuggestions] = useState<string[] | null>(null)
   useEffect(() => {
     let cancelled = false
     fetchExampleSentences(word.word).then(({ sentences }) => {
-      if (!cancelled) setSuggestions(sentences)
+      if (!cancelled) {
+        setSuggestions(sentences)
+        onSuggestionsLoaded(word.word, sentences)
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [word.word])
+  }, [word.word, onSuggestionsLoaded])
 
   return (
     <div className="rounded-2xl border-2 border-line bg-card p-4">
