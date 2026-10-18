@@ -281,6 +281,8 @@ describe('SortActivity rule recall', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     const column = await screen.findByLabelText('Pattern ai drop column')
     expect(within(column).getByText('No rule yet')).toBeInTheDocument()
+    // Issue #411: the empty slot still shows the label.
+    expect(within(column).getByText('The rule:')).toBeInTheDocument()
   })
 
   it('shows a No rule yet placeholder on mobile columns with no rule', async () => {
@@ -288,6 +290,8 @@ describe('SortActivity rule recall', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     const column = await screen.findByLabelText('Pattern ai column')
     expect(within(column).getByText('No rule yet')).toBeInTheDocument()
+    // Issue #411: the empty slot still shows the label.
+    expect(within(column).getByText('The rule:')).toBeInTheDocument()
   })
 
   it('hides the No rule yet placeholder with the eyeball toggle', async () => {

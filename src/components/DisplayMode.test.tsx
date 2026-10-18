@@ -308,7 +308,8 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
     })
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    // Issue #411: the filled slot and the empty slot both show the label.
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   })
@@ -1016,7 +1017,8 @@ describe('DisplayMode present-chart rule editing (issue #372)', () => {
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      // Issue #411: the filled slot and the empty slot both show the label.
+      expect(screen.getAllByText('The rule:')).toHaveLength(2)
     })
     fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
     fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'New unscoped rule.' } })
@@ -1050,7 +1052,8 @@ describe('DisplayMode present-chart rule editing (issue #372)', () => {
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      // Issue #411: the filled slot and the empty slot both show the label.
+      expect(screen.getAllByText('The rule:')).toHaveLength(2)
     })
     fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
@@ -1063,7 +1066,9 @@ describe('DisplayMode present-chart rule editing (issue #372)', () => {
         })
       )
     })
-    expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+    // The rule text is gone, but the empty slots still show the label (issue #411).
+    expect(screen.queryByText('Magic e.')).not.toBeInTheDocument()
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
   })
 })
 
@@ -1113,7 +1118,8 @@ describe('DisplayMode present-chart rule editing without cached class rules (iss
       expect(screen.getByText('No class')).toBeInTheDocument()
     })
     // The chart falls back to the unscoped rule, still editable.
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    // Issue #411: the filled slot and the empty slot both show the label.
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
     expect(screen.getByLabelText(KIDS_WORDS_LABEL)).toHaveValue('Magic e.')
     fireEvent.change(screen.getByLabelText(KIDS_WORDS_LABEL), { target: { value: 'Edited rule.' } })
@@ -1138,7 +1144,8 @@ describe('DisplayMode present-chart rule editing without cached class rules (iss
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      // Issue #411: the filled slot and the empty slot both show the label.
+      expect(screen.getAllByText('The rule:')).toHaveLength(2)
     })
     fireEvent.click(screen.getByRole('button', { name: 'Edit rule for a_e' }))
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
@@ -1153,7 +1160,7 @@ describe('DisplayMode present-chart rule editing without cached class rules (iss
       )
     })
     // The unscoped fallback remains; only the (absent) class rule was cleared.
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     expect(screen.getByText('Magic e.')).toBeInTheDocument()
   })
 

@@ -354,7 +354,11 @@ function DropColumn({
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
         <AnimatedRuleSlot show={showRules}>
-          {rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />}
+          {rule ? (
+            <RuleCard rule={rule} label={ruleLabel} editable={false} />
+          ) : (
+            <EmptyRulePlaceholder label={ruleLabel} />
+          )}
         </AnimatedRuleSlot>
       </div>
       <ul className="flex flex-wrap items-start gap-3">
@@ -470,7 +474,11 @@ function MobileDropColumn({
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
         </div>
         <AnimatedRuleSlot show={showRules}>
-          {rule ? <RuleCard rule={rule} label={ruleLabel} editable={false} /> : <EmptyRulePlaceholder />}
+          {rule ? (
+            <RuleCard rule={rule} label={ruleLabel} editable={false} />
+          ) : (
+            <EmptyRulePlaceholder label={ruleLabel} />
+          )}
         </AnimatedRuleSlot>
       </div>
       <ul className="flex flex-wrap items-start gap-3">{children}</ul>

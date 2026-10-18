@@ -579,13 +579,14 @@ describe('SortActivity mobile drag visuals', () => {
       ],
     }
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    // Issue #411: the empty slot shows the label too, so two columns mean two labels.
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     fireEvent.click(toggle)
     // Issue #374: hiding animates the slot out, so it leaves the DOM after
     // the exit transition instead of vanishing synchronously.
     await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     fireEvent.click(toggle)
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
   })
 })

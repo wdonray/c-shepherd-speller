@@ -140,8 +140,9 @@ describe('RuleCard', () => {
 })
 
 describe('EmptyRulePlaceholder', () => {
-  it('renders the visible No rule yet box', () => {
-    render(<EmptyRulePlaceholder />)
+  it('renders the visible No rule yet box with its label', () => {
+    render(<EmptyRulePlaceholder label="The rule:" />)
+    expect(screen.getByText('The rule:')).toBeInTheDocument()
     expect(screen.getByText('No rule yet')).toBeInTheDocument()
   })
 })
