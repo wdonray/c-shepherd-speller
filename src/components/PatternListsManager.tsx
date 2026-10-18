@@ -265,9 +265,12 @@ export default function PatternListsManager() {
           <div className="h-7 w-48 animate-pulse rounded-lg bg-line/60" />
           <div className="h-10 w-28 animate-pulse rounded-2xl bg-line/60" />
         </div>
-        {/* Sticky filter bar: matches the loaded sticky tabs + sort + search (issue #341) */}
+        {/* Sticky filter bar: matches the loaded sticky tabs + sort + search (issue #341).
+            z-20 keeps the bar above the card action-button rows (relative z-10,
+            issue #421): equal z-index ties break by DOM order, so at z-10 the
+            scrolling buttons painted on top of the stuck bar. */}
         <div
-          className="sticky top-[72px] z-10 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+          className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
           aria-hidden="true"
         >
           <div className="inline-flex rounded-full border-2 border-line bg-card p-1">
@@ -334,8 +337,11 @@ export default function PatternListsManager() {
             behind the header), and isolated in its own compositing layer so
             iOS Safari stops ghosting card action bars into a stuck duplicate
             that smears over the controls while scrolling.
+            z-20 (not z-10): the card action-button rows are relative z-10,
+            and equal z-index ties break by DOM order, so at z-10 the
+            scrolling buttons painted on top of the stuck bar (issue #421).
           */}
-          <div className="sticky top-[72px] z-10 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]">
+          <div className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]">
             {showFavoritesTab && !searching && (
               <div
                 role="tablist"
