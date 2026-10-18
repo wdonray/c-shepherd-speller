@@ -288,6 +288,16 @@
     display: none !important;
   }
 
+  /* Worksheet print job (issue #451): worksheets print in portrait.
+     Named page so the chart poster route keeps its own print behavior. */
+  @page worksheet {
+    size: portrait;
+  }
+
+  .worksheet-print {
+    page: worksheet;
+  }
+
   /* Worksheet print job (issue #402): one worksheet per unbroken block,
      the answer key always starts on a fresh page. */
   .worksheet-sheet {

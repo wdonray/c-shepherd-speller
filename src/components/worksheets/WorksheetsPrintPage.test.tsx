@@ -117,6 +117,15 @@ describe('WorksheetsPrintPage', () => {
     expect(printSpy).toHaveBeenCalledTimes(2)
   })
 
+  it('marks the print job for portrait orientation (issue #451)', async () => {
+    getList.mockResolvedValue(fullList)
+    const { container } = render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+    await waitFor(() => expect(printSpy).toHaveBeenCalled())
+    // The CSS `page: worksheet` hook (globals.css @page worksheet) forces
+    // portrait; this class is what wires the print root to that page.
+    expect(container.querySelector('.print-page.worksheet-print')).toBeInTheDocument()
+  })
+
   it('omits the answer key when only the parent note is selected', async () => {
     getList.mockResolvedValue({ ...fullList, week: undefined })
     render(<WorksheetsPrintPage listId="l1" selectedTypes={['parent-note']} />)

@@ -329,7 +329,7 @@ function WorksheetsJob({
   }
 
   return (
-    <div className="print-page mx-auto w-full max-w-4xl px-4 py-8">
+    <div className="print-page worksheet-print mx-auto w-full max-w-4xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
         <Link href={`/lists/${list.id}/worksheets`} className="text-sm font-bold text-sky-ink hover:underline">
           &larr; Back to worksheets
