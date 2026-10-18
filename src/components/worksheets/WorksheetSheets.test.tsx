@@ -218,6 +218,17 @@ describe('CrosswordSheet', () => {
     expect(screen.queryByText(/did not fit/)).not.toBeInTheDocument()
   })
 
+  it('lists the placed words in alphabetical order in the word bank', () => {
+    render(<CrosswordSheet result={crossword} answerKey={false} />)
+    expect(screen.getByRole('heading', { name: 'Word bank' })).toBeInTheDocument()
+    expect(screen.getByText('art, cat')).toBeInTheDocument()
+  })
+
+  it('shows the word bank on the answer key too', () => {
+    render(<CrosswordSheet result={{ ...crossword, unplaced: [] }} answerKey />)
+    expect(screen.getByText('art, cat')).toBeInTheDocument()
+  })
+
   it('renders a puzzle with no down clues', () => {
     render(
       <CrosswordSheet

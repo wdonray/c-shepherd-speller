@@ -10,6 +10,12 @@
  * duplicated, or that cannot cross any placed word are reported in
  * `unplaced` instead of being placed. Clues are the caller-supplied
  * example sentences, carried through onto each placement untouched.
+ *
+ * Placement quality is best-effort: the generator retries the layout with
+ * different candidate orderings until at least MIN_CROSSWORD_WORDS words
+ * are placed (or every valid word is placed when there are fewer than
+ * that), keeping the best attempt. Every attempt draws from the caller's
+ * `rand`, so the result stays deterministic for a given seed.
  */
 
 export interface CrosswordEntry {
@@ -40,6 +46,12 @@ export interface CrosswordResult {
 
 /** Working grid size; also the longest word that can be placed. */
 export const MAX_CROSSWORD_SIZE = 21
+
+/** Target minimum placed words; lists shorter than this just use every valid word. */
+export const MIN_CROSSWORD_WORDS = 8
+
+/** How many layout orderings to try before keeping the best one. */
+const MAX_LAYOUT_ATTEMPTS = 10
 
 type Direction = 'across' | 'down'
 
@@ -187,33 +199,12 @@ function computeNumbers(grid: (string | null)[][]): Map<string, number> {
   return numbers
 }
 
-/**
- * Lay out spelling words as a crossword. `rand` supplies the randomness
- * for candidate ordering; pass a seeded function for reproducible
- * layouts. Words are uppercased; anything that cannot be placed is
- * listed in `unplaced`.
- */
-export function generateCrossword(entries: CrosswordEntry[], rand: () => number): CrosswordResult {
+/** One greedy layout pass over the validated words; may leave words unplaced. */
+function layoutOnce(
+  valid: { word: string; clue: string }[],
+  rand: () => number
+): { placed: PlacedWord[]; unplaced: string[]; working: (string | null)[][] } {
   const unplaced: string[] = []
-  const seen = new Set<string>()
-  const valid: { word: string; clue: string }[] = []
-  for (const entry of entries) {
-    const word = entry.word.toUpperCase()
-    if (word.length < 2 || word.length > MAX_CROSSWORD_SIZE || !LETTERS_ONLY.test(word)) {
-      unplaced.push(word)
-      continue
-    }
-    if (seen.has(word)) {
-      unplaced.push(word)
-      continue
-    }
-    seen.add(word)
-    valid.push({ word, clue: entry.clue })
-  }
-
-  valid.sort((a, b) => b.word.length - a.word.length)
-  if (valid.length === 0) return emptyResult(unplaced)
-
   const working: (string | null)[][] = []
   for (let r = 0; r < MAX_CROSSWORD_SIZE; r++) {
     working.push(new Array<string | null>(MAX_CROSSWORD_SIZE).fill(null))
@@ -235,6 +226,51 @@ export function generateCrossword(entries: CrosswordEntry[], rand: () => number)
       placeWord(working, placed, entry, spot.direction, spot.row, spot.col)
     }
   }
+
+  return { placed, unplaced, working }
+}
+
+/**
+ * Lay out spelling words as a crossword. `rand` supplies the randomness
+ * for candidate ordering; pass a seeded function for reproducible
+ * layouts. Words are uppercased; anything that cannot be placed is
+ * listed in `unplaced`.
+ */
+export function generateCrossword(entries: CrosswordEntry[], rand: () => number): CrosswordResult {
+  const invalidUnplaced: string[] = []
+  const seen = new Set<string>()
+  const valid: { word: string; clue: string }[] = []
+  for (const entry of entries) {
+    const word = entry.word.toUpperCase()
+    if (word.length < 2 || word.length > MAX_CROSSWORD_SIZE || !LETTERS_ONLY.test(word)) {
+      invalidUnplaced.push(word)
+      continue
+    }
+    if (seen.has(word)) {
+      invalidUnplaced.push(word)
+      continue
+    }
+    seen.add(word)
+    valid.push({ word, clue: entry.clue })
+  }
+
+  valid.sort((a, b) => b.word.length - a.word.length)
+  if (valid.length === 0) return emptyResult(invalidUnplaced)
+
+  // Keep the attempt that places the most words; stop early once the
+  // target is reached. Each attempt draws from the same rand stream, so
+  // later attempts shuffle candidates differently while the whole
+  // sequence stays deterministic for a given seed.
+  const target = Math.min(MIN_CROSSWORD_WORDS, valid.length)
+  let best = layoutOnce(valid, rand)
+  for (let attempt = 1; attempt < MAX_LAYOUT_ATTEMPTS && best.placed.length < target; attempt++) {
+    const next = layoutOnce(valid, rand)
+    if (next.placed.length > best.placed.length) best = next
+  }
+
+  const placed = best.placed
+  const unplaced = [...invalidUnplaced, ...best.unplaced]
+  const working = best.working
 
   let minRow = MAX_CROSSWORD_SIZE
   let maxRow = -1

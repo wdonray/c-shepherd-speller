@@ -210,8 +210,9 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
 }
 
 /**
- * 5. Crossword. Clues are sentences using each word. Student: numbered
- * empty grid plus clue lists. Key: the completed grid.
+ * 5. Crossword. Clues are sentences with the spelling word blanked out,
+ * plus an alphabetical word bank. Student: numbered empty grid plus clue
+ * lists. Key: the completed grid.
  */
 export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult; answerKey: boolean }) {
   const across = result.placements.filter((p) => p.direction === 'across')
@@ -274,6 +275,13 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
           </ol>
         </div>
       </div>
+      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <p className="text-black">
+        {result.placements
+          .map((p) => p.word)
+          .sort((a, b) => a.localeCompare(b))
+          .join(', ')}
+      </p>
       {result.unplaced.length > 0 && (
         <p className="mt-2 text-black">These words did not fit in the puzzle: {result.unplaced.join(', ')}.</p>
       )}

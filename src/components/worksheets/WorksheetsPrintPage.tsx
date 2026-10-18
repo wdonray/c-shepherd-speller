@@ -12,6 +12,7 @@ import { reportError } from '@/lib/report-error'
 import {
   TYPES_NEEDING_SENTENCES,
   WORKSHEET_TYPES,
+  blankWholeWordInSentence,
   blankWordForPattern,
   blankWordInSentence,
   extractWorksheetWords,
@@ -222,7 +223,7 @@ function WorksheetsJob({
         : null,
       crossword: selectedTypes.includes('crossword')
         ? generateCrossword(
-            sentenceWords.map((w) => ({ word: w.word, clue: w.sentence })),
+            sentenceWords.map((w) => ({ word: w.word, clue: blankWholeWordInSentence(w.sentence, w.word) })),
             rand
           )
         : null,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { generateCrossword, MAX_CROSSWORD_SIZE, type CrosswordEntry, type CrosswordResult } from './crossword'
+import {
+  generateCrossword,
+  MAX_CROSSWORD_SIZE,
+  MIN_CROSSWORD_WORDS,
+  type CrosswordEntry,
+  type CrosswordResult,
+} from './crossword'
 
 /** Deterministic PRNG for tests; any fixed seed gives a repeatable shuffle order. */
 function mulberry32(seed: number): () => number {
@@ -23,13 +29,16 @@ function checkInvariants(result: CrosswordResult): void {
   for (const row of result.grid) {
     expect(row.length).toBe(result.cols)
   }
-  const seenNumbers = new Set<number>()
+  const seenNumbers = new Set<string>()
   const covered = new Set<string>()
   for (const p of result.placements) {
     expect(p.cells.length).toBe(p.word.length)
     expect(p.number).toBeGreaterThan(0)
-    expect(seenNumbers.has(p.number)).toBe(false)
-    seenNumbers.add(p.number)
+    // Standard numbering: an across and a down word may share a start cell
+    // (e.g. 6-Across and 6-Down), so numbers are unique per direction only.
+    const numberKey = `${p.direction}:${p.number}`
+    expect(seenNumbers.has(numberKey)).toBe(false)
+    seenNumbers.add(numberKey)
     for (let i = 0; i < p.cells.length; i++) {
       const cell = p.cells[i]
       expect(cell.row).toBeGreaterThanOrEqual(0)
@@ -52,8 +61,11 @@ function checkInvariants(result: CrosswordResult): void {
     const belowLetter = start.row + 1 < result.rows && result.grid[start.row + 1][start.col] !== null
     expect((leftEmpty && rightLetter) || (aboveEmpty && belowLetter)).toBe(true)
   }
-  // Clue numbers are consecutive from 1.
-  expect([...seenNumbers].sort((a, b) => a - b)).toEqual(Array.from({ length: seenNumbers.size }, (_, i) => i + 1))
+  // Distinct clue numbers are consecutive from 1.
+  const distinctNumbers = new Set([...seenNumbers].map((key) => Number(key.split(':')[1])))
+  expect([...distinctNumbers].sort((a, b) => a - b)).toEqual(
+    Array.from({ length: distinctNumbers.size }, (_, i) => i + 1)
+  )
   // Every letter cell belongs to at least one placement, so crossings agree.
   for (let r = 0; r < result.rows; r++) {
     for (let c = 0; c < result.cols; c++) {
@@ -284,5 +296,69 @@ describe('generateCrossword', () => {
       expect(result.placements.length).toBeGreaterThan(0)
       checkInvariants(result)
     }
+  })
+
+  it('places at least 8 words when the list has 8 or more placeable words', () => {
+    const words = [
+      'planet',
+      'earth',
+      'mars',
+      'venus',
+      'mercury',
+      'saturn',
+      'jupiter',
+      'neptune',
+      'comet',
+      'moon',
+      'star',
+      'orbit',
+    ]
+    for (const seed of [7, 13, 42]) {
+      const result = generateCrossword(
+        words.map((word) => entry(word)),
+        mulberry32(seed)
+      )
+      expect(result.placements.length).toBeGreaterThanOrEqual(MIN_CROSSWORD_WORDS)
+      expect(result.placements.length + result.unplaced.length).toBe(words.length)
+      checkInvariants(result)
+    }
+  })
+
+  it('uses every valid word when the list has fewer than 8', () => {
+    const words = ['cake', 'bake', 'rain', 'train', 'late']
+    const result = generateCrossword(
+      words.map((word) => entry(word)),
+      mulberry32(7)
+    )
+    expect(result.placements.length).toBe(words.length)
+    expect(result.unplaced).toEqual([])
+    checkInvariants(result)
+  })
+
+  it('keeps the invalid words unplaced even when retries run', () => {
+    const entries = [
+      ...['planet', 'earth', 'mars', 'venus', 'mercury', 'saturn', 'jupiter', 'neptune', 'comet', 'moon'].map((word) =>
+        entry(word)
+      ),
+      entry('a'), // Too short: can never be placed.
+    ]
+    const result = generateCrossword(entries, mulberry32(13))
+    expect(result.placements.length).toBeGreaterThanOrEqual(MIN_CROSSWORD_WORDS)
+    expect(result.unplaced).toContain('A')
+    checkInvariants(result)
+  })
+
+  it('retries stay deterministic for the same seed', () => {
+    const words = ['planet', 'earth', 'mars', 'venus', 'mercury', 'saturn', 'jupiter', 'neptune', 'comet', 'moon']
+    const first = generateCrossword(
+      words.map((word) => entry(word)),
+      mulberry32(99)
+    )
+    const second = generateCrossword(
+      words.map((word) => entry(word)),
+      mulberry32(99)
+    )
+    expect(first).toEqual(second)
+    checkInvariants(first)
   })
 })
