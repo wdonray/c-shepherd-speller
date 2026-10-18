@@ -349,6 +349,9 @@ function DropColumn({
     >
       <div className="mb-4 text-center">
         <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
+        {/* Issue #379: the pattern's target sound always reads under the
+            pattern name, subtle but projector-readable. */}
+        <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
         <div className="mt-2 flex items-center justify-center gap-2">
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
@@ -465,6 +468,9 @@ function MobileDropColumn({
     >
       <div className="mb-4 text-center">
         <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
+        {/* Issue #379: the pattern's target sound always reads under the
+            pattern name, subtle but projector-readable. */}
+        <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
         <div className="mt-2 flex items-center justify-center gap-2">
           <PowerBar level={level} filledClassName="bg-ink" />
           <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
@@ -525,7 +531,10 @@ function MobilePlaceBar({
                 'focus-visible:ring-[3px] focus-visible:ring-ring/60 active:bg-sky-soft'
               )}
             >
-              {pattern.pattern}
+              <span className="block leading-tight">{pattern.pattern}</span>
+              {/* Issue #379: the sound always reads under the pattern, even
+                  in the mobile placement bar. */}
+              <span className="block text-[13px] font-semibold text-muted-foreground">{pattern.sound}</span>
             </button>
           ))}
           {showWordBank && (

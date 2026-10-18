@@ -129,6 +129,14 @@ describe('SortActivity on mobile', () => {
     }
   })
 
+  it('shows each pattern sound under its pattern in the mobile columns (issue #379)', () => {
+    render(<SortActivity list={list} onExit={vi.fn()} />)
+    for (const pattern of ['a_e', 'ai', 'odd']) {
+      const column = screen.getByLabelText(`Pattern ${pattern} column`)
+      expect(within(column).getByText('long a')).toBeInTheDocument()
+    }
+  })
+
   it('selects and deselects a word on tap', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     const cake = screen.getByRole('button', { name: 'Select the word cake' })
@@ -149,6 +157,9 @@ describe('SortActivity on mobile', () => {
     expect(within(bar).getByRole('button', { name: 'Put cake in the a_e column' })).toBeInTheDocument()
     expect(within(bar).getByRole('button', { name: 'Put cake in the ai column' })).toBeInTheDocument()
     expect(within(bar).getByRole('button', { name: 'Put cake in the odd column' })).toBeInTheDocument()
+    // Issue #379: the sound reads under the pattern on the placement bar too.
+    const aEDestination = within(bar).getByRole('button', { name: 'Put cake in the a_e column' })
+    expect(within(aEDestination).getByText('long a')).toBeInTheDocument()
     // A word straight from the bank has nowhere to go back to.
     expect(within(bar).queryByRole('button', { name: 'Put cake back in the word bank' })).not.toBeInTheDocument()
     expect(liveRegion()?.textContent).toContain('Choose where it goes.')
