@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { getList, updateList } from '@/lib/lists-api'
@@ -229,7 +230,8 @@ function WorksheetsJob({
   if (showGaps) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-3xl font-bold">Sentences needed</h1>
+        <BackBreadcrumb href={`/lists/${list.id}/worksheets`} label="Printable worksheets" />
+        <h1 className="mt-2 text-3xl font-bold">Sentences needed</h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
           The worksheets you picked need one sentence per word. For each word below, use a suggested sentence, write
           your own (it saves to your list), or remove the word from the worksheets.

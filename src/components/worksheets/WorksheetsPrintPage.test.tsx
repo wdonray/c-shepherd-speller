@@ -259,6 +259,13 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.getByRole('button', { name: 'Remove bake from worksheet' })).toBeDisabled()
     })
 
+    it('links back to the worksheet picker from the gap flow', async () => {
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+      const back = screen.getByRole('link', { name: 'Printable worksheets' })
+      expect(back).toHaveAttribute('href', '/lists/l1/worksheets')
+    })
+
     it('shows an error state for a non-Error rejection', async () => {
       getList.mockRejectedValueOnce('a string, not an Error')
       render(<WorksheetsPrintPage listId="l1" selectedTypes={ALL_TYPES} />)

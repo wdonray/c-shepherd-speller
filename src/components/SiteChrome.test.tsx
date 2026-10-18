@@ -104,4 +104,21 @@ describe('SiteChrome', () => {
     const main = screen.getByRole('main')
     expect(main).toHaveTextContent('print content')
   })
+
+  it('keeps the header and footer on screen for the worksheets print route', () => {
+    // The sentence gap flow on this route is interactive screen UI, not the
+    // print job (issue #436). The chrome hides only in the printed output.
+    usePathnameMock.mockReturnValue('/lists/l1/worksheets/print')
+    render(
+      <SiteChrome>
+        <p>gap content</p>
+      </SiteChrome>
+    )
+
+    expect(screen.getByTestId('site-header')).toBeInTheDocument()
+    expect(screen.getByTestId('site-footer')).toBeInTheDocument()
+    expect(screen.getByTestId('site-header').parentElement?.className).toContain('print:hidden')
+    expect(screen.getByTestId('site-footer').parentElement?.className).toContain('print:hidden')
+    expect(screen.getByRole('main')).toHaveTextContent('gap content')
+  })
 })
