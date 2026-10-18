@@ -130,6 +130,43 @@ export default function PatternChartDisplay({
   }
 
   /**
+   * The pencil trigger for the rule editor (issue #372, extended to empty
+   * slots by issue #410): an accessible round button that opens the editor
+   * for the pattern, whether or not a rule exists yet.
+   */
+  const ruleEditorTrigger = (pattern: SpellingPattern) => (open: () => void) => (
+    <button
+      type="button"
+      onClick={open}
+      aria-label={`Edit rule for ${pattern.pattern}`}
+      title={`Edit rule for ${pattern.pattern}`}
+      className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition hover:bg-line/50 hover:text-ink focus-visible:bg-line/50 focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+    >
+      <PencilIcon className="size-4" aria-hidden="true" />
+    </button>
+  )
+
+  /**
+   * The rule editor for one pattern (issue #372, #410). Opened from the
+   * pencil trigger; the modal starts from the pattern's effective rule,
+   * empty when none exists yet.
+   */
+  const renderRuleEditor = (pattern: SpellingPattern, rule: string | undefined) => {
+    if (!onSaveRule) return null
+    return (
+      <PatternRuleEditor
+        patternId={pattern.id}
+        patternText={pattern.pattern}
+        initialRule={rule ?? ''}
+        shared={classRules?.[pattern.pattern] !== undefined}
+        className={className ?? null}
+        onSave={(next) => onSaveRule(pattern.id, pattern.pattern, next)}
+        trigger={ruleEditorTrigger(pattern)}
+      />
+    )
+  }
+
+  /**
    * The rule under a column header (issue #263). The classroom's rule wins
    * over the pattern's unscoped rule when both exist. Rendered larger than
    * before so it reads from the back of the room. On the present chart the
@@ -143,36 +180,20 @@ export default function PatternChartDisplay({
     const isClassRule = classRules?.[pattern.pattern] !== undefined
     // Issue #370: a visible empty placeholder keeps every column the same
     // size when a pattern has no rule; the dashed border marks it as an
-    // empty slot rather than a real rule.
+    // empty slot rather than a real rule. Issue #410: the empty slot gets
+    // the same pencil so a rule can be added from here too.
     const content = !rule ? (
       <figure className="mt-3 border-l-4 border-dashed border-line bg-background/50 px-3 py-2 text-left">
-        <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
+          {renderRuleEditor(pattern, rule)}
+        </div>
       </figure>
     ) : (
       <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">
         <figcaption className="flex items-center justify-between gap-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
           <span>{isClassRule ? 'Our class figured out:' : 'The rule:'}</span>
-          {onSaveRule && (
-            <PatternRuleEditor
-              patternId={pattern.id}
-              patternText={pattern.pattern}
-              initialRule={rule}
-              shared={isClassRule}
-              className={className ?? null}
-              onSave={(next) => onSaveRule(pattern.id, pattern.pattern, next)}
-              trigger={(open) => (
-                <button
-                  type="button"
-                  onClick={open}
-                  aria-label={`Edit rule for ${pattern.pattern}`}
-                  title={`Edit rule for ${pattern.pattern}`}
-                  className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full outline-none transition hover:bg-line/50 hover:text-ink focus-visible:bg-line/50 focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                >
-                  <PencilIcon className="size-4" aria-hidden="true" />
-                </button>
-              )}
-            />
-          )}
+          {renderRuleEditor(pattern, rule)}
         </figcaption>
         <blockquote className="text-lg font-bold leading-snug text-ink">{rule}</blockquote>
       </figure>
