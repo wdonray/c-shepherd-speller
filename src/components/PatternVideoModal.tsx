@@ -64,7 +64,13 @@ function VideoThumbnail({ video }: { video: PatternVideo }) {
   )
 }
 
-/** Small "Hide" action (issue #443): block the video for this teacher. */
+/**
+ * Small "Hide" action (issue #443): block the video for this teacher. The
+ * label hides on small screens (issue #434 follow-up): with the thumbnail,
+ * play, Hide, and Add/Remove actions in one row, the labeled button blew
+ * the dialog 24px past a 390px viewport. The aria-label keeps the
+ * accessible name on the icon-only button.
+ */
 function HideVideoButton({ video, onHide }: { video: PatternVideo; onHide: () => void }) {
   return (
     <Button
@@ -77,7 +83,7 @@ function HideVideoButton({ video, onHide }: { video: PatternVideo; onHide: () =>
       className="shrink-0 gap-1 text-muted-foreground"
     >
       <EyeOffIcon className="size-4" aria-hidden="true" />
-      Hide
+      <span className="hidden sm:inline">Hide</span>
     </Button>
   )
 }
@@ -175,7 +181,7 @@ export default function PatternVideoModal({
   )
 
   const videoRow = (video: PatternVideo, actions: (save: (videos: PatternVideo[]) => void) => ReactNode) => (
-    <li key={video.videoId} className="flex items-center gap-3 rounded-2xl border-2 border-line bg-card p-3">
+    <li key={video.videoId} className="flex items-center gap-2 rounded-2xl border-2 border-line bg-card p-3 sm:gap-3">
       <VideoThumbnail video={video} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold text-ink">{video.title}</p>

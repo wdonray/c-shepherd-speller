@@ -150,6 +150,18 @@ describe('useBlockedVideos', () => {
     expect(reportError).not.toHaveBeenCalled()
   })
 
+  it('ignores the fetch error after unmount', async () => {
+    let rejectFetch!: (error: unknown) => void
+    getUserByEmail.mockReturnValue(new Promise((_, reject) => (rejectFetch = reject)))
+    const { unmount } = render(<Probe />)
+    unmount()
+    rejectFetch(new Error('db down'))
+    // Flush microtasks so the rejection handler runs: without the
+    // cancelled guard it would report the error.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(reportError).not.toHaveBeenCalled()
+  })
+
   it('blocks a video and persists the list', async () => {
     const fetchMock = mockPut(true)
     render(<Probe />)
