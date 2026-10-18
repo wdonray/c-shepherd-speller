@@ -491,7 +491,8 @@ describe('PatternChartDisplay', () => {
 
     it('shows the unscoped rule under the chart header, display-only', () => {
       render(<PatternChartDisplay list={listWithRule} />)
-      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      // Issue #411: one label per column, on the filled slot and the empty one.
+      expect(screen.getAllByText('The rule:')).toHaveLength(2)
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
@@ -507,8 +508,10 @@ describe('PatternChartDisplay', () => {
     it('shows a No rule yet placeholder when there is no rule', () => {
       render(<PatternChartDisplay list={list} />)
       // One placeholder per pattern column, keeping every column the same size.
+      // Issue #411: the empty slot still shows the label so columns line up
+      // with the filled rule cards.
       expect(screen.getAllByText('No rule yet')).toHaveLength(3)
-      expect(screen.queryByText('The rule:')).not.toBeInTheDocument()
+      expect(screen.getAllByText('The rule:')).toHaveLength(3)
       expect(screen.queryByText('Our class figured out:')).not.toBeInTheDocument()
     })
 
@@ -535,7 +538,8 @@ describe('PatternChartDisplay', () => {
 
     it('shows rules by default when showRules is not provided', () => {
       render(<PatternChartDisplay list={listWithRule} />)
-      expect(screen.getByText('The rule:')).toBeInTheDocument()
+      // Issue #411: the empty slot shows the label too.
+      expect(screen.getAllByText('The rule:')).toHaveLength(2)
       expect(screen.getByText('Magic e.')).toBeInTheDocument()
     })
 

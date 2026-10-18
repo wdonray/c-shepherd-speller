@@ -8,12 +8,14 @@ const RULE_MAX_LENGTH = 300
  * Visible placeholder shown under a pattern header when no rule exists
  * (issue #370). It keeps the column layout the same size as a filled rule
  * card instead of collapsing to nothing, and the dashed border marks it as
- * an empty slot rather than a real rule.
+ * an empty slot rather than a real rule. Issue #411: the empty slot still
+ * shows the label (e.g. "The rule:") so columns line up with filled slots.
  */
-export function EmptyRulePlaceholder() {
+export function EmptyRulePlaceholder({ label }: { label: string }) {
   return (
     <div className="mt-3 rounded-xl border-2 border-dashed border-line bg-background p-3 text-left">
-      <p className="text-sm font-bold text-muted-foreground">No rule yet</p>
+      <p className="text-xs font-extrabold tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="mt-1 text-sm font-bold text-muted-foreground">No rule yet</p>
     </div>
   )
 }

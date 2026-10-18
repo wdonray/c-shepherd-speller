@@ -181,13 +181,15 @@ export default function PatternChartDisplay({
     // Issue #370: a visible empty placeholder keeps every column the same
     // size when a pattern has no rule; the dashed border marks it as an
     // empty slot rather than a real rule. Issue #410: the empty slot gets
-    // the same pencil so a rule can be added from here too.
+    // the same pencil so a rule can be added from here too. Issue #411: the
+    // empty slot still shows the label so columns line up with filled slots.
     const content = !rule ? (
       <figure className="mt-3 border-l-4 border-dashed border-line bg-background/50 px-3 py-2 text-left">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">The rule:</p>
           {renderRuleEditor(pattern, rule)}
         </div>
+        <p className="text-lg font-bold text-muted-foreground">No rule yet</p>
       </figure>
     ) : (
       <figure className="mt-3 border-l-4 border-sun bg-sun/15 px-3 py-2 text-left">

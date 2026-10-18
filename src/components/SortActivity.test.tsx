@@ -495,7 +495,8 @@ describe('SortActivity rule display toggle', () => {
 
   it('shows rule cards by default and hides them when the toggle is pressed', async () => {
     render(<SortActivity list={ruledList} onExit={vi.fn()} />)
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    // Issue #411: the empty slot shows the label too, so two columns mean two labels.
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     const toggle = screen.getByRole('button', { name: 'Show rules' })
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(toggle)
@@ -511,7 +512,8 @@ describe('SortActivity rule display toggle', () => {
     fireEvent.click(toggle)
     await waitFor(() => expect(screen.queryByText('The rule:')).not.toBeInTheDocument())
     fireEvent.click(toggle)
-    expect(screen.getByText('The rule:')).toBeInTheDocument()
+    // Issue #411: the empty slot shows the label too, so two columns mean two labels.
+    expect(screen.getAllByText('The rule:')).toHaveLength(2)
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
   })
 })
