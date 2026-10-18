@@ -79,8 +79,15 @@ describe('PrivacyPolicyPage', () => {
     expect(screen.getAllByText(/your voice recordings \(S3\)/i).length).toBeGreaterThan(0)
   })
 
+  it('discloses YouTube video embeds and links Google Privacy Policy', () => {
+    render(<PrivacyPolicyPage />)
+    expect(screen.getAllByText(/YouTube/).length).toBeGreaterThan(0)
+    const policyLink = screen.getByRole('link', { name: /Google’s Privacy Policy/i })
+    expect(policyLink).toHaveAttribute('href', 'https://www.google.com/policies/privacy')
+  })
+
   it('shows the updated effective date', () => {
     render(<PrivacyPolicyPage />)
-    expect(screen.getAllByText(/october 16, 2026/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/october 18, 2026/i).length).toBeGreaterThan(0)
   })
 })

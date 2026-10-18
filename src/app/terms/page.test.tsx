@@ -40,9 +40,16 @@ describe('TermsOfServicePage', () => {
     expect(screen.getAllByText(/voice storage is limited to 100 MB per account/i).length).toBeGreaterThan(0)
   })
 
+  it('binds video playback to YouTube Terms of Service', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getByRole('heading', { name: /third-party content \(youtube\)/i, level: 2 })).toBeInTheDocument()
+    const ytTerms = screen.getByRole('link', { name: /YouTube’s Terms of Service/i })
+    expect(ytTerms).toHaveAttribute('href', 'https://www.youtube.com/t/terms')
+  })
+
   it('shows the updated effective date', () => {
     render(<TermsOfServicePage />)
-    expect(screen.getAllByText(/october 16, 2026/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/october 18, 2026/i).length).toBeGreaterThan(0)
   })
 
   it('states the teacher owns their content', () => {
