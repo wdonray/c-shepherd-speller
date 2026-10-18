@@ -72,6 +72,26 @@ export function isPatternComplete(pattern: SpellingPattern): boolean {
   return pattern.sound.trim() !== '' && pattern.pattern.trim() !== ''
 }
 
+/**
+ * Whether saving `candidate` would leave the list with two patterns sharing
+ * the same spelling pattern and target sound. Compared trimmed and
+ * case-insensitive, so "AI" / "Long A" matches "ai" / "long a". The
+ * candidate's own id is excluded, and an incomplete pair (either field
+ * blank) never counts: a freshly added pattern is not a duplicate of
+ * anything yet (issue #414).
+ */
+export function isDuplicatePatternPair(patterns: SpellingPattern[], candidate: SpellingPattern): boolean {
+  const candidatePattern = candidate.pattern.trim().toLowerCase()
+  const candidateSound = candidate.sound.trim().toLowerCase()
+  if (!candidatePattern || !candidateSound) return false
+  return patterns.some(
+    (other) =>
+      other.id !== candidate.id &&
+      other.pattern.trim().toLowerCase() === candidatePattern &&
+      other.sound.trim().toLowerCase() === candidateSound
+  )
+}
+
 /** Curated accent colors for spelling lists, keyed to the app's theme tokens. */
 export const ListColorSchema = z.enum(['leaf', 'sky', 'plum', 'sun', 'coral'])
 export type ListColor = z.infer<typeof ListColorSchema>

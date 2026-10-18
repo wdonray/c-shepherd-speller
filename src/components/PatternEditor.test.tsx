@@ -875,3 +875,92 @@ describe('PatternEditor', () => {
     expect(screen.getByTestId('voice-recorder-modal')).toBeInTheDocument()
   })
 })
+
+describe('PatternEditor duplicate pattern pairs (issue #414)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    isAudioCaptureSupported.mockReturnValue(true)
+    isRecordingStorageSupported.mockReturnValue(true)
+    hasRecording.mockResolvedValue(false)
+  })
+
+  const siblingPattern: SpellingPattern = {
+    id: 'p1',
+    sound: 'long a',
+    pattern: 'ai',
+    frequency: 'common',
+    words: ['rain'],
+  }
+
+  const editingPattern: SpellingPattern = {
+    id: 'p2',
+    sound: 'long a',
+    pattern: 'ay',
+    frequency: 'common',
+    words: ['day'],
+  }
+
+  function renderWithSiblings() {
+    const onChange = vi.fn()
+    render(
+      <PatternEditor
+        pattern={editingPattern}
+        onChange={onChange}
+        onRemove={vi.fn()}
+        siblingPatterns={[siblingPattern, editingPattern]}
+      />
+    )
+    return { onChange }
+  }
+
+  it('blocks a spelling edit that would duplicate a sibling pattern pair', () => {
+    const { onChange } = renderWithSiblings()
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent(/already used by another pattern/i)
+  })
+
+  it('blocks a sound edit that completes a duplicate pattern pair', () => {
+    const onChange = vi.fn()
+    const pattern: SpellingPattern = { ...editingPattern, pattern: 'ai', sound: 'short a' }
+    render(
+      <PatternEditor
+        pattern={pattern}
+        onChange={onChange}
+        onRemove={vi.fn()}
+        siblingPatterns={[siblingPattern, editingPattern]}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent(/already used by another pattern/i)
+  })
+
+  it('treats spelling and sound matches as case-insensitive and trimmed', () => {
+    const { onChange } = renderWithSiblings()
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: ' AI ' } })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent(/already used by another pattern/i)
+  })
+
+  it('still applies a spelling edit that does not duplicate a sibling', () => {
+    const { onChange } = renderWithSiblings()
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'a_e' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'a_e' }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('does not block when the sibling pair is incomplete (blank sound)', () => {
+    const onChange = vi.fn()
+    render(
+      <PatternEditor
+        pattern={editingPattern}
+        onChange={onChange}
+        onRemove={vi.fn()}
+        siblingPatterns={[{ ...siblingPattern, pattern: 'a_e', sound: '' }, editingPattern]}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'a_e' } })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ pattern: 'a_e' }))
+  })
+})

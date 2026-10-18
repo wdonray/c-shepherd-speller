@@ -816,6 +816,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
                   pattern={pattern}
                   onChange={(updated) => updatePattern(pattern.id, updated)}
                   onRemove={() => setDeletePatternTarget(pattern)}
+                  siblingPatterns={list.patterns}
                   color={resolveListColor(list)}
                   classId={list.classId}
                   className={className}

@@ -15,6 +15,7 @@ import {
   getListKeys,
   getAssignedWeeks,
   isPatternComplete,
+  isDuplicatePatternPair,
   isListFavorite,
   type WordList,
 } from './WordList'
@@ -188,6 +189,59 @@ describe('WordList model', () => {
 
     it('is true with no words yet', () => {
       expect(isPatternComplete({ ...validPattern, words: [] })).toBe(true)
+    })
+  })
+
+  describe('isDuplicatePatternPair', () => {
+    const other = { ...validPattern, id: 'pat_2', pattern: 'ai', sound: 'long a' }
+
+    it('is true when another pattern has the same spelling and sound', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: 'ai', sound: 'long a' })).toBe(
+        true
+      )
+    })
+
+    it('is false when the sound differs', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: 'ai', sound: 'short a' })).toBe(
+        false
+      )
+    })
+
+    it('is false when the spelling differs', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: 'a_e', sound: 'long a' })).toBe(
+        false
+      )
+    })
+
+    it('compares trimmed and case-insensitive', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: ' AI ', sound: 'Long A' })).toBe(
+        true
+      )
+    })
+
+    it('excludes the candidate itself', () => {
+      expect(isDuplicatePatternPair([other], { ...other })).toBe(false)
+    })
+
+    it('is false when the candidate spelling is blank', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: '  ', sound: 'long a' })).toBe(
+        false
+      )
+    })
+
+    it('is false when the candidate sound is blank', () => {
+      expect(isDuplicatePatternPair([other], { ...validPattern, id: 'pat_1', pattern: 'ai', sound: '' })).toBe(false)
+    })
+
+    it('is false for an empty list', () => {
+      expect(isDuplicatePatternPair([], { ...validPattern, id: 'pat_1' })).toBe(false)
+    })
+
+    it('ignores a sibling whose own pair is incomplete', () => {
+      const incomplete = { ...other, id: 'pat_3', sound: '' }
+      expect(
+        isDuplicatePatternPair([incomplete], { ...validPattern, id: 'pat_1', pattern: 'ai', sound: 'long a' })
+      ).toBe(false)
     })
   })
 

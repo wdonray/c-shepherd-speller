@@ -27,13 +27,20 @@ import {
   type MicrophoneRequest,
 } from '@/lib/voice-recordings'
 import type { SpellingPattern, PatternFrequency, ListColor } from '@/models/WordList'
-import { LIST_ACCENT_CLASSES, DEFAULT_LIST_COLOR } from '@/models/WordList'
+import { LIST_ACCENT_CLASSES, DEFAULT_LIST_COLOR, isDuplicatePatternPair } from '@/models/WordList'
 
 interface PatternEditorProps {
   pattern: SpellingPattern
   onChange: (pattern: SpellingPattern) => void
   /** Called when the delete button is pressed; the parent confirms before removing. */
   onRemove: () => void
+  /**
+   * Every pattern in the list being edited, including this one. Used to
+   * block identity edits that would duplicate another pattern's spelling
+   * pattern + sound pair (issue #414). The candidate's own id is excluded
+   * by the check, so the full list can be passed as-is.
+   */
+  siblingPatterns?: SpellingPattern[]
   /** List accent color: the card's top bar follows it. Defaults to the default list color. */
   color?: ListColor
   /** The list's classroom id, or null/undefined for "No class". */
@@ -82,6 +89,7 @@ export default function PatternEditor({
   pattern,
   onChange,
   onRemove,
+  siblingPatterns = [],
   color = DEFAULT_LIST_COLOR,
   classId,
   className = null,
@@ -97,6 +105,15 @@ export default function PatternEditor({
    * successful save. The notice reserves its space so it never shifts layout.
    */
   const [duplicateWord, setDuplicateWord] = useState<string | null>(null)
+  /**
+   * Set when an identity edit (spelling pattern or sound) is rejected
+   * because it would duplicate another pattern's pair in this list. Shown
+   * under the identity inputs so the teacher knows why the change was not
+   * applied; the rejected input reverts to its previous value, which would
+   * otherwise look like a swallowed keystroke. Cleared on any accepted
+   * edit. The notice reserves its space so it never shifts layout.
+   */
+  const [duplicatePatternPair, setDuplicatePatternPair] = useState(false)
   const [isFrequencyHelpOpen, setIsFrequencyHelpOpen] = useState(false)
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
   /**
@@ -186,6 +203,17 @@ export default function PatternEditor({
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const update = (updates: Partial<SpellingPattern>) => {
+    if (updates.pattern !== undefined || updates.sound !== undefined) {
+      // Block identity edits that would put two patterns with the same
+      // spelling pattern and sound in one list (issue #414), mirroring the
+      // word-level duplicate block below. The input reverts to the previous
+      // value since onChange is never called; the notice explains why.
+      if (isDuplicatePatternPair(siblingPatterns, { ...pattern, ...updates })) {
+        setDuplicatePatternPair(true)
+        return
+      }
+    }
+    setDuplicatePatternPair(false)
     onChange({ ...pattern, ...updates })
   }
 
@@ -373,6 +401,14 @@ export default function PatternEditor({
                 className="h-14 text-xl font-bold"
               />
             </div>
+          </div>
+          {/* Reserved so the notice never shifts the layout when it appears. */}
+          <div className="min-h-6 pt-1">
+            {duplicatePatternPair && (
+              <p role="status" className="text-[13px] text-muted-foreground">
+                This spelling and sound are already used by another pattern in the list, so the change was not applied.
+              </p>
+            )}
           </div>
 
           {/* B. Words */}
