@@ -47,9 +47,11 @@ test.describe('authenticated flows', () => {
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('cake')).toBeVisible()
 
-    // Edits auto-save; wait for the confirmation, then go back.
+    // Edits auto-save; wait for the confirmation, then go back via the
+    // page-top back breadcrumb (exact name: the header nav link uses
+    // title case "My Spelling Lists").
     await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15000 })
-    await page.getByRole('link', { name: 'My lists' }).click()
+    await page.getByRole('link', { name: 'My spelling lists', exact: true }).click()
     await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
 

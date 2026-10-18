@@ -10,7 +10,7 @@ import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import { reportError } from '@/lib/report-error'
 import { getErrorMessage } from '@/lib/error-toast'
-import BackLink from './BackLink'
+import BackBreadcrumb from './BackBreadcrumb'
 
 /**
  * Dedicated new-list form, rendered as the full /lists/new page.
@@ -70,7 +70,7 @@ export default function NewListForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <BackLink href="/lists">My spelling lists</BackLink>
+      <BackBreadcrumb href="/lists" label="My spelling lists" />
       <div className="mt-2 space-y-1">
         <h1 className="text-3xl font-bold">New word list</h1>
         <p className="text-[15px] text-muted-foreground">Name it for the sound and week you are teaching.</p>

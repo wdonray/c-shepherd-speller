@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import BackLink from '@/components/BackLink'
+import BackBreadcrumb from '@/components/BackBreadcrumb'
 import PatternListsManager from '@/components/PatternListsManager'
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function ListsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
-      <BackLink href="/home">Home</BackLink>
+      <BackBreadcrumb href="/home" label="Home" />
       <div className="mt-2 space-y-1">
         <h1 className="text-3xl font-bold">My Spelling Lists</h1>
         <p className="text-[15px] text-muted-foreground">

@@ -94,11 +94,11 @@ describe('PracticeMode', () => {
     expect(screen.getByRole('button', { name: 'Check' })).toBeDisabled()
   })
 
-  it('exits practice from the header', () => {
+  it('links the header back to the practice picker with the destination name', () => {
     const onExit = vi.fn()
     render(<PracticeMode list={list} onExit={onExit} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Exit practice' }))
-    expect(onExit).toHaveBeenCalled()
+    expect(screen.getByRole('link', { name: 'Practice' })).toHaveAttribute('href', '/practice')
+    expect(onExit).not.toHaveBeenCalled()
   })
 
   it('speaks the word when Hear the word is clicked', async () => {

@@ -102,7 +102,7 @@ describe('PracticePage', () => {
     })
     const newListLink = screen.getByRole('link', { name: 'New list' })
     expect(newListLink).toHaveAttribute('href', '/lists/new')
-    expect(screen.queryByRole('link', { name: 'Back to home' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/home')
   })
 
   it('shows the practice mode when a list is selected', async () => {
@@ -126,8 +126,7 @@ describe('PracticePage', () => {
     })
   })
 
-  it('navigates back to the picker when exiting practice', async () => {
-    const { fireEvent } = await import('@testing-library/react')
+  it('links back to the picker from practice mode with the destination name', async () => {
     mockSearchParams.get.mockReturnValue('l1')
     getList.mockResolvedValue(list)
     render(<PracticePage />)
@@ -135,7 +134,7 @@ describe('PracticePage', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Spell the word you hear')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Exit practice' }))
-    expect(mockPush).toHaveBeenCalledWith('/practice')
+    expect(screen.getByRole('link', { name: 'Practice' })).toHaveAttribute('href', '/practice')
+    expect(mockPush).not.toHaveBeenCalled()
   })
 })
