@@ -926,16 +926,35 @@ describe('VoiceRecorderModal', () => {
     expect(await screen.findByRole('button', { name: 'Save recording' })).toBeInTheDocument()
   })
 
-  it('disables save for very short recordings', async () => {
+  it('enables save once the review audio reports its duration', async () => {
     const session = makeSession()
     startRecording.mockResolvedValue(session)
     renderModal()
     fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
     await screen.findByRole('button', { name: 'Stop' })
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    // FakeAudio reports a 5s duration; override to simulate a tiny clip.
-    await screen.findByRole('button', { name: 'Save recording' })
-    expect(screen.getByRole('button', { name: 'Save recording' })).toBeEnabled()
+    // The measured recording time is under the 1s minimum, so Save starts
+    // disabled; FakeAudio then reports a 5s duration on a macrotask, which
+    // enables it. Waiting (not a bare assertion) avoids racing that timer.
+    const saveButton = await screen.findByRole('button', { name: 'Save recording' })
+    await waitFor(() => expect(saveButton).toBeEnabled())
+  })
+
+  it('disables save for very short recordings', async () => {
+    class TinyClipAudio extends FakeAudio {
+      duration = 0.5
+    }
+    vi.stubGlobal('Audio', TinyClipAudio)
+    const session = makeSession()
+    startRecording.mockResolvedValue(session)
+    renderModal()
+    fireEvent.click(await screen.findByRole('button', { name: 'Record' }))
+    await screen.findByRole('button', { name: 'Stop' })
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    // Both the measured time and the reported metadata are under the 1s
+    // minimum, so Save stays disabled.
+    const saveButton = await screen.findByRole('button', { name: 'Save recording' })
+    await waitFor(() => expect(saveButton).toBeDisabled())
   })
 
   it('toggles playback in review', async () => {
