@@ -170,3 +170,10 @@ credentials.
   the in-flight request, so the data never lands. Fetch per row on mount, or
   key the effect on a stable scalar (found 2026-10-18: issue #402, the
   sentence-suggestion fetch).
+- **Assertions on async-driven button states must wait, not assert bare.**
+  The FakeAudio stub reports duration from a `setTimeout(0)` (a macrotask),
+  while the wall-clock time between fake Record and Stop clicks is a
+  fraction of a second, under the 1s save minimum. A bare
+  `toBeEnabled()/toBeDisabled()` on the Save button races that timer and
+  flakes in CI; use `await waitFor(() => ...)` so the test settles after the
+  metadata lands (found 2026-10-18: issue #435, VoiceRecorderModal flake).
