@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import PatternListsManager from './PatternListsManager'
 import { ErrorToaster } from './error-toaster'
 import type { WordList, SpellingPattern } from '@/models/WordList'
@@ -180,14 +180,25 @@ describe('PatternListsManager', () => {
     expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
 
-  it('navigates to the prebuilt library from the overview', async () => {
+  it('shows the prebuilt library section below the teacher lists', async () => {
     getLists.mockResolvedValue([list])
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('button', { name: 'Prebuilt lists' }))
+    expect(screen.getByRole('heading', { name: 'Prebuilt library' })).toBeInTheDocument()
+    // The teacher's own lists stay primary: her section heading outranks the library's.
+    const myHeading = screen.getByRole('heading', { name: 'My word lists (1)' })
+    const libHeading = screen.getByRole('heading', { name: 'Prebuilt library' })
+    expect(myHeading.tagName).toBe('H3')
+    expect(libHeading.compareDocumentPosition(myHeading) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+  })
 
-    expect(mockPush).toHaveBeenCalledWith('/library')
+  it('shows the prebuilt library section in the empty state too', async () => {
+    getLists.mockResolvedValue([])
+    render(<PatternListsManager />)
+
+    await screen.findByText('No word lists yet')
+    expect(screen.getByRole('heading', { name: 'Prebuilt library' })).toBeInTheDocument()
   })
 
   it('navigates to the new-list page from the empty state', async () => {
@@ -412,7 +423,9 @@ describe('favorites (issue #275)', () => {
     getLists.mockResolvedValue([list, list2])
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    // The teacher's All/Favorites view tabs stay hidden; the prebuilt
+    // library's grade filter is a separate tablist (issue #463).
+    expect(screen.queryByRole('tablist', { name: 'List views' })).not.toBeInTheDocument()
     expect(screen.getByText('Week 6')).toBeInTheDocument()
   })
 
@@ -474,10 +487,9 @@ describe('favorites (issue #275)', () => {
       expect(updateList).toHaveBeenCalledWith('l1', { favoriteOrder: 1 })
     })
     expect(updateList).toHaveBeenCalledWith('l2', { favoriteOrder: 0 })
-    const titles = screen
+    const titles = within(screen.getByTestId('lists-grid'))
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent)
-      .filter((t) => t !== 'My word lists (2)')
     expect(titles).toEqual(['Week 6', 'Week 5: Long A'])
   })
 
@@ -590,10 +602,9 @@ describe('favorites (issue #275)', () => {
       expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument()
     })
     await waitFor(() => {
-      const titles = screen
+      const titles = within(screen.getByTestId('lists-grid'))
         .getAllByRole('heading', { level: 3 })
         .map((h) => h.textContent)
-        .filter((t) => t !== 'My word lists (2)')
       expect(titles).toEqual(['Week 5: Long A', 'Week 6'])
     })
   })
@@ -622,10 +633,11 @@ describe('sorting (issue #275)', () => {
   }
 
   function cardTitles() {
-    return screen
+    // Scoped to the teacher's own lists grid: the prebuilt library section
+    // below renders its own h3 cards (issue #463).
+    return within(screen.getByTestId('lists-grid'))
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent)
-      .filter((t) => !t?.startsWith('My word lists'))
   }
 
   async function openSortMenu() {
@@ -926,10 +938,9 @@ describe('search (issue #275)', () => {
     await screen.findByText('My word lists (2)')
 
     fireEvent.change(searchInput(), { target: { value: 'long e' } })
-    const titles = screen
+    const titles = within(screen.getByTestId('lists-grid'))
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent)
-      .filter((t) => !t?.startsWith('My word lists'))
     expect(titles).toEqual(['Week 6: Long E'])
     expect(screen.getByText('1 result for "long e".')).toBeInTheDocument()
   })
@@ -961,8 +972,9 @@ describe('search (issue #275)', () => {
     fireEvent.change(searchInput(), { target: { value: 'cake' } })
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     expect(screen.queryByText('Week 6: Long E')).not.toBeInTheDocument()
-    // Tabs are hidden while searching.
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    // The teacher's view tabs are hidden while searching; the prebuilt
+    // library's grade filter stays (issue #463).
+    expect(screen.queryByRole('tablist', { name: 'List views' })).not.toBeInTheDocument()
   })
 
   it('applies the active sort within results', async () => {
@@ -972,10 +984,9 @@ describe('search (issue #275)', () => {
     await screen.findByText('My word lists (2)')
 
     fireEvent.change(searchInput(), { target: { value: 'week' } })
-    const titles = screen
+    const titles = within(screen.getByTestId('lists-grid'))
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.textContent)
-      .filter((t) => !t?.startsWith('My word lists'))
     // Name A-Z: Week 5 before Week 6.
     expect(titles).toEqual(['Week 5: Long A', 'Week 6: Long E'])
   })

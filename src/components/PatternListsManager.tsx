@@ -43,6 +43,7 @@ import {
 import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
+import PrebuiltLibrarySection from './PrebuiltLibrarySection'
 import { touchDragLiftModifier } from './SortActivity'
 
 /** All/Favorites view selection, persisted across sessions. */
@@ -325,15 +326,10 @@ export default function PatternListsManager() {
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold">My word lists ({lists.length})</h3>
             {lists.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={() => router.push('/library')}>
-                  Prebuilt lists
-                </Button>
-                <Button onClick={() => router.push('/lists/new')}>
-                  <PlusIcon className="size-4" />
-                  New list
-                </Button>
-              </div>
+              <Button onClick={() => router.push('/lists/new')}>
+                <PlusIcon className="size-4" />
+                New list
+              </Button>
             )}
           </div>
 
@@ -476,6 +472,16 @@ export default function PatternListsManager() {
           )}
         </>
       )}
+
+      {/*
+        Prebuilt library (issue #463 redesign): a secondary section below the
+        teacher's own lists. Her lists stay primary and dominant above; a
+        teacher who never scrolls down never notices this. It renders even
+        when her lists fail to load because the prebuilt data is bundled,
+        not fetched. (loading is always false here: the skeleton returned
+        early above.)
+      */}
+      <PrebuiltLibrarySection />
 
       <Dialog open={deleteListTarget !== null} onOpenChange={() => setDeleteListTarget(null)}>
         {deleteListTarget && (
