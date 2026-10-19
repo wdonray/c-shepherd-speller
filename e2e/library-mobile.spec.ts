@@ -51,6 +51,15 @@ test.describe('prebuilt library mobile layout', () => {
   test('/library/[id] preview has no horizontal overflow', async ({ page }) => {
     await page.goto('/library/prebuilt-g1-w01')
     await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy to my lists' })).toBeVisible()
     await assertNoHorizontalOverflow(page, '/library/prebuilt-g1-w01')
+  })
+
+  test('/library/[id] pull-patterns modal has no horizontal overflow', async ({ page }) => {
+    await page.goto('/library/prebuilt-g1-w01')
+    await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
+    await page.getByRole('button', { name: 'Add patterns to...' }).click()
+    await expect(page.getByRole('dialog', { name: 'Add patterns to your lists' })).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/library/[id] pull modal')
   })
 })

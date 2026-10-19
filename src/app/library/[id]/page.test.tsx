@@ -10,6 +10,7 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('notFound')
   },
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 describe('LibraryWeekPage', () => {
@@ -25,6 +26,12 @@ describe('LibraryWeekPage', () => {
     expect(screen.getByRole('link', { name: 'Prebuilt lists' })).toHaveAttribute('href', '/library')
     const chart = screen.getByTestId('pattern-chart')
     expect(chart).toHaveAttribute('data-name', 'Grade 1 - Week 1')
+  })
+
+  it('renders the Phase B copy and pull actions', async () => {
+    render(await LibraryWeekPage({ params: Promise.resolve({ id: 'prebuilt-g1-w01' }) }))
+    expect(screen.getByRole('button', { name: 'Copy to my lists' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add patterns to...' })).toBeInTheDocument()
   })
 
   it('calls notFound for an unknown week id', async () => {
