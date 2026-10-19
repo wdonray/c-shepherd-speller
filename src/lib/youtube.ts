@@ -59,9 +59,15 @@ export function youtubeEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&cc_load_policy=1`
 }
 
-/** Thumbnail URL for a video ID (used for the click-to-play poster). */
+/**
+ * Thumbnail URL for a video ID (used for the click-to-play poster).
+ * mqdefault (320x180) is the smallest YouTube size that stays crisp in a
+ * card; hqdefault costs ~3x the bytes for no visible gain at these sizes
+ * (issue #481). The vi_webp webp variant is deliberately avoided: it 404s
+ * on some older videos, and a broken thumbnail is worse than a heavier one.
+ */
 export function youtubeThumbnailUrl(videoId: string): string {
-  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+  return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
 }
 
 /**

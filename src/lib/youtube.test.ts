@@ -81,7 +81,7 @@ describe('youtubeEmbedUrl', () => {
 
 describe('youtubeThumbnailUrl', () => {
   it('builds the thumbnail URL', () => {
-    expect(youtubeThumbnailUrl('GdmcWQCbqY8')).toBe('https://i.ytimg.com/vi/GdmcWQCbqY8/hqdefault.jpg')
+    expect(youtubeThumbnailUrl('GdmcWQCbqY8')).toBe('https://i.ytimg.com/vi/GdmcWQCbqY8/mqdefault.jpg')
   })
 })
 
