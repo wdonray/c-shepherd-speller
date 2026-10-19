@@ -148,6 +148,11 @@ credentials.
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Print emphasis must use borders, not rings or box-shadows.** Tailwind
+  `ring-*` paints via box-shadow, which printers skip when background
+  graphics are off, so ring-based emphasis silently vanishes on paper.
+  Real borders always print (found 2026-10-18: issue #455, word-search
+  answer key circles).
 - **Print routes with an interactive first step keep their chrome on
   screen.** Stripping the site header/footer for a whole `/print` route
   also strips them from screen-only steps like the sentence gap flow, which

@@ -260,9 +260,17 @@ describe('WordSearchSheet', () => {
     expect(screen.getByText('CAT')).toBeInTheDocument()
   })
 
-  it('answer key underlines the placed words and names unplaced words', () => {
-    render(<WordSearchSheet result={{ ...wordSearch, unplaced: ['DOG'] }} answerKey />)
+  it('answer key circles the placed words with bolder letters and names unplaced words', () => {
+    const { container } = render(<WordSearchSheet result={{ ...wordSearch, unplaced: ['DOG'] }} answerKey />)
     expect(screen.getByText(/These words did not fit in the grid/)).toHaveTextContent('DOG')
+    // CAT sits in row 0, cols 0-2; each letter cell gets a circle and the boldest font.
+    const cells = container.querySelectorAll('table tbody tr:first-child td')
+    for (const cell of cells) {
+      expect(cell).toHaveClass('rounded-full', 'border-2', 'border-black', 'font-black')
+    }
+    // A filler cell (row 1, col 0) stays plain.
+    const filler = container.querySelectorAll('table tbody tr:nth-child(2) td')[0]
+    expect(filler).not.toHaveClass('rounded-full', 'border-black', 'font-black')
   })
 })
 

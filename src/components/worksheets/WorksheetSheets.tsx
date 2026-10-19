@@ -188,7 +188,7 @@ function BlankedSentence({ item }: { item: FillBlankItem }) {
 
 /**
  * 4. Word search. Student: the letter grid and a word bank. Key: the grid
- * with each found word underlined.
+ * with each found word circled with bolder letters.
  */
 export function WordSearchSheet({ result, answerKey }: { result: WordSearchResult; answerKey: boolean }) {
   const placedCells = new Set<string>()
@@ -208,7 +208,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
                 <td
                   key={c}
                   className={`h-8 w-8 border border-neutral-400 text-center font-mono text-lg text-black ${
-                    placedCells.has(`${r},${c}`) ? 'font-bold underline decoration-2' : ''
+                    placedCells.has(`${r},${c}`) ? 'rounded-full border-2 border-black font-black' : ''
                   }`}
                 >
                   {letter}
