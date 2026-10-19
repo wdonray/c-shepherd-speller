@@ -25,6 +25,11 @@ useBlockedVideos.mockReturnValue({
 })
 
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
+
+/** Mock ?list=<id>: returns the id for 'list', null for everything else. */
+function mockListParam(id: string) {
+  mockSearchParams.get.mockImplementation((key: string) => (key === 'list' ? id : null))
+}
 const mockPush = vi.hoisted(() => vi.fn())
 const mockBack = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({
@@ -89,7 +94,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows a centered spinner, never a page-mimicking skeleton, while a list loads (issue #366)', () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockImplementation(() => new Promise(() => {}))
     render(<DisplayMode />)
     const loading = screen.getByRole('status', { name: 'Loading chart' })
@@ -165,7 +170,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows the pattern chart for the selected list', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -180,7 +185,7 @@ describe('DisplayMode', () => {
   })
 
   it('links to the print view from the display header', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -194,7 +199,7 @@ describe('DisplayMode', () => {
   })
 
   it('enters sort mode directly from the Sort words button, with no class picker', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -224,7 +229,7 @@ describe('DisplayMode', () => {
       writable: true,
       value: vi.fn(),
     })
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -234,7 +239,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows an error state when the selected list fails to load', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockRejectedValue(new Error('offline'))
     render(<DisplayMode />)
 
@@ -266,7 +271,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows a Present a list breadcrumb on the chart header', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list, classroom: null })
     render(<DisplayMode />)
 
@@ -289,7 +294,7 @@ describe('DisplayMode', () => {
   })
 
   it('does not navigate on Escape from the chart', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -304,7 +309,7 @@ describe('DisplayMode', () => {
   })
 
   it('ignores non-Escape keys', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -322,7 +327,7 @@ describe('DisplayMode', () => {
       ...twoPatternList,
       patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
     }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: listWithRule, classroom: null })
     render(<DisplayMode />)
 
@@ -337,7 +342,7 @@ describe('DisplayMode', () => {
 
   it('shows the classroom rule on the chart when the list has a class', async () => {
     const listWithClass = { ...twoPatternList, classId: 'c1' }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({
       list: listWithClass,
       classroom: { name: 'Period 2', rules: { a_e: 'ai never ends a word.' } },
@@ -354,7 +359,7 @@ describe('DisplayMode', () => {
 
   it('renders the classroom pill and rules with the first paint, never flashing "No class" (issue #388)', async () => {
     const listWithClass = { ...twoPatternList, classId: 'c1' }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     const fetchMock = vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }))
     vi.stubGlobal('fetch', fetchMock)
     getListWithClassroom.mockResolvedValue({
@@ -375,7 +380,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows "No class" in the present header when the list has no classroom', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
     render(<DisplayMode />)
 
@@ -389,7 +394,7 @@ describe('DisplayMode', () => {
       ...twoPatternList,
       patterns: [{ ...twoPatternList.patterns[0], rule: 'Magic e.' }, twoPatternList.patterns[1]],
     }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: listWithRule, classroom: null })
     render(<DisplayMode />)
 
@@ -401,7 +406,7 @@ describe('DisplayMode', () => {
   })
 
   it('locks a pattern optimistically and persists via updateList', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
     // Keep the save pending so the optimistic update is observable.
     updateList.mockImplementation(() => new Promise(() => {}))
@@ -423,7 +428,7 @@ describe('DisplayMode', () => {
   })
 
   it('keeps the lock after a successful save', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
     const saved: WordList = {
       ...twoPatternList,
@@ -446,7 +451,7 @@ describe('DisplayMode', () => {
   })
 
   it('reverts the lock and shows an error when saving fails', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
     updateList.mockRejectedValue(new Error('offline'))
     render(<DisplayMode />)
@@ -466,7 +471,7 @@ describe('DisplayMode', () => {
   })
 
   it('dismisses the lock save error', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
     updateList.mockRejectedValue(new Error('offline'))
     render(<DisplayMode />)
@@ -555,7 +560,7 @@ describe('DisplayMode', () => {
       expect(screen.queryByText('No week list')).not.toBeInTheDocument()
 
       // Present a chart, then come back to a list set with no week 5.
-      mockSearchParams.get.mockReturnValue('l1')
+      mockListParam('l1')
       rerender(<DisplayMode />)
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: 'Week 5' })).toBeInTheDocument()
@@ -585,7 +590,7 @@ describe('DisplayMode', () => {
 
   it('shows the presenting tips bar on the chart view', async () => {
     window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -596,7 +601,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows the "Why this chart?" button next to the list name', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -608,7 +613,7 @@ describe('DisplayMode', () => {
   })
 
   it('truncates a long list name so it cannot push the header controls off (issue #312)', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({
       list: { ...list, name: 'A very long list name that would crowd every control' },
       classroom: null,
@@ -625,7 +630,7 @@ describe('DisplayMode', () => {
   })
 
   it('shows the mobile chart options menu trigger in the chart header (issue #312)', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -650,7 +655,7 @@ describe('DisplayMode', () => {
         },
       ],
     }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: ruledList, classroom: null })
     render(<DisplayMode />)
 
@@ -666,7 +671,7 @@ describe('DisplayMode', () => {
   })
 
   it('toggles word underlines from the mobile chart options menu (issue #312)', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -696,7 +701,7 @@ describe('DisplayMode', () => {
       writable: true,
       value: vi.fn(),
     })
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -730,7 +735,7 @@ describe('DisplayMode', () => {
   it('exits full screen on Escape (issue #380)', async () => {
     const exitFullscreen = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(document, 'exitFullscreen', { configurable: true, writable: true, value: exitFullscreen })
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -759,7 +764,7 @@ describe('DisplayMode sort-mode chrome', () => {
 
   it('hides the present header and tips bar while sorting', async () => {
     window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -781,7 +786,7 @@ describe('DisplayMode sort-mode chrome', () => {
   })
 
   it('shows the list classroom as a static pill in sort mode', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({
       list: { ...list, classId: 'c1' },
       classroom: { name: 'Period 2', rules: {} },
@@ -818,7 +823,7 @@ describe('DisplayMode sort-mode chrome', () => {
 
   it('restores the present header and tips bar after exiting sort', async () => {
     window.localStorage.removeItem('patternspell-presenting-tips-dismissed')
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -842,7 +847,7 @@ describe('DisplayMode classroom rules loading', () => {
     // The server degrades a failed classroom read to classroom: null; the
     // chart still renders and the pill shows "No class".
     const listWithClass = { ...twoPatternList, classId: 'c1' }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: listWithClass, classroom: null })
     render(<DisplayMode />)
 
@@ -855,7 +860,7 @@ describe('DisplayMode classroom rules loading', () => {
 
   it('shows the classroom with no classroom rule when the class has no rules yet', async () => {
     const listWithClass = { ...twoPatternList, classId: 'c1' }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: listWithClass, classroom: { name: 'Period 2', rules: {} } })
     render(<DisplayMode />)
 
@@ -882,7 +887,7 @@ describe('DisplayMode chart display toggles', () => {
         },
       ],
     }
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: ruledList, classroom: null })
     render(<DisplayMode />)
 
@@ -899,7 +904,7 @@ describe('DisplayMode chart display toggles', () => {
   })
 
   it('toggles word underlines on the present chart, default off (issue #264)', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getListWithClassroom.mockResolvedValue({ list: list, classroom: null })
     render(<DisplayMode />)
 
@@ -947,7 +952,7 @@ describe('DisplayMode present-chart rule editing (issue #372)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
   })
 
   afterEach(() => {
@@ -1123,7 +1128,7 @@ describe('DisplayMode present-chart rule editing without cached class rules (iss
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
   })
 
   afterEach(() => {
@@ -1227,7 +1232,7 @@ describe('DisplayMode song videos (issue #401)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
   })
 
   async function openVideoModal(current: WordList = twoPatternList) {
@@ -1289,6 +1294,49 @@ describe('DisplayMode song videos (issue #401)', () => {
     // The optimistic attach is reverted: the modal is back to zero videos.
     await waitFor(() => {
       expect(within(dialogEl).getByText('Attached videos (0)')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('DisplayMode prebuilt weeks (issue #463)', () => {
+  const prebuiltParams = (id: string | null) =>
+    mockSearchParams.get.mockImplementation((key: string) => {
+      if (key === 'prebuilt') return id
+      return null
+    })
+
+  it('renders a prebuilt week chart with the Prebuilt badge and no API fetch', async () => {
+    prebuiltParams('prebuilt-g2-w06')
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Grade 2 - Week 6/ })).toBeInTheDocument()
+    })
+    // The badge marks the prebuilt distinction in present mode.
+    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    // No API fetch for prebuilt weeks.
+    expect(getLists).not.toHaveBeenCalled()
+    expect(getListWithClassroom).not.toHaveBeenCalled()
+  })
+
+  it('renders the prebuilt chart read-only: no lock toggle control', async () => {
+    prebuiltParams('prebuilt-g2-w06')
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Grade 2 - Week 6/ })).toBeInTheDocument()
+    })
+    // Lock toggles render as buttons named "Lock <pattern>" when the
+    // onToggleLock callback is provided; prebuilt passes undefined.
+    expect(screen.queryByRole('button', { name: /lock/i })).not.toBeInTheDocument()
+  })
+
+  it('shows the load error for an unknown prebuilt week id', async () => {
+    prebuiltParams('prebuilt-nope')
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
     })
   })
 })

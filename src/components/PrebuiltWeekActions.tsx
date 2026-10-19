@@ -85,6 +85,21 @@ export default function PrebuiltWeekActions({ week }: { week: PrebuiltWeek }) {
           Add patterns to...
         </Button>
       </div>
+      {/* Phase C: use the week directly, no setup needed (issue #463). */}
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <Button variant="secondary" onClick={() => router.push(`/display?prebuilt=${encodeURIComponent(week.id)}`)}>
+          Present
+        </Button>
+        <Button variant="secondary" onClick={() => router.push(`/practice?prebuilt=${encodeURIComponent(week.id)}`)}>
+          Practice
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => router.push(`/lists/prebuilt/${encodeURIComponent(week.id)}/worksheets`)}
+        >
+          Worksheets
+        </Button>
+      </div>
       {/* Reserved so the error notice never shifts the layout when it appears. */}
       <div className="min-h-6 pt-1">
         {copyState.name === 'copyError' && (

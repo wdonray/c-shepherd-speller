@@ -11,10 +11,13 @@ import { speak, buildSentencePrompt } from '@/lib/tts'
 import { logActivity } from '@/lib/activity'
 import { trackEvent } from '@/lib/track-event'
 import BackBreadcrumb from './BackBreadcrumb'
+import PrebuiltBadge from './PrebuiltBadge'
 
 interface PracticeModeProps {
   list: WordList
   onExit: () => void
+  /** Shows the Prebuilt badge: the list came from the curriculum library (issue #463). */
+  isPrebuilt?: boolean
 }
 
 interface WordItem {
@@ -37,7 +40,7 @@ function starsFor(pct: number): number {
  * One pass through every word, then a completion card. Missed words go
  * into a review queue; a word must be spelled correctly twice to clear it.
  */
-export default function PracticeMode({ list, onExit }: PracticeModeProps) {
+export default function PracticeMode({ list, onExit, isPrebuilt = false }: PracticeModeProps) {
   // Flatten all words from all patterns.
   const allWords: WordItem[] = useMemo(() => {
     const words: WordItem[] = []
@@ -221,7 +224,10 @@ export default function PracticeMode({ list, onExit }: PracticeModeProps) {
           )}
         </button>
       </div>
-      <h1 className="mt-3 text-[30px] leading-tight font-bold">{title}</h1>
+      <h1 className="mt-3 flex items-center gap-2 text-[30px] leading-tight font-bold">
+        {title}
+        {isPrebuilt && <PrebuiltBadge />}
+      </h1>
       {sub && <p className="mt-1 text-[15px] text-muted-foreground">{sub}</p>}
     </div>
   )

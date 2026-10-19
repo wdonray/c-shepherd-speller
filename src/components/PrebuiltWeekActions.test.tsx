@@ -116,3 +116,18 @@ describe('PrebuiltWeekActions', () => {
     })
   })
 })
+
+describe('PrebuiltWeekActions use-this-week buttons (issue #463, Phase C)', () => {
+  it('navigates to present, practice, and worksheets for the week', () => {
+    render(<PrebuiltWeekActions week={week} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Present' }))
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/display?prebuilt='))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Practice' }))
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/practice?prebuilt='))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Worksheets' }))
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/lists/prebuilt/'))
+  })
+})

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import WorksheetPicker, { WORKSHEET_TYPE_INFO } from './WorksheetPicker'
+import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 import type { WordList } from '@/models/WordList'
 
 const { getList } = vi.hoisted(() => ({ getList: vi.fn() }))
@@ -169,5 +170,42 @@ describe('WorksheetPicker', () => {
     render(<WorksheetPicker listId="l1" />)
     expect(await screen.findByText('No words to print yet')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Preview and print' })).not.toBeInTheDocument()
+  })
+})
+
+describe('WorksheetPicker prebuilt weeks (issue #463)', () => {
+  const week = getPrebuiltWeek('prebuilt-g2-w06')!
+
+  it('loads the week from bundled data without an API fetch', async () => {
+    render(<WorksheetPicker prebuiltWeek={week} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Printable worksheets/ })).toBeInTheDocument()
+    })
+    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(getList).not.toHaveBeenCalled()
+  })
+
+  it('routes the print job under the prebuilt path', async () => {
+    render(<WorksheetPicker prebuiltWeek={week} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Preview and print' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview and print' }))
+    expect(push).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/lists\/prebuilt\/prebuilt-g2-w06\/worksheets\/print\?types=/)
+    )
+  })
+
+  it('links back to the prebuilt preview', async () => {
+    render(<WorksheetPicker prebuiltWeek={week} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /back to preview/i })).toHaveAttribute(
+        'href',
+        '/lists/prebuilt/prebuilt-g2-w06'
+      )
+    })
   })
 })

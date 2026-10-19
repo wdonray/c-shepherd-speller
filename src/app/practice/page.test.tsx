@@ -10,6 +10,11 @@ const { getList, getLists } = vi.hoisted(() => ({
 vi.mock('@/lib/lists-api', () => ({ getList, getLists }))
 
 const mockSearchParams = vi.hoisted(() => ({ get: vi.fn() }))
+
+/** Mock ?list=<id>: returns the id for 'list', null for everything else. */
+function mockListParam(id: string) {
+  mockSearchParams.get.mockImplementation((key: string) => (key === 'list' ? id : null))
+}
 const mockPush = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
@@ -106,7 +111,7 @@ describe('PracticePage', () => {
   })
 
   it('shows the practice mode when a list is selected', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getList.mockResolvedValue(list)
     render(<PracticePage />)
 
@@ -117,7 +122,7 @@ describe('PracticePage', () => {
   })
 
   it('shows an error when loading fails', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getList.mockRejectedValue(new Error('network down'))
     render(<PracticePage />)
 
@@ -127,7 +132,7 @@ describe('PracticePage', () => {
   })
 
   it('links back to the picker from practice mode with the destination name', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getList.mockResolvedValue(list)
     render(<PracticePage />)
 
@@ -139,7 +144,7 @@ describe('PracticePage', () => {
   })
 
   it('returns to the picker from the empty-list state via the page onExit path', async () => {
-    mockSearchParams.get.mockReturnValue('l1')
+    mockListParam('l1')
     getList.mockResolvedValue({ ...list, patterns: [] })
     render(<PracticePage />)
 
@@ -148,5 +153,28 @@ describe('PracticePage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Back to lists' }))
     expect(mockPush).toHaveBeenCalledWith('/practice')
+  })
+})
+
+describe('practice page prebuilt weeks (issue #463)', () => {
+  it('loads a prebuilt week from the bundled data with no API fetch', async () => {
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'prebuilt' ? 'prebuilt-g2-w06' : null))
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Practice: Grade 2 - Week 6/ })).toBeInTheDocument()
+    })
+    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(getList).not.toHaveBeenCalled()
+    expect(getLists).not.toHaveBeenCalled()
+  })
+
+  it('shows the load error for an unknown prebuilt week id', async () => {
+    mockSearchParams.get.mockImplementation((key: string) => (key === 'prebuilt' ? 'prebuilt-nope' : null))
+    render(<PracticePage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
   })
 })

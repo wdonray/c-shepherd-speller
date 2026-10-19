@@ -73,4 +73,25 @@ test.describe('prebuilt library mobile layout', () => {
     await expect(page.getByRole('dialog', { name: 'Add patterns to your lists' })).toBeVisible()
     await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id] pull modal')
   })
+  test('/lists/prebuilt/[id] action buttons fit the viewport', async ({ page }) => {
+    await page.goto('/lists/prebuilt/prebuilt-g1-w01')
+    await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Present' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Practice' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Worksheets' })).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id] action buttons')
+  })
+
+  test('present from a prebuilt week shows the badge and no horizontal overflow', async ({ page }) => {
+    await page.goto('/display?prebuilt=prebuilt-g1-w01')
+    await expect(page.getByRole('heading', { name: /Grade 1 - Week 1/ })).toBeVisible()
+    await expect(page.getByText('Prebuilt')).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/display?prebuilt')
+  })
+
+  test('worksheets picker for a prebuilt week has no horizontal overflow', async ({ page }) => {
+    await page.goto('/lists/prebuilt/prebuilt-g1-w01/worksheets')
+    await expect(page.getByRole('heading', { name: /Printable worksheets/ })).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id]/worksheets')
+  })
 })
