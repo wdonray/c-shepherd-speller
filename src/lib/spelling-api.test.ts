@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   getUserByEmail,
+  invalidateUserCache,
   getSpelling,
   saveSpellingData,
   addWord,
@@ -11,6 +12,7 @@ import {
   updateLastActive,
   type SpellingData,
 } from './spelling-api'
+import { clearDataCache } from './data-cache'
 
 const spellingData: SpellingData = { words: ['cat'], sounds: ['sh'], spelling: ['tion'] }
 
@@ -25,6 +27,7 @@ function mockFetchOnce(response: { ok: boolean; json?: () => Promise<unknown> })
 
 describe('spelling-api', () => {
   beforeEach(() => {
+    clearDataCache()
     vi.restoreAllMocks()
   })
 
@@ -42,6 +45,38 @@ describe('spelling-api', () => {
   it('getUserByEmail throws on failure', async () => {
     mockFetchOnce({ ok: false })
     await expect(getUserByEmail('a@b.c')).rejects.toThrow('Failed to fetch user by email')
+  })
+
+  it('getUserByEmail serves repeat calls from the cache (issue #479)', async () => {
+    const user = { id: 'u1', email: 'a@b.c' }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ user }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getUserByEmail('a@b.c')).resolves.toEqual(user)
+    await expect(getUserByEmail('a@b.c')).resolves.toEqual(user)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('getUserByEmail treats email case as the same cache entry', async () => {
+    const user = { id: 'u1', email: 'a@b.c' }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ user }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getUserByEmail('A@B.C')
+    await getUserByEmail('a@b.c')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith('/api/users?email=A%40B.C')
+  })
+
+  it('invalidateUserCache drops the cached user document', async () => {
+    const user = { id: 'u1', email: 'a@b.c' }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ user }) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getUserByEmail('a@b.c')).resolves.toEqual(user)
+    invalidateUserCache('a@b.c')
+    await expect(getUserByEmail('a@b.c')).resolves.toEqual(user)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('getSpelling fetches and returns spellingData', async () => {

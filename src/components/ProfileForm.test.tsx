@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import ProfileForm, { PROFILE_PHOTO_UPDATED_EVENT } from './ProfileForm'
 import { ErrorToaster } from './error-toaster'
 import { processProfileImage } from '@/lib/profile-image'
+import { clearDataCache } from '@/lib/data-cache'
 
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 vi.mock('@/lib/profile-image', () => ({ processProfileImage: vi.fn() }))
@@ -65,6 +66,8 @@ function getPutCalls(fetchMock: ReturnType<typeof vi.fn>) {
 
 describe('ProfileForm', () => {
   beforeEach(() => {
+    // getUserByEmail is cached across routes; keep tests isolated.
+    clearDataCache()
     useSessionMock.mockReset()
     processProfileImageMock.mockReset()
   })
@@ -204,6 +207,29 @@ describe('ProfileForm', () => {
     expect(body.preferredName).toBe('Donray')
     expect(body.gradeLevel).toBe('3rd Grade')
     expect(body.classroomSize).toBe(25)
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+  })
+
+  it('saves without cache invalidation when the session email is gone (issue #479)', async () => {
+    const fetchMock = stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT' ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => ({ user }) }
+    )
+    const { rerender } = renderForm()
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).not.toBeDisabled())
+
+    // The session dropped after the form loaded (signed out in another
+    // tab): the save must still land, it just cannot invalidate the cached
+    // user document without an email.
+    useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated', update: async () => null } as never)
+    rerender(
+      <>
+        <ProfileForm />
+        <ErrorToaster />
+      </>
+    )
+
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Donray W.' } })
+    await waitFor(() => expect(getPutCalls(fetchMock)).toHaveLength(1), { timeout: 3000 })
     expect(await screen.findByText('Saved')).toBeInTheDocument()
   })
 

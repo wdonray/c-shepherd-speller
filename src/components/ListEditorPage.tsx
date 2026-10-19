@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getList, updateList, notifyListsChanged } from '@/lib/lists-api'
+import { getList, updateList, notifyListsChanged, invalidateListClassroomCache } from '@/lib/lists-api'
 import { logActivity } from '@/lib/activity'
 import {
   generatePatternId,
@@ -624,6 +624,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
           body: JSON.stringify({ patternText }),
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        invalidateListClassroomCache(list.id)
         classRulesSeqRef.current += 1
         setClassRules((prev) => {
           const next = { ...(prev ?? {}) }
@@ -638,6 +639,7 @@ export default function ListEditorPage({ listId }: { listId: string }) {
         body: JSON.stringify({ rules: { [patternText]: { rule } } }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      invalidateListClassroomCache(list.id)
       classRulesSeqRef.current += 1
       setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
     } else {

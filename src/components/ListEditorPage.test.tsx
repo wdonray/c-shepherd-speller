@@ -13,6 +13,7 @@ vi.mock('@/lib/lists-api', () => ({
   getList,
   updateList,
   notifyListsChanged,
+  invalidateListClassroomCache: vi.fn(),
   LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
 }))
 

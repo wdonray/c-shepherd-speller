@@ -8,7 +8,12 @@ const { getListWithClassroom, getLists, updateList } = vi.hoisted(() => ({
   getLists: vi.fn(),
   updateList: vi.fn(),
 }))
-vi.mock('@/lib/lists-api', () => ({ getListWithClassroom, getLists, updateList }))
+vi.mock('@/lib/lists-api', () => ({
+  getListWithClassroom,
+  getLists,
+  updateList,
+  invalidateListClassroomCache: vi.fn(),
+}))
 
 const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
 vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))

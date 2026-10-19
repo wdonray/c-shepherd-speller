@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { useEffect, useRef, useState } from 'react'
-import { getUserByEmail, User } from '@/lib/spelling-api'
+import { getUserByEmail, invalidateUserCache, User } from '@/lib/spelling-api'
 import { Label } from '@/components/ui/label'
 import { Camera, CheckCircle } from 'lucide-react'
 import { Badge } from './ui/badge'
@@ -151,6 +151,11 @@ export default function ProfileForm() {
     try {
       await updateUser(user.id, payload)
       setUser({ ...user, ...payload })
+      // The Header's user document is cached; drop it so the next page
+      // shows the saved name/photo instead of the stale cached copy.
+      if (session?.user?.email) {
+        invalidateUserCache(session.user.email)
+      }
       if (isPhotoChange) {
         // Carry the new image on the event so listeners can update
         // immediately; a re-fetch here can return stale data because the
