@@ -155,6 +155,15 @@ credentials.
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Sticky is bounded by its containing block.** A `position: sticky`
+  element can only travel within its parent's box, so wrapping the site
+  header in a fixed-height slot (to stop layout shift when it pops in)
+  silently un-sticks it: a 74px header inside a 74px slot has nowhere to
+  travel and scrolls away with the page. Any sticky offset that assumed the
+  header was stuck (the lists toolbar's `top-[72px]`) then floats over a
+  gap. When reserving space for sticky chrome, re-derive dependent offsets
+  from what actually sticks, per breakpoint (found 2026-10-19: issue #476,
+  lists toolbar gap on mobile).
 - **Print emphasis must use borders, not rings or box-shadows.** Tailwind
   `ring-*` paints via box-shadow, which printers skip when background
   graphics are off, so ring-based emphasis silently vanishes on paper.

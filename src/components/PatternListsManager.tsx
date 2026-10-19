@@ -276,9 +276,12 @@ export default function PatternListsManager() {
         {/* Sticky filter bar: matches the loaded sticky tabs + sort + search (issue #341).
             z-20 keeps the bar above the card action-button rows (relative z-10,
             issue #421): equal z-index ties break by DOM order, so at z-10 the
-            scrolling buttons painted on top of the stuck bar. */}
+            scrolling buttons painted on top of the stuck bar.
+            Responsive stick offset (issue #476): flush to the viewport top on
+            mobile, 72px stick offset at md and up, exactly like the
+            loaded bar. */}
         <div
-          className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+          className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)] md:top-[72px]"
           data-testid="lists-filter-toolbar"
           aria-hidden="true"
         >
@@ -341,17 +344,20 @@ export default function PatternListsManager() {
           </div>
 
           {/*
-            Sticky so tabs + search stay pinned while scrolling (issue #298):
-            pinned below the 72px site header (top-0 would stick it hidden
-            behind the header), and isolated in its own compositing layer so
-            iOS Safari stops ghosting card action bars into a stuck duplicate
-            that smears over the controls while scrolling.
+            Sticky so tabs + search stay pinned while scrolling (issue #298),
+            and isolated in its own compositing layer so iOS Safari stops
+            ghosting card action bars into a stuck duplicate that smears over
+            the controls while scrolling.
+            Stick offset is responsive (issue #476): on mobile the site header
+            scrolls away, so the bar pins flush to the viewport top (top-0)
+            with no gap. At md and up the 72px stick offset is unchanged,
+            desktop behavior stays exactly as it was.
             z-20 (not z-10): the card action-button rows are relative z-10,
             and equal z-index ties break by DOM order, so at z-10 the
             scrolling buttons painted on top of the stuck bar (issue #421).
           */}
           <div
-            className="sticky top-[72px] z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+            className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)] md:top-[72px]"
             data-testid="lists-filter-toolbar"
           >
             {showFavoritesTab && !searching && (
