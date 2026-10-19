@@ -24,6 +24,13 @@ he decides, you execute. He verifies your work as a habit, be precise.
 - **Screenshots gate UI changes but are never committed.** Take local
   Playwright screenshots to review UI changes, show them in chat, keep them
   out of the repo.
+- **Base worktrees on origin/main, never the local main ref.** The main
+  clone's local `main` goes stale because all work happens in worktrees
+  (it was 10 releases behind origin when checked). Always
+  `git fetch origin main` first and create the worktree from
+  `origin/main`, or the feature's code may not exist in the branch you
+  build on (found 2026-10-19: issue #459, /videos did not exist on the
+  stale local main).
 - **No em dashes in user-facing copy.** Use commas, colons, or split the
   sentence instead.
 - **Keep the public surface truthful.** If a feature does not exist, do not
@@ -197,6 +204,13 @@ credentials.
   back to the local bank).
 
 ## Testing
+
+- **One unit test needs DynamoDB Local.** `src/lib/auth.test.ts`'s
+  sign-in round-trip test hits localhost:8000, so without docker (no
+  DynamoDB Local) it fails with ECONNREFUSED. That is a pre-existing
+  environmental failure, not a red change: verify by running that single
+  file on clean main, where it fails identically (found 2026-10-19:
+  issue #459).
 
 - **In Playwright, `page.request` shares the browser context's cookies; the
   bare `request` fixture does not.** Authenticated API calls in e2e specs

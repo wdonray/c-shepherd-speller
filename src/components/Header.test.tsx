@@ -308,6 +308,13 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: /present/i })).toHaveAttribute('href', '/display')
   })
 
+  it('links to the song videos page from the Song videos button', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    expect(screen.getByRole('link', { name: /song videos/i })).toHaveAttribute('href', '/videos')
+  })
+
   it('opens the share lists dialog from the menu', () => {
     mockSignedIn()
     render(<Header />)
@@ -461,6 +468,19 @@ describe('Header', () => {
     fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
     const menu = within(screen.getByRole('dialog'))
     fireEvent.click(menu.getByRole('link', { name: /present/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('closes the mobile menu when following the Song videos link', () => {
+    mockSignedIn()
+    render(<Header />)
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }))
+    const menu = within(screen.getByRole('dialog'))
+    const link = menu.getByRole('link', { name: /song videos/i })
+    expect(link).toHaveAttribute('href', '/videos')
+    fireEvent.click(link)
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
