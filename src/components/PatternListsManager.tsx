@@ -325,10 +325,15 @@ export default function PatternListsManager() {
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold">My word lists ({lists.length})</h3>
             {lists.length > 0 && (
-              <Button onClick={() => router.push('/lists/new')}>
-                <PlusIcon className="size-4" />
-                New list
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" onClick={() => router.push('/library')}>
+                  Prebuilt lists
+                </Button>
+                <Button onClick={() => router.push('/lists/new')}>
+                  <PlusIcon className="size-4" />
+                  New list
+                </Button>
+              </div>
             )}
           </div>
 

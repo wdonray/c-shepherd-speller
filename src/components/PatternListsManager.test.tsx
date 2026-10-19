@@ -180,6 +180,16 @@ describe('PatternListsManager', () => {
     expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
 
+  it('navigates to the prebuilt library from the overview', async () => {
+    getLists.mockResolvedValue([list])
+    render(<PatternListsManager />)
+
+    await screen.findByText('My word lists (1)')
+    fireEvent.click(screen.getByRole('button', { name: 'Prebuilt lists' }))
+
+    expect(mockPush).toHaveBeenCalledWith('/library')
+  })
+
   it('navigates to the new-list page from the empty state', async () => {
     getLists.mockResolvedValue([])
     render(<PatternListsManager />)
