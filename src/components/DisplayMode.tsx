@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getListWithClassroom, getLists, updateList } from '@/lib/lists-api'
+import { getListWithClassroom, getLists, updateList, invalidateListClassroomCache } from '@/lib/lists-api'
 import { getPrebuiltWeek, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
 import PrebuiltBadge from './PrebuiltBadge'
 import { getAssignedWeeks, type WordList, type PatternVideo } from '@/models/WordList'
@@ -170,6 +170,7 @@ function DisplayModeInner() {
             body: JSON.stringify({ patternText }),
           })
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          invalidateListClassroomCache(current.id)
           setClassRules((prev) => {
             const next = { ...(prev ?? {}) }
             delete next[patternText]
@@ -183,6 +184,7 @@ function DisplayModeInner() {
           body: JSON.stringify({ rules: { [patternText]: { rule } } }),
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        invalidateListClassroomCache(current.id)
         setClassRules((prev) => ({ ...(prev ?? {}), [patternText]: rule }))
       } else {
         const nextPatterns = current.patterns.map((p) => (p.id === patternId ? { ...p, rule: rule || undefined } : p))

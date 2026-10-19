@@ -3,6 +3,8 @@
  * These functions make HTTP requests to the API routes
  */
 
+import { cachedGet, invalidateDataCache } from '@/lib/data-cache'
+
 import type { BlockedVideo } from '@/models/User'
 
 export interface User {
@@ -31,13 +33,27 @@ export interface SpellingData {
   spelling: string[]
 }
 
+/** Cache key for the user document. Keyed by lowercased email; lookups are case-insensitive. */
+const userCacheKey = (email: string): string => `user:${email.toLowerCase()}`
+
+/**
+ * Drop the cached user document for `email`. Call after any write to the
+ * user document (e.g. ProfileForm's PUT to /api/users/[id]) so cached reads
+ * never show stale profile data.
+ */
+export function invalidateUserCache(email: string): void {
+  invalidateDataCache(userCacheKey(email))
+}
+
 export async function getUserByEmail(email: string): Promise<User> {
-  const response = await fetch(`/api/users?email=${encodeURIComponent(email)}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch user by email')
-  }
-  const data = await response.json()
-  return data.user
+  return cachedGet(userCacheKey(email), async () => {
+    const response = await fetch(`/api/users?email=${encodeURIComponent(email)}`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch user by email')
+    }
+    const data = await response.json()
+    return data.user
+  })
 }
 
 /**

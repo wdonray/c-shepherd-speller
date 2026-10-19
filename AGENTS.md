@@ -195,6 +195,15 @@ credentials.
 
 ## Reliability
 
+- **List reads are cached; every write path must invalidate.** `getLists`,
+  `getList`, and `getListWithClassroom` in `src/lib/lists-api.ts` and
+  `getUserByEmail` in `src/lib/spelling-api.ts` cache reads in
+  `src/lib/data-cache.ts` (5-minute TTL, in-flight dedup). Writes through
+  the lists-api write functions invalidate automatically; any other write
+  path to `/api/lists`, `/api/users`, or `/api/classes/:id/rules` must call
+  the exported `invalidateListsCache`, `invalidateUserCache`, or
+  `invalidateListClassroomCache`, or teachers will see stale data after
+  saving (found 2026-10-19: issue #479).
 - **Never trust the shape of a 200 response.** A success body with an
   unexpected shape (a test stub answering every fetch, a proxy, a future
   API change) must degrade to the empty value, never crash the page.
