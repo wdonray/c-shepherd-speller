@@ -256,4 +256,22 @@ describe('WordListCard', () => {
     expect(container.querySelector('[data-slot="card"]')).toHaveClass('hover:border-plum-deep')
     expect(container.querySelector('[data-slot="card"]')).not.toHaveClass('hover:border-leaf-deep')
   })
+
+  it('renders the badge after the title when provided (issue #463)', () => {
+    render(
+      <WordListCard
+        list={list}
+        primaryLabel="Preview"
+        showPresent={false}
+        href="/lists/prebuilt/prebuilt-g1-w01"
+        badge={<span data-testid="custom-badge">Prebuilt</span>}
+      />
+    )
+    expect(screen.getByTestId('custom-badge')).toBeInTheDocument()
+  })
+
+  it('renders no badge slot when badge is not provided', () => {
+    render(<WordListCard list={list} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.queryByTestId('custom-badge')).not.toBeInTheDocument()
+  })
 })

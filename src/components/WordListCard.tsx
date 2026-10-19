@@ -55,6 +55,12 @@ interface WordListCardProps {
    * detached beside it.
    */
   leadingAction?: React.ReactNode
+  /**
+   * Optional badge rendered in the header row after the title (issue #463):
+   * the lists page passes the Prebuilt badge for prebuilt library cards.
+   * Teacher-owned lists pass nothing; they are the default.
+   */
+  badge?: React.ReactNode
 }
 
 const frequencyToLevel: Record<PatternFrequency, PowerBarLevel> = {
@@ -80,6 +86,7 @@ export default function WordListCard({
   onToggleFavorite,
   highlightQuery = '',
   leadingAction,
+  badge,
 }: WordListCardProps) {
   const wordCount = list.patterns.reduce((sum, p) => sum + p.words.length, 0)
   const patternCount = list.patterns.length
@@ -108,6 +115,7 @@ export default function WordListCard({
           <h3 className="text-xl font-bold">
             <HighlightedText text={list.name} query={highlightQuery} />
           </h3>
+          {badge}
           {list.week?.trim() && (
             <span className={cn('rounded-full px-3 py-1 text-xs font-bold', accent.soft, accent.text)}>
               <HighlightedText text={list.week.trim()} query={highlightQuery} />

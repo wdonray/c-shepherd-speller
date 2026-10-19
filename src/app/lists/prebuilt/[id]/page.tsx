@@ -12,12 +12,12 @@ export const metadata: Metadata = {
 }
 
 /**
- * Read-only preview of one prebuilt week (issue #463, Phase A). The chart
- * renders in present mode with no edit callbacks, so there are no lock
- * toggles, rule editors, or video buttons. Copy and pull-patterns actions
- * (Phase B) live in PrebuiltWeekActions; present/practice land in Phase C.
+ * Read-only preview of one prebuilt week (issue #463). The chart renders in
+ * present mode with no edit callbacks, so there are no lock toggles, rule
+ * editors, or video buttons. Copy and pull-patterns actions live in
+ * PrebuiltWeekActions; present/practice land in a later phase.
  */
-export default async function LibraryWeekPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PrebuiltWeekPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const week = getPrebuiltWeek(id)
   if (!week) notFound()
@@ -27,7 +27,7 @@ export default async function LibraryWeekPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
-      <BackBreadcrumb href="/library" label="Prebuilt lists" />
+      <BackBreadcrumb href="/lists" label="My Spelling Lists" />
       <div className="mt-2 space-y-1">
         <div className="flex items-center gap-2">
           <h1 className="text-3xl font-bold">{week.title}</h1>

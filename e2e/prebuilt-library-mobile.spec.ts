@@ -12,9 +12,10 @@ test.use({
 })
 
 /**
- * Mobile layout regression tests for the prebuilt library (issue #463).
- * The grade tabs, week rows, pattern chips, and read-only chart preview
- * must all fit a 390px viewport with no horizontal scrolling.
+ * Mobile layout regression tests for the prebuilt library section on the
+ * lists page (issue #463 redesign). The grade pills, pattern search, week
+ * cards, and read-only chart preview must all fit a 390px viewport with no
+ * horizontal scrolling.
  */
 async function assertNoHorizontalOverflow(page: Page, label: string) {
   const overflow = await page.evaluate(() => ({
@@ -33,33 +34,43 @@ test.describe('prebuilt library mobile layout', () => {
     await context.addCookies([await sessionCookie()])
   })
 
-  test('/library has no horizontal overflow', async ({ page }) => {
-    await page.goto('/library')
-    await expect(page.getByRole('heading', { name: 'Prebuilt spelling lists' })).toBeVisible()
-    await assertNoHorizontalOverflow(page, '/library')
+  test('/lists prebuilt section has no horizontal overflow', async ({ page }) => {
+    await page.goto('/lists')
+    await expect(page.getByRole('heading', { name: 'Prebuilt library' })).toBeVisible()
+    await expect(page.getByTestId('prebuilt-grid')).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/lists prebuilt section')
   })
 
-  test('/library grade tabs do not overflow', async ({ page }) => {
-    await page.goto('/library')
+  test('grade pills and pattern search fit the viewport', async ({ page }) => {
+    await page.goto('/lists')
     const tablist = page.getByRole('tablist', { name: 'Filter prebuilt lists by grade' })
     await expect(tablist).toBeVisible()
     const box = await tablist.boundingBox()
     expect(box, 'tablist should be visible').toBeTruthy()
     expect(box!.width).toBeLessThanOrEqual(390)
+    await expect(page.getByLabel('Search prebuilt lists by pattern')).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/lists prebuilt filters')
   })
 
-  test('/library/[id] preview has no horizontal overflow', async ({ page }) => {
-    await page.goto('/library/prebuilt-g1-w01')
+  test('pattern search filters weeks across grades', async ({ page }) => {
+    await page.goto('/lists')
+    await page.getByLabel('Search prebuilt lists by pattern').fill('tion')
+    await expect(page.getByText(/weeks matching "tion" across all grades/)).toBeVisible()
+    await assertNoHorizontalOverflow(page, '/lists prebuilt search results')
+  })
+
+  test('/lists/prebuilt/[id] preview has no horizontal overflow', async ({ page }) => {
+    await page.goto('/lists/prebuilt/prebuilt-g1-w01')
     await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy to my lists' })).toBeVisible()
-    await assertNoHorizontalOverflow(page, '/library/prebuilt-g1-w01')
+    await assertNoHorizontalOverflow(page, '/lists/prebuilt/prebuilt-g1-w01')
   })
 
-  test('/library/[id] pull-patterns modal has no horizontal overflow', async ({ page }) => {
-    await page.goto('/library/prebuilt-g1-w01')
+  test('/lists/prebuilt/[id] pull-patterns modal has no horizontal overflow', async ({ page }) => {
+    await page.goto('/lists/prebuilt/prebuilt-g1-w01')
     await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
     await page.getByRole('button', { name: 'Add patterns to...' }).click()
     await expect(page.getByRole('dialog', { name: 'Add patterns to your lists' })).toBeVisible()
-    await assertNoHorizontalOverflow(page, '/library/[id] pull modal')
+    await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id] pull modal')
   })
 })
