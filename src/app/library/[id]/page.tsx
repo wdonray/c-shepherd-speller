@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
 import PatternChartDisplay from '@/components/PatternChartDisplay'
 import PrebuiltBadge from '@/components/PrebuiltBadge'
+import PrebuiltWeekActions from '@/components/PrebuiltWeekActions'
 import { getPrebuiltWeek, prebuiltGradeLabel, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
 
 export const metadata: Metadata = {
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
 /**
  * Read-only preview of one prebuilt week (issue #463, Phase A). The chart
  * renders in present mode with no edit callbacks, so there are no lock
- * toggles, rule editors, or video buttons. Copy/present flows land in
- * Phase B/C.
+ * toggles, rule editors, or video buttons. Copy and pull-patterns actions
+ * (Phase B) live in PrebuiltWeekActions; present/practice land in Phase C.
  */
 export default async function LibraryWeekPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,6 +37,9 @@ export default async function LibraryWeekPage({ params }: { params: Promise<{ id
           {prebuiltGradeLabel(week.grade)}: {week.patterns.length} patterns, {totalWords} words. This is a read-only
           preview.
         </p>
+      </div>
+      <div className="mt-4">
+        <PrebuiltWeekActions week={week} />
       </div>
       <div className="mt-6">
         <PatternChartDisplay list={list} variant="present" />
