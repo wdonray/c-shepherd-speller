@@ -219,6 +219,29 @@ describe('PullPatternsModal', () => {
     expect(updateList).not.toHaveBeenCalled()
   })
 
+  it('switches the target to another existing list', async () => {
+    const first = makeList({ id: 'list_a', name: 'First' })
+    const second = makeList({ id: 'list_b', name: 'Second', patterns: [] })
+    getLists.mockResolvedValue([first, second])
+    updateList.mockResolvedValue(second)
+    render(<PullPatternsModal week={week} onClose={onClose} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Second')).toBeInTheDocument()
+    })
+
+    // Switch the radio from the default (First) to Second.
+    fireEvent.click(screen.getByRole('radio', { name: /Second/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: `Add ${week.patterns.length} patterns to Second` }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Added')
+    })
+    expect(updateList).toHaveBeenCalledWith('list_b', expect.objectContaining({ patterns: expect.any(Array) }))
+    expect(screen.getByRole('status')).toHaveTextContent('Second')
+  })
+
   it('disables confirm when no patterns are checked', async () => {
     getLists.mockResolvedValue([makeList()])
     render(<PullPatternsModal week={week} onClose={onClose} />)
