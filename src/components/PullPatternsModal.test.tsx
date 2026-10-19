@@ -242,6 +242,36 @@ describe('PullPatternsModal', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Second')
   })
 
+  it('names multiple duplicates and skipped patterns with plurals', async () => {
+    // The target already has two of the week's pattern pairs.
+    const first = week.patterns[0]
+    const second = week.patterns[1]
+    const target = makeList({
+      id: 'list_6',
+      name: 'Target',
+      patterns: [
+        makePattern({ id: 'pd1', sound: first.sound, pattern: first.pattern }),
+        makePattern({ id: 'pd2', sound: second.sound, pattern: second.pattern }),
+      ],
+    })
+    getLists.mockResolvedValue([target])
+    updateList.mockResolvedValue(target)
+    render(<PullPatternsModal week={week} onClose={onClose} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Target')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('status')).toHaveTextContent('2 patterns already in Target, so they will be skipped')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 pattern to Target' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Added')
+    })
+    expect(screen.getByText('2 patterns skipped: already in the list.')).toBeInTheDocument()
+  })
+
   it('disables confirm when no patterns are checked', async () => {
     getLists.mockResolvedValue([makeList()])
     render(<PullPatternsModal week={week} onClose={onClose} />)
