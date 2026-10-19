@@ -57,7 +57,7 @@ describe('HiddenVideosSection', () => {
     // Thumbnails are decorative (empty alt), so they are not in the role tree.
     const thumbnails = container.querySelectorAll('img')
     expect(thumbnails).toHaveLength(2)
-    expect(thumbnails[0]).toHaveAttribute('src', 'https://i.ytimg.com/vi/GdmcWQCbqY8/hqdefault.jpg')
+    expect(thumbnails[0]).toHaveAttribute('src', 'https://i.ytimg.com/vi/GdmcWQCbqY8/mqdefault.jpg')
     expect(screen.getByRole('button', { name: 'Unhide Vowel Teams Song' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Unhide Silent E Song' })).toBeInTheDocument()
   })

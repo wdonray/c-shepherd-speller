@@ -95,7 +95,7 @@ describe('PatternVideoModal (editable)', () => {
     expect(section.getByRole('button', { name: `Remove ${curatedAi.title}` })).toBeInTheDocument()
     const thumbnails = sectionEl.querySelectorAll('img')
     expect(thumbnails).toHaveLength(2)
-    expect(thumbnails[0]).toHaveAttribute('src', `https://i.ytimg.com/vi/${curatedAi.videoId}/hqdefault.jpg`)
+    expect(thumbnails[0]).toHaveAttribute('src', `https://i.ytimg.com/vi/${curatedAi.videoId}/mqdefault.jpg`)
   })
 
   it('shows an empty state when nothing is attached', () => {
