@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect } from 'react'
 import Dashboard from '@/components/Dashboard'
+import { notifyListsChanged } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 
 export default function HomePage() {
@@ -61,13 +62,21 @@ export default function HomePage() {
         const userData = await user.json()
 
         if (!userData.user?.id) {
-          await fetch(`/api/users`, {
+          // First sign-in: create the database user record. The dashboard
+          // fetches its lists in parallel (issue #480), so its request may
+          // have landed before this POST and hit the 403 path for "no user
+          // record yet". After a successful create, tell the dashboard to
+          // retry its fetch so the teacher does not stare at an error card.
+          const created = await fetch(`/api/users`, {
             method: 'POST',
             body: JSON.stringify({
               email,
               name: session?.user?.name || 'Teacher',
             }),
           })
+          if (created.ok) {
+            notifyListsChanged()
+          }
         }
       } catch {
         // Sync failure is non-fatal: the dashboard still renders, the user

@@ -250,6 +250,21 @@ credentials.
   fresh read inside the loop (found 2026-10-19: issue #473, concurrent video
   pastes dropped a video from the personal library).
 
+- **Decouple the data fetch from the session, but clean up on session loss.**
+  Fetching dashboard data in parallel with the client-side session check
+  (no `status` dependency on the fetch effect) is faster, but a mounted
+  component then keeps rendering private data after a cross-tab sign-out or
+  session refresh. Add a separate `status === 'unauthenticated'` effect that
+  clears the private state; keep the initial fetch parallel (found
+  2026-10-19: issue #480, PR #491 review).
+- **A background user-record create can lose the race with the first fetch.**
+  If the sign-in sync POSTs the database user record while the page fetches
+  its data in parallel, the fetch may land first and hit the 403 "no user
+  record yet" path. After a successful create, dispatch
+  `notifyListsChanged()` (it also drops the cached reads) so the fetch
+  retries instead of parking on an error card (found 2026-10-19: issue #480,
+  PR #491 review).
+
 ## Testing
 
 - **One unit test needs DynamoDB Local.** `src/lib/auth.test.ts`'s

@@ -392,6 +392,18 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
       .finally(() => setListsLoading(false))
   }, [])
 
+  // The list fetch starts on mount and no longer re-runs on session changes
+  // (issue #480). Clear private lists explicitly when the session is lost
+  // while the dashboard is mounted (cross-tab sign-out, session refresh),
+  // so stale lists never render as if the teacher were still signed in.
+  // Kept separate from the fetch effect so the initial load stays parallel
+  // with the session check.
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setLists([])
+    }
+  }, [status])
+
   useEffect(() => {
     loadLists()
     setActivity(getActivity())

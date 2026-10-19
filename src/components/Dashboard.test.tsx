@@ -319,6 +319,28 @@ describe('Dashboard', () => {
     expect(screen.getByText('No word lists yet')).toBeInTheDocument()
   })
 
+  it('clears lists when the session is lost while mounted', async () => {
+    mockSession('Donray Williams')
+    getLists.mockResolvedValue([list])
+    const { rerender } = render(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
+    })
+
+    // Cross-tab sign-out or session refresh flips the session to
+    // unauthenticated without a page navigation; the stale lists must not
+    // keep rendering as if the teacher were still signed in (issue #480).
+    mockSession()
+    rerender(<Dashboard {...defaultProps} />)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Week 5: Long A')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('starts fetching lists while the session is still loading', async () => {
     vi.mocked(useSession).mockReturnValue({
       data: null,
