@@ -164,6 +164,15 @@ credentials.
   gap. When reserving space for sticky chrome, re-derive dependent offsets
   from what actually sticks, per breakpoint (found 2026-10-19: issue #476,
   lists toolbar gap on mobile).
+- **Measure stick behavior at every breakpoint, not just the reported one.**
+  The #476 fix scoped the header-scrolls-away finding to mobile and kept
+  `md:top-[72px]` on desktop, but SiteChrome's slot wrapper is not
+  breakpoint-scoped, so the header's sticky is trapped at every breakpoint
+  and the desktop toolbar floated over the same gap (found 2026-10-19:
+  issue #485, desktop toolbar cut through the prebuilt week cards). When a
+  stickiness assumption changes, scroll the page at each breakpoint in a
+  real browser and re-derive every dependent offset from what actually
+  sticks.
 - **Print emphasis must use borders, not rings or box-shadows.** Tailwind
   `ring-*` paints via box-shadow, which printers skip when background
   graphics are off, so ring-based emphasis silently vanishes on paper.

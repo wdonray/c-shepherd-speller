@@ -277,11 +277,13 @@ export default function PatternListsManager() {
             z-20 keeps the bar above the card action-button rows (relative z-10,
             issue #421): equal z-index ties break by DOM order, so at z-10 the
             scrolling buttons painted on top of the stuck bar.
-            Responsive stick offset (issue #476): flush to the viewport top on
-            mobile, 72px stick offset at md and up, exactly like the
-            loaded bar. */}
+            Stick offset (issues #476, #485): the site header scrolls away at
+            every breakpoint (its sticky top-0 is trapped in SiteChrome's
+            74px slot wrapper), so the bar pins flush to the viewport top
+            everywhere. The old 72px offset assumed a stuck header and floated
+            the bar over a gap that scrolling cards showed through. */}
         <div
-          className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)] md:top-[72px]"
+          className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
           data-testid="lists-filter-toolbar"
           aria-hidden="true"
         >
@@ -348,16 +350,17 @@ export default function PatternListsManager() {
             and isolated in its own compositing layer so iOS Safari stops
             ghosting card action bars into a stuck duplicate that smears over
             the controls while scrolling.
-            Stick offset is responsive (issue #476): on mobile the site header
-            scrolls away, so the bar pins flush to the viewport top (top-0)
-            with no gap. At md and up the 72px stick offset is unchanged,
-            desktop behavior stays exactly as it was.
+            Stick offset (issues #476, #485): the site header scrolls away at
+            every breakpoint (its sticky top-0 is trapped in SiteChrome's
+            74px slot wrapper), so the bar pins flush to the viewport top
+            everywhere. The old 72px offset assumed a stuck header and floated
+            the bar over a gap that scrolling cards showed through.
             z-20 (not z-10): the card action-button rows are relative z-10,
             and equal z-index ties break by DOM order, so at z-10 the
             scrolling buttons painted on top of the stuck bar (issue #421).
           */}
           <div
-            className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)] md:top-[72px]"
+            className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
             data-testid="lists-filter-toolbar"
           >
             {showFavoritesTab && !searching && (
