@@ -302,31 +302,36 @@ describe('Dashboard', () => {
     })
   })
 
-  it('does not fetch lists when signed out', async () => {
+  it('fetches lists on mount even when the session is signed out', async () => {
+    // The server middleware is the real auth gate (issue #480); the client
+    // starts the data fetch in parallel with the session check instead of
+    // waiting for it.
     mockSession()
+    getLists.mockResolvedValue([])
     render(<Dashboard {...defaultProps} />)
 
     await waitFor(() => {
       expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
     })
-    expect(getLists).not.toHaveBeenCalled()
+    expect(getLists).toHaveBeenCalled()
     expect(reportError).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByText('No word lists yet')).toBeInTheDocument()
   })
 
-  it('does not fetch lists while the session is still loading', async () => {
+  it('starts fetching lists while the session is still loading', async () => {
     vi.mocked(useSession).mockReturnValue({
       data: null,
       status: 'loading',
       update: async () => null,
     } as never)
+    getLists.mockImplementation(() => new Promise(() => {}))
     render(<Dashboard {...defaultProps} />)
 
-    await waitFor(() => {
-      expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
-    })
-    expect(getLists).not.toHaveBeenCalled()
+    // The list fetch fires before the session resolves (issue #480); the
+    // dashboard skeleton covers the wait.
+    expect(getLists).toHaveBeenCalled()
+    expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
     expect(reportError).not.toHaveBeenCalled()
   })
 
