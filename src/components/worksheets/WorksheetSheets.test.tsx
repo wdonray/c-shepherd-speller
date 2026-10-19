@@ -325,17 +325,37 @@ describe('CrosswordSheet', () => {
 })
 
 describe('ReadingSheet', () => {
-  it('lists one sentence per word with the word bolded', () => {
-    render(
-      <ReadingSheet
-        items={[
-          { word: 'cake', sentence: 'We baked a cake for the party.' },
-          { word: 'rain', sentence: 'The rain fell all afternoon.' },
-        ]}
-      />
-    )
+  const items = [
+    { word: 'rain', sentence: 'The rain fell all afternoon.' },
+    { word: 'cake', sentence: 'We baked a cake for the party.' },
+  ]
+
+  it('blanks out the words and shows an alphabetical word bank on the student sheet', () => {
+    render(<ReadingSheet items={items} answerKey={false} />)
     expect(screen.getByRole('heading', { name: 'Reading practice' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Read each sentence. Fill in each blank with a word from the word bank.')
+    ).toBeInTheDocument()
+    // Each spelling word becomes a blank; no bold completed word anywhere.
+    expect(screen.getByLabelText('Blank for rain')).toHaveTextContent('____')
+    expect(screen.getByLabelText('Blank for cake')).toHaveTextContent('____')
+    expect(document.querySelectorAll('strong')).toHaveLength(0)
+    // The bank is alphabetical even though the items are not.
+    expect(screen.getByRole('heading', { name: 'Word bank' })).toBeInTheDocument()
+    expect(screen.getByText('cake, rain')).toBeInTheDocument()
+  })
+
+  it('renders a sentence unchanged when the word is not in it', () => {
+    render(<ReadingSheet items={[{ word: 'sun', sentence: 'The moon is bright.' }]} answerKey={false} />)
+    expect(screen.getByText('The moon is bright.')).toBeInTheDocument()
+  })
+
+  it('shows the completed sentences with the words bolded on the answer key', () => {
+    render(<ReadingSheet items={items} answerKey={true} />)
+    expect(screen.getByText('Completed sentences.')).toBeInTheDocument()
+    expect(screen.getByText('rain').tagName).toBe('STRONG')
     expect(screen.getByText('cake').tagName).toBe('STRONG')
+    expect(screen.getByText('cake, rain')).toBeInTheDocument()
   })
 })
 

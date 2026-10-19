@@ -197,6 +197,13 @@ credentials.
   the in-flight request, so the data never lands. Fetch per row on mount, or
   key the effect on a stable scalar (found 2026-10-18: issue #402, the
   sentence-suggestion fetch).
+- **Local e2e: verify port 3000 serves YOUR build before trusting a run.**
+  Playwright's `reuseExistingServer` attaches to whatever is already
+  listening, and with multiple workers on this VM that can be another
+  agent's server on a shared port. Seed failures against the wrong server
+  look like app bugs. Start your own server on a free port and point a
+  throwaway config at it instead (found 2026-10-18: the worksheets e2e
+  seeded against another worker's :3000).
 - **Assertions on async-driven button states must wait, not assert bare.**
   The FakeAudio stub reports duration from a `setTimeout(0)` (a macrotask),
   while the wall-clock time between fake Record and Stop clicks is a

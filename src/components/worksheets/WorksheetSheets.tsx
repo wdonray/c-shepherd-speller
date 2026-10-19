@@ -307,20 +307,52 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
   )
 }
 
-/** 6. Reading practice: one sentence per word. The key repeats the sentences. */
-export function ReadingSheet({ items }: { items: { word: string; sentence: string }[] }) {
+/**
+ * 6. Reading practice. Student: sentences with the spelling word blanked
+ * out, plus an alphabetical word bank (issue #454). Key: the completed
+ * sentences.
+ */
+export function ReadingSheet({
+  items,
+  answerKey,
+}: {
+  items: { word: string; sentence: string }[]
+  answerKey: boolean
+}) {
   return (
     <WorksheetSection title="Reading practice">
-      <p className="text-black">Read each sentence aloud. Listen for the spelling pattern in the bold word.</p>
+      <p className="text-black">
+        {answerKey ? 'Completed sentences.' : 'Read each sentence. Fill in each blank with a word from the word bank.'}
+      </p>
       <ol className="mt-4 list-decimal space-y-3 pl-6">
         {items.map((item) => (
           <li key={item.word} className="text-black">
-            {highlightWord(item.sentence, item.word)}
+            {answerKey ? highlightWord(item.sentence, item.word) : <BlankedReadingSentence item={item} />}
           </li>
         ))}
       </ol>
+      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <p className="text-black">
+        {items
+          .map((item) => item.word)
+          .sort((a, b) => a.localeCompare(b))
+          .join(', ')}
+      </p>
     </WorksheetSection>
   )
+}
+
+/**
+ * Render a reading sentence with its whole spelling word replaced by a
+ * blank. Reuses the fill-in-the-blank blank rendering so the two sheets
+ * share one blank style.
+ */
+function BlankedReadingSentence({ item }: { item: { word: string; sentence: string } }) {
+  const parts = splitOnFirst(item.sentence, item.word)
+  if (!parts) return <>{item.sentence}</>
+  const [before, , after] = parts
+  const blankedWord = '_'.repeat(item.word.length)
+  return <BlankedSentence item={{ ...item, blankedSentence: `${before}${blankedWord}${after}`, blankedWord }} />
 }
 
 const PARENT_PRACTICE_IDEAS = [
