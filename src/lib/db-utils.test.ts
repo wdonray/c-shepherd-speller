@@ -17,6 +17,9 @@ import {
   getUserSpellingData,
   updateUserSpellingData,
   updateUserLastActive,
+  getUserVideoLibrary,
+  addVideoToUserLibrary,
+  VIDEO_LIBRARY_MAX,
 } from './db-utils'
 
 const storedUser = {
@@ -347,6 +350,78 @@ describe('db-utils', () => {
     it('logs and rethrows when the update fails', async () => {
       send.mockResolvedValueOnce({ Item: storedUser }).mockRejectedValueOnce(new Error('boom'))
       await expect(updateUserLastActive('abc-user')).rejects.toThrow('boom')
+      expect(console.error).toHaveBeenCalled()
+    })
+  })
+
+  describe('getUserVideoLibrary (issue #458)', () => {
+    it('returns an empty library when the user does not exist', async () => {
+      send.mockResolvedValue({ Item: undefined })
+      await expect(getUserVideoLibrary('nope-user')).resolves.toEqual([])
+    })
+
+    it('returns an empty library when the attribute is absent', async () => {
+      send.mockResolvedValue({ Item: storedUser })
+      await expect(getUserVideoLibrary('abc-user')).resolves.toEqual([])
+    })
+
+    it('returns the stored library', async () => {
+      const library = [{ videoId: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up', source: 'custom' as const }]
+      send.mockResolvedValue({ Item: { ...storedUser, videoLibrary: library } })
+      await expect(getUserVideoLibrary('abc-user')).resolves.toEqual(library)
+    })
+  })
+
+  describe('addVideoToUserLibrary (issue #458)', () => {
+    const video = { videoId: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up', source: 'custom' as const }
+
+    it('throws when the user does not exist', async () => {
+      send.mockResolvedValue({ Item: undefined })
+      await expect(addVideoToUserLibrary('nope-user', video)).rejects.toThrow('User not found')
+    })
+
+    it('appends the video and writes the library back', async () => {
+      send
+        .mockResolvedValueOnce({ Item: storedUser })
+        .mockResolvedValueOnce({ Attributes: { ...storedUser, videoLibrary: [video] } })
+      const result = await addVideoToUserLibrary('abc-user', video)
+      expect(result).toEqual([video])
+      const command = send.mock.calls[1][0]
+      expect(command.input.UpdateExpression).toBe('SET videoLibrary = :videos, updatedAt = :now')
+      expect(command.input.ExpressionAttributeValues[':videos']).toEqual([video])
+    })
+
+    it('does not duplicate a video already in the library', async () => {
+      send.mockResolvedValue({ Item: { ...storedUser, videoLibrary: [video] } })
+      const result = await addVideoToUserLibrary('abc-user', video)
+      expect(result).toEqual([video])
+      expect(send).toHaveBeenCalledOnce()
+    })
+
+    it('caps the library at VIDEO_LIBRARY_MAX, keeping the newest', async () => {
+      const full = Array.from({ length: VIDEO_LIBRARY_MAX }, (_, i) => ({
+        videoId: `vid${String(i).padStart(8, '0')}`,
+        title: `Video ${i}`,
+        source: 'custom' as const,
+      }))
+      send
+        .mockResolvedValueOnce({ Item: { ...storedUser, videoLibrary: full } })
+        .mockResolvedValueOnce({ Attributes: { ...storedUser, videoLibrary: [...full.slice(1), video] } })
+      const result = await addVideoToUserLibrary('abc-user', video)
+      expect(result).toHaveLength(VIDEO_LIBRARY_MAX)
+      expect(result[VIDEO_LIBRARY_MAX - 1]).toEqual(video)
+      expect(result[0].videoId).toBe(full[1].videoId)
+    })
+
+    it('falls back to the written library when the update returns no attributes', async () => {
+      send.mockResolvedValueOnce({ Item: storedUser }).mockResolvedValueOnce({ Attributes: {} })
+      const result = await addVideoToUserLibrary('abc-user', video)
+      expect(result).toEqual([video])
+    })
+
+    it('logs and rethrows when the update fails', async () => {
+      send.mockResolvedValueOnce({ Item: storedUser }).mockRejectedValueOnce(new Error('boom'))
+      await expect(addVideoToUserLibrary('abc-user', video)).rejects.toThrow('boom')
       expect(console.error).toHaveBeenCalled()
     })
   })

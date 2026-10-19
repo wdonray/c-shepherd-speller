@@ -1,7 +1,15 @@
 import { PutCommand, GetCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
 import docClient from './dynamodb'
 import { IUser, USER_TABLE_NAME, createUserItem, updateUserTimestamps } from '../models/User'
+import type { PatternVideo } from '../models/WordList'
 import { reportError } from './report-error'
+
+/**
+ * Cap for the teacher's personal video library (issue #458). A library
+ * entry is ~150 bytes, so 200 entries stay far under the DynamoDB 400KB
+ * item limit; beyond the cap the oldest additions drop off.
+ */
+export const VIDEO_LIBRARY_MAX = 200
 
 // Helper function to generate consistent DynamoDB keys from userId
 export function getUserKeys(userId: string) {
@@ -280,6 +288,54 @@ export async function updateUserSpellingData(
     return result.Attributes as IUser
   } catch (error) {
     console.error('Error updating user spelling data:', error)
+    throw error
+  }
+}
+
+/**
+ * The teacher's personal song-video collection (issue #458): every video
+ * she added by pasting a link, in the order added. Empty for teachers who
+ * never pasted a link (the attribute is absent on their user item).
+ */
+export async function getUserVideoLibrary(userId: string): Promise<PatternVideo[]> {
+  const user = await getUserById(userId)
+  if (!user) return []
+  return user.videoLibrary ?? []
+}
+
+/**
+ * Append a video to the teacher's personal song-video collection
+ * (issue #458). De-duplicated by video ID: pasting the same link on
+ * another pattern does not duplicate it in her collection. Returns the
+ * updated library. Throws when the user does not exist.
+ */
+export async function addVideoToUserLibrary(userId: string, video: PatternVideo): Promise<PatternVideo[]> {
+  const existingUser = await getUserById(userId)
+  if (!existingUser) {
+    throw new Error('User not found')
+  }
+  const library = existingUser.videoLibrary ?? []
+  if (library.some((entry) => entry.videoId === video.videoId)) {
+    return library
+  }
+  const updated = [...library, video].slice(-VIDEO_LIBRARY_MAX)
+  const keys = getUserKeys(userId)
+  const command = new UpdateCommand({
+    TableName: USER_TABLE_NAME,
+    Key: keys,
+    UpdateExpression: 'SET videoLibrary = :videos, updatedAt = :now',
+    ExpressionAttributeValues: {
+      ':videos': updated,
+      ':now': new Date().toISOString(),
+    },
+    ReturnValues: 'ALL_NEW',
+  })
+  try {
+    const result = await docClient.send(command)
+    const attributes = result.Attributes as IUser
+    return attributes.videoLibrary ?? updated
+  } catch (error) {
+    console.error('Error adding video to user library:', error)
     throw error
   }
 }

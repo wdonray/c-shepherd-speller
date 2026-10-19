@@ -72,8 +72,10 @@ describe('Home page (/home)', () => {
     await waitFor(() => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/users?email=a%40b.c')
+    // The dashboard fetches its own video library (issue #458); the user
+    // sync itself must not POST.
+    expect(fetchMock.mock.calls.filter((call) => call[1]?.method === 'POST')).toHaveLength(0)
   })
 
   it('creates the user with a POST when the user record has no id', async () => {
@@ -102,7 +104,9 @@ describe('Home page (/home)', () => {
     await waitFor(() => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
-    expect(fetchMock).not.toHaveBeenCalled()
+    // The user sync must not run without an email; the dashboard's own
+    // video-library fetch (issue #458) is unaffected.
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).startsWith('/api/users'))).toHaveLength(0)
   })
 
   it('renders the dashboard when the user lookup returns an error', async () => {

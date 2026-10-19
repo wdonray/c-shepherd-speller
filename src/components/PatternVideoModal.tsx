@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getVideosForPattern, searchVideos } from '@/data/pattern-videos'
+import { getVideosForPattern, isCuratedVideo, searchVideos } from '@/data/pattern-videos'
 import { extractYouTubeId, fetchVideoTitle, youtubeEmbedUrl, youtubeThumbnailUrl } from '@/lib/youtube'
+import { addVideoToLibrary } from '@/lib/video-library-api'
+import { reportError } from '@/lib/report-error'
 import type { PatternVideo } from '@/models/WordList'
 
 interface PatternVideoModalProps {
@@ -111,15 +113,24 @@ export default function PatternVideoModal({
       setPasteError(VERIFY_FAILED_ERROR)
       return
     }
-    save([
-      ...videos,
-      {
-        videoId,
-        title: info.title,
-        ...(info.channel ? { channel: info.channel } : {}),
-        source: 'custom' as const,
-      },
-    ])
+    const video: PatternVideo = {
+      videoId,
+      title: info.title,
+      ...(info.channel ? { channel: info.channel } : {}),
+      source: 'custom',
+    }
+    save([...videos, video])
+    // Issue #458: a pasted video joins the teacher's personal video
+    // collection as well as this pattern, with no extra step. Bank videos
+    // are already in the collection by definition, so only her own
+    // additions are stored. A library failure must never break the paste:
+    // the pattern save is the primary action, and the failure is reported
+    // for investigation.
+    if (!isCuratedVideo(videoId)) {
+      addVideoToLibrary(video).catch((error: unknown) =>
+        reportError(error, { location: 'PatternVideoModal.pasteAndAdd' })
+      )
+    }
     setPasteValue('')
   }
 

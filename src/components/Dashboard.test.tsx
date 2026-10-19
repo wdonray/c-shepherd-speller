@@ -12,6 +12,10 @@ const { getLists } = vi.hoisted(() => ({
   getLists: vi.fn(),
 }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
+const { getVideoLibrary } = vi.hoisted(() => ({
+  getVideoLibrary: vi.fn(),
+}))
+vi.mock('@/lib/video-library-api', () => ({ getVideoLibrary }))
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
@@ -53,6 +57,7 @@ describe('Dashboard', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
+    getVideoLibrary.mockResolvedValue([])
   })
 
   it('greets the teacher by first name', async () => {
@@ -282,6 +287,7 @@ describe('Dashboard', () => {
       expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
     })
     expect(getLists).not.toHaveBeenCalled()
+    expect(getVideoLibrary).not.toHaveBeenCalled()
     expect(reportError).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByText('No word lists yet')).toBeInTheDocument()
@@ -393,13 +399,15 @@ describe('Dashboard song videos (issue #401)', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
+    getVideoLibrary.mockResolvedValue([])
   })
 
   async function loadDashboard() {
     getLists.mockResolvedValue([])
+    getVideoLibrary.mockResolvedValue([])
     render(<Dashboard {...defaultProps} />)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
     })
   }
 
@@ -449,5 +457,90 @@ describe('Dashboard song videos (issue #401)', () => {
     expect(loading.querySelectorAll('div.h-9.w-16')).toHaveLength(getAllPatternGroups().length + 1)
     // One card placeholder per bank video.
     expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(19)
+  })
+
+  it('counts the bank in the browse heading when the teacher never pasted a link (issue #458)', async () => {
+    await loadDashboard()
+    expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
+  })
+
+  it('merges her pasted videos after the bank and counts the real library (issue #458)', async () => {
+    getLists.mockResolvedValue([])
+    getVideoLibrary.mockResolvedValue([
+      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
+    ])
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    })
+    const section = screen.getByRole('region', { name: 'Song videos' })
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(20)
+    // Her video renders as a uniform card with no pattern tags.
+    const card = screen.getByRole('button', { name: 'Play My pasted song' })
+    expect(within(card).getByText('My Channel')).toBeInTheDocument()
+    expect(within(card).queryByText(/^Patterns:/)).not.toBeInTheDocument()
+    // The bank keeps its pattern line and stays first.
+    const cards = within(section).getAllByRole('button', { name: /^Play / })
+    expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('When Two Vowels Go Walking'))
+    expect(cards[19]).toHaveAttribute('aria-label', 'Play My pasted song')
+  })
+
+  it('plays her video from the browse grid (issue #458)', async () => {
+    getLists.mockResolvedValue([])
+    getVideoLibrary.mockResolvedValue([
+      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
+    ])
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Play My pasted song' }))
+    const frame = screen.getByTitle('My pasted song')
+    expect(frame.tagName).toBe('IFRAME')
+    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&cc_load_policy=1')
+  })
+
+  it('keeps pattern chips on the bank: her untagged videos show under All only (issue #458)', async () => {
+    getLists.mockResolvedValue([])
+    getVideoLibrary.mockResolvedValue([
+      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
+    ])
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'ck' }))
+    const section = screen.getByRole('region', { name: 'Song videos' })
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Play My pasted song' })).not.toBeInTheDocument()
+    // The heading still counts her whole library.
+    expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(20)
+  })
+
+  it('degrades to the bank when the library fetch fails (issue #458)', async () => {
+    getLists.mockResolvedValue([])
+    getVideoLibrary.mockRejectedValue(new Error('boom'))
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
+    })
+    expect(reportError).toHaveBeenCalledWith(expect.anything(), { location: 'Dashboard.loadVideoLibrary' })
+    const section = screen.getByRole('region', { name: 'Song videos' })
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+  })
+
+  it('renders her video without a channel line when oEmbed had no author (issue #458)', async () => {
+    getLists.mockResolvedValue([])
+    getVideoLibrary.mockResolvedValue([{ videoId: 'dQw4w9WgXcQ', title: 'Channel-less song', source: 'custom' }])
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    })
+    const card = screen.getByRole('button', { name: 'Play Channel-less song' })
+    const lines = within(card).getAllByRole('paragraph')
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toHaveTextContent('Channel-less song')
   })
 })

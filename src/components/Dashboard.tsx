@@ -8,8 +8,9 @@ import { Card } from '@/components/ui/card'
 import { getLists, LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
 import { getActivity, greetingForHour, timeAgo, type ActivityEvent } from '@/lib/activity'
-import { getAllPatternGroups, PATTERN_VIDEOS } from '@/data/pattern-videos'
+import { getAllPatternGroups, getCollectionVideos, isCuratedVideo, PATTERN_VIDEOS } from '@/data/pattern-videos'
 import { youtubeThumbnailUrl } from '@/lib/youtube'
+import { getVideoLibrary } from '@/lib/video-library-api'
 import type { WordList, PatternVideo } from '@/models/WordList'
 import WordListCard from './WordListCard'
 import PatternVideoModal from './PatternVideoModal'
@@ -151,15 +152,17 @@ function lastActivityAt(list: WordList, events: ActivityEvent[]): number {
  * - getting started: GhostText placeholders carry the real copy, so the h2,
  *   intro paragraph, and step cards wrap exactly like the loaded text at
  *   every viewport width
- * - song videos: the collection is static bank data, so the skeleton mirrors
- *   it exactly: the h2, the subline, one chip placeholder per pattern group
+ * - song videos: the curated bank is static data, so the skeleton mirrors it
+ *   exactly: the h2, the subline, one chip placeholder per pattern group
  *   plus "All", and one card placeholder per bank video (thumbnail,
- *   title line, channel line)
+ *   title line, channel line). The teacher's own added videos (issue #458)
+ *   append after the bank cards once the library loads.
  *
  * Inherent approximations (unknowable while loading): the exact list count,
  * badge wrapping on long titles, the "+N more" line past 4 patterns, and the
  * "showing three most recently used" subline past 3 lists. The song-video
- * card titles wrap to two lines on long titles; the skeleton shows one.
+ * card titles wrap to two lines on long titles; the skeleton shows one. The
+ * teacher's own video count is unknown until her library loads.
  */
 export function DashboardSkeleton() {
   return (
@@ -266,22 +269,64 @@ export function DashboardSkeleton() {
 }
 
 /**
- * Browse the curated phonics song collection (issue #401). Pattern filter
- * chips narrow the bank; a video card opens the player modal in
- * browse-only mode (no attach or hide here). The collection is static local
- * data, so it renders with no loading state of its own.
+ * One browse card for a song video. Curated bank cards name the patterns
+ * they cover; the teacher's own videos carry no pattern tags, so the line
+ * is omitted for them rather than faked.
  */
-function SongVideosSection() {
+function VideoCard({ video, patterns, onPlay }: { video: PatternVideo; patterns?: string; onPlay: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      aria-label={`Play ${video.title}`}
+      className="cursor-pointer overflow-hidden rounded-[20px] border-2 border-line bg-card text-left outline-none transition hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
+    >
+      <img
+        src={youtubeThumbnailUrl(video.videoId)}
+        alt=""
+        aria-hidden="true"
+        loading="lazy"
+        className="aspect-video w-full object-cover"
+      />
+      <div className="space-y-1 p-4">
+        <p className="text-[15px] font-bold leading-snug text-ink">{video.title}</p>
+        {video.channel && <p className="text-[13px] text-muted-foreground">{video.channel}</p>}
+        {patterns && <p className="text-[13px] text-muted-foreground">Patterns: {patterns}</p>}
+      </div>
+    </button>
+  )
+}
+
+/**
+ * Browse the phonics song collection (issue #401, extended by #458). The
+ * collection is the curated bank plus the teacher's own added videos
+ * (issue #458): pasting a YouTube link on any pattern adds the video here
+ * automatically. Pattern filter chips narrow the bank; the teacher's videos
+ * carry no pattern tags, so they show under "All" only. Browse-only here:
+ * the player modal opens with no attach controls.
+ */
+function SongVideosSection({ videoLibrary }: { videoLibrary: PatternVideo[] }) {
   const groups = getAllPatternGroups()
   const [filter, setFilter] = useState<string | null>(null)
   const [playing, setPlaying] = useState<{ videos: PatternVideo[]; startId: string } | null>(null)
 
-  const entries = filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS
+  const collection = getCollectionVideos(videoLibrary)
+  const bankEntries = filter ? PATTERN_VIDEOS.filter((entry) => entry.patterns.includes(filter)) : PATTERN_VIDEOS
+  const ownVideos = filter ? [] : collection.filter((video) => !isCuratedVideo(video.videoId))
+  const visibleVideos: PatternVideo[] = [
+    ...bankEntries.map((entry) => ({
+      videoId: entry.videoId,
+      title: entry.title,
+      channel: entry.channel,
+      source: 'curated' as const,
+    })),
+    ...ownVideos,
+  ]
 
   return (
     <section aria-label="Song videos" className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold">Song videos</h2>
+        <h2 className="text-2xl font-bold">Song videos ({collection.length})</h2>
         <p className="text-sm text-muted-foreground">
           Phonics songs for spelling patterns. Pick one to play for the class.
         </p>
@@ -308,37 +353,30 @@ function SongVideosSection() {
         ))}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {entries.map((entry) => (
-          <button
+        {bankEntries.map((entry) => (
+          <VideoCard
             key={entry.videoId}
-            type="button"
-            onClick={() =>
+            video={{ videoId: entry.videoId, title: entry.title, channel: entry.channel, source: 'curated' }}
+            patterns={entry.patterns.join(', ')}
+            onPlay={() =>
               setPlaying({
-                videos: entries.map((e) => ({
-                  videoId: e.videoId,
-                  title: e.title,
-                  channel: e.channel,
-                  source: 'curated' as const,
-                })),
+                videos: visibleVideos,
                 startId: entry.videoId,
               })
             }
-            aria-label={`Play ${entry.title}`}
-            className="cursor-pointer overflow-hidden rounded-[20px] border-2 border-line bg-card text-left outline-none transition hover:border-sky-deep focus-visible:border-sky-deep focus-visible:ring-[3px] focus-visible:ring-ring/60"
-          >
-            <img
-              src={youtubeThumbnailUrl(entry.videoId)}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              className="aspect-video w-full object-cover"
-            />
-            <div className="space-y-1 p-4">
-              <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
-              <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
-              <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
-            </div>
-          </button>
+          />
+        ))}
+        {ownVideos.map((video) => (
+          <VideoCard
+            key={video.videoId}
+            video={video}
+            onPlay={() =>
+              setPlaying({
+                videos: visibleVideos,
+                startId: video.videoId,
+              })
+            }
+          />
         ))}
       </div>
       {playing && (
@@ -359,6 +397,12 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [activity, setActivity] = useState<ActivityEvent[]>([])
+  /**
+   * The teacher's own added song videos (issue #458). Loaded with the
+   * dashboard so the browse section paints once with the full collection:
+   * a second fetch after first paint would shift the grid when it landed.
+   */
+  const [videoLibrary, setVideoLibrary] = useState<PatternVideo[]>([])
 
   const loadLists = useCallback(() => {
     // Lists belong to a signed-in teacher. A signed-out visitor gets a 401
@@ -366,12 +410,21 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
     // error: never fetch, never report to Sentry, never show the error card.
     if (status !== 'authenticated') {
       setLists([])
+      setVideoLibrary([])
       setLoadError(false)
       if (status !== 'loading') setLoading(false)
       return
     }
     setLoading(true)
     setLoadError(false)
+    getVideoLibrary()
+      .then(setVideoLibrary)
+      .catch((error: unknown) => {
+        // The collection is a progressive enhancement on the static bank:
+        // a failed fetch degrades to the bank rather than failing the page.
+        reportError(error, { location: 'Dashboard.loadVideoLibrary' })
+        setVideoLibrary([])
+      })
     getLists()
       .then(setLists)
       .catch((error: unknown) => {
@@ -474,7 +527,7 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
             )}
           </section>
 
-          <SongVideosSection />
+          <SongVideosSection videoLibrary={videoLibrary} />
 
           <GettingStarted />
           <RecentActivity events={activity} />
