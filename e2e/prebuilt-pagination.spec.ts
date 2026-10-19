@@ -19,13 +19,13 @@ test.describe('prebuilt library pagination (issue #481)', () => {
 
     const grid = page.getByTestId('prebuilt-grid')
     await expect(page.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
-    await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 1' })).toBeVisible()
+    await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 1', exact: true })).toBeVisible()
     await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 13' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Next page' }).click()
     await expect(page.getByText('Showing 13-24 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
     await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 13' })).toBeVisible()
-    await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 1' })).toHaveCount(0)
+    await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 1', exact: true })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Go to page 3' }).click()
     await expect(page.getByText('Showing 25-30 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()

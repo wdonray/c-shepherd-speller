@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, XIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -64,9 +64,16 @@ export default function PrebuiltLibrarySection() {
   }, [grade, query, searching])
 
   // A new grade or search is a new result set: always start on page 1.
-  useEffect(() => {
+  // Reset in the event handlers (not a useEffect) so the first render after
+  // the change already shows page 1 instead of flashing the old page.
+  const handleGradeChange = (next: PrebuiltGrade) => {
+    setGrade(next)
     setPage(1)
-  }, [grade, query])
+  }
+  const handleQueryChange = (next: string) => {
+    setQuery(next)
+    setPage(1)
+  }
 
   const pageCount = Math.max(1, Math.ceil(weeks.length / PREBUILT_WEEKS_PER_PAGE))
   const safePage = Math.min(page, pageCount)
@@ -97,7 +104,7 @@ export default function PrebuiltLibrarySection() {
               type="button"
               role="tab"
               aria-selected={grade === g}
-              onClick={() => setGrade(g)}
+              onClick={() => handleGradeChange(g)}
               className={cn(
                 'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
                 'focus-visible:ring-[3px] focus-visible:ring-ring/60',
@@ -115,7 +122,7 @@ export default function PrebuiltLibrarySection() {
           />
           <Input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="Search patterns, e.g. ai, sh, tion"
             aria-label="Search prebuilt lists by pattern"
             className="min-h-[44px] rounded-full pl-10 pr-10"
@@ -123,7 +130,7 @@ export default function PrebuiltLibrarySection() {
           {query && (
             <button
               type="button"
-              onClick={() => setQuery('')}
+              onClick={() => handleQueryChange('')}
               aria-label="Clear pattern search"
               className={cn(
                 'absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full',
