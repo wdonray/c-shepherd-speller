@@ -49,9 +49,10 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
   const [view, setView] = useState<View>({ name: 'loading' })
   // The teacher's lists live outside `view` so a save failure (which changes
   // the view) never drops the loaded lists or the selected target: retry
-  // works from the same state.
+  // works from the same state. The target is the list object itself (or
+  // 'new'), never an id that could go stale.
   const [lists, setLists] = useState<WordList[] | null>(null)
-  const [targetId, setTargetId] = useState<string>('new')
+  const [target, setTarget] = useState<WordList | 'new'>('new')
   const [newListName, setNewListName] = useState(week.title)
   const [checked, setChecked] = useState<boolean[]>(() => week.patterns.map(() => true))
 
@@ -60,7 +61,7 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
     getLists().then(
       (fetched) => {
         setLists(fetched)
-        setTargetId(fetched.length > 0 ? fetched[0].id : 'new')
+        setTarget(fetched[0] ?? 'new')
         setView({ name: 'pick' })
       },
       () => setView({ name: 'loadError' })
@@ -73,10 +74,7 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const targetList: WordList | null = useMemo(() => {
-    if (targetId === 'new') return null
-    return lists?.find((l) => l.id === targetId) ?? null
-  }, [lists, targetId])
+  const targetList: WordList | null = target === 'new' ? null : target
 
   const selectedIndices = useMemo(() => checked.map((c, i) => (c ? i : -1)).filter((i) => i >= 0), [checked])
 
@@ -114,14 +112,15 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
   }
 
   const handleConfirm = async () => {
-    if (addableIndices.length === 0 || overCap) return
+    // The confirm button is disabled when there is nothing addable or the
+    // cap would be exceeded, so handleConfirm only runs in the valid state.
     setView({ name: 'saving' })
     const newPatterns = addableIndices.map((i) => {
       const p = week.patterns[i]
       return { sound: p.sound, pattern: p.pattern, frequency: p.frequency, words: p.words }
     })
     try {
-      if (targetId === 'new') {
+      if (target === 'new') {
         const list = await createList({
           name: newListName.trim() || week.title,
           gradeLevel: prebuiltGradeLabel(week.grade),
@@ -136,9 +135,9 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
           addedWords: addableWords,
           skipped: duplicateIndices.length,
         })
-      } else if (targetList) {
-        const updated = await updateList(targetList.id, {
-          patterns: [...targetList.patterns, ...newPatterns.map((p) => ({ ...p, id: generatePatternId() }))],
+      } else {
+        const updated = await updateList(target.id, {
+          patterns: [...target.patterns, ...newPatterns.map((p) => ({ ...p, id: generatePatternId() }))],
         })
         notifyListsChanged()
         setView({
@@ -198,8 +197,8 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
                       <input
                         type="radio"
                         name="pull-target"
-                        checked={targetId === list.id}
-                        onChange={() => setTargetId(list.id)}
+                        checked={target === list}
+                        onChange={() => setTarget(list)}
                         className="h-5 w-5 shrink-0 accent-ink"
                       />
                       <span className="min-w-0 flex-1">
@@ -212,8 +211,8 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
                     <input
                       type="radio"
                       name="pull-target"
-                      checked={targetId === 'new'}
-                      onChange={() => setTargetId('new')}
+                      checked={target === 'new'}
+                      onChange={() => setTarget('new')}
                       className="h-5 w-5 shrink-0 accent-ink"
                     />
                     <span className="text-[16px] font-bold text-ink">Create a new list</span>
@@ -222,7 +221,7 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
               </fieldset>
             )}
 
-            {targetId === 'new' && (view.name === 'pick' || view.name === 'saveError') && (
+            {target === 'new' && (view.name === 'pick' || view.name === 'saveError') && (
               <div className="space-y-1.5">
                 <Label htmlFor="pull-new-list-name">New list name</Label>
                 <Input
