@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   PATTERN_VIDEOS,
+  getCollectionVideos,
   getFeaturedVideos,
   getPatternGroups,
   getVideosForPattern,
+  isCuratedVideo,
   normalizePattern,
   searchSongVideos,
   searchVideos,
@@ -183,5 +185,46 @@ describe('searchSongVideos', () => {
         (a, b) => PATTERN_VIDEOS.findIndex((e) => e.videoId === a) - PATTERN_VIDEOS.findIndex((e) => e.videoId === b)
       )
     )
+  })
+})
+
+describe('isCuratedVideo (issue #458)', () => {
+  it('recognizes bank video IDs', () => {
+    expect(isCuratedVideo(PATTERN_VIDEOS[0].videoId)).toBe(true)
+  })
+
+  it('rejects unknown video IDs', () => {
+    expect(isCuratedVideo('dQw4w9WgXcQ')).toBe(false)
+  })
+})
+
+describe('getCollectionVideos (issue #458)', () => {
+  const mine = { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'Me', source: 'custom' as const }
+
+  it('returns just the bank when the library is empty', () => {
+    const collection = getCollectionVideos([])
+    expect(collection).toHaveLength(19)
+    expect(collection.every((video) => video.source === 'curated')).toBe(true)
+  })
+
+  it('appends her videos after the bank, in order added', () => {
+    const second = { videoId: '9bZkp7q19f0', title: 'Second song', source: 'custom' as const }
+    const collection = getCollectionVideos([mine, second])
+    expect(collection).toHaveLength(21)
+    expect(collection[19]).toEqual(mine)
+    expect(collection[20]).toEqual(second)
+    expect(collection.slice(0, 19).map((video) => video.videoId)).toEqual(PATTERN_VIDEOS.map((entry) => entry.videoId))
+  })
+
+  it('lets the bank win when a library entry clashes with a bank ID', () => {
+    const clash = { ...mine, videoId: PATTERN_VIDEOS[0].videoId }
+    const collection = getCollectionVideos([clash])
+    expect(collection).toHaveLength(19)
+    expect(collection[0]).toEqual({
+      videoId: PATTERN_VIDEOS[0].videoId,
+      title: PATTERN_VIDEOS[0].title,
+      channel: PATTERN_VIDEOS[0].channel,
+      source: 'curated',
+    })
   })
 })

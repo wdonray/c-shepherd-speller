@@ -234,3 +234,25 @@ export function searchSongVideos(query: string): PatternVideoEntry[] {
       entry.patterns.some((pattern) => pattern.includes(q))
   )
 }
+
+/**
+ * Whether the video ID is in the curated bank (issue #458). Pasted links
+ * that match a bank video are already in every teacher's collection by
+ * definition, so they are never stored in her personal library.
+ */
+export function isCuratedVideo(videoId: string): boolean {
+  return PATTERN_VIDEOS.some((entry) => entry.videoId === videoId)
+}
+
+/**
+ * The teacher's full song-video collection (issue #458): the curated bank
+ * plus everything she added by pasting links, in the order added. Her
+ * videos append after the bank so the familiar curated layout stays
+ * stable. De-duplicated by video ID with the bank winning on a clash, so a
+ * bank video stored in her library by mistake still renders once.
+ */
+export function getCollectionVideos(library: PatternVideo[]): PatternVideo[] {
+  const bankIds = new Set(PATTERN_VIDEOS.map((entry) => entry.videoId))
+  const mine = library.filter((video) => !bankIds.has(video.videoId))
+  return [...PATTERN_VIDEOS.map(toPatternVideo), ...mine]
+}

@@ -17,7 +17,9 @@ interface SongVideoCardProps {
  * One song-video card (issue #439): thumbnail, title, channel, and covered
  * patterns; the whole card plays the video, with an overlay Hide action
  * for signed-in teachers. Shared by the home spotlight and the /videos
- * browse page so both surfaces stay identical.
+ * browse page so both surfaces stay identical. The teacher's own pasted
+ * videos (issue #458) carry no pattern tags and sometimes no channel, so
+ * those lines are omitted for them rather than faked.
  */
 export default function SongVideoCard({ entry, onPlay, onHide }: SongVideoCardProps) {
   return (
@@ -37,8 +39,10 @@ export default function SongVideoCard({ entry, onPlay, onHide }: SongVideoCardPr
         />
         <div className="space-y-1 p-4">
           <p className="text-[15px] font-bold leading-snug text-ink">{entry.title}</p>
-          <p className="text-[13px] text-muted-foreground">{entry.channel}</p>
-          <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
+          {entry.channel && <p className="text-[13px] text-muted-foreground">{entry.channel}</p>}
+          {entry.patterns.length > 0 && (
+            <p className="text-[13px] text-muted-foreground">Patterns: {entry.patterns.join(', ')}</p>
+          )}
         </div>
       </button>
       {onHide && (

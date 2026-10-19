@@ -32,4 +32,15 @@ describe('SongVideoCard', () => {
     fireEvent.click(screen.getByRole('button', { name: `Hide ${entry.title}` }))
     expect(onHide).toHaveBeenCalledWith(entry)
   })
+
+  it('omits the channel and patterns lines for a pasted video that has neither (issue #458)', () => {
+    render(
+      <SongVideoCard
+        entry={{ videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: '', patterns: [] }}
+        onPlay={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Play My pasted song' })).toBeInTheDocument()
+    expect(screen.queryByText(/^Patterns:/)).not.toBeInTheDocument()
+  })
 })

@@ -170,6 +170,13 @@ credentials.
 
 ## Reliability
 
+- **Never trust the shape of a 200 response.** A success body with an
+  unexpected shape (a test stub answering every fetch, a proxy, a future
+  API change) must degrade to the empty value, never crash the page.
+  Validate arrays with `Array.isArray` (or parse with zod) at the client
+  boundary before handing data to components (found 2026-10-19: issue
+  #458, the video-library client crashed the dashboard on a non-array
+  body).
 - **A new third-party origin means a CSP update.** When a feature pulls
   images, embeds, or API calls from an origin the app has not used before,
   add that origin to the matching Content-Security-Policy directive in
@@ -182,7 +189,6 @@ credentials.
   touches in the same change, not just the one in the report: the #438 fix
   added only `img-src`, so the song-video embeds stayed blocked until
   #440 added the missing `frame-src` (found 2026-10-18).
-
 - **Prefer our own data over the network, and cap third-party timeouts.**
   Local-first lookups answer instantly; a flaky external API must never hold
   UI open. Browser-side calls to third-party services get a short timeout

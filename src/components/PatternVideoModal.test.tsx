@@ -10,6 +10,9 @@ const { getLists, updateList, notifyListsChanged } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/lists-api', () => ({ getLists, updateList, notifyListsChanged }))
 
+const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
+vi.mock('@/lib/report-error', () => ({ reportError }))
+
 const curatedAi: PatternVideo = {
   videoId: 'GdmcWQCbqY8',
   title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
@@ -292,6 +295,81 @@ describe('PatternVideoModal (editable)', () => {
   it('disables the paste Add button for a blank link', () => {
     renderEditable({ videos: [] })
     expect(pasteSection().getByRole('button', { name: 'Add video' })).toBeDisabled()
+  })
+
+  it('adds a pasted video to the teacher video collection (issue #458)', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith('/api/video-library')) {
+        return { ok: true, json: () => Promise.resolve({ videos: [] }) }
+      }
+      return { ok: true, json: () => Promise.resolve({ title: 'My verified song', author_name: 'My Channel' }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { onChange } = renderEditable({ videos: [] })
+    const section = pasteSection()
+    fireEvent.change(section.getByLabelText('Paste a YouTube link'), {
+      target: { value: 'https://youtu.be/dQw4w9WgXcQ' },
+    })
+    fireEvent.click(section.getByRole('button', { name: 'Add video' }))
+    const video = { videoId: 'dQw4w9WgXcQ', title: 'My verified song', channel: 'My Channel', source: 'custom' }
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith([video])
+    })
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/video-library', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video }),
+      })
+    })
+  })
+
+  it('does not store a pasted bank video in the collection (issue #458)', async () => {
+    // curatedEe is in the bank but not attached to this pattern.
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: () => Promise.resolve({ title: curatedEe.title, author_name: curatedEe.channel }),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { onChange } = renderEditable({ videos: [] })
+    const section = pasteSection()
+    fireEvent.change(section.getByLabelText('Paste a YouTube link'), {
+      target: { value: `https://youtu.be/${curatedEe.videoId}` },
+    })
+    fireEvent.click(section.getByRole('button', { name: 'Add video' }))
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith([
+        { videoId: curatedEe.videoId, title: curatedEe.title, channel: curatedEe.channel, source: 'custom' },
+      ])
+    })
+    // The bank video is already in every teacher's collection by definition,
+    // so the library endpoint is never hit (the fetch call itself is
+    // synchronous, so the call log is final once onChange resolved above).
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/video-library', expect.anything())
+  })
+
+  it('still attaches the video when the collection save fails (issue #458)', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith('/api/video-library')) {
+        return { ok: false, status: 500, json: () => Promise.resolve({ error: 'boom' }) }
+      }
+      return { ok: true, json: () => Promise.resolve({ title: 'My verified song' }) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { onChange } = renderEditable({ videos: [] })
+    const section = pasteSection()
+    fireEvent.change(section.getByLabelText('Paste a YouTube link'), {
+      target: { value: 'https://youtu.be/dQw4w9WgXcQ' },
+    })
+    fireEvent.click(section.getByRole('button', { name: 'Add video' }))
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith([{ videoId: 'dQw4w9WgXcQ', title: 'My verified song', source: 'custom' }])
+    })
+    await waitFor(() => {
+      expect(reportError).toHaveBeenCalledWith(expect.anything(), { location: 'PatternVideoModal.pasteAndAdd' })
+    })
+    // The paste itself succeeded: no error surfaces in the modal.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('closes on Escape', () => {

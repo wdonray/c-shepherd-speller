@@ -11,6 +11,8 @@
  * - Created and updated timestamps
  */
 
+import type { PatternVideo } from './WordList'
+
 export interface IUser {
   id: string
   email: string
@@ -35,6 +37,16 @@ export interface IUser {
    * storing it (see resolveDefaultClassId).
    */
   defaultClassId?: string
+  /**
+  /**
+   * The teacher's personal song-video collection (issue #458): every video
+   * she added by pasting a link, in the order added. The curated bank is
+   * static data, so only her own additions are stored here; the browse page
+   * merges the two. Stored on the user item (not on any list) so deleting a
+   * list never removes videos from her collection. Absent until she pastes
+   * her first link.
+   */
+  videoLibrary?: PatternVideo[]
   /**
    * Videos the teacher has hidden (issue #443: "don't ever show me this
    * video again"). Suggestions, in-app search results, and the home browse
