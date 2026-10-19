@@ -9,8 +9,12 @@ const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }))
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
-const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
-vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
+const { getLists, notifyListsChanged } = vi.hoisted(() => ({ getLists: vi.fn(), notifyListsChanged: vi.fn() }))
+vi.mock('@/lib/lists-api', () => ({
+  getLists,
+  notifyListsChanged,
+  LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed',
+}))
 
 const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
 vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
@@ -51,19 +55,45 @@ describe('Home page (/home)', () => {
   beforeEach(() => {
     useSessionMock.mockReset()
     getLists.mockResolvedValue([])
+    useBlockedVideos.mockReturnValue({
+      blockedVideos: [],
+      blockedVideoIds: new Set<string>(),
+      isLoaded: true,
+      userId: 'u1',
+      blockVideo: vi.fn(),
+      unblockVideo: vi.fn(),
+    })
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('shows a dashboard skeleton while the session is loading', () => {
+  it('renders the dashboard immediately while the session is loading (no auth gate)', async () => {
     mockSession(null, 'loading')
-    const { container } = render(<HomePage />)
+    render(<HomePage />)
+
+    // The page no longer waits for the session check or the user sync
+    // (issue #480): Dashboard mounts at once and shows its own skeleton.
+    // The data fetch starts in parallel with the session check.
     expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
-    expect(container.querySelector('.animate-spin')).not.toBeInTheDocument()
-    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
-    expect(screen.queryByText(/my word lists/i)).not.toBeInTheDocument()
+    expect(getLists).toHaveBeenCalled()
+
+    await waitFor(() => {
+      expect(screen.queryByText(/my word lists/i)).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not hold the dashboard on the user sync', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    // The sync lookup never settles; the dashboard must still render.
+    stubFetch(() => new Promise(() => {}))
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
   })
 
   it('renders the dashboard after user sync', async () => {
@@ -105,6 +135,51 @@ describe('Home page (/home)', () => {
     })
     const postCall = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
     expect(JSON.parse(postCall?.[1]?.body as string)).toEqual({ email: 'a@b.c', name: 'Donray' })
+  })
+
+  it('notifies the dashboard to retry lists after creating the user record', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    // First sign-in: the parallel dashboard fetch may have hit the 403
+    // "no user record yet" path before this POST lands (issue #480).
+    stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? { ok: true, json: async () => ({ user: { id: 'u1' } }) }
+        : { ok: true, json: async () => ({ user: {} }) }
+    )
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(notifyListsChanged).toHaveBeenCalled()
+    })
+  })
+
+  it('does not notify the dashboard when the user already exists', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async () => ({ ok: true, json: async () => ({ user: { id: 'u1' } }) }))
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
+    expect(notifyListsChanged).not.toHaveBeenCalled()
+  })
+
+  it('does not notify the dashboard when the user create fails', async () => {
+    mockSession({ user: { email: 'a@b.c', name: 'Donray' } }, 'authenticated')
+    stubFetch(async (url: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? { ok: false, json: async () => ({ error: 'boom' }) }
+        : { ok: true, json: async () => ({ user: {} }) }
+    )
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
+    })
+    expect(notifyListsChanged).not.toHaveBeenCalled()
   })
 
   it('does not call the API when the session has no email', async () => {

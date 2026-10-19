@@ -2,13 +2,13 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useMemo, useEffect, useLayoutEffect, useState } from 'react'
-import Dashboard, { DashboardSkeleton } from '@/components/Dashboard'
+import { useEffect, useLayoutEffect } from 'react'
+import Dashboard from '@/components/Dashboard'
+import { notifyListsChanged } from '@/lib/lists-api'
 import type { WordList } from '@/models/WordList'
 
 export default function HomePage() {
-  const { data: session, status } = useSession()
-  const [isSyncing, setIsSyncing] = useState(false)
+  const { data: session } = useSession()
   const router = useRouter()
 
   // Start at the top of the page on load. useLayoutEffect runs before paint
@@ -42,14 +42,17 @@ export default function HomePage() {
     }
   }, [])
 
+  // User sync runs in the background and never blocks rendering (issue
+  // #480): the middleware already guarantees this page only loads for
+  // signed-in teachers, and the dashboard fetches its own data in parallel
+  // with the session check, so holding the page on the user record would
+  // re-add the sequential wait we just removed. Dashboard shows its own
+  // skeleton while its data loads.
   useEffect(() => {
     async function syncUser() {
-      setIsSyncing(true)
-
       const email = session?.user?.email
 
       if (!email) {
-        setIsSyncing(false)
         return
       }
 
@@ -59,36 +62,30 @@ export default function HomePage() {
         const userData = await user.json()
 
         if (!userData.user?.id) {
-          await fetch(`/api/users`, {
+          // First sign-in: create the database user record. The dashboard
+          // fetches its lists in parallel (issue #480), so its request may
+          // have landed before this POST and hit the 403 path for "no user
+          // record yet". After a successful create, tell the dashboard to
+          // retry its fetch so the teacher does not stare at an error card.
+          const created = await fetch(`/api/users`, {
             method: 'POST',
             body: JSON.stringify({
               email,
               name: session?.user?.name || 'Teacher',
             }),
           })
+          if (created.ok) {
+            notifyListsChanged()
+          }
         }
       } catch {
         // Sync failure is non-fatal: the dashboard still renders, the user
         // record just will not be up to date this session.
-      } finally {
-        setIsSyncing(false)
       }
     }
 
     syncUser()
   }, [session?.user])
-
-  const isLoading = useMemo(() => status === 'loading' || isSyncing, [status, isSyncing])
-
-  if (isLoading) {
-    // Same skeleton as Dashboard itself (issue #341): identical geometry so
-    // the handoff from page-level to Dashboard-level loading never shifts.
-    return (
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
-        <DashboardSkeleton />
-      </div>
-    )
-  }
 
   return (
     <>

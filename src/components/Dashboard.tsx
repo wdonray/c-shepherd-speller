@@ -368,15 +368,13 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
   const [activity, setActivity] = useState<ActivityEvent[]>([])
 
   const loadLists = useCallback(() => {
-    // Lists belong to a signed-in teacher. A signed-out visitor gets a 401
-    // from /api/lists, which means "not signed in", not an application
-    // error: never fetch, never report to Sentry, never show the error card.
-    if (status !== 'authenticated') {
-      setLists([])
-      setLoadError(false)
-      if (status !== 'loading') setListsLoading(false)
-      return
-    }
+    // The list fetch starts on mount, in parallel with the client-side
+    // session check (issue #480): the server middleware is the real auth
+    // gate (redirects signed-out page visits, 401s API calls), so waiting
+    // for useSession to resolve first only added a sequential round trip.
+    // fetch sends the session cookie; the API scopes data by it. A signed
+    // out visitor gets a 401, which means "not signed in", not an
+    // application error: never report to Sentry, never show the error card.
     setListsLoading(true)
     setLoadError(false)
     getLists()
@@ -392,6 +390,18 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
         setLoadError(true)
       })
       .finally(() => setListsLoading(false))
+  }, [])
+
+  // The list fetch starts on mount and no longer re-runs on session changes
+  // (issue #480). Clear private lists explicitly when the session is lost
+  // while the dashboard is mounted (cross-tab sign-out, session refresh),
+  // so stale lists never render as if the teacher were still signed in.
+  // Kept separate from the fetch effect so the initial load stays parallel
+  // with the session check.
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setLists([])
+    }
   }, [status])
 
   useEffect(() => {
@@ -410,8 +420,12 @@ export default function Dashboard({ onNewList, onEditList }: DashboardProps) {
 
   // The hidden-video list changes the browse card count, so it resolves
   // inside the same loading state as the lists: a second fetch after first
-  // paint would shift the page (issue #443).
-  const loading = listsLoading || (status === 'authenticated' && !blockedLoaded)
+  // paint would shift the page (issue #443). The skeleton also stays up
+  // while the session is still resolving (issue #480): the blocked-video
+  // load only starts once the session is authenticated, so rendering the
+  // dashboard on the lists alone would flash the skeleton back when the
+  // session flips.
+  const loading = listsLoading || status === 'loading' || (status === 'authenticated' && !blockedLoaded)
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">

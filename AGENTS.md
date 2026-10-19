@@ -96,6 +96,17 @@ credentials.
   the teacher's list loads: on first paint the status is still loading, so
   the page flashes unfiltered content and churns when the session lands
   (found 2026-10-18: issue #439, the /videos grid).
+- **Do not wait for the client session before fetching data.** The proxy
+  middleware (`src/proxy.ts`) is the real auth gate: it redirects signed-out
+  page visits and 401s API calls server-side. `fetch` sends the session
+  cookie, so data fetches can start on mount, in parallel with the
+  client-side `useSession()` check. Gating a fetch on
+  `status === 'authenticated'` adds a sequential round trip before first
+  paint (found 2026-10-19: issue #480, the dashboard blocked on the session
+  check and then on the user sync before fetching lists). Treat a 401 from
+  the API as "signed out, not an error", never as an application failure.
+  (This pairs with the hold-content rule above: fetch early, but keep the
+  skeleton up until the session resolves so the page never flashes.)
 - **A bare `grid` blows out past fixed widths.** An implicit `auto` grid
   column sizes to the largest min-content contribution, so any `nowrap`
   descendant (`truncate` titles, long URLs) forces a fixed-width grid
@@ -238,6 +249,21 @@ credentials.
   ConditionalCheckFailedException. De-dupe and cap logic re-runs on the
   fresh read inside the loop (found 2026-10-19: issue #473, concurrent video
   pastes dropped a video from the personal library).
+
+- **Decouple the data fetch from the session, but clean up on session loss.**
+  Fetching dashboard data in parallel with the client-side session check
+  (no `status` dependency on the fetch effect) is faster, but a mounted
+  component then keeps rendering private data after a cross-tab sign-out or
+  session refresh. Add a separate `status === 'unauthenticated'` effect that
+  clears the private state; keep the initial fetch parallel (found
+  2026-10-19: issue #480, PR #491 review).
+- **A background user-record create can lose the race with the first fetch.**
+  If the sign-in sync POSTs the database user record while the page fetches
+  its data in parallel, the fetch may land first and hit the 403 "no user
+  record yet" path. After a successful create, dispatch
+  `notifyListsChanged()` (it also drops the cached reads) so the fetch
+  retries instead of parking on an error card (found 2026-10-19: issue #480,
+  PR #491 review).
 
 ## Testing
 
