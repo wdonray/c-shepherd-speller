@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, describe, it, expect, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
 import type { WordList } from '@/models/WordList'
 import type { PatternWordGroup } from '@/lib/worksheets'
 import type { WordSearchResult } from '@/lib/word-search'
@@ -15,6 +15,7 @@ import {
   WordSearchSheet,
   WorksheetSection,
   highlightWord,
+  shuffleWords,
 } from './WorksheetSheets'
 
 const groups: PatternWordGroup[] = [
@@ -147,6 +148,71 @@ describe('CutSortSheet', () => {
     expect(screen.queryByLabelText('Word cards to cut out')).not.toBeInTheDocument()
     expect(screen.getAllByText('cake')).toHaveLength(1)
     expect(screen.queryByLabelText(/Blank line/)).not.toBeInTheDocument()
+  })
+
+  it('answer key keeps words grouped by pattern in column order', () => {
+    const { container } = render(<CutSortSheet groups={groups} answerKey />)
+    // a_e words first (cake, bake, late, date), then ai words (rain, train).
+    const items = Array.from(container.querySelectorAll('ol li')).map((li) => li.textContent)
+    expect(items).toEqual(['cake', 'bake', 'late', 'date', 'rain', 'train'])
+  })
+
+  describe('word card size (issue #452)', () => {
+    it('renders larger cut-out cards for small hands', () => {
+      render(<CutSortSheet groups={groups} answerKey={false} />)
+      const bank = screen.getByLabelText('Word cards to cut out')
+      const cards = within(bank).getAllByText(/.+/)
+      expect(cards.length).toBeGreaterThan(0)
+      for (const card of cards) {
+        expect(card).toHaveClass('min-h-20', 'min-w-36', 'text-2xl')
+      }
+    })
+  })
+
+  describe('shuffled word bank (issue #452)', () => {
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('renders the word cards in shuffled order, not grouped by pattern', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5)
+      render(<CutSortSheet groups={groups} answerKey={false} />)
+      const bank = screen.getByLabelText('Word cards to cut out')
+      const cards = within(bank).getAllByText(/.+/)
+      // Fisher-Yates with Math.random always 0.5 over
+      // [cake, bake, late, date, rain, train].
+      expect(cards.map((card) => card.textContent)).toEqual(['cake', 'train', 'bake', 'rain', 'late', 'date'])
+    })
+  })
+})
+
+describe('shuffleWords', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('returns a deterministic order with a mocked random source', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    // Fisher-Yates with Math.random always 0.5 over [a, b, c, d].
+    expect(shuffleWords(['a', 'b', 'c', 'd'])).toEqual(['a', 'd', 'b', 'c'])
+  })
+
+  it('returns a permutation containing exactly the input words', () => {
+    const words = ['cake', 'bake', 'late', 'date', 'rain', 'train']
+    const shuffled = shuffleWords(words)
+    expect([...shuffled].sort()).toEqual([...words].sort())
+    expect(shuffled).not.toBe(words)
+  })
+
+  it('does not mutate the input array', () => {
+    const words = ['cake', 'bake', 'late']
+    shuffleWords(words)
+    expect(words).toEqual(['cake', 'bake', 'late'])
+  })
+
+  it('returns empty and single-element inputs unchanged in value', () => {
+    expect(shuffleWords([])).toEqual([])
+    expect(shuffleWords(['cake'])).toEqual(['cake'])
   })
 })
 
