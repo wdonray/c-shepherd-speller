@@ -15,12 +15,26 @@ import FullscreenButton from './FullscreenButton'
 import { useFullscreen } from '@/hooks/use-fullscreen'
 import RulesVisibilityToggle from './RulesVisibilityToggle'
 import WordUnderlineToggle from './WordUnderlineToggle'
-import SortActivity from './SortActivity'
 import WordListCard from './WordListCard'
 import PresentingTipsBar from './PresentingTipsBar'
 import WhyChartPopover from './WhyChartPopover'
 import BackBreadcrumb from './BackBreadcrumb'
 import { reportError } from '@/lib/report-error'
+import dynamic from 'next/dynamic'
+
+/**
+ * The sort game (issue #482): loaded on demand instead of in the /display
+ * initial bundle. motion, @dnd-kit and canvas-confetti only parse when the
+ * teacher taps "Sort words". The loading spinner follows the app's centered
+ * spinner convention (skeleton geometry is unknowable while the chunk loads).
+ */
+const SortActivity = dynamic(() => import('./SortActivity'), {
+  loading: () => (
+    <div className="flex flex-1 items-center justify-center" role="status" aria-label="Loading sort activity">
+      <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden="true" />
+    </div>
+  ),
+})
 
 const LOAD_ERROR = 'Could not load the word list. Check your connection and try again.'
 

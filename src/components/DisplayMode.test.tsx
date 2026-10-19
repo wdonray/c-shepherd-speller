@@ -216,7 +216,11 @@ describe('DisplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
     // Issue #263: no "Who is sorting?" picker; the list's classroom flows silently.
     expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // Issue #482: SortActivity is a dynamically imported chunk, so the sort
+    // surface arrives asynchronously after the tap.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    })
     // Issue #379: the pattern sound always renders under the pattern name.
     expect(screen.getAllByText('long a')).toHaveLength(1)
 
@@ -782,7 +786,11 @@ describe('DisplayMode sort-mode chrome', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
 
     // Sort mode: the sort surface fills the area, no header, no subheader.
-    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // Issue #482: SortActivity is a dynamically imported chunk, so the sort
+    // surface arrives asynchronously after the tap.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    })
     expect(screen.queryByRole('heading', { name: 'Week 5' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Presenting tips' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Print chart' })).not.toBeInTheDocument()
@@ -818,7 +826,11 @@ describe('DisplayMode sort-mode chrome', () => {
     // Issue #263: no picker; the list's classroom flows silently into sort.
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
     expect(screen.queryByText('Who is sorting?')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // Issue #482: SortActivity is a dynamically imported chunk, so the sort
+    // surface arrives asynchronously after the tap.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    })
     // Sort mode shows the classroom as a display-only pill.
     const pill = await screen.findByText('Period 2')
     expect(pill.tagName).not.toBe('BUTTON')
@@ -836,7 +848,11 @@ describe('DisplayMode sort-mode chrome', () => {
       expect(screen.getByRole('button', { name: 'Sort words' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Sort words' }))
-    expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    // Issue #482: SortActivity is a dynamically imported chunk, so the sort
+    // surface arrives asynchronously after the tap.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Word tray')).toBeInTheDocument()
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit sort' }))
     await waitFor(() => {

@@ -44,7 +44,7 @@ import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
 import PrebuiltLibrarySection from './PrebuiltLibrarySection'
-import { touchDragLiftModifier } from './SortActivity'
+import { touchDragLiftModifier } from '@/lib/sort-drag'
 
 /** All/Favorites view selection, persisted across sessions. */
 type ListView = 'all' | 'favorites'
