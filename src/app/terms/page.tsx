@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'The terms governing your use of PatternSpell.',
 }
 
-const EFFECTIVE_DATE = 'October 16, 2026'
+const EFFECTIVE_DATE = 'October 19, 2026'
 const CONTACT_EMAIL = 'donrayxwilliams@gmail.com'
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -91,6 +91,36 @@ export default function TermsOfServicePage() {
               The spelling lists you create belong to you. By using the service, you grant us a limited, worldwide
               license to host, store, and display your content solely to operate PatternSpell for you. We do not claim
               ownership of your lists, and we will not use them for any other purpose.
+            </p>
+          </Section>
+
+          <Section id="prebuilt-content" title="Prebuilt content">
+            <p>
+              PatternSpell also includes a library of prebuilt spelling lists. These lists are original PatternSpell
+              content, written for classroom use. They are not affiliated with, endorsed by, or aligned to any
+              curriculum publisher or program.
+            </p>
+            <p>
+              We grant you a non-exclusive, non-transferable license to copy, modify, and use the prebuilt lists for
+              classroom instruction. When you copy a prebuilt list or pull its patterns into one of your lists, the
+              result is your content, covered by the &ldquo;Your content&rdquo; section above.
+            </p>
+          </Section>
+
+          <Section id="third-party-content" title="Third-party content (YouTube)">
+            <p>
+              Some pages include song videos that play through YouTube&rsquo;s embedded player. Those videos are
+              provided by YouTube and their creators, not by us: we do not control their content or availability, and a
+              video may stop playing at any time if its creator removes it. By playing a video, you agree to be bound by{' '}
+              <a
+                href="https://www.youtube.com/t/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                YouTube&rsquo;s Terms of Service
+              </a>
+              .
             </p>
           </Section>
 

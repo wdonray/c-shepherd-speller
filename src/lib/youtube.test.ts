@@ -1,5 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { extractYouTubeId, fetchVideoTitle, youtubeEmbedUrl, youtubeThumbnailUrl, OEMBED_TIMEOUT_MS } from './youtube'
+import {
+  extractYouTubeId,
+  fetchVideoTitle,
+  isYouTubeVideoId,
+  youtubeEmbedUrl,
+  youtubeThumbnailUrl,
+  OEMBED_TIMEOUT_MS,
+} from './youtube'
+
+describe('isYouTubeVideoId', () => {
+  it.each(['GdmcWQCbqY8', 'mxVWScxsOsc', 'QSU9Y-NYJDk', 'NK8_Tvu6bJk', 'aaaaaaaaaaa', '----------_', '___________'])(
+    'accepts the valid ID %s',
+    (id) => {
+      expect(isYouTubeVideoId(id)).toBe(true)
+    }
+  )
+
+  it.each([
+    '',
+    'short',
+    'way-too-long-video-id',
+    'GdmcWQCbqY8!',
+    'GdmcWQCbqY8 ',
+    ' GdmcWQCbqY8',
+    'https://www.youtube.com/watch?v=GdmcWQCbqY8',
+  ])('rejects %s', (id) => {
+    expect(isYouTubeVideoId(id)).toBe(false)
+  })
+})
 
 describe('extractYouTubeId', () => {
   it.each([

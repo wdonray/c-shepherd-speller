@@ -267,6 +267,90 @@ describe('PUT /api/users/[id]', () => {
     }
     expect(updateUser).not.toHaveBeenCalled()
   })
+
+  it('saves a valid hidden-video list', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const blockedVideos = [
+      { videoId: 'GdmcWQCbqY8', title: 'Vowel Teams Song', channel: 'Jack Hartmann' },
+      { videoId: 'mxVWScxsOsc', title: 'Silent E Song' },
+    ]
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ blockedVideos }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith(ID, { blockedVideos })
+  })
+
+  it('clears the hidden-video list with an empty array', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ blockedVideos: [] }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith(ID, { blockedVideos: [] })
+  })
+
+  it('dedupes the hidden-video list by video id and trims titles', async () => {
+    updateUser.mockResolvedValue({ id: ID })
+    const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        blockedVideos: [
+          { videoId: 'GdmcWQCbqY8', title: '  Vowel Teams Song  ', channel: '  Jack Hartmann  ' },
+          { videoId: 'GdmcWQCbqY8', title: 'Duplicate', channel: 'Other' },
+          { videoId: 'mxVWScxsOsc', title: 'Silent E Song', channel: '' },
+          { videoId: 'ZfbWOTCgRE0', title: 'Long E Song', channel: '   ' },
+        ],
+      }),
+    })
+    const res = await PUT(req, ctx(ID))
+    expect(res.status).toBe(200)
+    expect(updateUser).toHaveBeenCalledWith(ID, {
+      blockedVideos: [
+        { videoId: 'GdmcWQCbqY8', title: 'Vowel Teams Song', channel: 'Jack Hartmann' },
+        { videoId: 'mxVWScxsOsc', title: 'Silent E Song' },
+        { videoId: 'ZfbWOTCgRE0', title: 'Long E Song' },
+      ],
+    })
+  })
+
+  it('returns 400 for an invalid hidden-video list', async () => {
+    const badLists = [
+      'not-an-array',
+      42,
+      null,
+      Array.from({ length: 201 }, (_, i) => ({ videoId: 'GdmcWQCbqY8', title: `Video ${i}` })),
+      [{ videoId: 'GdmcWQCbqY8' }],
+      [{ videoId: 'GdmcWQCbqY8', title: '' }],
+      [{ videoId: 'GdmcWQCbqY8', title: '   ' }],
+      [{ videoId: 'GdmcWQCbqY8', title: 'x'.repeat(201) }],
+      [{ videoId: 'GdmcWQCbqY8', title: 42 }],
+      [{ videoId: 'short', title: 'Too short' }],
+      [{ videoId: 'way-too-long-video-id', title: 'Too long' }],
+      [{ videoId: 'GdmcWQCbqY8!', title: 'Bad char' }],
+      [{ videoId: 42, title: 'Not a string id' }],
+      [{ videoId: 'GdmcWQCbqY8', title: 'Ok', channel: 42 }],
+      [{ videoId: 'GdmcWQCbqY8', title: 'Ok', channel: 'x'.repeat(101) }],
+      ['a-string-entry'],
+      [null],
+      [42],
+    ]
+    for (const blockedVideos of badLists) {
+      const req = new NextRequest(`http://localhost/api/users/${ID}`, {
+        method: 'PUT',
+        body: JSON.stringify({ blockedVideos }),
+      })
+      const res = await PUT(req, ctx(ID))
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toBe('Invalid hidden videos')
+    }
+    expect(updateUser).not.toHaveBeenCalled()
+  })
 })
 
 describe('GET /api/users/[id]', () => {

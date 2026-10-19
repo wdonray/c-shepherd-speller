@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import WorksheetsPrintPage from './WorksheetsPrintPage'
+import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 import type { WordList } from '@/models/WordList'
 import type { WorksheetType } from '@/lib/worksheets'
 
@@ -115,6 +116,15 @@ describe('WorksheetsPrintPage', () => {
     // The toolbar Print button re-opens the dialog.
     fireEvent.click(screen.getByRole('button', { name: 'Print' }))
     expect(printSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('marks the print job for portrait orientation (issue #451)', async () => {
+    getList.mockResolvedValue(fullList)
+    const { container } = render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+    await waitFor(() => expect(printSpy).toHaveBeenCalled())
+    // The CSS `page: worksheet` hook (globals.css @page worksheet) forces
+    // portrait; this class is what wires the print root to that page.
+    expect(container.querySelector('.print-page.worksheet-print')).toBeInTheDocument()
   })
 
   it('omits the answer key when only the parent note is selected', async () => {
@@ -259,6 +269,86 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.getByRole('button', { name: 'Remove bake from worksheet' })).toBeDisabled()
     })
 
+    it('links back to the worksheet picker from the gap flow', async () => {
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+      const back = screen.getByRole('link', { name: 'Printable worksheets' })
+      expect(back).toHaveAttribute('href', '/lists/l1/worksheets')
+    })
+
+    it('keeps accept-all disabled until every word has loaded its suggestions', async () => {
+      fetchExampleSentences.mockImplementation(() => new Promise(() => {}))
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Accept all suggestions' })).toBeDisabled()
+    })
+
+    it('fills the first suggestion for words that have one and skips words without', async () => {
+      getList.mockResolvedValue({
+        ...list,
+        patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['bake', 'late'] }],
+      })
+      fetchExampleSentences.mockImplementation((word: string) =>
+        Promise.resolve(
+          word === 'bake'
+            ? { sentences: ['Bake the bread.', 'Bake it twice.'], source: 'local' as const }
+            : { sentences: [], source: 'local' as const }
+        )
+      )
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+
+      const acceptAll = screen.getByRole('button', { name: 'Accept all suggestions' })
+      await waitFor(() => expect(acceptAll).toBeEnabled())
+      fireEvent.click(acceptAll)
+
+      const boxes = screen.getAllByLabelText(/Or write your own sentence/)
+      expect(boxes).toHaveLength(2)
+      expect(boxes[0]).toHaveValue('Bake the bread.')
+      expect(boxes[1]).toHaveValue('')
+      // Filling is not submitting: nothing was saved and the gap stays open.
+      expect(updateList).not.toHaveBeenCalled()
+      expect(screen.getByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+    })
+
+    it('does not overwrite a teacher-typed sentence', async () => {
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByText('Bake the bread.')).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText(/Or write your own sentence/), { target: { value: 'My own take.' } })
+      const acceptAll = screen.getByRole('button', { name: 'Accept all suggestions' })
+      await waitFor(() => expect(acceptAll).toBeEnabled())
+      fireEvent.click(acceptAll)
+
+      expect(screen.getByLabelText(/Or write your own sentence/)).toHaveValue('My own take.')
+    })
+
+    it('disables accept-all while a sentence save is in flight', async () => {
+      updateList.mockImplementation(() => new Promise(() => {}))
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByText('Bake the bread.')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Use this' }))
+      expect(screen.getByRole('button', { name: 'Accept all suggestions' })).toBeDisabled()
+    })
+
+    it('treats a prototype-named word like an ordinary word', async () => {
+      // "constructor" reads the inherited Object constructor off a plain
+      // object; lookups must be prototype-safe.
+      getList.mockResolvedValue({
+        ...list,
+        patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['constructor'] }],
+      })
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
+
+      const acceptAll = screen.getByRole('button', { name: 'Accept all suggestions' })
+      await waitFor(() => expect(acceptAll).toBeEnabled())
+      fireEvent.click(acceptAll)
+      expect(screen.getByLabelText(/Or write your own sentence/)).toHaveValue('Bake the bread.')
+      expect(updateList).not.toHaveBeenCalled()
+    })
+
     it('shows an error state for a non-Error rejection', async () => {
       getList.mockRejectedValueOnce('a string, not an Error')
       render(<WorksheetsPrintPage listId="l1" selectedTypes={ALL_TYPES} />)
@@ -298,6 +388,42 @@ describe('WorksheetsPrintPage', () => {
       await new Promise((r) => setTimeout(r, 50))
       expect(printSpy).not.toHaveBeenCalled()
       expect(screen.queryByRole('heading', { name: 'Could not load this list' })).not.toBeInTheDocument()
+    })
+  })
+  describe('WorksheetsPrintPage prebuilt weeks (issue #463)', () => {
+    const week = getPrebuiltWeek('prebuilt-g2-w06')!
+
+    it('loads the week from bundled data without an API fetch', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+      })
+      expect(getList).not.toHaveBeenCalled()
+    })
+
+    it('shows the Prebuilt badge and routes back links to the prebuilt picker', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+      })
+      expect(screen.getByRole('link', { name: /back to worksheets/i })).toHaveAttribute(
+        'href',
+        '/lists/prebuilt/prebuilt-g2-w06/worksheets'
+      )
+    })
+
+    it('keeps gap-flow sentences local: never calls updateList', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: /Sentences needed/ })).toBeInTheDocument()
+
+      fireEvent.click((await screen.findAllByRole('button', { name: 'Use this' }))[0])
+
+      // The gap resolves locally (the print job proceeds) with no API write.
+      await waitFor(() => {
+        expect(updateList).not.toHaveBeenCalled()
+      })
     })
   })
 })

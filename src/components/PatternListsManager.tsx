@@ -43,6 +43,7 @@ import {
 import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
+import PrebuiltLibrarySection from './PrebuiltLibrarySection'
 import { touchDragLiftModifier } from './SortActivity'
 
 /** All/Favorites view selection, persisted across sessions. */
@@ -109,6 +110,13 @@ export default function PatternListsManager() {
     },
     [router]
   )
+
+  // Empty-state guide (issue #463): scrolls to the prebuilt library section
+  // on this same page. scroll-mt-20 on the section keeps it clear of the
+  // sticky site header.
+  const scrollToPrebuiltLibrary = useCallback(() => {
+    document.getElementById('prebuilt-library')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const favorites = useMemo(() => sortFavorites(lists), [lists])
   const showFavoritesTab = favorites.length > 0
@@ -425,12 +433,17 @@ export default function PatternListsManager() {
             <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
               <p className="text-xl font-bold">No word lists yet</p>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Create your first list to organize words by spelling pattern.
+                Build your own from scratch, or start from 162 weeks of ready-made pattern lists and make them yours.
               </p>
-              <Button onClick={() => router.push('/lists/new')} className="mt-6">
-                <PlusIcon className="size-4" />
-                New list
-              </Button>
+              <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <Button onClick={() => router.push('/lists/new')}>
+                  <PlusIcon className="size-4" />
+                  Create your own list
+                </Button>
+                <Button variant="secondary" onClick={scrollToPrebuiltLibrary}>
+                  Start from a prebuilt list
+                </Button>
+              </div>
             </div>
           ) : (
             <DndContext
@@ -471,6 +484,16 @@ export default function PatternListsManager() {
           )}
         </>
       )}
+
+      {/*
+        Prebuilt library (issue #463 redesign): a secondary section below the
+        teacher's own lists. Her lists stay primary and dominant above; a
+        teacher who never scrolls down never notices this. It renders even
+        when her lists fail to load because the prebuilt data is bundled,
+        not fetched. (loading is always false here: the skeleton returned
+        early above.)
+      */}
+      <PrebuiltLibrarySection />
 
       <Dialog open={deleteListTarget !== null} onOpenChange={() => setDeleteListTarget(null)}>
         {deleteListTarget && (

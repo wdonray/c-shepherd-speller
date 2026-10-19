@@ -1,16 +1,20 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { getList, updateList } from '@/lib/lists-api'
+import { prebuiltWeekToWordList, type PrebuiltWeek } from '@/lib/prebuilt-lists'
+import PrebuiltBadge from '@/components/PrebuiltBadge'
 import { fetchExampleSentences } from '@/lib/example-sentences'
 import type { SpellingPattern, WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import {
   TYPES_NEEDING_SENTENCES,
   WORKSHEET_TYPES,
+  blankWholeWordInSentence,
   blankWordForPattern,
   blankWordInSentence,
   extractWorksheetWords,
@@ -51,20 +55,31 @@ interface PrintJob {
  */
 export default function WorksheetsPrintPage({
   listId,
+  prebuiltWeek,
   selectedTypes,
 }: {
-  listId: string
+  listId?: string
+  /** Print worksheets for a prebuilt curriculum week (issue #463): the list
+   * loads from the bundled data, no API fetch, and nothing is persisted. */
+  prebuiltWeek?: PrebuiltWeek
   selectedTypes: WorksheetType[]
 }) {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [list, setList] = useState<WordList | null>(null)
   const [retryCount, setRetryCount] = useState(0)
 
+  const worksheetsHref = prebuiltWeek ? `/lists/prebuilt/${prebuiltWeek.id}/worksheets` : `/lists/${listId}/worksheets`
+
   useEffect(() => {
+    if (prebuiltWeek) {
+      setList(prebuiltWeekToWordList(prebuiltWeek))
+      setLoadState('ready')
+      return
+    }
     let cancelled = false
     async function load() {
       try {
-        const data = await getList(listId)
+        const data = await getList(listId!)
         if (!cancelled) {
           setList(data)
           setLoadState('ready')
@@ -80,7 +95,7 @@ export default function WorksheetsPrintPage({
     return () => {
       cancelled = true
     }
-  }, [listId, retryCount])
+  }, [listId, prebuiltWeek, retryCount])
 
   if (loadState === 'loading') {
     return (
@@ -118,7 +133,15 @@ export default function WorksheetsPrintPage({
     )
   }
 
-  return <WorksheetsJob list={list} selectedTypes={selectedTypes} onListUpdated={setList} />
+  return (
+    <WorksheetsJob
+      list={list}
+      selectedTypes={selectedTypes}
+      onListUpdated={setList}
+      worksheetsHref={worksheetsHref}
+      isPrebuilt={prebuiltWeek !== undefined}
+    />
+  )
 }
 
 /**
@@ -130,16 +153,27 @@ function WorksheetsJob({
   list,
   selectedTypes,
   onListUpdated,
+  worksheetsHref,
+  isPrebuilt,
 }: {
   list: WordList
   selectedTypes: WorksheetType[]
   onListUpdated: (list: WordList) => void
+  worksheetsHref: string
+  isPrebuilt: boolean
 }) {
   const [removedWords, setRemovedWords] = useState<Set<string>>(new Set())
   const [typedSentences, setTypedSentences] = useState<Record<string, string>>({})
   const [busyWord, setBusyWord] = useState<string | null>(null)
   const [gapError, setGapError] = useState<string | null>(null)
   const [seed] = useState(() => Date.now())
+  /** First-sentence suggestions each gap word loaded, keyed by word. */
+  const [suggestionsByWord, setSuggestionsByWord] = useState<Record<string, string[]>>({})
+
+  /** Rows report their suggestions on load; stable so the per-row fetch effect never re-runs. */
+  const handleSuggestionsLoaded = useCallback((word: string, sentences: string[]) => {
+    setSuggestionsByWord((prev) => ({ ...prev, [word]: sentences }))
+  }, [])
 
   const words = useMemo(
     () => extractWorksheetWords(list).filter((w) => !removedWords.has(w.word)),
@@ -149,7 +183,9 @@ function WorksheetsJob({
   const gapWords = needsSentences ? words.filter((w) => w.sentence === undefined) : []
   const showGaps = gapWords.length > 0
 
-  /** Save a sentence for a gap word, both remotely and locally. */
+  /** Save a sentence for a gap word, both remotely and locally. Prebuilt
+   * weeks are read-only (issue #463): the sentence applies to this print
+   * job only and is never persisted. */
   const saveSentence = async (word: string, sentence: string) => {
     setBusyWord(word)
     setGapError(null)
@@ -157,7 +193,9 @@ function WorksheetsJob({
       const nextPatterns: SpellingPattern[] = list.patterns.map((p) =>
         p.words.includes(word) ? { ...p, sentences: { ...(p.sentences ?? {}), [word]: sentence } } : p
       )
-      await updateList(list.id, { patterns: nextPatterns })
+      if (!isPrebuilt) {
+        await updateList(list.id, { patterns: nextPatterns })
+      }
       onListUpdated({ ...list, patterns: nextPatterns })
       setTypedSentences((prev) => {
         const next = { ...prev }
@@ -176,6 +214,31 @@ function WorksheetsJob({
     setRemovedWords((prev) => new Set(prev).add(word))
   }
 
+  /**
+   * Fill every gap word's first suggestion into its typed box. Words with no
+   * suggestions are skipped; boxes the teacher already typed in are left
+   * alone. Fills only, nothing is saved: each sentence can still be reviewed
+   * and changed with the per-word "Use this sentence" button.
+   */
+  const acceptAllSuggestions = () => {
+    setTypedSentences((prev) => {
+      const next = { ...prev }
+      for (const word of gapWords) {
+        // The button stays disabled until every gap word has loaded its
+        // suggestions, so this lookup always hits an own property.
+        const first = suggestionsByWord[word.word][0]
+        // hasOwn: a word like "constructor" would otherwise read the
+        // inherited Object constructor off the prototype and crash on trim().
+        const typed = Object.hasOwn(next, word.word) ? next[word.word] : ''
+        if (first !== undefined && typed.trim() === '') {
+          next[word.word] = first
+        }
+      }
+      return next
+    })
+  }
+  const allSuggestionsLoaded = gapWords.every((w) => Object.hasOwn(suggestionsByWord, w.word))
+
   const job: PrintJob | null = useMemo(() => {
     if (showGaps) return null
     const rand = mulberry32(seed)
@@ -189,7 +252,7 @@ function WorksheetsJob({
         : null,
       crossword: selectedTypes.includes('crossword')
         ? generateCrossword(
-            sentenceWords.map((w) => ({ word: w.word, clue: w.sentence })),
+            sentenceWords.map((w) => ({ word: w.word, clue: blankWholeWordInSentence(w.sentence, w.word) })),
             rand
           )
         : null,
@@ -220,7 +283,7 @@ function WorksheetsJob({
           Every word was removed, or the list has no unlocked patterns with words.
         </p>
         <Button asChild variant="secondary" className="mt-6">
-          <Link href={`/lists/${list.id}/worksheets`}>Back to worksheets</Link>
+          <Link href={worksheetsHref}>Back to worksheets</Link>
         </Button>
       </div>
     )
@@ -229,26 +292,43 @@ function WorksheetsJob({
   if (showGaps) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-3xl font-bold">Sentences needed</h1>
+        <BackBreadcrumb href={worksheetsHref} label="Printable worksheets" />
+        <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
+          Sentences needed
+          {isPrebuilt && <PrebuiltBadge />}
+        </h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
           The worksheets you picked need one sentence per word. For each word below, use a suggested sentence, write
-          your own (it saves to your list), or remove the word from the worksheets.
+          your own{isPrebuilt ? ' (it applies to these worksheets only)' : ' (it saves to your list)'}, or remove the
+          word from the worksheets.
         </p>
         {gapError && (
           <p role="alert" className="mt-4 rounded-2xl border-2 border-red-500 bg-red-50 p-4 text-[15px] text-red-900">
             {gapError}
           </p>
         )}
+        <div className="mt-4">
+          <Button
+            variant="secondary"
+            disabled={busyWord !== null || !allSuggestionsLoaded}
+            onClick={acceptAllSuggestions}
+          >
+            Accept all suggestions
+          </Button>
+        </div>
         <div className="mt-6 space-y-4">
           {gapWords.map((word) => (
             <GapWordRow
               key={word.word}
               word={word}
               busy={busyWord !== null}
-              typedValue={typedSentences[word.word] ?? ''}
+              // hasOwn: a word like "constructor" would otherwise read the
+              // inherited Object constructor off the prototype.
+              typedValue={Object.hasOwn(typedSentences, word.word) ? typedSentences[word.word] : ''}
               onTypedChange={(value) => setTypedSentences((prev) => ({ ...prev, [word.word]: value }))}
               onSaveSentence={(sentence) => saveSentence(word.word, sentence)}
               onRemove={() => removeWord(word.word)}
+              onSuggestionsLoaded={handleSuggestionsLoaded}
             />
           ))}
         </div>
@@ -276,16 +356,16 @@ function WorksheetsJob({
       case 'crossword':
         return <CrosswordSheet result={printJob.crossword as CrosswordResult} answerKey={answerKey} />
       case 'reading':
-        return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} />
+        return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} answerKey={answerKey} />
       case 'parent-note':
         return <ParentNoteSheet list={list} groups={groups} />
     }
   }
 
   return (
-    <div className="print-page mx-auto w-full max-w-4xl px-4 py-8">
+    <div className="print-page worksheet-print mx-auto w-full max-w-4xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
-        <Link href={`/lists/${list.id}/worksheets`} className="text-sm font-bold text-sky-ink hover:underline">
+        <Link href={worksheetsHref} className="text-sm font-bold text-sky-ink hover:underline">
           &larr; Back to worksheets
         </Link>
         <Button onClick={() => window.print()}>Print</Button>
@@ -316,6 +396,7 @@ function GapWordRow({
   onTypedChange,
   onSaveSentence,
   onRemove,
+  onSuggestionsLoaded,
 }: {
   word: WorksheetWord
   busy: boolean
@@ -323,18 +404,22 @@ function GapWordRow({
   onTypedChange: (value: string) => void
   onSaveSentence: (sentence: string) => void
   onRemove: () => void
+  onSuggestionsLoaded: (word: string, sentences: string[]) => void
 }) {
   // Suggestions load per word, so one slow word never blocks the others.
   const [suggestions, setSuggestions] = useState<string[] | null>(null)
   useEffect(() => {
     let cancelled = false
     fetchExampleSentences(word.word).then(({ sentences }) => {
-      if (!cancelled) setSuggestions(sentences)
+      if (!cancelled) {
+        setSuggestions(sentences)
+        onSuggestionsLoaded(word.word, sentences)
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [word.word])
+  }, [word.word, onSuggestionsLoaded])
 
   return (
     <div className="rounded-2xl border-2 border-line bg-card p-4">

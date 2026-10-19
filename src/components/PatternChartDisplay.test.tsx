@@ -1,10 +1,37 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import PatternChartDisplay from './PatternChartDisplay'
 import type { WordList } from '@/models/WordList'
 
 const { speak } = vi.hoisted(() => ({ speak: vi.fn() }))
 vi.mock('@/lib/tts', () => ({ speak }))
+
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+function mockBlockedVideos(
+  overrides: {
+    blockedVideoIds?: Set<string>
+    userId?: string | null
+    blockVideo?: ReturnType<typeof vi.fn>
+  } = {}
+) {
+  const blockVideo = overrides.blockVideo ?? vi.fn()
+  useBlockedVideos.mockReturnValue({
+    blockedVideos: [],
+    blockedVideoIds: overrides.blockedVideoIds ?? new Set<string>(),
+    isLoaded: true,
+    userId: overrides.userId ?? null,
+    blockVideo,
+    unblockVideo: vi.fn(),
+  })
+  return { blockVideo }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockBlockedVideos()
+})
 
 const list: WordList = {
   id: 'l1',
@@ -793,5 +820,29 @@ describe('PatternChartDisplay song video save errors (issue #401)', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('filters hidden videos out of the present-mode suggestions', () => {
+    mockBlockedVideos({ blockedVideoIds: new Set([video.videoId]), userId: 'u1' })
+    render(<PatternChartDisplay list={list} onSaveVideos={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    expect(within(dialogEl).queryByRole('region', { name: 'Suggestions' })).not.toBeInTheDocument()
+  })
+
+  it('hides a present-mode video through the modal Hide button', () => {
+    const { blockVideo } = mockBlockedVideos({ userId: 'u1' })
+    const onSaveVideos = vi.fn().mockResolvedValue(undefined)
+    const withVideo = {
+      ...list,
+      patterns: list.patterns.map((p) => (p.id === 'p2' ? { ...p, videos: [video] } : p)),
+    }
+    render(<PatternChartDisplay list={withVideo} onSaveVideos={onSaveVideos} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
+    fireEvent.click(within(dialogEl).getByRole('button', { name: `Hide ${video.title}` }))
+    // Hiding an attached video also unattaches it from the pattern.
+    expect(onSaveVideos).toHaveBeenCalledWith('p2', [])
+    expect(blockVideo).toHaveBeenCalledWith(expect.objectContaining({ videoId: video.videoId }))
   })
 })

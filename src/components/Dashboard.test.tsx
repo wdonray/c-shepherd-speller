@@ -5,21 +5,44 @@ import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
-import { getAllPatternGroups } from '@/data/pattern-videos'
+import { searchSongVideos } from '@/data/pattern-videos'
 import type { WordList } from '@/models/WordList'
 
 const { getLists } = vi.hoisted(() => ({
   getLists: vi.fn(),
 }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
-const { getVideoLibrary } = vi.hoisted(() => ({
-  getVideoLibrary: vi.fn(),
-}))
-vi.mock('@/lib/video-library-api', () => ({ getVideoLibrary }))
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
+
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+interface MockBlockedVideos {
+  blockedVideos: { videoId: string; title: string; channel?: string }[]
+  blockedVideoIds: Set<string>
+  isLoaded: boolean
+  userId: string | null
+  blockVideo: ReturnType<typeof vi.fn>
+  unblockVideo: ReturnType<typeof vi.fn>
+}
+
+function mockBlockedVideos(overrides: Partial<MockBlockedVideos> = {}) {
+  const blockVideo = vi.fn()
+  const unblockVideo = vi.fn()
+  useBlockedVideos.mockReturnValue({
+    blockedVideos: [],
+    blockedVideoIds: new Set<string>(),
+    isLoaded: true,
+    userId: 'u1',
+    blockVideo,
+    unblockVideo,
+    ...overrides,
+  })
+  return { blockVideo, unblockVideo }
+}
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
@@ -57,7 +80,7 @@ describe('Dashboard', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
-    getVideoLibrary.mockResolvedValue([])
+    mockBlockedVideos()
   })
 
   it('greets the teacher by first name', async () => {
@@ -287,7 +310,6 @@ describe('Dashboard', () => {
       expect(screen.getByText('My word lists (0)')).toBeInTheDocument()
     })
     expect(getLists).not.toHaveBeenCalled()
-    expect(getVideoLibrary).not.toHaveBeenCalled()
     expect(reportError).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByText('No word lists yet')).toBeInTheDocument()
@@ -389,7 +411,7 @@ describe('Dashboard', () => {
   })
 })
 
-describe('Dashboard song videos (issue #401)', () => {
+describe('Dashboard song videos (issues #401, #439)', () => {
   const defaultProps = {
     onNewList: vi.fn(),
     onEditList: vi.fn(),
@@ -399,148 +421,137 @@ describe('Dashboard song videos (issue #401)', () => {
     vi.clearAllMocks()
     clearActivity()
     mockSession('Donray Williams')
-    getVideoLibrary.mockResolvedValue([])
+    mockBlockedVideos()
   })
 
   async function loadDashboard() {
     getLists.mockResolvedValue([])
-    getVideoLibrary.mockResolvedValue([])
     render(<Dashboard {...defaultProps} />)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
     })
   }
 
-  it('shows the browse section below My word lists with pattern chips and video cards', async () => {
+  it('shows the spotlight with three featured videos, a search box, and a browse-all link', async () => {
     await loadDashboard()
     const section = screen.getByRole('region', { name: 'Song videos' })
-    const chips = within(screen.getByRole('group', { name: 'Filter videos by pattern' })).getAllByRole('button')
-    expect(chips).toHaveLength(getAllPatternGroups().length + 1)
-    expect(chips[0]).toHaveTextContent('All')
-    // All 19 bank videos show under "All".
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
-    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
+    // Three featured picks, not the whole bank.
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(3)
+    expect(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ })).toBeInTheDocument()
+    // One search box replaces the chip wall.
+    expect(within(section).queryByRole('group', { name: 'Filter videos by pattern' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Search song videos')).toBeInTheDocument()
+    // One link to the full catalog.
+    const browseAll = screen.getByRole('link', { name: 'Browse all 19 song videos' })
+    expect(browseAll).toHaveAttribute('href', '/videos')
   })
 
-  it('filters videos by pattern chip', async () => {
+  it('search narrows the spotlight and the browse link carries the query', async () => {
     await loadDashboard()
-    fireEvent.click(screen.getByRole('button', { name: 'ck' }))
+    fireEvent.change(screen.getByLabelText('Search song videos'), { target: { value: 'Jack Hartmann' } })
     const section = screen.getByRole('region', { name: 'Song videos' })
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'All' }))
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    const expected = searchSongVideos('Jack Hartmann')
+    expect(expected.length).toBeGreaterThan(3)
+    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(3)
+    const link = screen.getByRole('link', { name: `See all ${expected.length} matching videos` })
+    expect(link).toHaveAttribute('href', '/videos?q=Jack%20Hartmann')
   })
 
   it('opens the player modal in browse-only mode from a video card', async () => {
     await loadDashboard()
-    fireEvent.click(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' }))
+    fireEvent.click(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
-    // Browse-only: no suggestions, search, paste, or remove controls.
-    expect(within(dialogEl).queryByRole('button', { name: /^(Add|Remove) / })).not.toBeInTheDocument()
+    // Browse-only: no suggestions, search, paste, or remove controls. The
+    // signed-in teacher does get the add-to-list flow (issue #449).
+    expect(within(dialogEl).queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument()
     expect(within(dialogEl).queryByLabelText('Search videos by title or channel')).not.toBeInTheDocument()
+    expect(within(dialogEl).getByRole('button', { name: 'Add to list' })).toBeInTheDocument()
     // The clicked video plays immediately.
-    const frame = screen.getByTitle('Digraph CK - 4 Minute Phonics')
+    const frame = screen.getByTitle('When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song')
     expect(frame.tagName).toBe('IFRAME')
-    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/qEgggBAF_nw?rel=0&cc_load_policy=1')
+    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/GdmcWQCbqY8?rel=0&cc_load_policy=1')
     fireEvent.click(screen.getByRole('button', { name: 'Back to videos' }))
-    expect(screen.queryByTitle('Digraph CK - 4 Minute Phonics')).not.toBeInTheDocument()
+    expect(
+      screen.queryByTitle('When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song')
+    ).not.toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Song videos' })).not.toBeInTheDocument()
   })
 
-  it('skeleton mirrors the song videos chips and cards while loading', () => {
+  it('hides the Add to list button in the player modal for signed-out visitors', async () => {
+    mockSession()
+    render(<Dashboard {...defaultProps} />)
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Play When Two Vowels Go Walking/ }))
+    const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
+    expect(within(dialogEl).queryByRole('button', { name: 'Add to list' })).not.toBeInTheDocument()
+  })
+
+  it('skeleton mirrors the song video spotlight while loading', () => {
     getLists.mockImplementation(() => new Promise(() => {}))
     render(<Dashboard {...defaultProps} />)
     const loading = screen.getByRole('status', { name: 'Loading dashboard' })
-    // One chip placeholder per pattern group plus "All".
-    expect(loading.querySelectorAll('div.h-9.w-16')).toHaveLength(getAllPatternGroups().length + 1)
-    // One card placeholder per bank video.
-    expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(19)
+    // One search box placeholder instead of chip placeholders.
+    expect(loading.querySelectorAll('div.h-12')).toHaveLength(1)
+    // Three card placeholders.
+    expect(loading.querySelectorAll('div.aspect-video')).toHaveLength(3)
+    // One browse-all button placeholder.
+    expect(loading.querySelectorAll('div.h-11.w-56')).toHaveLength(1)
   })
 
-  it('counts the bank in the browse heading when the teacher never pasted a link (issue #458)', async () => {
-    await loadDashboard()
-    expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
-  })
-
-  it('merges her pasted videos after the bank and counts the real library (issue #458)', async () => {
-    getLists.mockResolvedValue([])
-    getVideoLibrary.mockResolvedValue([
-      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
-    ])
-    render(<Dashboard {...defaultProps} />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+  describe('hidden videos (issue #443)', () => {
+    it('filters hidden videos out of the spotlight', async () => {
+      mockBlockedVideos({ blockedVideoIds: new Set(['GdmcWQCbqY8']) })
+      await loadDashboard()
+      const section = screen.getByRole('region', { name: 'Song videos' })
+      expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(2)
+      expect(screen.queryByRole('button', { name: /Play When Two Vowels Go Walking/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Browse all 18 song videos' })).toBeInTheDocument()
     })
-    const section = screen.getByRole('region', { name: 'Song videos' })
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(20)
-    // Her video renders as a uniform card with no pattern tags.
-    const card = screen.getByRole('button', { name: 'Play My pasted song' })
-    expect(within(card).getByText('My Channel')).toBeInTheDocument()
-    expect(within(card).queryByText(/^Patterns:/)).not.toBeInTheDocument()
-    // The bank keeps its pattern line and stays first.
-    const cards = within(section).getAllByRole('button', { name: /^Play / })
-    expect(cards[0]).toHaveAttribute('aria-label', expect.stringContaining('When Two Vowels Go Walking'))
-    expect(cards[19]).toHaveAttribute('aria-label', 'Play My pasted song')
-  })
 
-  it('plays her video from the browse grid (issue #458)', async () => {
-    getLists.mockResolvedValue([])
-    getVideoLibrary.mockResolvedValue([
-      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
-    ])
-    render(<Dashboard {...defaultProps} />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    it('hides a video from its spotlight card', async () => {
+      const { blockVideo } = mockBlockedVideos()
+      await loadDashboard()
+      fireEvent.click(screen.getByRole('button', { name: /Hide When Two Vowels Go Walking/ }))
+      expect(blockVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          videoId: 'GdmcWQCbqY8',
+          title: 'When Two Vowels Go Walking | Jack Hartmann Vowel Teams Song | Vowels Song',
+        })
+      )
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Play My pasted song' }))
-    const frame = screen.getByTitle('My pasted song')
-    expect(frame.tagName).toBe('IFRAME')
-    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&cc_load_policy=1')
-  })
 
-  it('keeps pattern chips on the bank: her untagged videos show under All only (issue #458)', async () => {
-    getLists.mockResolvedValue([])
-    getVideoLibrary.mockResolvedValue([
-      { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
-    ])
-    render(<Dashboard {...defaultProps} />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    it('shows no Hide buttons when signed out', async () => {
+      mockSession()
+      mockBlockedVideos({ userId: null })
+      await loadDashboard()
+      expect(screen.queryByRole('button', { name: /^Hide / })).not.toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'ck' }))
-    const section = screen.getByRole('region', { name: 'Song videos' })
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(1)
-    expect(screen.queryByRole('button', { name: 'Play My pasted song' })).not.toBeInTheDocument()
-    // The heading still counts her whole library.
-    expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'All' }))
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(20)
-  })
 
-  it('degrades to the bank when the library fetch fails (issue #458)', async () => {
-    getLists.mockResolvedValue([])
-    getVideoLibrary.mockRejectedValue(new Error('boom'))
-    render(<Dashboard {...defaultProps} />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (19)' })).toBeInTheDocument()
+    it('holds the loading state until the hidden-video list resolves', async () => {
+      mockBlockedVideos({ isLoaded: false })
+      getLists.mockResolvedValue([])
+      const { rerender } = render(<Dashboard {...defaultProps} />)
+      await waitFor(() => expect(getLists).toHaveBeenCalled())
+      // Lists are in, but the hidden-video list is not: still loading.
+      expect(screen.getByRole('status', { name: 'Loading dashboard' })).toBeInTheDocument()
+      mockBlockedVideos({ isLoaded: true })
+      rerender(<Dashboard {...defaultProps} />)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+      })
     })
-    expect(reportError).toHaveBeenCalledWith(expect.anything(), { location: 'Dashboard.loadVideoLibrary' })
-    const section = screen.getByRole('region', { name: 'Song videos' })
-    expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(19)
-  })
 
-  it('renders her video without a channel line when oEmbed had no author (issue #458)', async () => {
-    getLists.mockResolvedValue([])
-    getVideoLibrary.mockResolvedValue([{ videoId: 'dQw4w9WgXcQ', title: 'Channel-less song', source: 'custom' }])
-    render(<Dashboard {...defaultProps} />)
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Song videos (20)' })).toBeInTheDocument()
+    it('does not hold the loading state for signed-out visitors', async () => {
+      mockSession()
+      mockBlockedVideos({ isLoaded: false, userId: null })
+      getLists.mockResolvedValue([])
+      render(<Dashboard {...defaultProps} />)
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Song videos' })).toBeInTheDocument()
+      })
     })
-    const card = screen.getByRole('button', { name: 'Play Channel-less song' })
-    const lines = within(card).getAllByRole('paragraph')
-    expect(lines).toHaveLength(1)
-    expect(lines[0]).toHaveTextContent('Channel-less song')
   })
 })

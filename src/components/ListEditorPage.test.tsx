@@ -21,6 +21,20 @@ const { logActivity } = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/activity', () => ({ logActivity }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+// useBlockedVideos reads the session via useSession, which throws without a
+// SessionProvider; stub the hook so these tests render the real components.
+useBlockedVideos.mockReturnValue({
+  blockedVideos: [],
+  blockedVideoIds: new Set<string>(),
+  isLoaded: true,
+  userId: null,
+  blockVideo: vi.fn(),
+  unblockVideo: vi.fn(),
+})
+
 const { reportError } = vi.hoisted(() => ({
   reportError: vi.fn(),
 }))

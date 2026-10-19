@@ -49,7 +49,13 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border-2 border-line p-6 duration-200 sm:max-w-lg',
+          // grid-cols-[minmax(0,1fr)]: the implicit auto column sizes to the
+          // largest min-content contribution, so any nowrap descendant
+          // (truncate titles, long URLs) blows the fixed-width dialog out
+          // past the viewport (found 2026-10-18: issue #434, the song videos
+          // modal on mobile). minmax(0, 1fr) keeps the single column at the
+          // container width and lets items shrink instead.
+          'bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-[calc(100%-2rem)] grid-cols-[minmax(0,1fr)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border-2 border-line p-6 duration-200 sm:max-w-lg',
           className
         )}
         {...props}

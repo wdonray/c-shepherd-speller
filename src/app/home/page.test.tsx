@@ -12,6 +12,20 @@ vi.mock('next/navigation', () => ({
 const { getLists } = vi.hoisted(() => ({ getLists: vi.fn() }))
 vi.mock('@/lib/lists-api', () => ({ getLists, LISTS_CHANGED_EVENT: 'shepherd-speller:lists-changed' }))
 
+const { useBlockedVideos } = vi.hoisted(() => ({ useBlockedVideos: vi.fn() }))
+vi.mock('@/hooks/useBlockedVideos', () => ({ useBlockedVideos }))
+
+// useBlockedVideos reads the session via useSession, which throws without a
+// SessionProvider; stub the hook so these tests render the real components.
+useBlockedVideos.mockReturnValue({
+  blockedVideos: [],
+  blockedVideoIds: new Set<string>(),
+  isLoaded: true,
+  userId: null,
+  blockVideo: vi.fn(),
+  unblockVideo: vi.fn(),
+})
+
 const list: WordList = {
   id: 'l1',
   userId: 'u1',
@@ -72,10 +86,8 @@ describe('Home page (/home)', () => {
     await waitFor(() => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith('/api/users?email=a%40b.c')
-    // The dashboard fetches its own video library (issue #458); the user
-    // sync itself must not POST.
-    expect(fetchMock.mock.calls.filter((call) => call[1]?.method === 'POST')).toHaveLength(0)
   })
 
   it('creates the user with a POST when the user record has no id', async () => {
@@ -104,9 +116,7 @@ describe('Home page (/home)', () => {
     await waitFor(() => {
       expect(screen.getByText(/my word lists/i)).toBeInTheDocument()
     })
-    // The user sync must not run without an email; the dashboard's own
-    // video-library fetch (issue #458) is unaffected.
-    expect(fetchMock.mock.calls.filter((call) => String(call[0]).startsWith('/api/users'))).toHaveLength(0)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('renders the dashboard when the user lookup returns an error', async () => {

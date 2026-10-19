@@ -40,9 +40,16 @@ describe('TermsOfServicePage', () => {
     expect(screen.getAllByText(/voice storage is limited to 100 MB per account/i).length).toBeGreaterThan(0)
   })
 
+  it('binds video playback to YouTube Terms of Service', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getByRole('heading', { name: /third-party content \(youtube\)/i, level: 2 })).toBeInTheDocument()
+    const ytTerms = screen.getByRole('link', { name: /YouTube’s Terms of Service/i })
+    expect(ytTerms).toHaveAttribute('href', 'https://www.youtube.com/t/terms')
+  })
+
   it('shows the updated effective date', () => {
     render(<TermsOfServicePage />)
-    expect(screen.getAllByText(/october 16, 2026/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/october 19, 2026/i).length).toBeGreaterThan(0)
   })
 
   it('states the teacher owns their content', () => {
@@ -57,5 +64,16 @@ describe('TermsOfServicePage', () => {
     const contactLinks = screen.getAllByRole('link', { name: 'donrayxwilliams@gmail.com' })
     expect(contactLinks.length).toBeGreaterThan(0)
     expect(contactLinks[0]).toHaveAttribute('href', 'mailto:donrayxwilliams@gmail.com')
+  })
+})
+
+describe('TermsOfServicePage prebuilt content (issue #463)', () => {
+  it('licenses prebuilt lists for classroom use with no curriculum affiliation', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getByRole('heading', { name: /prebuilt content/i, level: 2 })).toBeInTheDocument()
+    expect(screen.getAllByText(/non-exclusive, non-transferable license/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(/not affiliated with, endorsed by, or aligned to any curriculum/i).length
+    ).toBeGreaterThan(0)
   })
 })

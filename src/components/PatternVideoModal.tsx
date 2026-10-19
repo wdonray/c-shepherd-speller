@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { ArrowLeftIcon, LinkIcon, PlayIcon, PlusIcon, XIcon } from 'lucide-react'
+import { ArrowLeftIcon, EyeOffIcon, LinkIcon, PlayIcon, PlusIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +11,7 @@ import { extractYouTubeId, fetchVideoTitle, youtubeEmbedUrl, youtubeThumbnailUrl
 import { addVideoToLibrary } from '@/lib/video-library-api'
 import { reportError } from '@/lib/report-error'
 import type { PatternVideo } from '@/models/WordList'
+import AddVideoToPatternFlow from './AddVideoToPatternFlow'
 
 interface PatternVideoModalProps {
   /** Dialog heading, e.g. "Song videos for pattern ai". */
@@ -34,6 +35,26 @@ interface PatternVideoModalProps {
    * the parent on the next save attempt.
    */
   saveError?: string | null
+  /**
+   * Video IDs the teacher has hidden (issue #443). Hidden videos are
+   * filtered out of the suggestions and search results below.
+   */
+  blockedVideoIds?: string[]
+  /**
+   * Hide a video for this teacher (issue #443). Rendered as a "Hide" action
+   * on suggestion, search, and attached rows; hiding an attached video also
+   * removes it from the list. Omitted in browse-only mode, where hiding
+   * lives on the browse cards instead.
+   */
+  onHideVideo?: (video: PatternVideo) => void
+  /**
+   * Show the add-to-list flow in the player view (issue #449). Only the
+   * browse surfaces (home spotlight, /videos catalog) pass this: in edit
+   * mode the modal already attaches videos to the pattern it is open for,
+   * so a cross-list add would be a second, confusing attach path. Signed-
+   * out visitors never see the button; they can only play.
+   */
+  canAddToList?: boolean
   onClose: () => void
 }
 
@@ -55,11 +76,37 @@ function VideoThumbnail({ video }: { video: PatternVideo }) {
 }
 
 /**
+ * Small "Hide" action (issue #443): block the video for this teacher. The
+ * label hides on small screens (issue #434 follow-up): with the thumbnail,
+ * play, Hide, and Add/Remove actions in one row, the labeled button blew
+ * the dialog 24px past a 390px viewport. The aria-label keeps the
+ * accessible name on the icon-only button.
+ */
+function HideVideoButton({ video, onHide }: { video: PatternVideo; onHide: () => void }) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      onClick={onHide}
+      aria-label={`Hide ${video.title}`}
+      title={`Hide ${video.title}`}
+      className="shrink-0 gap-1 text-muted-foreground"
+    >
+      <EyeOffIcon className="size-4" aria-hidden="true" />
+      <span className="hidden sm:inline">Hide</span>
+    </Button>
+  )
+}
+
+/**
  * Song videos for a spelling pattern (issue #401). The teacher plays a
  * video from the list, attaches curated suggestions, searches the
  * collection, or pastes a YouTube link (verified via oEmbed before it is
- * added). Removing a curated video returns it to the suggestions, so hiding
- * one is reversible. The player is click-to-play: the iframe mounts only
+ * added). Removing a video only unattaches it (it returns to the
+ * suggestions); Hide blocks it for this teacher across suggestions, search,
+ * and the home browse section, and is reversible from profile settings
+ * (issue #443). The player is click-to-play: the iframe mounts only
  * when the teacher presses play, and unmounts on close or back, which stops
  * playback.
  */
@@ -70,9 +117,13 @@ export default function PatternVideoModal({
   suggestionPattern,
   startPlayingId,
   saveError,
+  blockedVideoIds,
+  onHideVideo,
+  canAddToList,
   onClose,
 }: PatternVideoModalProps) {
   const [playingId, setPlayingId] = useState<string | null>(startPlayingId ?? null)
+  const [adding, setAdding] = useState(false)
   const [query, setQuery] = useState('')
   const [pasteValue, setPasteValue] = useState('')
   const [pasteError, setPasteError] = useState<string | null>(null)
@@ -80,11 +131,24 @@ export default function PatternVideoModal({
 
   const playing = videos.find((video) => video.videoId === playingId)
 
+  // Browse-only mode for signed-in teachers: the player gets an
+  // "Add to list" button that opens the list/pattern picker flow.
+  const showAddToList = !onChange && canAddToList
+
+  const browseDescription = canAddToList
+    ? 'Phonics songs for spelling patterns. Pick one to play, or add it to a pattern in one of your spelling lists.'
+    : 'Phonics songs for spelling patterns. Pick one to play.'
+
   const attachedIds = new Set(videos.map((video) => video.videoId))
-  const suggestions = getVideosForPattern(suggestionPattern ?? '').filter((video) => !attachedIds.has(video.videoId))
+  const blockedIds = new Set(blockedVideoIds ?? [])
+  const suggestions = getVideosForPattern(suggestionPattern ?? '').filter(
+    (video) => !attachedIds.has(video.videoId) && !blockedIds.has(video.videoId)
+  )
 
   const trimmedQuery = query.trim()
-  const searchResults = trimmedQuery ? searchVideos(trimmedQuery, videos) : []
+  const searchResults = trimmedQuery
+    ? searchVideos(trimmedQuery, videos).filter((video) => !blockedIds.has(video.videoId))
+    : []
 
   // The edit controls only render when onChange is present, so these
   // factories take the defined save function as an argument: calling the
@@ -147,7 +211,7 @@ export default function PatternVideoModal({
   )
 
   const videoRow = (video: PatternVideo, actions: (save: (videos: PatternVideo[]) => void) => ReactNode) => (
-    <li key={video.videoId} className="flex items-center gap-3 rounded-2xl border-2 border-line bg-card p-3">
+    <li key={video.videoId} className="flex items-center gap-2 rounded-2xl border-2 border-line bg-card p-3 sm:gap-3">
       <VideoThumbnail video={video} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold text-ink">{video.title}</p>
@@ -171,9 +235,7 @@ export default function PatternVideoModal({
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-ink">{title}</DialogTitle>
           <DialogDescription className="text-[14px] text-muted-foreground">
-            {onChange
-              ? 'Play a song for the class, or attach videos to this pattern.'
-              : 'Phonics songs for these spelling patterns. Pick one to play.'}
+            {onChange ? 'Play a song for the class, or attach videos to this pattern.' : browseDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -187,25 +249,43 @@ export default function PatternVideoModal({
         )}
 
         {playing ? (
-          <div className="space-y-4">
-            <Button type="button" variant="secondary" size="sm" onClick={() => setPlayingId(null)} className="gap-2">
-              <ArrowLeftIcon className="size-4" aria-hidden="true" />
-              Back to videos
-            </Button>
-            <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
-              <iframe
-                src={youtubeEmbedUrl(playing.videoId)}
-                title={playing.title}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+          showAddToList && adding ? (
+            <AddVideoToPatternFlow video={playing} onBack={() => setAdding(false)} onDone={onClose} />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPlayingId(null)}
+                  className="gap-2"
+                >
+                  <ArrowLeftIcon className="size-4" aria-hidden="true" />
+                  Back to videos
+                </Button>
+                {showAddToList && (
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setAdding(true)} className="gap-2">
+                    <PlusIcon className="size-4" aria-hidden="true" />
+                    Add to list
+                  </Button>
+                )}
+              </div>
+              <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
+                <iframe
+                  src={youtubeEmbedUrl(playing.videoId)}
+                  title={playing.title}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-ink">{playing.title}</p>
+                {playing.channel && <p className="text-[13px] text-muted-foreground">{playing.channel}</p>}
+              </div>
             </div>
-            <div>
-              <p className="text-[15px] font-bold text-ink">{playing.title}</p>
-              {playing.channel && <p className="text-[13px] text-muted-foreground">{playing.channel}</p>}
-            </div>
-          </div>
+          )
         ) : (
           <div className="space-y-6">
             <section aria-label={onChange ? 'Attached videos' : 'Videos'} className="space-y-3">
@@ -222,15 +302,26 @@ export default function PatternVideoModal({
                 <ul className="space-y-2">
                   {videos.map((video) =>
                     videoRow(video, (save) => (
-                      <button
-                        type="button"
-                        onClick={removeVideo(save, video.videoId)}
-                        aria-label={`Remove ${video.title}`}
-                        title={`Remove ${video.title}`}
-                        className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-coral-ink outline-none transition hover:bg-coral-soft focus-visible:bg-coral-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-                      >
-                        <XIcon className="size-5" aria-hidden="true" />
-                      </button>
+                      <>
+                        {onHideVideo && (
+                          <HideVideoButton
+                            video={video}
+                            onHide={() => {
+                              removeVideo(save, video.videoId)()
+                              onHideVideo(video)
+                            }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={removeVideo(save, video.videoId)}
+                          aria-label={`Remove ${video.title}`}
+                          title={`Remove ${video.title}`}
+                          className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-coral-ink outline-none transition hover:bg-coral-soft focus-visible:bg-coral-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                        >
+                          <XIcon className="size-5" aria-hidden="true" />
+                        </button>
+                      </>
                     ))
                   )}
                 </ul>
@@ -245,17 +336,20 @@ export default function PatternVideoModal({
                 <ul className="space-y-2">
                   {suggestions.map((video) =>
                     videoRow(video, (save) => (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={addVideo(save, video)}
-                        aria-label={`Add ${video.title}`}
-                        className="shrink-0 gap-1"
-                      >
-                        <PlusIcon className="size-4" aria-hidden="true" />
-                        Add
-                      </Button>
+                      <>
+                        {onHideVideo && <HideVideoButton video={video} onHide={() => onHideVideo(video)} />}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={addVideo(save, video)}
+                          aria-label={`Add ${video.title}`}
+                          className="shrink-0 gap-1"
+                        >
+                          <PlusIcon className="size-4" aria-hidden="true" />
+                          Add
+                        </Button>
+                      </>
                     ))
                   )}
                 </ul>
@@ -290,17 +384,20 @@ export default function PatternVideoModal({
                               Attached
                             </span>
                           ) : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              onClick={addVideo(save, video)}
-                              aria-label={`Add ${video.title}`}
-                              className="shrink-0 gap-1"
-                            >
-                              <PlusIcon className="size-4" aria-hidden="true" />
-                              Add
-                            </Button>
+                            <>
+                              {onHideVideo && <HideVideoButton video={video} onHide={() => onHideVideo(video)} />}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={addVideo(save, video)}
+                                aria-label={`Add ${video.title}`}
+                                className="shrink-0 gap-1"
+                              >
+                                <PlusIcon className="size-4" aria-hidden="true" />
+                                Add
+                              </Button>
+                            </>
                           )
                         )
                       })}

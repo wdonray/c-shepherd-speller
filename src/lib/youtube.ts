@@ -7,6 +7,14 @@
 /** YouTube video IDs are 11 chars from this alphabet. */
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 
+/**
+ * True when the value is a syntactically valid 11-character YouTube video
+ * ID (not a URL; use extractYouTubeId for those).
+ */
+export function isYouTubeVideoId(value: string): boolean {
+  return YOUTUBE_ID_PATTERN.test(value)
+}
+
 /** oEmbed lookup timeout: short, with no retries (repo reliability rule). */
 export const OEMBED_TIMEOUT_MS = 4000
 

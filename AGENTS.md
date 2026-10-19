@@ -83,6 +83,20 @@ credentials.
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **Hold teacher-scoped content until the session resolves.** A client page
+  that filters content by the signed-in teacher (e.g. hidden videos) must
+  hold its content while next-auth `status === 'loading'`, not just until
+  the teacher's list loads: on first paint the status is still loading, so
+  the page flashes unfiltered content and churns when the session lands
+  (found 2026-10-18: issue #439, the /videos grid).
+- **A bare `grid` blows out past fixed widths.** An implicit `auto` grid
+  column sizes to the largest min-content contribution, so any `nowrap`
+  descendant (`truncate` titles, long URLs) forces a fixed-width grid
+  container wider than its `max-w`. Constrain the column with
+  `minmax(0, 1fr)` (as the shared DialogContent does) or put `min-w-0` on
+  the grid items; `min-w-0` on a deeper flex child is not enough because
+  the blowout is measured at the grid level (found 2026-10-18: issue #434,
+  the song videos modal overflowed its dialog on mobile).
 - **Full screen must own its exit path.** When full screen hides the only
   visible exit control, register an explicit Escape handler that calls
   `document.exitFullscreen()`; native Esc-to-exit varies across classroom
@@ -134,6 +148,25 @@ credentials.
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Print emphasis must use borders, not rings or box-shadows.** Tailwind
+  `ring-*` paints via box-shadow, which printers skip when background
+  graphics are off, so ring-based emphasis silently vanishes on paper.
+  Real borders always print (found 2026-10-18: issue #455, word-search
+  answer key circles).
+- **Print routes with an interactive first step keep their chrome on
+  screen.** Stripping the site header/footer for a whole `/print` route
+  also strips them from screen-only steps like the sentence gap flow, which
+  then looks nothing like the page it came from. Keep the chrome on screen
+  and hide it only in print CSS (`print:hidden` on the header slot and
+  footer), so interactive steps match the rest of the app and the printed
+  job stays clean (found 2026-10-18: issue #436, Sentences needed page had
+  no header or back button).
+- **Native checkboxes need theme-adaptive accent colors.** A fixed
+  accent-color like `accent-black` renders as a washed-out gray in dark
+  mode (Chromium brightens dark accent colors under `color-scheme: dark`).
+  Use a token that adapts, e.g. `accent-ink`, which also matches the
+  checked card's `border-ink` highlight (found 2026-10-18: issue #435,
+  worksheet picker checkboxes).
 
 ## Reliability
 
@@ -144,6 +177,18 @@ credentials.
   boundary before handing data to components (found 2026-10-19: issue
   #458, the video-library client crashed the dashboard on a non-array
   body).
+- **A new third-party origin means a CSP update.** When a feature pulls
+  images, embeds, or API calls from an origin the app has not used before,
+  add that origin to the matching Content-Security-Policy directive in
+  `next.config.ts` in the same change: `img-src` for images, `frame-src`
+  for iframes, `connect-src` for fetches. The shipped CSP silently blocks
+  anything not listed, and the failure mode is invisible (blank thumbnails,
+  black embed boxes) with no error in the app (found 2026-10-18: issue
+  #438, song-video thumbnails broke because `i.ytimg.com` was never added
+  to `img-src`). When fixing a CSP gap, audit every directive the feature
+  touches in the same change, not just the one in the report: the #438 fix
+  added only `img-src`, so the song-video embeds stayed blocked until
+  #440 added the missing `frame-src` (found 2026-10-18).
 - **Prefer our own data over the network, and cap third-party timeouts.**
   Local-first lookups answer instantly; a flaky external API must never hold
   UI open. Browser-side calls to third-party services get a short timeout
@@ -163,3 +208,17 @@ credentials.
   the in-flight request, so the data never lands. Fetch per row on mount, or
   key the effect on a stable scalar (found 2026-10-18: issue #402, the
   sentence-suggestion fetch).
+- **Local e2e: verify port 3000 serves YOUR build before trusting a run.**
+  Playwright's `reuseExistingServer` attaches to whatever is already
+  listening, and with multiple workers on this VM that can be another
+  agent's server on a shared port. Seed failures against the wrong server
+  look like app bugs. Start your own server on a free port and point a
+  throwaway config at it instead (found 2026-10-18: the worksheets e2e
+  seeded against another worker's :3000).
+- **Assertions on async-driven button states must wait, not assert bare.**
+  The FakeAudio stub reports duration from a `setTimeout(0)` (a macrotask),
+  while the wall-clock time between fake Record and Stop clicks is a
+  fraction of a second, under the 1s save minimum. A bare
+  `toBeEnabled()/toBeDisabled()` on the Save button races that timer and
+  flakes in CI; use `await waitFor(() => ...)` so the test settles after the
+  metadata lands (found 2026-10-18: issue #435, VoiceRecorderModal flake).

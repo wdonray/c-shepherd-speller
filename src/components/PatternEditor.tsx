@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { WORD_SUGGESTIONS } from '@/data/word-suggestions'
 import { wordMatchesPattern } from '@/lib/word-pattern-match'
 import { useMediaQuery } from '@/lib/use-media-query'
+import { useBlockedVideos } from '@/hooks/useBlockedVideos'
 import {
   MICROPHONE_REQUEST_TIMEOUT_MS,
   hasRecording,
@@ -118,6 +119,8 @@ export default function PatternEditor({
   const [recordingWord, setRecordingWord] = useState<string | null>(null)
   /** Whether the song-videos modal (issue #401) is open. */
   const [videosOpen, setVideosOpen] = useState(false)
+  /** The teacher's hidden videos, for filtering suggestions and search (issue #443). */
+  const { blockedVideoIds, blockVideo, userId } = useBlockedVideos()
   /** Attached song-video count; undefined reads as zero. */
   const videoCount = pattern.videos?.length ?? 0
   /**
@@ -690,6 +693,8 @@ export default function PatternEditor({
             videos={pattern.videos ?? []}
             onChange={(videos) => update({ videos: videos.length > 0 ? videos : undefined })}
             suggestionPattern={pattern.pattern}
+            blockedVideoIds={[...blockedVideoIds]}
+            onHideVideo={userId ? (video) => void blockVideo(video) : undefined}
             onClose={() => setVideosOpen(false)}
           />
         )}

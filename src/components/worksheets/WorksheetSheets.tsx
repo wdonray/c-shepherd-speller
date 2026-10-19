@@ -36,6 +36,22 @@ export function highlightWord(sentence: string, word: string): ReactNode {
   )
 }
 
+/**
+ * Fisher-Yates shuffle (issue #452). Returns a new array; the input is not
+ * mutated. Used for the cut-and-sort word bank so same-pattern words do not
+ * sit next to each other and give away the sort.
+ */
+export function shuffleWords(words: string[]): string[] {
+  const copy = [...words]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = temp
+  }
+  return copy
+}
+
 /** One worksheet section of the print job. Never splits across pages. */
 export function WorksheetSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -82,7 +98,9 @@ export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
  * empty columns to sort them under. Key: the columns filled in.
  */
 export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]; answerKey: boolean }) {
-  const words = groups.flatMap((group) => group.words)
+  // The student cut-out bank is shuffled so same-pattern words do not sit
+  // next to each other. The answer-key columns stay grouped by pattern.
+  const words = shuffleWords(groups.flatMap((group) => group.words))
   return (
     <WorksheetSection title="Cut and sort">
       {!answerKey && (
@@ -92,7 +110,7 @@ export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]
             {words.map((word) => (
               <div
                 key={word}
-                className="flex min-h-12 min-w-24 items-center justify-center rounded-lg border-2 border-dashed border-black px-4 py-2 text-lg font-bold text-black"
+                className="flex min-h-20 min-w-36 items-center justify-center rounded-lg border-2 border-dashed border-black px-6 py-4 text-2xl font-bold text-black"
               >
                 {word}
               </div>
@@ -170,7 +188,7 @@ function BlankedSentence({ item }: { item: FillBlankItem }) {
 
 /**
  * 4. Word search. Student: the letter grid and a word bank. Key: the grid
- * with each found word underlined.
+ * with each found word circled with bolder letters.
  */
 export function WordSearchSheet({ result, answerKey }: { result: WordSearchResult; answerKey: boolean }) {
   const placedCells = new Set<string>()
@@ -190,7 +208,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
                 <td
                   key={c}
                   className={`h-8 w-8 border border-neutral-400 text-center font-mono text-lg text-black ${
-                    placedCells.has(`${r},${c}`) ? 'font-bold underline decoration-2' : ''
+                    placedCells.has(`${r},${c}`) ? 'rounded-full border-2 border-black font-black' : ''
                   }`}
                 >
                   {letter}
@@ -210,8 +228,9 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
 }
 
 /**
- * 5. Crossword. Clues are sentences using each word. Student: numbered
- * empty grid plus clue lists. Key: the completed grid.
+ * 5. Crossword. Clues are sentences with the spelling word blanked out,
+ * plus an alphabetical word bank. Student: numbered empty grid plus clue
+ * lists. Key: the completed grid.
  */
 export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult; answerKey: boolean }) {
   const across = result.placements.filter((p) => p.direction === 'across')
@@ -274,6 +293,13 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
           </ol>
         </div>
       </div>
+      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <p className="text-black">
+        {result.placements
+          .map((p) => p.word)
+          .sort((a, b) => a.localeCompare(b))
+          .join(', ')}
+      </p>
       {result.unplaced.length > 0 && (
         <p className="mt-2 text-black">These words did not fit in the puzzle: {result.unplaced.join(', ')}.</p>
       )}
@@ -281,20 +307,52 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
   )
 }
 
-/** 6. Reading practice: one sentence per word. The key repeats the sentences. */
-export function ReadingSheet({ items }: { items: { word: string; sentence: string }[] }) {
+/**
+ * 6. Reading practice. Student: sentences with the spelling word blanked
+ * out, plus an alphabetical word bank (issue #454). Key: the completed
+ * sentences.
+ */
+export function ReadingSheet({
+  items,
+  answerKey,
+}: {
+  items: { word: string; sentence: string }[]
+  answerKey: boolean
+}) {
   return (
     <WorksheetSection title="Reading practice">
-      <p className="text-black">Read each sentence aloud. Listen for the spelling pattern in the bold word.</p>
+      <p className="text-black">
+        {answerKey ? 'Completed sentences.' : 'Read each sentence. Fill in each blank with a word from the word bank.'}
+      </p>
       <ol className="mt-4 list-decimal space-y-3 pl-6">
         {items.map((item) => (
           <li key={item.word} className="text-black">
-            {highlightWord(item.sentence, item.word)}
+            {answerKey ? highlightWord(item.sentence, item.word) : <BlankedReadingSentence item={item} />}
           </li>
         ))}
       </ol>
+      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <p className="text-black">
+        {items
+          .map((item) => item.word)
+          .sort((a, b) => a.localeCompare(b))
+          .join(', ')}
+      </p>
     </WorksheetSection>
   )
+}
+
+/**
+ * Render a reading sentence with its whole spelling word replaced by a
+ * blank. Reuses the fill-in-the-blank blank rendering so the two sheets
+ * share one blank style.
+ */
+function BlankedReadingSentence({ item }: { item: { word: string; sentence: string } }) {
+  const parts = splitOnFirst(item.sentence, item.word)
+  if (!parts) return <>{item.sentence}</>
+  const [before, , after] = parts
+  const blankedWord = '_'.repeat(item.word.length)
+  return <BlankedSentence item={{ ...item, blankedSentence: `${before}${blankedWord}${after}`, blankedWord }} />
 }
 
 const PARENT_PRACTICE_IDEAS = [
