@@ -222,6 +222,12 @@ credentials.
   boundary before handing data to components (found 2026-10-19: issue
   #458, the video-library client crashed the dashboard on a non-array
   body).
+- **A named import from a component module drags its whole dependency graph
+  into your route's shared chunk.** This package has no `sideEffects: false`,
+  so `import { touchDragLiftModifier } from './SortActivity'` shipped
+  motion, @dnd-kit and canvas-confetti (199 kB) inside /lists's initial
+  bundle for one tiny function. Keep helpers shared across routes in a
+  dependency-free lib module instead (found 2026-10-19: issue #482).
 - **A new third-party origin means a CSP update.** When a feature pulls
   images, embeds, or API calls from an origin the app has not used before,
   add that origin to the matching Content-Security-Policy directive in
