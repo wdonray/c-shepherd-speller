@@ -24,7 +24,7 @@ const MAX_PATTERNS_PER_LIST = 20
 type View =
   | { name: 'loading' }
   | { name: 'loadError' }
-  | { name: 'pick'; lists: WordList[] }
+  | { name: 'pick' }
   | { name: 'saving' }
   | { name: 'saveError' }
   | { name: 'done'; targetId: string; targetName: string; added: number; addedWords: number; skipped: number }
@@ -47,6 +47,10 @@ interface PullPatternsModalProps {
 export default function PullPatternsModal({ week, onClose }: PullPatternsModalProps) {
   const router = useRouter()
   const [view, setView] = useState<View>({ name: 'loading' })
+  // The teacher's lists live outside `view` so a save failure (which changes
+  // the view) never drops the loaded lists or the selected target: retry
+  // works from the same state.
+  const [lists, setLists] = useState<WordList[] | null>(null)
   const [targetId, setTargetId] = useState<string>('new')
   const [newListName, setNewListName] = useState(week.title)
   const [checked, setChecked] = useState<boolean[]>(() => week.patterns.map(() => true))
@@ -54,9 +58,10 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
   const loadLists = () => {
     setView({ name: 'loading' })
     getLists().then(
-      (lists) => {
-        setTargetId(lists.length > 0 ? lists[0].id : 'new')
-        setView({ name: 'pick', lists })
+      (fetched) => {
+        setLists(fetched)
+        setTargetId(fetched.length > 0 ? fetched[0].id : 'new')
+        setView({ name: 'pick' })
       },
       () => setView({ name: 'loadError' })
     )
@@ -69,9 +74,9 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
   }, [])
 
   const targetList: WordList | null = useMemo(() => {
-    if (view.name !== 'pick' || targetId === 'new') return null
-    return view.lists.find((l) => l.id === targetId) ?? null
-  }, [view, targetId])
+    if (targetId === 'new') return null
+    return lists?.find((l) => l.id === targetId) ?? null
+  }, [lists, targetId])
 
   const selectedIndices = useMemo(() => checked.map((c, i) => (c ? i : -1)).filter((i) => i >= 0), [checked])
 
@@ -181,11 +186,11 @@ export default function PullPatternsModal({ week, onClose }: PullPatternsModalPr
 
         {(view.name === 'pick' || view.name === 'saving' || view.name === 'saveError') && (
           <div className="space-y-6">
-            {view.name === 'pick' && view.lists.length > 0 && (
+            {view.name === 'pick' && lists !== null && lists.length > 0 && (
               <fieldset>
                 <legend className="text-[15px] font-bold text-ink">Add to</legend>
                 <div className="mt-2 space-y-2">
-                  {view.lists.map((list) => (
+                  {lists.map((list) => (
                     <label
                       key={list.id}
                       className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-[16px] border-2 border-line bg-card p-3"

@@ -258,6 +258,39 @@ describe('PullPatternsModal', () => {
     expect(addButton).toBeDisabled()
   })
 
+  it('retries an existing-list update after a save failure without losing the target', async () => {
+    const target = makeList({
+      id: 'list_5',
+      name: 'Target',
+      patterns: [makePattern({ id: 'pz', sound: 'short a', pattern: 'a' })],
+    })
+    getLists.mockResolvedValue([target])
+    updateList.mockRejectedValueOnce(new Error('nope')).mockResolvedValueOnce(target)
+    render(<PullPatternsModal week={week} onClose={onClose} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Target')).toBeInTheDocument()
+    })
+
+    const addButton = screen.getByRole('button', { name: `Add ${week.patterns.length} patterns to Target` })
+    fireEvent.click(addButton)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not add the patterns')
+    })
+
+    // The target list is still selected: the retry button still names it,
+    // and the retry goes through.
+    const retryButton = screen.getByRole('button', { name: `Add ${week.patterns.length} patterns to Target` })
+    fireEvent.click(retryButton)
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Added')
+    })
+    expect(updateList).toHaveBeenCalledTimes(2)
+    expect(updateList).toHaveBeenLastCalledWith('list_5', expect.objectContaining({ patterns: expect.any(Array) }))
+  })
+
   it('returns to the picker with selections intact when saving fails', async () => {
     getLists.mockResolvedValue([])
     createList.mockRejectedValueOnce(new Error('nope')).mockResolvedValueOnce(makeList({ id: 'list_new_2' }))
