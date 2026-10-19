@@ -425,4 +425,82 @@ describe('db-utils', () => {
       expect(console.error).toHaveBeenCalled()
     })
   })
+
+  describe('addVideoToUserLibrary concurrency (issue #473)', () => {
+    const videoA = { videoId: 'aaa11111', title: 'Video A', source: 'custom' as const }
+    const videoB = { videoId: 'bbb22222', title: 'Video B', source: 'custom' as const }
+
+    // In-memory DynamoDB stand-in that honors ConditionExpression on the
+    // videoLibrary attribute, so a test can replay the real race: two
+    // requests read the same library, then each writes its own append.
+    function mockRaceStore(initial: Record<string, unknown>) {
+      let item = JSON.parse(JSON.stringify(initial)) as Record<string, unknown> & {
+        videoLibrary?: { videoId: string }[]
+      }
+      const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value))
+      send.mockImplementation(async (command: { input: Record<string, unknown> }) => {
+        if (command.input.UpdateExpression) {
+          const condition = command.input.ConditionExpression as string | undefined
+          const values = (command.input.ExpressionAttributeValues ?? {}) as Record<string, unknown>
+          const holds =
+            condition === undefined ||
+            (condition === 'attribute_not_exists(videoLibrary)'
+              ? item.videoLibrary === undefined
+              : condition === 'videoLibrary = :expectedLibrary' &&
+                JSON.stringify(item.videoLibrary) === JSON.stringify(values[':expectedLibrary']))
+          if (!holds) {
+            const conflict = new Error('The conditional request failed')
+            conflict.name = 'ConditionalCheckFailedException'
+            throw conflict
+          }
+          item = {
+            ...item,
+            videoLibrary: copy(values[':videos'] as { videoId: string }[]),
+            updatedAt: values[':now'] as string,
+          }
+          return { Attributes: copy(item) }
+        }
+        return { Item: copy(item) }
+      })
+      return () => item.videoLibrary ?? []
+    }
+
+    it('keeps both videos when two pastes race', async () => {
+      const readLibrary = mockRaceStore(storedUser)
+      await Promise.all([addVideoToUserLibrary('abc-user', videoA), addVideoToUserLibrary('abc-user', videoB)])
+      const library = readLibrary()
+      expect(library).toHaveLength(2)
+      expect(library.map((entry) => entry.videoId).sort()).toEqual(['aaa11111', 'bbb22222'])
+    })
+
+    it('retries the write once when a concurrent write wins the race', async () => {
+      const conflict = new Error('The conditional request failed')
+      conflict.name = 'ConditionalCheckFailedException'
+      send
+        .mockResolvedValueOnce({ Item: storedUser })
+        .mockRejectedValueOnce(conflict)
+        .mockResolvedValueOnce({ Item: { ...storedUser, videoLibrary: [videoB] } })
+        .mockResolvedValueOnce({ Attributes: { ...storedUser, videoLibrary: [videoB, videoA] } })
+      const result = await addVideoToUserLibrary('abc-user', videoA)
+      expect(result).toEqual([videoB, videoA])
+      expect(send).toHaveBeenCalledTimes(4)
+      const firstWrite = send.mock.calls[1][0]
+      const retryWrite = send.mock.calls[3][0]
+      expect(firstWrite.input.ConditionExpression).toBe('attribute_not_exists(videoLibrary)')
+      expect(retryWrite.input.ConditionExpression).toBe('videoLibrary = :expectedLibrary')
+      expect(retryWrite.input.ExpressionAttributeValues[':expectedLibrary']).toEqual([videoB])
+    })
+
+    it('throws after repeated write conflicts instead of looping forever', async () => {
+      const conflict = new Error('The conditional request failed')
+      conflict.name = 'ConditionalCheckFailedException'
+      send.mockImplementation(async (command: { input: Record<string, unknown> }) => {
+        if (command.input.UpdateExpression) throw conflict
+        return { Item: { ...storedUser } }
+      })
+      await expect(addVideoToUserLibrary('abc-user', videoA)).rejects.toThrow('The conditional request failed')
+      // 3 attempts x (1 read + 1 write)
+      expect(send).toHaveBeenCalledTimes(6)
+    })
+  })
 })

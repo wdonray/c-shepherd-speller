@@ -195,6 +195,15 @@ credentials.
   (a few seconds) and no retries (found 2026-10-17: dictionaryapi.dev
   flaked, and the sentences dialog sat on a spinner for ~21s before falling
   back to the local bank).
+- **Condition read-modify-write updates on the value you read.** A read,
+  in-memory append, and unconditional `SET` silently drops a concurrent
+  writer: the second write overwrites the first and neither request fails.
+  Put a ConditionExpression on the update (`attribute_not_exists(attr)` when
+  the read found nothing, `attr = :expected` with the exact value read
+  otherwise) and retry the read-write loop a bounded number of times on
+  ConditionalCheckFailedException. De-dupe and cap logic re-runs on the
+  fresh read inside the loop (found 2026-10-19: issue #473, concurrent video
+  pastes dropped a video from the personal library).
 
 ## Testing
 

@@ -310,36 +310,64 @@ export async function getUserVideoLibrary(userId: string): Promise<PatternVideo[
  * (issue #458). De-duplicated by video ID: pasting the same link on
  * another pattern does not duplicate it in her collection. Returns the
  * updated library. Throws when the user does not exist.
+ *
+ * Two pastes in quick succession (or from two tabs) race: each request
+ * reads the library, appends in memory, and writes it back. An
+ * unconditional write lets the second request silently overwrite the
+ * first video (issue #473). The write is therefore conditional on the
+ * library still being exactly what this call read (attribute_not_exists
+ * when the teacher has no library yet), and a lost race re-reads and
+ * retries up to VIDEO_LIBRARY_WRITE_MAX_ATTEMPTS times.
  */
+const VIDEO_LIBRARY_WRITE_MAX_ATTEMPTS = 3
+
 export async function addVideoToUserLibrary(userId: string, video: PatternVideo): Promise<PatternVideo[]> {
-  const existingUser = await getUserById(userId)
-  if (!existingUser) {
-    throw new Error('User not found')
-  }
-  const library = existingUser.videoLibrary ?? []
-  if (library.some((entry) => entry.videoId === video.videoId)) {
-    return library
-  }
-  const updated = [...library, video].slice(-VIDEO_LIBRARY_MAX)
   const keys = getUserKeys(userId)
-  const command = new UpdateCommand({
-    TableName: USER_TABLE_NAME,
-    Key: keys,
-    UpdateExpression: 'SET videoLibrary = :videos, updatedAt = :now',
-    ExpressionAttributeValues: {
-      ':videos': updated,
-      ':now': new Date().toISOString(),
-    },
-    ReturnValues: 'ALL_NEW',
-  })
-  try {
-    const result = await docClient.send(command)
-    const attributes = result.Attributes as IUser
-    return attributes.videoLibrary ?? updated
-  } catch (error) {
-    console.error('Error adding video to user library:', error)
-    throw error
+  let lastConflict: unknown = null
+  for (let attempt = 0; attempt < VIDEO_LIBRARY_WRITE_MAX_ATTEMPTS; attempt++) {
+    const existingUser = await getUserById(userId)
+    if (!existingUser) {
+      throw new Error('User not found')
+    }
+    const library = existingUser.videoLibrary ?? []
+    if (library.some((entry) => entry.videoId === video.videoId)) {
+      return library
+    }
+    const updated = [...library, video].slice(-VIDEO_LIBRARY_MAX)
+    const command = new UpdateCommand({
+      TableName: USER_TABLE_NAME,
+      Key: keys,
+      UpdateExpression: 'SET videoLibrary = :videos, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':videos': updated,
+        ':now': new Date().toISOString(),
+        // Only included when the read library existed: DynamoDB rejects
+        // undefined expression values, and the absent-library case uses
+        // attribute_not_exists which references no value.
+        ...(existingUser.videoLibrary === undefined ? {} : { ':expectedLibrary': existingUser.videoLibrary }),
+      },
+      ConditionExpression:
+        existingUser.videoLibrary === undefined
+          ? 'attribute_not_exists(videoLibrary)'
+          : 'videoLibrary = :expectedLibrary',
+      ReturnValues: 'ALL_NEW',
+    })
+    try {
+      const result = await docClient.send(command)
+      const attributes = result.Attributes as IUser
+      return attributes.videoLibrary ?? updated
+    } catch (error) {
+      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+        // Another request appended first; re-read and try again.
+        lastConflict = error
+        continue
+      }
+      console.error('Error adding video to user library:', error)
+      throw error
+    }
   }
+  console.error('Error adding video to user library: write conflict after retries', lastConflict)
+  throw lastConflict
 }
 
 export async function updateUserLastActive(userId: string) {
