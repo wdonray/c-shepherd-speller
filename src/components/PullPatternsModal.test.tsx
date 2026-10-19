@@ -346,6 +346,25 @@ describe('PullPatternsModal', () => {
     })
   })
 
+  it('falls back to the week title when the new list name is blank', async () => {
+    getLists.mockResolvedValue([])
+    const created = makeList({ id: 'list_new_4', name: 'Grade 2 - Week 6' })
+    createList.mockResolvedValue(created)
+    render(<PullPatternsModal week={week} onClose={onClose} />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('New list name')).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText('New list name'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: `Add ${week.patterns.length} patterns` }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Added')
+    })
+    expect(createList).toHaveBeenCalledWith(expect.objectContaining({ name: 'Grade 2 - Week 6' }))
+  })
+
   it('closes the modal from the done view', async () => {
     getLists.mockResolvedValue([])
     createList.mockResolvedValue(makeList({ id: 'list_new_3' }))
