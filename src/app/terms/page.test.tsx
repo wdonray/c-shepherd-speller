@@ -49,7 +49,7 @@ describe('TermsOfServicePage', () => {
 
   it('shows the updated effective date', () => {
     render(<TermsOfServicePage />)
-    expect(screen.getAllByText(/october 18, 2026/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/october 19, 2026/i).length).toBeGreaterThan(0)
   })
 
   it('states the teacher owns their content', () => {
@@ -64,5 +64,16 @@ describe('TermsOfServicePage', () => {
     const contactLinks = screen.getAllByRole('link', { name: 'donrayxwilliams@gmail.com' })
     expect(contactLinks.length).toBeGreaterThan(0)
     expect(contactLinks[0]).toHaveAttribute('href', 'mailto:donrayxwilliams@gmail.com')
+  })
+})
+
+describe('TermsOfServicePage prebuilt content (issue #463)', () => {
+  it('licenses prebuilt lists for classroom use with no curriculum affiliation', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getByRole('heading', { name: /prebuilt content/i, level: 2 })).toBeInTheDocument()
+    expect(screen.getAllByText(/non-exclusive, non-transferable license/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(/not affiliated with, endorsed by, or aligned to any curriculum/i).length
+    ).toBeGreaterThan(0)
   })
 })

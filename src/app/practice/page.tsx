@@ -6,6 +6,8 @@ import Link from 'next/link'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { Button } from '@/components/ui/button'
 import { getList, getLists } from '@/lib/lists-api'
+import { getPrebuiltWeek, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
+import PrebuiltBadge from '@/components/PrebuiltBadge'
 import type { WordList } from '@/models/WordList'
 import PracticeMode from '@/components/PracticeMode'
 import WordListCard from '@/components/WordListCard'
@@ -21,6 +23,9 @@ function PracticeInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const listId = searchParams.get('list')
+  // A prebuilt week practices directly from the bundled curriculum data
+  // (issue #463): no API fetch, read-only list.
+  const prebuiltId = searchParams.get('prebuilt')
 
   const [list, setList] = useState<WordList | null>(null)
   const [allLists, setAllLists] = useState<WordList[]>([])
@@ -33,7 +38,11 @@ function PracticeInner() {
 
     const load = async () => {
       try {
-        if (listId) {
+        if (prebuiltId) {
+          const week = getPrebuiltWeek(prebuiltId)
+          if (!week) throw new Error(`Unknown prebuilt week: ${prebuiltId}`)
+          setList(prebuiltWeekToWordList(week))
+        } else if (listId) {
           const data = await getList(listId)
           setList(data)
         } else {
@@ -48,7 +57,7 @@ function PracticeInner() {
       }
     }
     load()
-  }, [listId])
+  }, [listId, prebuiltId])
 
   if (loading) {
     return (
@@ -96,7 +105,7 @@ function PracticeInner() {
     )
   }
 
-  if (!listId || !list) {
+  if ((!listId && !prebuiltId) || !list) {
     return (
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-6xl space-y-8 px-4 py-6">
@@ -140,7 +149,7 @@ function PracticeInner() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PracticeMode list={list} onExit={() => router.push('/practice')} />
+      <PracticeMode list={list} onExit={() => router.push('/practice')} isPrebuilt={prebuiltId !== null} />
     </div>
   )
 }

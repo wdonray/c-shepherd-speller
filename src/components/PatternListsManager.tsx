@@ -111,6 +111,13 @@ export default function PatternListsManager() {
     [router]
   )
 
+  // Empty-state guide (issue #463): scrolls to the prebuilt library section
+  // on this same page. scroll-mt-20 on the section keeps it clear of the
+  // sticky site header.
+  const scrollToPrebuiltLibrary = useCallback(() => {
+    document.getElementById('prebuilt-library')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
   const favorites = useMemo(() => sortFavorites(lists), [lists])
   const showFavoritesTab = favorites.length > 0
   // A stored "favorites" view with no favorites falls back to All.
@@ -426,12 +433,17 @@ export default function PatternListsManager() {
             <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
               <p className="text-xl font-bold">No word lists yet</p>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Create your first list to organize words by spelling pattern.
+                Build your own from scratch, or start from 162 weeks of ready-made pattern lists and make them yours.
               </p>
-              <Button onClick={() => router.push('/lists/new')} className="mt-6">
-                <PlusIcon className="size-4" />
-                New list
-              </Button>
+              <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <Button onClick={() => router.push('/lists/new')}>
+                  <PlusIcon className="size-4" />
+                  Create your own list
+                </Button>
+                <Button variant="secondary" onClick={scrollToPrebuiltLibrary}>
+                  Start from a prebuilt list
+                </Button>
+              </div>
             </div>
           ) : (
             <DndContext

@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Loader2, PrinterIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getListWithClassroom, getLists, updateList } from '@/lib/lists-api'
+import { getPrebuiltWeek, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
+import PrebuiltBadge from './PrebuiltBadge'
 import { getAssignedWeeks, type WordList, type PatternVideo } from '@/models/WordList'
 import PatternChartDisplay from './PatternChartDisplay'
 import ChartActionsMenu from './ChartActionsMenu'
@@ -58,6 +60,10 @@ export function DisplayLoadingSpinner({ label }: { label: string }) {
 function DisplayModeInner() {
   const searchParams = useSearchParams()
   const listId = searchParams.get('list')
+  // A prebuilt week presents directly from the bundled curriculum data
+  // (issue #463): no API fetch, no classroom, read-only chart.
+  const prebuiltId = searchParams.get('prebuilt')
+  const isPrebuilt = prebuiltId !== null
 
   const [list, setList] = useState<WordList | null>(null)
   const [allLists, setAllLists] = useState<WordList[]>([])
@@ -196,7 +202,11 @@ function DisplayModeInner() {
 
     const load = async () => {
       try {
-        if (listId) {
+        if (prebuiltId) {
+          const week = getPrebuiltWeek(prebuiltId)
+          if (!week) throw new Error(`Unknown prebuilt week: ${prebuiltId}`)
+          setList(prebuiltWeekToWordList(week))
+        } else if (listId) {
           const { list: data, classroom } = await getListWithClassroom(listId)
           setList(data)
           setClassName(classroom?.name ?? null)
@@ -213,12 +223,12 @@ function DisplayModeInner() {
       }
     }
     load()
-  }, [listId])
+  }, [listId, prebuiltId])
 
   if (loading) {
     // The present page's layout is unknowable while loading (issue #366):
     // a centered spinner, never a skeleton that pretends to know it.
-    return <DisplayLoadingSpinner label={!listId ? 'Loading lists' : 'Loading chart'} />
+    return <DisplayLoadingSpinner label={!listId && !prebuiltId ? 'Loading lists' : 'Loading chart'} />
   }
 
   if (loadError) {
@@ -239,7 +249,7 @@ function DisplayModeInner() {
   }
 
   // No list selected: show the picker.
-  if (!listId || !list) {
+  if ((!listId && !prebuiltId) || !list) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <div className="sticky top-0 z-10 border-b-2 border-line bg-card">
@@ -317,6 +327,7 @@ function DisplayModeInner() {
                 click returns to the list picker. */}
             <BackBreadcrumb href="/display" label="Present a list" />
             <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-ink">{list.name}</h1>
+            {isPrebuilt && <PrebuiltBadge />}
             {/* The list's classroom, clearly shown (issue #263): this is what
                 the old sort-entry picker communicated, now visible up front. */}
             <span
@@ -334,12 +345,15 @@ function DisplayModeInner() {
             <div className="hidden shrink-0 items-center gap-2 sm:flex">
               <RulesVisibilityToggle showRules={showRules} onToggle={() => setShowRules((v) => !v)} />
               <WordUnderlineToggle showUnderlines={showUnderlines} onToggle={() => setShowUnderlines((v) => !v)} />
-              <Button variant="secondary" size="sm" asChild>
-                <Link href={`/lists/${list.id}/print`}>
-                  <PrinterIcon className="size-4" aria-hidden="true" />
-                  Print chart
-                </Link>
-              </Button>
+              {/* No print route exists for prebuilt weeks (issue #463). */}
+              {!isPrebuilt && (
+                <Button variant="secondary" size="sm" asChild>
+                  <Link href={`/lists/${list.id}/print`}>
+                    <PrinterIcon className="size-4" aria-hidden="true" />
+                    Print chart
+                  </Link>
+                </Button>
+              )}
             </div>
             <Button size="sm" onClick={() => setSortMode(true)} className="shrink-0">
               Sort words
@@ -347,15 +361,18 @@ function DisplayModeInner() {
             <div className="hidden shrink-0 sm:block">
               <FullscreenButton />
             </div>
-            <div className="shrink-0 sm:hidden">
-              <ChartActionsMenu
-                listId={list.id}
-                showRules={showRules}
-                onToggleRules={() => setShowRules((v) => !v)}
-                showUnderlines={showUnderlines}
-                onToggleUnderlines={() => setShowUnderlines((v) => !v)}
-              />
-            </div>
+            {/* ChartActionsMenu carries a print link with no prebuilt target. */}
+            {!isPrebuilt && (
+              <div className="shrink-0 sm:hidden">
+                <ChartActionsMenu
+                  listId={list.id}
+                  showRules={showRules}
+                  onToggleRules={() => setShowRules((v) => !v)}
+                  showUnderlines={showUnderlines}
+                  onToggleUnderlines={() => setShowUnderlines((v) => !v)}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -383,10 +400,17 @@ function DisplayModeInner() {
         ) : (
           <PatternChartDisplay
             list={list}
-            onToggleLock={(patternId) => handleToggleLock(patternId, list)}
+            // Prebuilt weeks are read-only: no lock toggles, rule edits, or
+            // video saves (issue #463). The callbacks stay undefined, exactly
+            // like the library preview.
+            onToggleLock={isPrebuilt ? undefined : (patternId) => handleToggleLock(patternId, list)}
             classRules={classRules}
-            onSaveRule={(patternId, patternText, rule) => handleSaveRule(patternId, patternText, rule, list)}
-            onSaveVideos={(patternId, videos) => handleSaveVideos(patternId, videos, list)}
+            onSaveRule={
+              isPrebuilt
+                ? undefined
+                : (patternId, patternText, rule) => handleSaveRule(patternId, patternText, rule, list)
+            }
+            onSaveVideos={isPrebuilt ? undefined : (patternId, videos) => handleSaveVideos(patternId, videos, list)}
             className={className}
             showRules={showRules}
             showUnderlines={showUnderlines}

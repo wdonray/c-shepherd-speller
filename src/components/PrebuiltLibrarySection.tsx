@@ -46,7 +46,7 @@ export default function PrebuiltLibrarySection() {
   }, [grade, query, searching])
 
   return (
-    <section aria-labelledby="prebuilt-library-heading" className="pt-4">
+    <section id="prebuilt-library" aria-labelledby="prebuilt-library-heading" className="pt-4 scroll-mt-20">
       <h3 id="prebuilt-library-heading" className="text-lg font-bold">
         Prebuilt library
       </h3>

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getList } from '@/lib/lists-api'
+import { prebuiltWeekToWordList, type PrebuiltWeek } from '@/lib/prebuilt-lists'
+import PrebuiltBadge from '@/components/PrebuiltBadge'
 import { extractWorksheetWords, WORKSHEET_TYPES, type WorksheetType } from '@/lib/worksheets'
 import type { WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
@@ -47,19 +49,36 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
  * Worksheet picker for one list (issue #402). Every type is selected by
  * default; the teacher unchecks what they do not want and prints the rest
  * as one job, answer keys included.
+ *
+ * Pass `prebuiltWeek` instead of `listId` to pick worksheets for a prebuilt
+ * curriculum week (issue #463): the list loads from the bundled data, no
+ * API fetch, and the print job routes under /lists/prebuilt.
  */
-export default function WorksheetPicker({ listId }: { listId: string }) {
+export default function WorksheetPicker({ listId, prebuiltWeek }: { listId?: string; prebuiltWeek?: PrebuiltWeek }) {
   const router = useRouter()
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [list, setList] = useState<WordList | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [selected, setSelected] = useState<Set<WorksheetType>>(new Set(WORKSHEET_TYPES))
 
+  // Routes and labels for the back link and the print job: prebuilt weeks
+  // live under /lists/prebuilt, teacher lists under /lists.
+  const backHref = prebuiltWeek ? `/lists/prebuilt/${prebuiltWeek.id}` : `/lists/${listId}`
+  const backLabel = prebuiltWeek ? 'Back to preview' : 'Back to editing'
+  const printBase = prebuiltWeek
+    ? `/lists/prebuilt/${prebuiltWeek.id}/worksheets/print`
+    : `/lists/${listId}/worksheets/print`
+
   useEffect(() => {
+    if (prebuiltWeek) {
+      setList(prebuiltWeekToWordList(prebuiltWeek))
+      setLoadState('ready')
+      return
+    }
     let cancelled = false
     async function load() {
       try {
-        const data = await getList(listId)
+        const data = await getList(listId!)
         if (!cancelled) {
           setList(data)
           setLoadState('ready')
@@ -75,7 +94,7 @@ export default function WorksheetPicker({ listId }: { listId: string }) {
     return () => {
       cancelled = true
     }
-  }, [listId, retryCount])
+  }, [listId, prebuiltWeek, retryCount])
 
   const toggleType = (type: WorksheetType) => {
     setSelected((prev) => {
@@ -91,7 +110,7 @@ export default function WorksheetPicker({ listId }: { listId: string }) {
 
   const handlePrint = () => {
     const ordered = WORKSHEET_TYPES.filter((type) => selected.has(type))
-    router.push(`/lists/${listId}/worksheets/print?types=${ordered.join(',')}`)
+    router.push(`${printBase}?types=${ordered.join(',')}`)
   }
 
   if (loadState === 'loading') {
@@ -132,10 +151,13 @@ export default function WorksheetPicker({ listId }: { listId: string }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <Link href={`/lists/${listId}`} className="text-sm font-bold text-sky-ink hover:underline">
-        &larr; Back to editing
+      <Link href={backHref} className="text-sm font-bold text-sky-ink hover:underline">
+        &larr; {backLabel}
       </Link>
-      <h1 className="mt-2 text-3xl font-bold">Printable worksheets</h1>
+      <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold">
+        Printable worksheets
+        {prebuiltWeek && <PrebuiltBadge />}
+      </h1>
       <p className="mt-2 text-[15px] text-muted-foreground">
         Pick worksheets for &ldquo;{list.name}&rdquo;. They print as one job, and every worksheet comes with its own
         answer key.
@@ -148,7 +170,7 @@ export default function WorksheetPicker({ listId }: { listId: string }) {
             Add words to at least one unlocked pattern first. Locked patterns stay hidden until they are taught.
           </p>
           <Button asChild variant="secondary" className="mt-4">
-            <Link href={`/lists/${listId}`}>Back to editing</Link>
+            <Link href={backHref}>{backLabel}</Link>
           </Button>
         </div>
       ) : (

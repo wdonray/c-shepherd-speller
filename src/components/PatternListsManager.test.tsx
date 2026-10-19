@@ -159,7 +159,8 @@ describe('PatternListsManager', () => {
 
     await screen.findByText('No word lists yet')
     // Only the empty-state CTA renders; the header-row button is hidden.
-    expect(screen.getAllByRole('button', { name: /new list/i })).toHaveLength(1)
+    // The empty state now labels it "Create your own list" (issue #463).
+    expect(screen.getAllByRole('button', { name: /create your own list/i })).toHaveLength(1)
     unmount()
 
     getLists.mockResolvedValue([list, list2])
@@ -206,7 +207,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('No word lists yet')
-    fireEvent.click(screen.getByRole('button', { name: 'New list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create your own list' }))
 
     expect(mockPush).toHaveBeenCalledWith('/lists/new')
   })
@@ -1053,5 +1054,38 @@ describe('search (issue #275)', () => {
 
     fireEvent.change(searchInput(), { target: { value: 'week' } })
     expect(screen.queryByRole('button', { name: /Drag to reorder/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('PatternListsManager empty-state guide (issue #463, Phase C)', () => {
+  it('shows the two-path guide with create and prebuilt options', async () => {
+    getLists.mockResolvedValue([])
+    render(<PatternListsManager />)
+
+    await screen.findByText('No word lists yet')
+    expect(
+      screen.getByText(/Build your own from scratch, or start from 162 weeks of ready-made pattern lists/)
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create your own list' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start from a prebuilt list' })).toBeInTheDocument()
+  })
+
+  it('scrolls to the prebuilt library section from the guide', async () => {
+    getLists.mockResolvedValue([])
+    const scrollIntoView = vi.fn()
+    const getElementById = vi.spyOn(document, 'getElementById').mockImplementation(
+      () =>
+        ({
+          scrollIntoView,
+        }) as unknown as HTMLElement
+    )
+    render(<PatternListsManager />)
+
+    await screen.findByText('No word lists yet')
+    fireEvent.click(screen.getByRole('button', { name: 'Start from a prebuilt list' }))
+
+    expect(getElementById).toHaveBeenCalledWith('prebuilt-library')
+    expect(scrollIntoView).toHaveBeenCalled()
+    getElementById.mockRestore()
   })
 })

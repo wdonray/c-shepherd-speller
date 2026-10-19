@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import WorksheetsPrintPage from './WorksheetsPrintPage'
+import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 import type { WordList } from '@/models/WordList'
 import type { WorksheetType } from '@/lib/worksheets'
 
@@ -387,6 +388,42 @@ describe('WorksheetsPrintPage', () => {
       await new Promise((r) => setTimeout(r, 50))
       expect(printSpy).not.toHaveBeenCalled()
       expect(screen.queryByRole('heading', { name: 'Could not load this list' })).not.toBeInTheDocument()
+    })
+  })
+  describe('WorksheetsPrintPage prebuilt weeks (issue #463)', () => {
+    const week = getPrebuiltWeek('prebuilt-g2-w06')!
+
+    it('loads the week from bundled data without an API fetch', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+      })
+      expect(getList).not.toHaveBeenCalled()
+    })
+
+    it('shows the Prebuilt badge and routes back links to the prebuilt picker', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+      })
+      expect(screen.getByRole('link', { name: /back to worksheets/i })).toHaveAttribute(
+        'href',
+        '/lists/prebuilt/prebuilt-g2-w06/worksheets'
+      )
+    })
+
+    it('keeps gap-flow sentences local: never calls updateList', async () => {
+      render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['reading']} />)
+      expect(await screen.findByRole('heading', { name: /Sentences needed/ })).toBeInTheDocument()
+
+      fireEvent.click((await screen.findAllByRole('button', { name: 'Use this' }))[0])
+
+      // The gap resolves locally (the print job proceeds) with no API write.
+      await waitFor(() => {
+        expect(updateList).not.toHaveBeenCalled()
+      })
     })
   })
 })
