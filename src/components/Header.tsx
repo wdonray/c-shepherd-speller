@@ -249,6 +249,9 @@ export function Header() {
             <Button size="sm" variant="secondary" asChild>
               <Link href="/display">Present</Link>
             </Button>
+            <Button size="sm" variant="secondary" asChild>
+              <Link href="/videos">Song videos</Link>
+            </Button>
           </div>
           {/*
             The avatar account menu is desktop-only. On mobile there is a
@@ -391,6 +394,11 @@ export function Header() {
                   <SheetClose asChild>
                     <Button size="lg" variant="secondary" asChild>
                       <Link href="/display">Present</Link>
+                    </Button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Button size="lg" variant="secondary" asChild>
+                      <Link href="/videos">Song videos</Link>
                     </Button>
                   </SheetClose>
                 </nav>
