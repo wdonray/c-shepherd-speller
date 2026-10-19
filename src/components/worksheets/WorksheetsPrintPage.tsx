@@ -323,7 +323,7 @@ function WorksheetsJob({
       case 'crossword':
         return <CrosswordSheet result={printJob.crossword as CrosswordResult} answerKey={answerKey} />
       case 'reading':
-        return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} />
+        return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} answerKey={answerKey} />
       case 'parent-note':
         return <ParentNoteSheet list={list} groups={groups} />
     }
