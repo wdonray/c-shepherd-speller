@@ -430,12 +430,17 @@ export default function PatternListsManager() {
             <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
               <p className="text-xl font-bold">No word lists yet</p>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Create your first list to organize words by spelling pattern.
+                Build your own from scratch, or start from 162 weeks of ready-made pattern lists and make them yours.
               </p>
-              <Button onClick={() => router.push('/lists/new')} className="mt-6">
-                <PlusIcon className="size-4" />
-                New list
-              </Button>
+              <div className="mt-6 flex items-center justify-center gap-2">
+                <Button variant="secondary" onClick={() => router.push('/library')}>
+                  Prebuilt lists
+                </Button>
+                <Button onClick={() => router.push('/lists/new')}>
+                  <PlusIcon className="size-4" />
+                  New list
+                </Button>
+              </div>
             </div>
           ) : (
             <DndContext

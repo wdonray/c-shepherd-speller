@@ -51,7 +51,7 @@
             "graphite",
             "calligraphy",
             "demographic",
-            "hologram"
+            "graphics"
           ]
         }
       ]
@@ -460,18 +460,18 @@
           "pattern": "anti",
           "frequency": "less-common",
           "words": [
-            "anticipated",
-            "antique",
-            "antibiotics",
-            "anticipation",
-            "anticipate",
-            "antibodies",
             "antibiotic",
-            "antiques",
+            "antibiotics",
             "antibody",
-            "antiquity",
-            "anticipating",
-            "antitrust"
+            "antibodies",
+            "antifreeze",
+            "antisocial",
+            "anticlimax",
+            "antidote",
+            "antiseptic",
+            "antacid",
+            "antiwar",
+            "antiperspirant"
           ]
         }
       ]
@@ -572,18 +572,18 @@
           "pattern": "semi",
           "frequency": "rare",
           "words": [
-            "seminar",
-            "semitic",
-            "seminary",
-            "semiconductor",
-            "seminars",
-            "semitism",
-            "semifinals",
-            "seminal",
             "semifinal",
-            "semiconductors",
-            "seminole",
-            "seminoles"
+            "semifinals",
+            "semicircle",
+            "semicolon",
+            "semiprecious",
+            "semitropical",
+            "semitrailer",
+            "semiannual",
+            "semiautomatic",
+            "semiprofessional",
+            "semiconscious",
+            "semidarkness"
           ]
         }
       ]

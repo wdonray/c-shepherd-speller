@@ -11,7 +11,7 @@
           "sound": "short a",
           "pattern": "a",
           "frequency": "common",
-          "words": ["can", "has", "had", "man", "bad", "gas", "ran", "fat", "sad", "mad", "max", "sat"]
+          "words": ["cat", "hat", "mat", "sat", "rat", "bat", "fat", "man", "can", "ran", "sad", "mad"]
         }
       ]
     },
@@ -26,7 +26,7 @@
           "sound": "short a",
           "pattern": "a",
           "frequency": "common",
-          "words": ["can", "has", "had", "man", "bad", "gas", "ran", "fat", "sad", "mad", "max", "sat"]
+          "words": ["has", "had", "gas", "bad", "bag", "cap", "map", "tap", "lab", "jam", "van", "wax"]
         }
       ]
     },
@@ -41,7 +41,7 @@
           "sound": "short i",
           "pattern": "i",
           "frequency": "common",
-          "words": ["his", "him", "did", "bit", "fit", "mid", "tip", "rid", "hip", "min", "bid", "pit"]
+          "words": ["bit", "fit", "hit", "sit", "hid", "did", "lid", "rid", "big", "dig", "pig", "wig"]
         }
       ]
     },
@@ -56,7 +56,7 @@
           "sound": "short i",
           "pattern": "i",
           "frequency": "common",
-          "words": ["his", "him", "did", "bit", "fit", "mid", "tip", "rid", "hip", "min", "bid", "pit"]
+          "words": ["his", "him", "tip", "hip", "mid", "bid", "pit", "fin", "win", "thin", "grin", "spin"]
         }
       ]
     },
@@ -71,7 +71,7 @@
           "sound": "short o",
           "pattern": "o",
           "frequency": "common",
-          "words": ["not", "got", "lot", "god", "mom", "pop", "cop", "com", "gop", "ron", "von", "cos"]
+          "words": ["not", "got", "lot", "hot", "pot", "dot", "mom", "pop", "cop", "top", "hop", "mop"]
         }
       ]
     },
@@ -86,7 +86,7 @@
           "sound": "short o",
           "pattern": "o",
           "frequency": "common",
-          "words": ["not", "got", "lot", "god", "mom", "pop", "cop", "com", "gop", "ron", "von", "cos"]
+          "words": ["dog", "log", "fog", "hog", "jog", "box", "fox", "rob", "cob", "sob", "nod", "pod"]
         }
       ]
     },
@@ -101,7 +101,7 @@
           "sound": "short u",
           "pattern": "u",
           "frequency": "common",
-          "words": ["gun", "sub", "sum", "pub", "bud", "hub", "gut", "rub", "gum", "dug", "hut", "bum"]
+          "words": ["cup", "pup", "bus", "run", "sun", "fun", "mud", "tub", "gum", "rub", "hut", "dug"]
         }
       ]
     },
@@ -116,7 +116,7 @@
           "sound": "short e",
           "pattern": "e",
           "frequency": "common",
-          "words": ["get", "let", "set", "led", "met", "bet", "web", "fed", "les", "beg", "den", "sen"]
+          "words": ["get", "let", "set", "red", "bed", "hen", "pen", "ten", "men", "met", "bet", "den"]
         }
       ]
     },
@@ -131,20 +131,7 @@
           "sound": "sh",
           "pattern": "sh",
           "frequency": "common",
-          "words": [
-            "she",
-            "shows",
-            "share",
-            "shall",
-            "cash",
-            "shown",
-            "shoot",
-            "shape",
-            "shoes",
-            "shots",
-            "shift",
-            "shame"
-          ]
+          "words": ["ship", "shop", "shut", "fish", "wish", "dish", "cash", "rash", "brush", "fresh", "crash", "flash"]
         }
       ]
     },
@@ -159,7 +146,7 @@
           "sound": "th",
           "pattern": "th",
           "frequency": "common",
-          "words": ["the", "they", "their", "there", "them", "other", "than", "then", "both", "death", "month", "worth"]
+          "words": ["this", "that", "them", "then", "with", "thin", "bath", "math", "moth", "path", "thick", "cloth"]
         }
       ]
     },
@@ -174,20 +161,7 @@
           "sound": "ch",
           "pattern": "ch",
           "frequency": "common",
-          "words": [
-            "which",
-            "each",
-            "child",
-            "chief",
-            "china",
-            "coach",
-            "chris",
-            "cheap",
-            "tech",
-            "chain",
-            "chose",
-            "inch"
-          ]
+          "words": ["chip", "chat", "chin", "chop", "much", "such", "rich", "lunch", "bench", "catch", "match", "patch"]
         }
       ]
     },
@@ -202,7 +176,20 @@
           "sound": "ck",
           "pattern": "ck",
           "frequency": "common",
-          "words": ["pick", "track", "quick", "stock", "lack", "luck", "sick", "click", "jack", "kick", "stuck", "pack"]
+          "words": [
+            "back",
+            "pack",
+            "sack",
+            "tack",
+            "luck",
+            "duck",
+            "truck",
+            "clock",
+            "black",
+            "stick",
+            "brick",
+            "track"
+          ]
         }
       ]
     }
