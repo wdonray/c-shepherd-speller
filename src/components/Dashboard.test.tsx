@@ -5,7 +5,7 @@ import Dashboard from './Dashboard'
 import { clearActivity, logActivity } from '@/lib/activity'
 import { LISTS_CHANGED_EVENT } from '@/lib/lists-api'
 import { HttpError } from '@/lib/error-toast'
-import { searchSongVideos } from '@/data/pattern-videos'
+import { PATTERN_VIDEOS, searchSongVideos } from '@/data/pattern-videos'
 import type { WordList } from '@/models/WordList'
 
 const { getLists } = vi.hoisted(() => ({
@@ -469,7 +469,7 @@ describe('Dashboard song videos (issues #401, #439)', () => {
     expect(within(section).queryByRole('group', { name: 'Filter videos by pattern' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Search song videos')).toBeInTheDocument()
     // One link to the full catalog.
-    const browseAll = screen.getByRole('link', { name: 'Browse all 39 song videos' })
+    const browseAll = screen.getByRole('link', { name: `Browse all ${PATTERN_VIDEOS.length} song videos` })
     expect(browseAll).toHaveAttribute('href', '/videos')
   })
 
@@ -535,7 +535,9 @@ describe('Dashboard song videos (issues #401, #439)', () => {
       const section = screen.getByRole('region', { name: 'Song videos' })
       expect(within(section).getAllByRole('button', { name: /^Play / })).toHaveLength(2)
       expect(screen.queryByRole('button', { name: /Play When Two Vowels Go Walking/ })).not.toBeInTheDocument()
-      expect(screen.getByRole('link', { name: 'Browse all 38 song videos' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: `Browse all ${PATTERN_VIDEOS.length - 1} song videos` })
+      ).toBeInTheDocument()
     })
 
     it('hides a video from its spotlight card', async () => {
