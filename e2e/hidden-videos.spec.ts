@@ -55,7 +55,7 @@ test.describe('hidden videos', () => {
     // The link reaches the full catalog.
     await browseAll.click()
     await expect(page.getByRole('heading', { name: 'Song videos' })).toBeVisible()
-    await expect(page.getByText(/Showing 39 of 39 videos/)).toBeVisible()
+    await expect(page.getByText(/Showing 38 of 38 videos/)).toBeVisible()
   })
 
   test('hide from the pattern video suggestions and search', async ({ page }) => {

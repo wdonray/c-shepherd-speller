@@ -252,12 +252,6 @@ export const PATTERN_VIDEOS: PatternVideoEntry[] = [
     channel: 'Kids vs Life',
     patterns: ['ue'],
   },
-  {
-    videoId: 'wOnY3c5S1iU',
-    title: '🎶 The Magic E Song | Silent E | Phonics Song | Learn to Read! 🎶',
-    channel: 'Andrea Gardner, M.Ed.',
-    patterns: ['a_e', 'i_e', 'o_e', 'u_e'],
-  },
 ]
 
 /** Normalize a pattern string for bank lookup: lowercase, trimmed. */
