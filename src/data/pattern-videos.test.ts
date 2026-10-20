@@ -14,8 +14,8 @@ import {
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 
 describe('PATTERN_VIDEOS data invariants', () => {
-  it('has 39 verified entries', () => {
-    expect(PATTERN_VIDEOS).toHaveLength(39)
+  it('has 38 verified entries', () => {
+    expect(PATTERN_VIDEOS).toHaveLength(38)
   })
 
   it('uses real 11-char video IDs, never invented placeholders', () => {
@@ -213,23 +213,23 @@ describe('getCollectionVideos (issue #458)', () => {
 
   it('returns just the bank when the library is empty', () => {
     const collection = getCollectionVideos([])
-    expect(collection).toHaveLength(39)
+    expect(collection).toHaveLength(38)
     expect(collection.every((video) => video.source === 'curated')).toBe(true)
   })
 
   it('appends her videos after the bank, in order added', () => {
     const second = { videoId: '9bZkp7q19f0', title: 'Second song', source: 'custom' as const }
     const collection = getCollectionVideos([mine, second])
-    expect(collection).toHaveLength(41)
-    expect(collection[39]).toEqual(mine)
-    expect(collection[40]).toEqual(second)
-    expect(collection.slice(0, 39).map((video) => video.videoId)).toEqual(PATTERN_VIDEOS.map((entry) => entry.videoId))
+    expect(collection).toHaveLength(40)
+    expect(collection[38]).toEqual(mine)
+    expect(collection[39]).toEqual(second)
+    expect(collection.slice(0, 38).map((video) => video.videoId)).toEqual(PATTERN_VIDEOS.map((entry) => entry.videoId))
   })
 
   it('lets the bank win when a library entry clashes with a bank ID', () => {
     const clash = { ...mine, videoId: PATTERN_VIDEOS[0].videoId }
     const collection = getCollectionVideos([clash])
-    expect(collection).toHaveLength(39)
+    expect(collection).toHaveLength(38)
     expect(collection[0]).toEqual({
       videoId: PATTERN_VIDEOS[0].videoId,
       title: PATTERN_VIDEOS[0].title,
