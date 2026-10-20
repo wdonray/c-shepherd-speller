@@ -138,18 +138,36 @@ describe('PatternChartDisplay', () => {
     expect(screen.queryByText(/longer bars mean more common/)).not.toBeInTheDocument()
   })
 
-  it('opens the word analysis when a word card is tapped', () => {
+  it('renders words as chips in a responsive grid (issue #488)', () => {
     render(<PatternChartDisplay list={list} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Analyze the word cake' }))
-    expect(screen.getByRole('dialog', { name: 'Word analysis for cake' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Close word analysis' }))
-    expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
+    // 2 columns on mobile, 3 on desktop, nested inside each pattern column.
+    const column = screen.getByRole('region', { name: 'Pattern a_e' })
+    const grid = column.querySelector('ul')
+    expect(grid).toHaveClass('grid', 'grid-cols-2', 'md:grid-cols-3')
+    // Each word is one chip; the whole chip is the audio tap target.
+    const chip = screen.getByRole('button', { name: 'Hear the word cake' })
+    expect(chip.closest('li')).not.toBeNull()
   })
 
-  it('speaks the word when the hear button is pressed', () => {
+  it('speaks the word when the chip is tapped (issue #488)', () => {
     render(<PatternChartDisplay list={list} />)
     fireEvent.click(screen.getByRole('button', { name: 'Hear the word cake' }))
     expect(speak).toHaveBeenCalledWith('cake')
+  })
+
+  it('gives every chip a visible audio affordance and a 44px-plus touch target (issue #488)', () => {
+    render(<PatternChartDisplay list={list} />)
+    const chip = screen.getByRole('button', { name: 'Hear the word cake' })
+    // The speaker icon tells teachers the chip is tappable.
+    expect(chip.querySelector('svg')).not.toBeNull()
+    // Present-mode chips run larger than the 44px minimum for arm's-length
+    // tapping on the projector.
+    expect(chip).toHaveClass('min-h-[56px]')
+  })
+
+  it('opens no word analysis from the chart: chips are audio-only (issue #488)', () => {
+    render(<PatternChartDisplay list={list} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Hear the word cake' }))
     expect(screen.queryByRole('dialog', { name: 'Word analysis for cake' })).not.toBeInTheDocument()
   })
 
@@ -170,9 +188,9 @@ describe('PatternChartDisplay', () => {
     expect(container.firstChild).toHaveClass('force-light')
   })
 
-  it('keeps word cards flat on hover with matching focus-visible treatment', () => {
+  it('keeps word chips flat on hover with matching focus-visible treatment', () => {
     render(<PatternChartDisplay list={list} />)
-    const button = screen.getByRole('button', { name: 'Analyze the word cake' })
+    const button = screen.getByRole('button', { name: 'Hear the word cake' })
     expect(button).toHaveClass(
       'hover:bg-sky-soft',
       'focus-visible:bg-sky-soft',
@@ -180,9 +198,9 @@ describe('PatternChartDisplay', () => {
       'focus-visible:ring-ring/60'
     )
     // Issue #268 moved the hover lift from present-mode word cards to the
-    // list picker, so the card no longer grows or casts a shadow on hover.
-    const card = button.closest('li')
-    expect(card).not.toHaveClass(
+    // list picker, so the chip no longer grows or casts a shadow on hover.
+    const item = button.closest('li')
+    expect(item).not.toHaveClass(
       'hover:z-10',
       'hover:scale-[1.05]',
       'hover:shadow-xl',
@@ -191,17 +209,17 @@ describe('PatternChartDisplay', () => {
     )
   })
 
-  it('wraps long words inside their cards instead of overflowing (issue #415)', () => {
+  it('wraps long words inside their chips instead of overflowing (issue #415)', () => {
     const longWord = 'antidisestablishmentarianism'
     const longList: WordList = {
       ...list,
       patterns: [{ id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: [longWord] }],
     }
     render(<PatternChartDisplay list={longList} />)
-    const button = screen.getByRole('button', { name: `Analyze the word ${longWord}` })
-    // The button must be allowed to shrink inside the flex card (min-w-0)
-    // and the long word must wrap (break-words); without both, the button
-    // keeps its max-content width and bleeds past the card edge on the
+    const button = screen.getByRole('button', { name: `Hear the word ${longWord}` })
+    // The chip must be allowed to shrink inside the grid track (min-w-0)
+    // and the long word must wrap (break-words); without both, the chip
+    // keeps its max-content width and bleeds past the grid track on the
     // projector.
     expect(button).toHaveClass('min-w-0', 'break-words')
   })
@@ -672,20 +690,20 @@ describe('PatternChartDisplay', () => {
 
     it('shows no underlines by default', () => {
       render(<PatternChartDisplay list={underlineList} />)
-      const button = screen.getByRole('button', { name: 'Analyze the word cake' })
+      const button = screen.getByRole('button', { name: 'Hear the word cake' })
       expect(underlinedText(button)).toEqual([])
       expect(button).toHaveTextContent('cake')
     })
 
     it('underlines the pattern letters when showUnderlines is true', () => {
       render(<PatternChartDisplay list={underlineList} showUnderlines />)
-      const cake = screen.getByRole('button', { name: 'Analyze the word cake' })
+      const cake = screen.getByRole('button', { name: 'Hear the word cake' })
       expect(underlinedText(cake)).toEqual(['a', 'e'])
-      const rain = screen.getByRole('button', { name: 'Analyze the word rain' })
+      const rain = screen.getByRole('button', { name: 'Hear the word rain' })
       expect(underlinedText(rain)).toEqual(['ai'])
       // A pattern at the very start of the word underlines without a
       // leading text span.
-      const eel = screen.getByRole('button', { name: 'Analyze the word eel' })
+      const eel = screen.getByRole('button', { name: 'Hear the word eel' })
       expect(underlinedText(eel)).toEqual(['ee'])
       // The full word text stays in the button; the accessible name is unchanged.
       expect(cake).toHaveTextContent('cake')
@@ -695,7 +713,7 @@ describe('PatternChartDisplay', () => {
 
     it('leaves words plain when the pattern does not occur in them', () => {
       render(<PatternChartDisplay list={underlineList} showUnderlines />)
-      const bed = screen.getByRole('button', { name: 'Analyze the word bed' })
+      const bed = screen.getByRole('button', { name: 'Hear the word bed' })
       expect(underlinedText(bed)).toEqual([])
       expect(bed).toHaveTextContent('bed')
     })

@@ -281,6 +281,13 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   environmental failure, not a red change: verify by running that single
   file on clean main, where it fails identically (found 2026-10-19:
   issue #459).
+- **No Docker? dynalite stands in for DynamoDB Local.** `npx dynalite
+--port <free-port>` speaks enough of the DynamoDB API for
+  `npm run create-tables` and the e2e suite; point DYNAMODB_ENDPOINT at
+  it and use hyphen-free dummy creds. Note `src/lib/auth.test.ts`
+  stubs DYNAMODB_ENDPOINT to `http://localhost:8000` itself, so that
+  one file needs the mock on port 8000 exactly (found 2026-10-20:
+  issue #488 e2e, no docker/java on the VM).
 
 - **In Playwright, `page.request` shares the browser context's cookies; the
   bare `request` fixture does not.** Authenticated API calls in e2e specs

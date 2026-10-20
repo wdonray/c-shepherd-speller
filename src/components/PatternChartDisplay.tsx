@@ -3,7 +3,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency, PatternVideo } from '@/models/WordList'
-import WordAnalysis from './WordAnalysis'
 import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon, PlayIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
@@ -53,7 +52,7 @@ interface PatternChartDisplayProps {
    */
   variant?: 'present' | 'print'
   /**
-   * Whether to underline the spelling-pattern letters inside each word card
+   * Whether to underline the spelling-pattern letters inside each word chip
    * on the present chart (issue #264). Default false: underlines stay off
    * until the teacher turns them on with the header toggle. The printed
    * poster never underlines.
@@ -77,8 +76,8 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
  * Pattern chart display mode: list name header, one equal-width column per
  * spelling pattern ordered by frequency (most common first), a power-bar
  * gauge in each header showing how common the spelling is, and words as
- * large tappable cards. The projector-friendly replacement for the old
- * tree view. Stays light in dark mode.
+ * tappable chips in a responsive grid (issue #488). The projector-friendly
+ * replacement for the old tree view. Stays light in dark mode.
  *
  * Designed for projectors: large text, high contrast, keyboard accessible,
  * every word visible at once.
@@ -98,7 +97,6 @@ export default function PatternChartDisplay({
   variant = 'present',
   showUnderlines = false,
 }: PatternChartDisplayProps) {
-  const [selected, setSelected] = useState<{ word: string; pattern: SpellingPattern } | null>(null)
   /**
    * The pattern whose song-video modal is open (issue #401). Stored as an
    * id and resolved against the live list each render, so the modal always
@@ -127,10 +125,6 @@ export default function PatternChartDisplay({
     const allLocked = columns.length > 0 && columns.every((p) => p.isLocked)
     return { columns, allLocked }
   }, [list, isPrint])
-
-  const openAnalysis = (word: string, pattern: SpellingPattern) => {
-    setSelected({ word, pattern })
-  }
 
   // Print keeps the old side-by-side flex row sizing; present-mode columns
   // are grid items, so no inline flex sizing applies.
@@ -372,8 +366,11 @@ export default function PatternChartDisplay({
           </div>
           {renderRuleDisplay(pattern)}
         </div>
-        <ul className="space-y-3">
-          {pattern.words.map((word) => renderWordCard(word, pattern, `${pattern.id}-${word}`))}
+        {/* Issue #488: words are compact chips in a responsive grid (2 on
+            mobile, 3 on desktop) instead of full-width cards, so more
+            patterns stay visible at once. */}
+        <ul className="grid grid-cols-2 gap-2 md:grid-cols-3">
+          {pattern.words.map((word) => renderWordChip(word, pattern, `${pattern.id}-${word}`))}
         </ul>
       </section>
     )
@@ -403,7 +400,7 @@ export default function PatternChartDisplay({
             // text-decoration paints the underline without changing the
             // box: border-bottom + padding-bottom made underlined segments
             // taller than plain ones, shifting the word up and breaking
-            // letter alignment inside the word card.
+            // letter alignment inside the word chip.
             textDecorationLine: 'underline',
             textDecorationColor: underlineColor,
             textDecorationThickness: '4px',
@@ -422,9 +419,16 @@ export default function PatternChartDisplay({
     return <>{parts}</>
   }
 
-  const renderWordCard = (word: string, pattern: SpellingPattern, key: string) => {
-    // The printed poster is not interactive: words are plain text, no analysis
-    // tap target and no speaker button.
+  /**
+   * Renders one word as a compact chip (issue #488). The whole chip is the
+   * audio tap target: no separate speaker button per word. The speaker
+   * icon is a visible affordance that the chip is tappable. Present-mode
+   * chips run larger than the 44px minimum for arm's-length tapping on
+   * the projector. The printed poster keeps its existing plain-text rows.
+   */
+  const renderWordChip = (word: string, pattern: SpellingPattern, key: string) => {
+    // The printed poster is not interactive: words are plain text, no tap
+    // target at all.
     if (isPrint) {
       return (
         <li
@@ -436,35 +440,19 @@ export default function PatternChartDisplay({
       )
     }
     return (
-      <li
-        key={key}
-        className={cn(
-          // No hover lift on present-mode word cards: the hover lift moved to
-          // the list picker in issue #268, so hover stays flat on the
-          // projector here. The flat card still highlights on keyboard
-          // focus-within.
-          'flex min-h-[58px] w-full items-stretch gap-1 rounded-[14px] border-2 border-line bg-card p-1.5 transition-colors focus-within:border-sky-deep'
-        )}
-      >
-        <button
-          type="button"
-          onClick={() => openAnalysis(word, pattern)}
-          aria-label={`Analyze the word ${word}`}
-          // Issue #415: a long word keeps the button at its max-content
-          // width and bleeds past the card edge on the projector. min-w-0
-          // lets the flex item shrink inside the card, break-words wraps
-          // the long word instead of overflowing it.
-          className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[10px] px-4 py-2 text-[22px] font-bold break-words text-ink outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
-        >
-          {showUnderlines ? renderUnderlinedWord(word, pattern) : word}
-        </button>
+      <li key={key} className="min-w-0">
         <button
           type="button"
           onClick={() => speak(word)}
           aria-label={`Hear the word ${word}`}
-          className="flex min-h-[44px] min-w-[52px] cursor-pointer items-center justify-center rounded-[10px] text-sky-deep outline-none transition-colors hover:bg-sky-soft focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          // Issue #415: a long word keeps the chip at its max-content
+          // width and bleeds past the grid track on the projector. min-w-0
+          // lets the grid item shrink, break-words wraps the long word
+          // instead of overflowing it.
+          className="flex min-h-[56px] w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-2 text-[22px] font-bold break-words text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:border-sky-deep focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
-          <Volume2Icon className="size-7" aria-hidden="true" />
+          <Volume2Icon className="size-5 shrink-0 text-sky-deep" aria-hidden="true" />
+          <span className="min-w-0">{showUnderlines ? renderUnderlinedWord(word, pattern) : word}</span>
         </button>
       </li>
     )
@@ -511,15 +499,6 @@ export default function PatternChartDisplay({
             {columns.map((pattern) => renderColumn(pattern))}
           </div>
         </>
-      )}
-
-      {!isPrint && selected && (
-        <WordAnalysis
-          word={selected.word}
-          pattern={selected.pattern}
-          onClose={() => setSelected(null)}
-          onSpeak={speak}
-        />
       )}
 
       {!isPrint && onSaveVideos && videoPattern && (
