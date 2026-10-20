@@ -208,7 +208,7 @@ export const PATTERN_VIDEOS: PatternVideoEntry[] = [
     videoId: 'fR-BLFZyAWs',
     title: 'The Vowel Song (a e i o u)',
     channel: 'Maple Leaf Learning',
-    patterns: ['i', 'o', 'u'],
+    patterns: ['a', 'e', 'i', 'o', 'u'],
   },
   {
     videoId: '4TjcT7Gto3U',
@@ -226,7 +226,7 @@ export const PATTERN_VIDEOS: PatternVideoEntry[] = [
     videoId: 'lhikrG4PJfQ',
     title: 'Phonics Songs - Group 4 (ai,Jj,oa,ie,ee,or) #primaryworld #jollyphonics #phonics',
     channel: 'Primary World',
-    patterns: ['ai', 'oa', 'ie'],
+    patterns: ['ai', 'oa', 'ie', 'ee', 'or'],
   },
   {
     videoId: 'eoy1JXYPn6w',
