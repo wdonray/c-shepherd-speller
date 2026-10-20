@@ -148,8 +148,18 @@ describe('PatternVideoModal (editable)', () => {
   })
 
   it('excludes already-attached videos from suggestions', () => {
-    // The ck bank entry is attached, so the suggestions section disappears.
-    renderEditable({ videos: [{ ...curatedEe, videoId: 'qEgggBAF_nw', title: 'Digraph CK' }], suggestionPattern: 'ck' })
+    // Both ck bank entries are attached, so the suggestions section disappears.
+    renderEditable({
+      videos: [
+        { ...curatedEe, videoId: 'qEgggBAF_nw', title: 'Digraph CK' },
+        {
+          ...curatedEe,
+          videoId: 'yqVqNaIZHOw',
+          title: 'Digraphs / Consonant Digraphs / The Letters C+K+CK / Phonics Song',
+        },
+      ],
+      suggestionPattern: 'ck',
+    })
     expect(screen.queryByRole('region', { name: 'Suggestions' })).not.toBeInTheDocument()
   })
 
@@ -575,7 +585,7 @@ describe('PatternVideoModal hidden videos (issue #443)', () => {
   })
 
   it('filters hidden videos out of the suggestions', () => {
-    renderWithHide({ blockedVideoIds: [curatedAi.videoId] })
+    renderWithHide({ blockedVideoIds: ['GdmcWQCbqY8', '1ZZ6mVwuvRE', 'lhikrG4PJfQ'] })
     expect(screen.queryByRole('region', { name: 'Suggestions' })).not.toBeInTheDocument()
   })
 

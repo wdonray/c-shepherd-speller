@@ -57,8 +57,8 @@ describe('SongVideoBrowser', () => {
 
   it('shows the full catalog with a count, search, and group filter', async () => {
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
-    expect(screen.getByText('Showing 19 of 19 videos')).toBeInTheDocument()
+    await waitForGrid(39)
+    expect(screen.getByText('Showing 39 of 39 videos')).toBeInTheDocument()
     expect(screen.getByLabelText('Search videos')).toBeInTheDocument()
     const select = screen.getByLabelText('Filter by pattern group')
     expect(within(select).getAllByRole('option')).toHaveLength(7)
@@ -72,25 +72,25 @@ describe('SongVideoBrowser', () => {
     expect(screen.getByLabelText('Search videos')).toHaveValue('digraph')
     const plays = await screen.findAllByRole('button', { name: /^Play / })
     expect(plays.length).toBeGreaterThan(0)
-    expect(plays.length).toBeLessThan(19)
-    expect(screen.getByText(`Showing ${plays.length} of 19 videos`)).toBeInTheDocument()
+    expect(plays.length).toBeLessThan(39)
+    expect(screen.getByText(`Showing ${plays.length} of 39 videos`)).toBeInTheDocument()
   })
 
   it('filters by pattern group', async () => {
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
+    await waitForGrid(39)
     fireEvent.change(screen.getByLabelText('Filter by pattern group'), { target: { value: 'Digraphs' } })
-    // Bank entries touching sh, th, ch, wh, or ck.
-    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(6)
-    expect(screen.getByText('Showing 6 of 19 videos')).toBeInTheDocument()
+    // Bank entries touching sh, th, ch, wh, ck, or ng.
+    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(12)
+    expect(screen.getByText('Showing 12 of 39 videos')).toBeInTheDocument()
     // Back to all patterns.
     fireEvent.change(screen.getByLabelText('Filter by pattern group'), { target: { value: '' } })
-    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(39)
   })
 
   it('combines search and group filter', async () => {
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
+    await waitForGrid(39)
     fireEvent.change(screen.getByLabelText('Search videos'), { target: { value: 'ck' } })
     fireEvent.change(screen.getByLabelText('Filter by pattern group'), { target: { value: 'Digraphs' } })
     expect(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).toBeInTheDocument()
@@ -98,27 +98,27 @@ describe('SongVideoBrowser', () => {
 
   it('shows the empty state and clears search and filters', async () => {
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
+    await waitForGrid(39)
     fireEvent.change(screen.getByLabelText('Search videos'), { target: { value: 'xyz-no-such-video' } })
     expect(screen.getByText('No videos match your search')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Play / })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }))
     expect(screen.getByLabelText('Search videos')).toHaveValue('')
-    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(39)
   })
 
   it('filters hidden videos out of the catalog', async () => {
     mockBlockedVideos({ blockedVideoIds: new Set(['qEgggBAF_nw']) })
     render(<SongVideoBrowser />)
-    await waitForGrid(18)
-    expect(screen.getByText('Showing 18 of 19 videos')).toBeInTheDocument()
+    await waitForGrid(38)
+    expect(screen.getByText('Showing 38 of 39 videos')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' })).not.toBeInTheDocument()
   })
 
   it('hides a video from its card', async () => {
     const { blockVideo } = mockBlockedVideos()
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
+    await waitForGrid(39)
     fireEvent.click(screen.getByRole('button', { name: 'Hide Digraph CK - 4 Minute Phonics' }))
     expect(blockVideo).toHaveBeenCalledWith(
       expect.objectContaining({ videoId: 'qEgggBAF_nw', title: 'Digraph CK - 4 Minute Phonics' })
@@ -147,7 +147,7 @@ describe('SongVideoBrowser', () => {
     mockBlockedVideos({ isLoaded: true })
     rerender(<SongVideoBrowser />)
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+      expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(39)
     })
   })
 
@@ -162,7 +162,7 @@ describe('SongVideoBrowser', () => {
     useSessionMock.mockReturnValue({ data: null, status: 'unauthenticated' } as never)
     mockBlockedVideos({ isLoaded: false, userId: null })
     render(<SongVideoBrowser />)
-    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(19)
+    expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(39)
   })
 
   it('does not fetch the library for signed-out visitors', () => {
@@ -173,7 +173,7 @@ describe('SongVideoBrowser', () => {
 
   it('opens the player modal in browse-only mode from a video card', async () => {
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
+    await waitForGrid(39)
     fireEvent.click(screen.getByRole('button', { name: 'Play Digraph CK - 4 Minute Phonics' }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos' })
     expect(within(dialogEl).queryByLabelText('Search videos by title or channel')).not.toBeInTheDocument()
@@ -190,10 +190,10 @@ describe('SongVideoBrowser', () => {
       { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
     ])
     render(<SongVideoBrowser />)
-    const plays = await waitForGrid(20)
-    expect(screen.getByText('Showing 20 of 20 videos')).toBeInTheDocument()
+    const plays = await waitForGrid(40)
+    expect(screen.getByText('Showing 40 of 40 videos')).toBeInTheDocument()
     // Hers appends after the bank, in the order added.
-    expect(plays[19]).toHaveAttribute('aria-label', 'Play My pasted song')
+    expect(plays[39]).toHaveAttribute('aria-label', 'Play My pasted song')
     expect(screen.getByText('My Channel')).toBeInTheDocument()
   })
 
@@ -202,8 +202,8 @@ describe('SongVideoBrowser', () => {
       { videoId: 'qEgggBAF_nw', title: 'Digraph CK - 4 Minute Phonics', source: 'custom' },
     ])
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
-    expect(screen.getByText('Showing 19 of 19 videos')).toBeInTheDocument()
+    await waitForGrid(39)
+    expect(screen.getByText('Showing 39 of 39 videos')).toBeInTheDocument()
   })
 
   it('searches her pasted videos by title and channel (issue #458)', async () => {
@@ -211,11 +211,11 @@ describe('SongVideoBrowser', () => {
       { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
     ])
     render(<SongVideoBrowser />)
-    await waitForGrid(20)
+    await waitForGrid(40)
     fireEvent.change(screen.getByLabelText('Search videos'), { target: { value: 'pasted' } })
     expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Play My pasted song' })).toBeInTheDocument()
-    expect(screen.getByText('Showing 1 of 20 videos')).toBeInTheDocument()
+    expect(screen.getByText('Showing 1 of 40 videos')).toBeInTheDocument()
   })
 
   it('keeps her pattern-less videos out of pattern-group filters (issue #458)', async () => {
@@ -223,17 +223,17 @@ describe('SongVideoBrowser', () => {
       { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
     ])
     render(<SongVideoBrowser />)
-    await waitForGrid(20)
+    await waitForGrid(40)
     fireEvent.change(screen.getByLabelText('Filter by pattern group'), { target: { value: 'Digraphs' } })
     expect(screen.queryByRole('button', { name: 'Play My pasted song' })).not.toBeInTheDocument()
-    expect(screen.getByText('Showing 6 of 20 videos')).toBeInTheDocument()
+    expect(screen.getByText('Showing 12 of 40 videos')).toBeInTheDocument()
   })
 
   it('degrades to the bank when the library fetch fails (issue #458)', async () => {
     getVideoLibrary.mockRejectedValue(new Error('boom'))
     render(<SongVideoBrowser />)
-    await waitForGrid(19)
-    expect(screen.getByText('Showing 19 of 19 videos')).toBeInTheDocument()
+    await waitForGrid(39)
+    expect(screen.getByText('Showing 39 of 39 videos')).toBeInTheDocument()
   })
 
   it('ignores a late library response after unmount (issue #458)', async () => {
@@ -269,7 +269,7 @@ describe('SongVideoBrowser', () => {
       { videoId: 'dQw4w9WgXcQ', title: 'My pasted song', channel: 'My Channel', source: 'custom' },
     ])
     render(<SongVideoBrowser />)
-    await waitForGrid(20)
+    await waitForGrid(40)
     fireEvent.change(screen.getByLabelText('Search videos'), { target: { value: 'my channel' } })
     expect(screen.getAllByRole('button', { name: /^Play / })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Play My pasted song' })).toBeInTheDocument()
@@ -280,7 +280,7 @@ describe('SongVideoBrowser', () => {
   it('plays a channel-less pasted video from its card (issue #458)', async () => {
     getVideoLibrary.mockResolvedValue([{ videoId: 'dQw4w9WgXcQ', title: 'Channel-less song', source: 'custom' }])
     render(<SongVideoBrowser />)
-    await waitForGrid(20)
+    await waitForGrid(40)
     fireEvent.click(screen.getByRole('button', { name: 'Play Channel-less song' }))
     const frame = screen.getByTitle('Channel-less song')
     expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&cc_load_policy=1')

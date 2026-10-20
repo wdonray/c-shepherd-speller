@@ -275,6 +275,17 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
 
 ## Testing
 
+- **YouTube embed-allow checks do not run on this VM.** oEmbed returns 200
+  even for embedding-disabled videos, so the song-bank curation rule calls
+  for a real embed load — but scripted Chromium cannot tunnel through the
+  egress proxy (`ERR_TUNNEL_CONNECTION_FAILED`, even for example.com), and
+  the managed browser loads a bare embed URL with no Referer, which YouTube
+  rejects with Error 153 on every video including known-good bank entries.
+  For video research here: verify existence plus verbatim title/channel via
+  oEmbed, prefer established kids' phonics channels (embedding is their
+  distribution model), and name the unchecked embed gate in the PR body
+  (found 2026-10-20: issue #495).
+
 - **One unit test needs DynamoDB Local.** `src/lib/auth.test.ts`'s
   sign-in round-trip test hits localhost:8000, so without docker (no
   DynamoDB Local) it fails with ECONNREFUSED. That is a pre-existing

@@ -1012,7 +1012,7 @@ describe('PatternEditor song videos (issue #401)', () => {
   })
 
   it('filters hidden videos out of the modal suggestions', () => {
-    mockBlockedVideos({ blockedVideoIds: new Set([video.videoId]), userId: 'u1' })
+    mockBlockedVideos({ blockedVideoIds: new Set(['GdmcWQCbqY8', '1ZZ6mVwuvRE', 'lhikrG4PJfQ']), userId: 'u1' })
     renderEditor({ pattern: 'ai' })
     fireEvent.click(screen.getByRole('button', { name: 'Manage song videos for pattern ai' }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })
