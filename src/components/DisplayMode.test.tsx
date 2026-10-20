@@ -185,7 +185,7 @@ describe('DisplayMode', () => {
     // Issue #379: the pattern sound always renders under the pattern name.
     expect(screen.getAllByText('long a')).toHaveLength(1)
     expect(screen.getByRole('region', { name: 'Pattern a_e' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    // Issue #488: each word is a single chip; the whole chip is the audio tap target.
     expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
   })
 
@@ -428,7 +428,7 @@ describe('DisplayMode', () => {
 
     // Optimistic: the locked placeholder shows immediately, before the save resolves.
     expect(screen.getByRole('region', { name: 'Locked pattern' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Analyze the word cake' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hear the word cake' })).not.toBeInTheDocument()
     // The other pattern is untouched.
     expect(screen.getByRole('region', { name: 'Pattern ai' })).toBeInTheDocument()
     expect(updateList).toHaveBeenCalledWith('l1', {
@@ -476,7 +476,7 @@ describe('DisplayMode', () => {
     // Reverted: the unlocked column is back, no locked placeholder.
     expect(screen.getByRole('region', { name: 'Pattern a_e' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Locked pattern' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
   })
 
   it('dismisses the lock save error', async () => {
@@ -685,7 +685,7 @@ describe('DisplayMode', () => {
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Open chart options' }))
     const sheet = await screen.findByRole('dialog', { name: 'Chart options' })
@@ -699,9 +699,9 @@ describe('DisplayMode', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Chart options' })).not.toBeInTheDocument()
     })
-    expect(
-      screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span').length
-    ).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Hear the word cake' }).querySelectorAll('span').length).toBeGreaterThan(
+      0
+    )
   })
 
   it('hides the chart header while in full screen (issue #380)', async () => {
@@ -930,24 +930,29 @@ describe('DisplayMode chart display toggles', () => {
     render(<DisplayMode />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Analyze the word cake' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Hear the word cake' })).toBeInTheDocument()
     })
 
     const toggle = screen.getByRole('button', { name: 'Show word underlines' })
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    // Underlines start off: the word button holds plain text, no spans.
-    expect(screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span')).toHaveLength(0)
+    // Underlines start off: no underlined runs inside the chip. (The chip
+    // always wraps the word in a plain span so long words can shrink and
+    // wrap inside the flex chip; issue #415.)
+    const chip = () => screen.getByRole('button', { name: 'Hear the word cake' })
+    const underlinedSpans = (el: HTMLElement) =>
+      Array.from(el.querySelectorAll('span')).filter((s) => (s as HTMLElement).style.textDecorationLine === 'underline')
+    expect(underlinedSpans(chip())).toHaveLength(0)
 
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-pressed', 'true')
-    const underlined = screen.getByRole('button', { name: 'Analyze the word cake' })
-    expect(underlined.querySelectorAll('span').length).toBeGreaterThan(0)
+    const underlined = chip()
+    expect(underlinedSpans(underlined).length).toBeGreaterThan(0)
     // The word itself is unchanged.
     expect(underlined).toHaveTextContent('cake')
 
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: 'Analyze the word cake' }).querySelectorAll('span')).toHaveLength(0)
+    expect(underlinedSpans(chip())).toHaveLength(0)
   })
 })
 
