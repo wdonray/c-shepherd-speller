@@ -162,10 +162,11 @@ export default function PatternListsManager() {
 
   const handleQueryChange = useCallback(
     (next: string) => {
+      if (next === query) return
       setQuery(next)
       scrollResultsToTop()
     },
-    [scrollResultsToTop]
+    [query, scrollResultsToTop]
   )
 
   const handleToggleFavorite = useCallback(

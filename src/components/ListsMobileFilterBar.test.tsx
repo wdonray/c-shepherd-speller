@@ -130,6 +130,18 @@ describe('ListsMobileFilterBar (issue #484)', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
+  it('does not yank focus back to the field on re-renders while expanded', () => {
+    const { rerender } = render(<ListsMobileFilterBar {...props} searchExpanded />)
+    const input = bar().getByRole('textbox', { name: 'Search lists' })
+    expect(input).toHaveFocus()
+
+    // The teacher tabs to the clear button; a re-render (e.g. a parent state
+    // update) must not steal focus back to the input.
+    bar().getByRole('button', { name: 'Clear search and close' }).focus()
+    rerender(<ListsMobileFilterBar {...props} searchExpanded query="cake" />)
+    expect(bar().getByRole('button', { name: 'Clear search and close' })).toHaveFocus()
+  })
+
   it('marks the search toggle active when a query is set but the field is collapsed', () => {
     render(<ListsMobileFilterBar {...props} query="cake" />)
     const toggle = bar().getByRole('button', { name: 'Search lists' })

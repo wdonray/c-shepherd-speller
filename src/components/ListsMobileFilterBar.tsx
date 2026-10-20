@@ -64,7 +64,9 @@ export default function ListsMobileFilterBar({
       searchToggleRef.current?.focus()
     }
     wasExpandedRef.current = searchExpanded
-  })
+    // Runs on expand/collapse transitions only: re-focusing on every render
+    // would steal focus back from the clear button after the user tabs to it.
+  }, [searchExpanded])
 
   const collapseSearch = () => {
     onQueryChange('')

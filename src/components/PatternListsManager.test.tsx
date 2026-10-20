@@ -1192,6 +1192,18 @@ describe('compact mobile bar scroll behavior (issue #484)', () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
   })
 
+  it('does not scroll when closing an empty mobile search', async () => {
+    mockMobileViewport()
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    const mobileBar = () => within(screen.getByTestId('mobile-filter-bar'))
+    fireEvent.click(mobileBar().getByRole('button', { name: 'Search lists' }))
+    fireEvent.click(mobileBar().getByRole('button', { name: 'Clear search and close' }))
+    expect(window.scrollTo).not.toHaveBeenCalled()
+  })
+
   it('does not scroll when a list is favorited', async () => {
     getLists.mockResolvedValue([list, list2])
     updateList.mockResolvedValue({ ...list, isFavorite: true, favoriteOrder: 0 })
