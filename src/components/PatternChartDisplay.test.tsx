@@ -841,7 +841,7 @@ describe('PatternChartDisplay song video save errors (issue #401)', () => {
   })
 
   it('filters hidden videos out of the present-mode suggestions', () => {
-    mockBlockedVideos({ blockedVideoIds: new Set([video.videoId]), userId: 'u1' })
+    mockBlockedVideos({ blockedVideoIds: new Set(['GdmcWQCbqY8', '1ZZ6mVwuvRE', 'lhikrG4PJfQ']), userId: 'u1' })
     render(<PatternChartDisplay list={list} onSaveVideos={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Song videos for pattern ai' }))
     const dialogEl = screen.getByRole('dialog', { name: 'Song videos for pattern ai' })

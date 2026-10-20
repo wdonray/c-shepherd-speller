@@ -135,6 +135,129 @@ export const PATTERN_VIDEOS: PatternVideoEntry[] = [
     channel: 'Jack Hartmann Kids Music Channel',
     patterns: ['a', 'e', 'i', 'o', 'u'],
   },
+  // Added for issue #495 (Oct 2026 research pass): every pattern group now
+  // has at least two videos. Each entry verified via YouTube oEmbed;
+  // titles and channels are verbatim and never invented.
+  {
+    videoId: '94eOpBrVmwY',
+    title: 'Digraphs/Final Sound/The Engma Sound /ng/Phonics Song',
+    channel: 'English4abc',
+    patterns: ['ng'],
+  },
+  {
+    videoId: 'd272ehgASnI',
+    title: '-NG Sound Song - Phonics Song For Kids | Smiley Rhymes',
+    channel: 'Smiley Rhymes',
+    patterns: ['ng'],
+  },
+  {
+    videoId: '9K70YXyyJ_M',
+    title: "How To Use 'NG' in Words | StoryBots: Learn to Read | Netflix Jr",
+    channel: 'Netflix Jr.',
+    patterns: ['ng'],
+  },
+  {
+    videoId: 'yqVqNaIZHOw',
+    title: 'Digraphs / Consonant Digraphs / The Letters C+K+CK / Phonics Song',
+    channel: 'English4abc',
+    patterns: ['ck'],
+  },
+  {
+    videoId: 'rGOtW405L1o',
+    title: 'WH Digraph Sound | WH Song and Practice | ABC Phonics Song with Sounds for Children',
+    channel: "Rock 'N Learn",
+    patterns: ['wh'],
+  },
+  {
+    videoId: 'atUdWa0UqAM',
+    title: 'Digraphs/ The Sound of "wh" /  Phonics Song',
+    channel: 'English4abc',
+    patterns: ['wh'],
+  },
+  {
+    videoId: 'bp8arskkcXg',
+    title: 'Look Out for Bossy R | Fun Phonics Song for Kids | English Song for Children | Jack Hartmann',
+    channel: 'Jack Hartmann Kids Music Channel',
+    patterns: ['ar', 'or', 'er', 'ir', 'ur'],
+  },
+  {
+    videoId: 'Eq2pUspQo0g',
+    title: 'Digraph Rap #2 | Phonics Digraph Song for Kids | Fun Kids English',
+    channel: 'Fun Kids English',
+    patterns: ['ar', 'ir', 'or', 'ow'],
+  },
+  {
+    videoId: 'HILiE1m1rP0',
+    title: 'How Do "OI" & "OY" Sound? | StoryBots: Learn to Read | Netflix Jr',
+    channel: 'Netflix Jr.',
+    patterns: ['oi', 'oy'],
+  },
+  {
+    videoId: 'p63GORjHBN0',
+    title: 'Long vowel pair OY Sound Song l Phonics for English Education',
+    channel: 'Hello Carrie',
+    patterns: ['oy'],
+  },
+  {
+    videoId: '1ZZ6mVwuvRE',
+    title: 'Digraph Rap #3 | Phonics Digraph Song for Kids | Fun Kids English',
+    channel: 'Fun Kids English',
+    patterns: ['oy', 'ai', 'ow', 'ay'],
+  },
+  {
+    videoId: 'fR-BLFZyAWs',
+    title: 'The Vowel Song (a e i o u)',
+    channel: 'Maple Leaf Learning',
+    patterns: ['a', 'e', 'i', 'o', 'u'],
+  },
+  {
+    videoId: '4TjcT7Gto3U',
+    title: 'The Vowel Song: Long and Short Vowel Sounds | English Songs | Scratch Garden',
+    channel: 'Scratch Garden',
+    patterns: ['i', 'o', 'u'],
+  },
+  {
+    videoId: 'd-fjJBdXR0E',
+    title: "Between the Lions:  What's Cooking? - Hot Chop Drop Soup",
+    channel: 'BTLfanatic',
+    patterns: ['o'],
+  },
+  {
+    videoId: 'lhikrG4PJfQ',
+    title: 'Phonics Songs - Group 4 (ai,Jj,oa,ie,ee,or) #primaryworld #jollyphonics #phonics',
+    channel: 'Primary World',
+    patterns: ['ai', 'oa', 'ie', 'ee', 'or'],
+  },
+  {
+    videoId: 'eoy1JXYPn6w',
+    title: 'ay | Fun Phonics | How to Read | Made by Kids vs Phonics',
+    channel: 'Kids vs Life',
+    patterns: ['ay'],
+  },
+  {
+    videoId: 'ozEKeEN5uKc',
+    title: 'Word Families Song | A Y AY! | Hip-Hop Action Song for Kids | Learning Song',
+    channel: 'Miss Nina - Music & Movement for Preschool',
+    patterns: ['ay'],
+  },
+  {
+    videoId: 'OPGs-RdA6dM',
+    title: 'Long Vowel Sounds | ue, ew | Phonics Songs and Stories | Learn to Read',
+    channel: 'Little Fox - Kids Stories and Songs',
+    patterns: ['ue'],
+  },
+  {
+    videoId: 'QxhF1RZdAIc',
+    title: 'ue | Fun Phonics | How to Read | Made by Kids vs Phonics',
+    channel: 'Kids vs Life',
+    patterns: ['ue'],
+  },
+  {
+    videoId: 'wOnY3c5S1iU',
+    title: '🎶 The Magic E Song | Silent E | Phonics Song | Learn to Read! 🎶',
+    channel: 'Andrea Gardner, M.Ed.',
+    patterns: ['a_e', 'i_e', 'o_e', 'u_e'],
+  },
 ]
 
 /** Normalize a pattern string for bank lookup: lowercase, trimmed. */
@@ -196,7 +319,7 @@ export const PATTERN_GROUPS: PatternVideoGroup[] = [
   { label: 'Short vowels', patterns: ['a', 'e', 'i', 'o', 'u'] },
   { label: 'Long vowel teams', patterns: ['ai', 'ay', 'ea', 'ee', 'ie', 'oa', 'ue'] },
   { label: 'Silent e', patterns: ['a_e', 'i_e', 'o_e', 'u_e'] },
-  { label: 'Digraphs', patterns: ['sh', 'th', 'ch', 'wh', 'ck'] },
+  { label: 'Digraphs', patterns: ['sh', 'th', 'ch', 'wh', 'ck', 'ng'] },
   { label: 'Bossy r', patterns: ['ar', 'or', 'er', 'ir', 'ur'] },
   { label: 'Diphthongs', patterns: ['oi', 'oy', 'ou', 'ow', 'au', 'aw'] },
 ]

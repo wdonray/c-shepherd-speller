@@ -14,8 +14,8 @@ import {
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 
 describe('PATTERN_VIDEOS data invariants', () => {
-  it('has 19 verified entries', () => {
-    expect(PATTERN_VIDEOS).toHaveLength(19)
+  it('has 39 verified entries', () => {
+    expect(PATTERN_VIDEOS).toHaveLength(39)
   })
 
   it('uses real 11-char video IDs, never invented placeholders', () => {
@@ -48,6 +48,15 @@ describe('PATTERN_VIDEOS data invariants', () => {
     expect(getVideosForPattern('ar').map((v) => v.videoId)).toEqual(
       expect.arrayContaining(['Xi2gD3TsmTg', 'DHC-GWFNSL0'])
     )
+  })
+
+  it('covers the ng pattern added in issue #495', () => {
+    expect(getVideosForPattern('ng').map((v) => v.videoId)).toEqual(
+      expect.arrayContaining(['94eOpBrVmwY', 'd272ehgASnI', '9K70YXyyJ_M'])
+    )
+    for (const video of getVideosForPattern('ng')) {
+      expect(video.source).toBe('curated')
+    }
   })
 })
 
@@ -83,7 +92,7 @@ describe('searchVideos', () => {
 
   it('finds bank videos by channel, case-insensitively', () => {
     const results = searchVideos('scratch garden')
-    expect(results.map((v) => v.videoId)).toEqual(['ZfbWOTCgRE0'])
+    expect(results.map((v) => v.videoId)).toEqual(['ZfbWOTCgRE0', '4TjcT7Gto3U'])
   })
 
   it('returns nothing for a blank query', () => {
@@ -120,8 +129,9 @@ describe('searchVideos', () => {
       source: 'custom' as const,
     }
     const results = searchVideos('scratch garden', [duplicate])
-    expect(results).toHaveLength(1)
-    expect(results[0].source).toBe('curated')
+    // Both bank videos match; the pasted duplicate of ZfbWOTCgRE0 is dropped.
+    expect(results.map((v) => v.videoId)).toEqual(['ZfbWOTCgRE0', '4TjcT7Gto3U'])
+    expect(results.every((v) => v.source === 'curated')).toBe(true)
   })
 })
 
@@ -203,23 +213,23 @@ describe('getCollectionVideos (issue #458)', () => {
 
   it('returns just the bank when the library is empty', () => {
     const collection = getCollectionVideos([])
-    expect(collection).toHaveLength(19)
+    expect(collection).toHaveLength(39)
     expect(collection.every((video) => video.source === 'curated')).toBe(true)
   })
 
   it('appends her videos after the bank, in order added', () => {
     const second = { videoId: '9bZkp7q19f0', title: 'Second song', source: 'custom' as const }
     const collection = getCollectionVideos([mine, second])
-    expect(collection).toHaveLength(21)
-    expect(collection[19]).toEqual(mine)
-    expect(collection[20]).toEqual(second)
-    expect(collection.slice(0, 19).map((video) => video.videoId)).toEqual(PATTERN_VIDEOS.map((entry) => entry.videoId))
+    expect(collection).toHaveLength(41)
+    expect(collection[39]).toEqual(mine)
+    expect(collection[40]).toEqual(second)
+    expect(collection.slice(0, 39).map((video) => video.videoId)).toEqual(PATTERN_VIDEOS.map((entry) => entry.videoId))
   })
 
   it('lets the bank win when a library entry clashes with a bank ID', () => {
     const clash = { ...mine, videoId: PATTERN_VIDEOS[0].videoId }
     const collection = getCollectionVideos([clash])
-    expect(collection).toHaveLength(19)
+    expect(collection).toHaveLength(39)
     expect(collection[0]).toEqual({
       videoId: PATTERN_VIDEOS[0].videoId,
       title: PATTERN_VIDEOS[0].title,

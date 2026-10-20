@@ -55,7 +55,7 @@ test.describe('hidden videos', () => {
     // The link reaches the full catalog.
     await browseAll.click()
     await expect(page.getByRole('heading', { name: 'Song videos' })).toBeVisible()
-    await expect(page.getByText(/Showing 19 of 19 videos/)).toBeVisible()
+    await expect(page.getByText(/Showing 39 of 39 videos/)).toBeVisible()
   })
 
   test('hide from the pattern video suggestions and search', async ({ page }) => {
@@ -77,11 +77,14 @@ test.describe('hidden videos', () => {
     const suggestions = dialog.getByRole('region', { name: 'Suggestions' })
     await expect(suggestions.getByText(suggestionTitle)).toBeVisible()
 
-    // Hiding the only ai suggestion removes the whole section.
-    await suggestions.getByRole('button', { name: `Hide ${suggestionTitle}` }).click()
+    // Hide every ai suggestion; the section collapses when all are hidden.
+    const hideButton = suggestions.getByRole('button', { name: /^Hide / })
+    while ((await hideButton.count()) > 0) {
+      await hideButton.first().click()
+    }
     await expect(dialog.getByRole('region', { name: 'Suggestions' })).not.toBeVisible()
 
-    // Search no longer surfaces it either.
+    // Search no longer surfaces any of them either.
     await dialog.getByLabel('Search videos by title or channel').fill('vowel')
     await expect(dialog.getByText(suggestionTitle)).not.toBeVisible()
   })
