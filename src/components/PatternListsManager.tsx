@@ -43,12 +43,15 @@ import {
 import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
+import ListsMobileFilterBar, { type ListView } from './ListsMobileFilterBar'
 import PrebuiltLibrarySection from './PrebuiltLibrarySection'
 import { touchDragLiftModifier } from '@/lib/sort-drag'
 
 /** All/Favorites view selection, persisted across sessions. */
-type ListView = 'all' | 'favorites'
 const VIEW_STORAGE_KEY = 'patternspell:lists-view'
+
+/** Below this width the compact single-row filter bar replaces the stacked toolbar (issue #484). */
+const MOBILE_QUERY = '(max-width: 767px)'
 
 /**
  * List-of-lists overview, rendered as the full /lists page. Creating a list
@@ -71,16 +74,23 @@ export default function PatternListsManager() {
   // until it lands so concurrent saves cannot interleave (review feedback).
   const [savingOrder, setSavingOrder] = useState(false)
   const [query, setQuery] = useState('')
+  const [searchExpanded, setSearchExpanded] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // "/" focuses search on desktop (ignored while typing in a field).
+  // "/" focuses search on desktop (ignored while typing in a field). On
+  // mobile the search lives behind the compact bar's toggle, so "/" expands
+  // the field instead (the bar focuses the input on expand).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
       const target = event.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
       event.preventDefault()
-      searchRef.current?.focus()
+      if (window.matchMedia(MOBILE_QUERY).matches) {
+        setSearchExpanded(true)
+      } else {
+        searchRef.current?.focus()
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -132,6 +142,31 @@ export default function PatternListsManager() {
       : sortLists(lists, sort)
   const reorderable =
     !searching && !savingOrder && (effectiveView === 'favorites' || (effectiveView === 'all' && sort === 'custom'))
+
+  // Scroll behavior (issue #484, Donray-confirmed): when the result set
+  // changes (view tab, sort order, or search query), scroll to the top of
+  // the page, the teacher is looking at a new list. Actions that do not
+  // change the result set (e.g. favoriting) do not scroll.
+  const scrollResultsToTop = useCallback(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
+  const handleViewChange = useCallback(
+    (tab: ListView) => {
+      if (tab === effectiveView) return
+      setView(tab)
+      scrollResultsToTop()
+    },
+    [effectiveView, setView, scrollResultsToTop]
+  )
+
+  const handleQueryChange = useCallback(
+    (next: string) => {
+      setQuery(next)
+      scrollResultsToTop()
+    },
+    [scrollResultsToTop]
+  )
 
   const handleToggleFavorite = useCallback(
     async (list: WordList) => {
@@ -213,6 +248,7 @@ export default function PatternListsManager() {
   const handleSortChange = useCallback(
     async (next: ListSort) => {
       if (next === sort || savingOrder) return
+      scrollResultsToTop()
       if (next !== 'custom') {
         setSort(next)
         return
@@ -241,7 +277,7 @@ export default function PatternListsManager() {
         setSavingOrder(false)
       }
     },
-    [sort, visibleLists, savingOrder]
+    [sort, visibleLists, savingOrder, scrollResultsToTop]
   )
 
   const confirmDeleteList = async (target: WordList) => {
@@ -283,17 +319,24 @@ export default function PatternListsManager() {
             everywhere. The old 72px offset assumed a stuck header and floated
             the bar over a gap that scrolling cards showed through. */}
         <div
-          className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+          className="sticky top-0 z-20 -my-1 bg-background py-1.5 [transform:translateZ(0)] md:py-3"
           data-testid="lists-filter-toolbar"
           aria-hidden="true"
         >
-          <div className="inline-flex rounded-full border-2 border-line bg-card p-1">
-            <div className="h-[44px] w-20 animate-pulse rounded-full bg-line/60" />
-            <div className="h-[44px] w-24 animate-pulse rounded-full bg-line/40" />
+          {/* Compact bar geometry on mobile (issue #484): a single 56px row. */}
+          <div className="md:hidden">
+            <div className="h-14 animate-pulse rounded-full bg-line/60" />
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="h-[44px] w-48 animate-pulse rounded-full bg-line/60" />
-            <div className="h-[44px] min-w-[220px] flex-1 animate-pulse rounded-full bg-line/40 sm:max-w-xs" />
+          {/* Desktop skeleton, unchanged apart from the wrapper. */}
+          <div className="hidden space-y-4 md:block">
+            <div className="inline-flex rounded-full border-2 border-line bg-card p-1">
+              <div className="h-[44px] w-20 animate-pulse rounded-full bg-line/60" />
+              <div className="h-[44px] w-24 animate-pulse rounded-full bg-line/40" />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="h-[44px] w-48 animate-pulse rounded-full bg-line/60" />
+              <div className="h-[44px] min-w-[220px] flex-1 animate-pulse rounded-full bg-line/40 sm:max-w-xs" />
+            </div>
           </div>
         </div>
         {/* List cards: match WordListCard structure */}
@@ -360,74 +403,98 @@ export default function PatternListsManager() {
             scrolling buttons painted on top of the stuck bar (issue #421).
           */}
           <div
-            className="sticky top-0 z-20 -my-1 space-y-4 bg-background py-3 [transform:translateZ(0)]"
+            className="sticky top-0 z-20 -my-1 bg-background py-1.5 [transform:translateZ(0)] md:py-3"
             data-testid="lists-filter-toolbar"
           >
-            {showFavoritesTab && !searching && (
-              <div
-                role="tablist"
-                aria-label="List views"
-                className="inline-flex rounded-full border-2 border-line bg-card p-1"
-              >
-                {(['all', 'favorites'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={effectiveView === tab}
-                    onClick={() => setView(tab)}
-                    className={cn(
-                      'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
-                      'focus-visible:ring-[3px] focus-visible:ring-ring/60',
-                      effectiveView === tab ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
-                    )}
-                  >
-                    {tab === 'all' ? 'All' : 'Favorites'}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/*
+              Compact single-row bar on mobile (issue #484): the tabs, sort,
+              and search collapse into one 56px row instead of three stacked
+              full-width rows.
+            */}
+            <div className="md:hidden">
+              <ListsMobileFilterBar
+                view={effectiveView}
+                onViewChange={handleViewChange}
+                showFavoritesTab={showFavoritesTab}
+                searching={searching}
+                sort={sort}
+                onSortChange={handleSortChange}
+                showSort={(effectiveView === 'all' || searching) && lists.length > 0}
+                query={query}
+                onQueryChange={handleQueryChange}
+                searchExpanded={searchExpanded}
+                onSearchExpandedChange={setSearchExpanded}
+              />
+            </div>
 
-            {lists.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3">
-                {(effectiveView === 'all' || searching) && (
-                  <>
-                    <ListSortMenu sort={sort} onSortChange={handleSortChange} />
-                    {sort === 'custom' && !searching && (
-                      <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
-                    )}
-                  </>
-                )}
-                <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
-                  <SearchIcon
-                    className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    ref={searchRef}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search lists"
-                    aria-label="Search lists"
-                    className="min-h-[44px] rounded-full pl-10 pr-10"
-                  />
-                  {query && (
+            {/* Full stacked toolbar on desktop, unchanged. */}
+            <div className="hidden space-y-4 md:block" data-testid="desktop-filter-bar">
+              {showFavoritesTab && !searching && (
+                <div
+                  role="tablist"
+                  aria-label="List views"
+                  className="inline-flex rounded-full border-2 border-line bg-card p-1"
+                >
+                  {(['all', 'favorites'] as const).map((tab) => (
                     <button
+                      key={tab}
                       type="button"
-                      onClick={() => setQuery('')}
-                      aria-label="Clear search"
+                      role="tab"
+                      aria-selected={effectiveView === tab}
+                      onClick={() => handleViewChange(tab)}
                       className={cn(
-                        'absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full',
-                        'text-muted-foreground outline-none transition-colors hover:bg-line/60 hover:text-ink',
-                        'focus-visible:ring-[3px] focus-visible:ring-ring/60'
+                        'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
+                        'focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                        effectiveView === tab ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
                       )}
                     >
-                      <XIcon className="size-5" aria-hidden="true" />
+                      {tab === 'all' ? 'All' : 'Favorites'}
                     </button>
-                  )}
+                  ))}
                 </div>
-              </div>
-            )}
+              )}
+
+              {lists.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {(effectiveView === 'all' || searching) && (
+                    <>
+                      <ListSortMenu sort={sort} onSortChange={handleSortChange} />
+                      {sort === 'custom' && !searching && (
+                        <p className="text-[15px] text-muted-foreground">Drag the handles to reorder your lists.</p>
+                      )}
+                    </>
+                  )}
+                  <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
+                    <SearchIcon
+                      className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      ref={searchRef}
+                      value={query}
+                      onChange={(event) => handleQueryChange(event.target.value)}
+                      placeholder="Search lists"
+                      aria-label="Search lists"
+                      className="min-h-[44px] rounded-full pl-10 pr-10"
+                    />
+                    {query && (
+                      <button
+                        type="button"
+                        onClick={() => handleQueryChange('')}
+                        aria-label="Clear search"
+                        className={cn(
+                          'absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full',
+                          'text-muted-foreground outline-none transition-colors hover:bg-line/60 hover:text-ink',
+                          'focus-visible:ring-[3px] focus-visible:ring-ring/60'
+                        )}
+                      >
+                        <XIcon className="size-5" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {searching && (

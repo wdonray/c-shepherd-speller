@@ -304,3 +304,10 @@ credentials.
   `toBeEnabled()/toBeDisabled()` on the Save button races that timer and
   flakes in CI; use `await waitFor(() => ...)` so the test settles after the
   metadata lands (found 2026-10-18: issue #435, VoiceRecorderModal flake).
+- **Playwright's click scrolls the target into view before clicking.**
+  When asserting that an action does NOT scroll the page (e.g. favoriting
+  a list), a plain `click()` moves the page itself during actionability
+  checks and the assertion measures the driver's scroll, not the app's.
+  Use `dispatchEvent('click')` to fire the handler without the driver
+  scrolling, so the scroll assertion isolates the app's behavior (found
+  2026-10-19: issue #484, the no-scroll-on-favorite e2e).
