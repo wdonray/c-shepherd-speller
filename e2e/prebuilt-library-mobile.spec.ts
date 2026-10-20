@@ -43,7 +43,7 @@ test.describe('prebuilt library mobile layout', () => {
 
   test('grade pills and pattern search fit the viewport', async ({ page }) => {
     await page.goto('/lists')
-    const tablist = page.getByRole('tablist', { name: 'Filter prebuilt lists by grade' })
+    const tablist = page.getByRole('tablist', { name: 'Filter ready-made lists by grade' })
     await expect(tablist).toBeVisible()
     const box = await tablist.boundingBox()
     expect(box, 'tablist should be visible').toBeTruthy()
