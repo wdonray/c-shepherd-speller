@@ -14,6 +14,11 @@ vi.mock('@/lib/example-sentences', () => ({ fetchExampleSentences }))
 const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }))
 vi.mock('@/lib/report-error', () => ({ reportError }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...rest}>

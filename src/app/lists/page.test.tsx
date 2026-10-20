@@ -6,6 +6,11 @@ vi.mock('@/components/PatternListsManager', () => ({
   default: () => <div data-testid="pattern-lists-manager" />,
 }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 describe('ListsPage', () => {
   it('has overview metadata', () => {
     expect(metadata.title).toBe('My spelling lists | PatternSpell')

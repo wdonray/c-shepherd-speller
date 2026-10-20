@@ -48,10 +48,14 @@ test.describe('authenticated flows', () => {
     await expect(page.getByText('cake')).toBeVisible()
 
     // Edits auto-save; wait for the confirmation, then go back via the
-    // page-top back breadcrumb (exact name: the header nav link uses
-    // title case "My Spelling Lists").
+    // history-aware back control, which names the page we came from
+    // (the new-list form, issue #504).
     await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15000 })
-    await page.getByRole('link', { name: 'My spelling lists', exact: true }).click()
+    await page.getByRole('button', { name: 'New word list' }).click()
+    await expect(page).toHaveURL('/lists/new')
+
+    // The new list shows up in the manager.
+    await page.goto('/lists')
     await expect(page.getByText('E2E Week 1').first()).toBeVisible()
   })
 

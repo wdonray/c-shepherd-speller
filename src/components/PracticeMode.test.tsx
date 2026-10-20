@@ -27,6 +27,11 @@ vi.mock('@/lib/sound-effects', () => ({
   setSoundEnabled: vi.fn(),
 }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 beforeEach(() => {
   trackEvent.mockClear()
 })

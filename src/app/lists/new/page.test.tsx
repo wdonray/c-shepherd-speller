@@ -6,6 +6,11 @@ vi.mock('@/components/NewListForm', () => ({
   default: () => <div data-testid="new-list-form" />,
 }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 describe('NewListPage', () => {
   it('has new-list metadata', () => {
     expect(metadata.title).toBe('New word list | PatternSpell')

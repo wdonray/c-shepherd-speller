@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
+import ReportPageName from '@/components/report-page-name'
 import PatternChartDisplay from '@/components/PatternChartDisplay'
 import PrebuiltBadge from '@/components/PrebuiltBadge'
 import PrebuiltWeekActions from '@/components/PrebuiltWeekActions'
@@ -27,6 +28,7 @@ export default async function PrebuiltWeekPage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <ReportPageName name={week.title} />
       <BackBreadcrumb href="/lists" label="My Spelling Lists" />
       <div className="mt-2 space-y-1">
         <div className="flex items-center gap-2">

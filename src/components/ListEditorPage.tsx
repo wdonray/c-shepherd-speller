@@ -27,6 +27,7 @@ import {
   type SpellingPattern,
 } from '@/models/WordList'
 import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-changes-guard'
+import { reportPageName } from '@/lib/navigation-history'
 import PatternEditor from './PatternEditor'
 import ListColorPicker from './ListColorPicker'
 import ClassroomSelector from './ClassroomSelector'
@@ -255,6 +256,15 @@ export default function ListEditorPage({ listId }: { listId: string }) {
       cancelled = true
     }
   }, [listId])
+
+  // Name this page for history-aware back controls (issue #504): when the
+  // teacher later leaves for a worksheet or print page, that page's back
+  // control names this list. Keyed on the name string (not the list object,
+  // whose identity changes on every edit) and skipped when unchanged.
+  const listName = list?.name
+  useEffect(() => {
+    if (loadState === 'ready') reportPageName(listName || 'Untitled list')
+  }, [loadState, listName])
 
   // Load the list's classroom (name + rules) for the per-pattern rule editor
   // whenever the classroom assignment changes. Null clears back to unscoped
