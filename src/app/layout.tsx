@@ -6,6 +6,7 @@ import VoiceSyncRunner from '@/components/providers/VoiceSyncRunner'
 import { SiteChrome } from '@/components/SiteChrome'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import AnalyticsTracker from '@/components/analytics-tracker'
+import NavigationTracker from '@/components/navigation-tracker'
 import { ErrorToaster } from '@/components/error-toaster'
 import { VersionReloadToast } from '@/components/version-reload-toast'
 
@@ -70,6 +71,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <SiteChrome>{children}</SiteChrome>
             <AnalyticsTracker />
+            <NavigationTracker />
             <ErrorToaster />
             <VersionReloadToast />
             <VoiceSyncRunner />

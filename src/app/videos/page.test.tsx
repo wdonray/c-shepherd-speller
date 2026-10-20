@@ -6,6 +6,11 @@ vi.mock('@/components/SongVideoBrowser', () => ({
   default: () => <div data-testid="song-video-browser" />,
 }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 describe('VideosPage', () => {
   it('has browse metadata', () => {
     expect(metadata.title).toBe('Song videos | PatternSpell')

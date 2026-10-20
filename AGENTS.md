@@ -168,6 +168,14 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   top of the stuck bar. Give sticky chrome a strictly higher z-index than
   anything that scrolls beneath it (found 2026-10-18: issue #421, list
   card Edit/Present/Delete buttons covered the stuck filter bar).
+- **Back controls are history-aware; the parent-named link is the fallback.**
+  BackBreadcrumb is a client component: with an in-app referrer it names the
+  previous page (from the sessionStorage navigation tracker mounted in the
+  root layout) and performs a real history-back; on direct landing, and during
+  SSR, it renders the parent-named link. Pages with dynamic titles must name
+  themselves via reportPageName() (ListEditorPage) or the ReportPageName
+  component (server pages), or the control falls back to the parent link
+  (found 2026-10-20: issue #504).
 - **Sticky is bounded by its containing block.** A `position: sticky`
   element can only travel within its parent's box, so wrapping the site
   header in a fixed-height slot (to stop layout shift when it pops in)

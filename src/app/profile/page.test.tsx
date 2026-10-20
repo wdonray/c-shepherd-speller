@@ -13,6 +13,11 @@ vi.mock('@/components/HiddenVideosSection', () => ({
   default: () => <div data-testid="hidden-videos-section" />,
 }))
 
+// BackBreadcrumb (issue #504) is a client component that calls useRouter.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ back: vi.fn() }),
+}))
+
 describe('ProfilePage', () => {
   afterEach(() => {
     vi.restoreAllMocks()
