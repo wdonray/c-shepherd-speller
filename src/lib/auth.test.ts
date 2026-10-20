@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import type { NextAuthOptions } from 'next-auth'
-import type { Adapter } from 'next-auth/adapters'
+import type { Adapter, AdapterUser } from 'next-auth/adapters'
 import { CognitoAuthError, cognitoSignIn } from './cognito-auth'
+import { sendSignupEmail } from './signup-email'
+import { reportError } from './report-error'
 
 // cognitoSignIn hits AWS; mock it while keeping the rest of the module
 // (isCognitoEmailAuthConfigured, CognitoAuthError) real.
@@ -9,6 +11,11 @@ vi.mock('./cognito-auth', async (importOriginal) => ({
   ...((await importOriginal()) as object),
   cognitoSignIn: vi.fn(),
 }))
+
+// The signup notification and error reporting are unit-tested through their
+// own modules; here they are mocks so the event tests assert the wiring.
+vi.mock('./signup-email', () => ({ sendSignupEmail: vi.fn() }))
+vi.mock('./report-error', () => ({ reportError: vi.fn() }))
 
 const cognitoSignInMock = vi.mocked(cognitoSignIn)
 
@@ -374,5 +381,73 @@ describe('email-password provider authorize', () => {
     const { authOptions } = await import('./auth')
 
     expect(authOptions.providers.some((p) => p.type === 'credentials')).toBe(false)
+  })
+})
+
+/**
+ * The createUser event emails Donray on every new signup. A failed
+ * notification must never break signup: failures are reported and swallowed.
+ */
+describe('createUser event (signup notification)', () => {
+  const sendSignupEmailMock = vi.mocked(sendSignupEmail)
+  const reportErrorMock = vi.mocked(reportError)
+
+  const user: AdapterUser = {
+    id: 'user-1',
+    name: 'Test Teacher',
+    email: 'teacher@example.com',
+    emailVerified: null,
+  }
+
+  beforeAll(() => {
+    vi.stubEnv('DYNAMODB_ENDPOINT', 'http://localhost:8000')
+    vi.stubEnv('AUTH_DYNAMODB_REGION', 'us-east-1')
+    // DynamoDB Local accepts any credentials, but they must look like real
+    // AWS keys (the SDK validates the format).
+    vi.stubEnv('AUTH_DYNAMODB_ID', '<redacted>')
+    vi.stubEnv('AUTH_DYNAMODB_SECRET', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
+    vi.stubEnv('AUTH_TABLE_NAME', 'next-auth')
+    vi.stubEnv('COGNITO_CLIENT_ID', '')
+    vi.stubEnv('COGNITO_CLIENT_SECRET', '')
+    vi.stubEnv('COGNITO_ISSUER', '')
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-20T04:50:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+  })
+
+  async function fireCreateUser() {
+    const { authOptions } = await import('./auth')
+    const handler = authOptions.events?.createUser
+    expect(handler).toBeDefined()
+    await handler!({ user })
+  }
+
+  it('emails Donray the new signup details', async () => {
+    await fireCreateUser()
+
+    expect(sendSignupEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupEmailMock).toHaveBeenCalledWith({
+      name: 'Test Teacher',
+      email: 'teacher@example.com',
+      signedUpAt: new Date('2026-10-20T04:50:00.000Z'),
+    })
+    expect(reportErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('reports and swallows notification failures so signup never breaks', async () => {
+    sendSignupEmailMock.mockRejectedValueOnce(new Error('SES is down'))
+
+    await expect(fireCreateUser()).resolves.toBeUndefined()
+
+    expect(reportErrorMock).toHaveBeenCalledTimes(1)
+    expect(reportErrorMock).toHaveBeenCalledWith(expect.any(Error), { location: 'auth.events.createUser' })
   })
 })

@@ -6,6 +6,8 @@ import { DynamoDBAdapter } from '@next-auth/dynamodb-adapter'
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb'
 import { client } from './dynamodb'
 import { CognitoAuthError, cognitoSignIn, isCognitoEmailAuthConfigured } from './cognito-auth'
+import { sendSignupEmail } from './signup-email'
+import { reportError } from './report-error'
 
 // The low-level client comes from the shared connection manager so the auth
 // route honors DYNAMODB_ENDPOINT (DynamoDB Local) and optional credentials
@@ -130,6 +132,19 @@ export const authOptions: NextAuthOptions = {
     signOut: '/auth/signout',
     error: '/auth/error',
     verifyRequest: '/auth/verify-request',
+  },
+  events: {
+    // Email Donray on every new signup. A failed notification must never
+    // break signup, so failures are reported to Sentry and swallowed.
+    // Note: the Credentials provider never creates adapter users, so this
+    // fires for OAuth signups (Google, Cognito) only.
+    async createUser({ user }) {
+      try {
+        await sendSignupEmail({ name: user.name, email: user.email, signedUpAt: new Date() })
+      } catch (error) {
+        reportError(error, { location: 'auth.events.createUser' })
+      }
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
