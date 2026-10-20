@@ -54,7 +54,9 @@ he decides, you execute. He verifies your work as a habit, be precise.
 `DYNAMODB_ENDPOINT` set routes DynamoDB traffic to the local instance;
 unset it and set `AUTH_DYNAMODB_REGION`/`AUTH_DYNAMODB_ID`/
 `AUTH_DYNAMODB_SECRET` to use real AWS. Local DynamoDB accepts any
-credentials.
+credentials, but access key IDs containing hyphens are rejected with
+`UnrecognizedClientException` (found 2026-10-19: local e2e runs must use
+hyphen-free dummy creds, e.g. `e2edummyid`).
 
 ## Stack
 
