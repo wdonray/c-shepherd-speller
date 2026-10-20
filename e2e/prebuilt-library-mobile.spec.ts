@@ -82,6 +82,37 @@ test.describe('prebuilt library mobile layout', () => {
     await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id] action buttons')
   })
 
+  test('/lists/prebuilt/[id] actions are grouped into "Make it yours" and a "Try it" set', async ({ page }) => {
+    await page.goto('/lists/prebuilt/prebuilt-g1-w01')
+    await expect(page.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeVisible()
+
+    // "Make it yours" owns exactly the two take-the-content actions.
+    const ownGroup = page.getByRole('group', { name: 'Make it yours' })
+    await expect(ownGroup.getByRole('button', { name: 'Copy to my lists' })).toBeVisible()
+    await expect(ownGroup.getByRole('button', { name: 'Add patterns to...' })).toBeVisible()
+    expect(await ownGroup.getByRole('button').count()).toBe(2)
+
+    // "Try it" owns exactly the three try-before-you-copy actions as one set.
+    const tryGroup = page.getByRole('group', { name: 'Try it' })
+    await expect(tryGroup.getByRole('button', { name: 'Present' })).toBeVisible()
+    await expect(tryGroup.getByRole('button', { name: 'Practice' })).toBeVisible()
+    await expect(tryGroup.getByRole('button', { name: 'Worksheets' })).toBeVisible()
+    expect(await tryGroup.getByRole('button').count()).toBe(3)
+
+    // The set is visually joined: no gaps between adjacent segments.
+    const present = await tryGroup.getByRole('button', { name: 'Present' }).boundingBox()
+    const practice = await tryGroup.getByRole('button', { name: 'Practice' }).boundingBox()
+    const worksheets = await tryGroup.getByRole('button', { name: 'Worksheets' }).boundingBox()
+    expect(present && practice && worksheets, 'segments should be visible').toBeTruthy()
+    expect(Math.abs(practice!.x - (present!.x + present!.width))).toBeLessThanOrEqual(1)
+    expect(Math.abs(worksheets!.x - (practice!.x + practice!.width))).toBeLessThanOrEqual(1)
+
+    // The joined set fits the 390px viewport.
+    const box = await tryGroup.boundingBox()
+    expect(box!.width).toBeLessThanOrEqual(390)
+    await assertNoHorizontalOverflow(page, '/lists/prebuilt/[id] button groups')
+  })
+
   test('present from a prebuilt week shows the badge and no horizontal overflow', async ({ page }) => {
     await page.goto('/display?prebuilt=prebuilt-g1-w01')
     await expect(page.getByRole('heading', { name: /Grade 1 - Week 1/ })).toBeVisible()

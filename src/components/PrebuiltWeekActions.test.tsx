@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import PrebuiltWeekActions from './PrebuiltWeekActions'
 import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 import type { WordList } from '@/models/WordList'
@@ -48,6 +48,31 @@ describe('PrebuiltWeekActions', () => {
     render(<PrebuiltWeekActions week={week} />)
     expect(screen.getByRole('button', { name: 'Copy to my lists' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add patterns to...' })).toBeInTheDocument()
+  })
+
+  it('groups the actions into "Make it yours" and a "Try it" segmented set (issue #487)', () => {
+    render(<PrebuiltWeekActions week={week} />)
+
+    // "Make it yours" owns exactly the two take-the-content actions.
+    const ownGroup = screen.getByRole('group', { name: 'Make it yours' })
+    expect(within(ownGroup).getByRole('button', { name: 'Copy to my lists' })).toBeInTheDocument()
+    expect(within(ownGroup).getByRole('button', { name: 'Add patterns to...' })).toBeInTheDocument()
+    expect(within(ownGroup).getAllByRole('button')).toHaveLength(2)
+
+    // "Try it" owns exactly the three try-before-you-copy actions as one set.
+    const tryGroup = screen.getByRole('group', { name: 'Try it' })
+    expect(within(tryGroup).getByRole('button', { name: 'Present' })).toBeInTheDocument()
+    expect(within(tryGroup).getByRole('button', { name: 'Practice' })).toBeInTheDocument()
+    expect(within(tryGroup).getByRole('button', { name: 'Worksheets' })).toBeInTheDocument()
+    expect(within(tryGroup).getAllByRole('button')).toHaveLength(3)
+
+    // Each visible caption labels its group (accessible name comes from it).
+    expect(tryGroup.getAttribute('aria-labelledby')).toBe(
+      screen.getByText('Try it', { selector: 'p' }).getAttribute('id')
+    )
+    expect(ownGroup.getAttribute('aria-labelledby')).toBe(
+      screen.getByText('Make it yours', { selector: 'p' }).getAttribute('id')
+    )
   })
 
   it('copies the week and shows a confirmation naming the new list', async () => {
