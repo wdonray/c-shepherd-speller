@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createList, notifyListsChanged } from '@/lib/lists-api'
 import { prebuiltGradeLabel, type PrebuiltWeek } from '@/lib/prebuilt-lists'
+import { cn } from '@/lib/utils'
 import PullPatternsModal from './PullPatternsModal'
 
 type CopyState =
@@ -16,16 +17,30 @@ type CopyState =
 
 const COPY_ERROR = 'Could not copy the list. Check your connection and try again.'
 
+const SECTION_CAPTION_CLASS = 'text-[13px] font-bold uppercase tracking-[0.06em] text-muted-foreground'
+
 /**
- * The two Phase B actions on a prebuilt week preview (issue #463): copy the
- * whole week into the teacher's lists, or pull individual patterns into one
- * of her lists. The preview itself stays read-only; both flows create or
- * update her own editable lists.
+ * One segment of the "Try it" group. The segments are plain buttons joined
+ * into a single pill: dividers (not gaps) separate them so the three
+ * try-before-you-copy actions read as one set. Focus rings are inset because
+ * the container clips overflow.
+ */
+const SEGMENT_CLASS =
+  'cursor-pointer px-4 py-3 text-[15px] font-bold whitespace-nowrap text-foreground transition-colors select-none hover:bg-accent focus-visible:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60 focus-visible:ring-inset focus-visible:outline-none'
+
+/**
+ * The actions on a prebuilt week preview (issue #463), split into two
+ * labeled groups (issue #487): "Make it yours" takes the content (copy the
+ * whole week, or pull patterns into her own lists), "Try it" tries the
+ * preview first as one compact segmented set. The preview itself stays
+ * read-only; both flows create or update her own editable lists.
  */
 export default function PrebuiltWeekActions({ week }: { week: PrebuiltWeek }) {
   const router = useRouter()
   const [copyState, setCopyState] = useState<CopyState>({ name: 'idle' })
   const [pullOpen, setPullOpen] = useState(false)
+  const ownLabelId = useId()
+  const tryLabelId = useId()
 
   const wordCount = week.patterns.reduce((sum, p) => sum + p.words.length, 0)
 
@@ -76,29 +91,52 @@ export default function PrebuiltWeekActions({ week }: { week: PrebuiltWeek }) {
   }
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button onClick={handleCopy} disabled={copyState.name === 'copying'}>
-          {copyState.name === 'copying' ? 'Copying...' : 'Copy to my lists'}
-        </Button>
-        <Button variant="secondary" onClick={() => setPullOpen(true)}>
-          Add patterns to...
-        </Button>
+    <div className="space-y-4">
+      <div>
+        <p id={ownLabelId} className={cn(SECTION_CAPTION_CLASS, 'mb-1.5')}>
+          Make it yours
+        </p>
+        <div role="group" aria-labelledby={ownLabelId} className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={handleCopy} disabled={copyState.name === 'copying'}>
+            {copyState.name === 'copying' ? 'Copying...' : 'Copy to my lists'}
+          </Button>
+          <Button variant="secondary" onClick={() => setPullOpen(true)}>
+            Add patterns to...
+          </Button>
+        </div>
       </div>
       {/* Phase C: use the week directly, no setup needed (issue #463). */}
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button variant="secondary" onClick={() => router.push(`/display?prebuilt=${encodeURIComponent(week.id)}`)}>
-          Present
-        </Button>
-        <Button variant="secondary" onClick={() => router.push(`/practice?prebuilt=${encodeURIComponent(week.id)}`)}>
-          Practice
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={() => router.push(`/lists/prebuilt/${encodeURIComponent(week.id)}/worksheets`)}
+      <div>
+        <p id={tryLabelId} className={cn(SECTION_CAPTION_CLASS, 'mb-1.5')}>
+          Try it
+        </p>
+        <div
+          role="group"
+          aria-labelledby={tryLabelId}
+          className="inline-flex overflow-hidden rounded-full border-2 border-line bg-card"
         >
-          Worksheets
-        </Button>
+          <button
+            type="button"
+            onClick={() => router.push(`/display?prebuilt=${encodeURIComponent(week.id)}`)}
+            className={SEGMENT_CLASS}
+          >
+            Present
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/practice?prebuilt=${encodeURIComponent(week.id)}`)}
+            className={cn(SEGMENT_CLASS, 'border-l-2 border-line')}
+          >
+            Practice
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/lists/prebuilt/${encodeURIComponent(week.id)}/worksheets`)}
+            className={cn(SEGMENT_CLASS, 'border-l-2 border-line')}
+          >
+            Worksheets
+          </button>
+        </div>
       </div>
       {/* Reserved so the error notice never shifts the layout when it appears. */}
       <div className="min-h-6 pt-1">
