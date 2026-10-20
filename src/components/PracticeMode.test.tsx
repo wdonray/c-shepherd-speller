@@ -414,7 +414,7 @@ describe('PracticeMode', () => {
 describe('PracticeMode prebuilt (issue #463)', () => {
   it('shows the Prebuilt badge when isPrebuilt', () => {
     render(<PracticeMode list={list} onExit={vi.fn()} isPrebuilt />)
-    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(screen.getByText('Ready-made')).toBeInTheDocument()
   })
 
   it('hides the Prebuilt badge by default', () => {

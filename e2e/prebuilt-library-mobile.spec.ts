@@ -36,7 +36,7 @@ test.describe('prebuilt library mobile layout', () => {
 
   test('/lists prebuilt section has no horizontal overflow', async ({ page }) => {
     await page.goto('/lists')
-    await expect(page.getByRole('heading', { name: 'Prebuilt library' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ready-made library' })).toBeVisible()
     await expect(page.getByTestId('prebuilt-grid')).toBeVisible()
     await assertNoHorizontalOverflow(page, '/lists prebuilt section')
   })
@@ -48,13 +48,13 @@ test.describe('prebuilt library mobile layout', () => {
     const box = await tablist.boundingBox()
     expect(box, 'tablist should be visible').toBeTruthy()
     expect(box!.width).toBeLessThanOrEqual(390)
-    await expect(page.getByLabel('Search prebuilt lists by pattern')).toBeVisible()
+    await expect(page.getByLabel('Search ready-made lists by pattern')).toBeVisible()
     await assertNoHorizontalOverflow(page, '/lists prebuilt filters')
   })
 
   test('pattern search filters weeks across grades', async ({ page }) => {
     await page.goto('/lists')
-    await page.getByLabel('Search prebuilt lists by pattern').fill('tion')
+    await page.getByLabel('Search ready-made lists by pattern').fill('tion')
     await expect(page.getByText(/weeks matching "tion" across all grades/)).toBeVisible()
     await assertNoHorizontalOverflow(page, '/lists prebuilt search results')
   })
@@ -85,7 +85,7 @@ test.describe('prebuilt library mobile layout', () => {
   test('present from a prebuilt week shows the badge and no horizontal overflow', async ({ page }) => {
     await page.goto('/display?prebuilt=prebuilt-g1-w01')
     await expect(page.getByRole('heading', { name: /Grade 1 - Week 1/ })).toBeVisible()
-    await expect(page.getByText('Prebuilt')).toBeVisible()
+    await expect(page.getByText('Ready-made')).toBeVisible()
     await assertNoHorizontalOverflow(page, '/display?prebuilt')
   })
 

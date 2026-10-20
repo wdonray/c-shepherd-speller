@@ -15,14 +15,14 @@ vi.mock('next/navigation', () => ({
 
 describe('PrebuiltWeekPage', () => {
   it('has preview metadata', () => {
-    expect(metadata.title).toContain('Prebuilt')
+    expect(metadata.title).toContain('Ready-made')
     expect(metadata.description).toContain('Read-only')
   })
 
   it('renders a read-only chart preview for a known week', async () => {
     render(await PrebuiltWeekPage({ params: Promise.resolve({ id: 'prebuilt-g1-w01' }) }))
     expect(screen.getByRole('heading', { name: 'Grade 1 - Week 1' })).toBeInTheDocument()
-    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(screen.getByText('Ready-made')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'My Spelling Lists' })).toHaveAttribute('href', '/lists')
     const chart = screen.getByTestId('pattern-chart')
     expect(chart).toHaveAttribute('data-name', 'Grade 1 - Week 1')

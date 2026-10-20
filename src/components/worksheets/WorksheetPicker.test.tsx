@@ -182,7 +182,7 @@ describe('WorksheetPicker prebuilt weeks (issue #463)', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Printable worksheets/ })).toBeInTheDocument()
     })
-    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(screen.getByText('Ready-made')).toBeInTheDocument()
     expect(getList).not.toHaveBeenCalled()
   })
 

@@ -70,7 +70,7 @@ describe('TermsOfServicePage', () => {
 describe('TermsOfServicePage prebuilt content (issue #463)', () => {
   it('licenses prebuilt lists for classroom use with no curriculum affiliation', () => {
     render(<TermsOfServicePage />)
-    expect(screen.getByRole('heading', { name: /prebuilt content/i, level: 2 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /ready-made content/i, level: 2 })).toBeInTheDocument()
     expect(screen.getAllByText(/non-exclusive, non-transferable license/i).length).toBeGreaterThan(0)
     expect(
       screen.getAllByText(/not affiliated with, endorsed by, or aligned to any curriculum/i).length

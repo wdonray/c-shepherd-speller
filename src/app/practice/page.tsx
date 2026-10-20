@@ -40,7 +40,7 @@ function PracticeInner() {
       try {
         if (prebuiltId) {
           const week = getPrebuiltWeek(prebuiltId)
-          if (!week) throw new Error(`Unknown prebuilt week: ${prebuiltId}`)
+          if (!week) throw new Error(`Unknown ready-made week: ${prebuiltId}`)
           setList(prebuiltWeekToWordList(week))
         } else if (listId) {
           const data = await getList(listId)

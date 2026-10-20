@@ -6,7 +6,7 @@ import { getPrebuiltWeeks } from '@/lib/prebuilt-lists'
 describe('PrebuiltLibrarySection', () => {
   it('renders the section with grade 1 weeks by default', () => {
     render(<PrebuiltLibrarySection />)
-    expect(screen.getByRole('heading', { name: 'Prebuilt library' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ready-made library' })).toBeInTheDocument()
     expect(screen.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeInTheDocument()
     const grid = screen.getByTestId('prebuilt-grid')
     // Issue #481: only the first page of 12 renders, not all 30 at once.
@@ -16,7 +16,7 @@ describe('PrebuiltLibrarySection', () => {
   it('marks every card with the Prebuilt badge and links to the preview', () => {
     render(<PrebuiltLibrarySection />)
     const grid = screen.getByTestId('prebuilt-grid')
-    expect(within(grid).getAllByText('Prebuilt').length).toBeGreaterThan(0)
+    expect(within(grid).getAllByText('Ready-made').length).toBeGreaterThan(0)
     const link = within(grid).getByRole('link', { name: 'Preview: Grade 1 - Week 1' })
     expect(link).toHaveAttribute('href', '/lists/prebuilt/prebuilt-g1-w01')
   })
@@ -31,7 +31,7 @@ describe('PrebuiltLibrarySection', () => {
 
   it('searches patterns across all grades', () => {
     render(<PrebuiltLibrarySection />)
-    fireEvent.change(screen.getByLabelText('Search prebuilt lists by pattern'), { target: { value: 'tion' } })
+    fireEvent.change(screen.getByLabelText('Search ready-made lists by pattern'), { target: { value: 'tion' } })
     // tion weeks exist in grades 3, 4, and 5: the search spans grades.
     const status = screen.getByRole('status')
     expect(status.textContent).toMatch(/weeks matching "tion" across all grades/)
@@ -45,27 +45,27 @@ describe('PrebuiltLibrarySection', () => {
 
   it('matches sounds as well as patterns', () => {
     render(<PrebuiltLibrarySection />)
-    fireEvent.change(screen.getByLabelText('Search prebuilt lists by pattern'), { target: { value: 'long a' } })
+    fireEvent.change(screen.getByLabelText('Search ready-made lists by pattern'), { target: { value: 'long a' } })
     const grid = screen.getByTestId('prebuilt-grid')
     expect(within(grid).getAllByRole('link', { name: /Preview:/ }).length).toBeGreaterThan(0)
   })
 
   it('uses the singular when exactly one week matches', () => {
     render(<PrebuiltLibrarySection />)
-    fireEvent.change(screen.getByLabelText('Search prebuilt lists by pattern'), { target: { value: 'wh' } })
+    fireEvent.change(screen.getByLabelText('Search ready-made lists by pattern'), { target: { value: 'wh' } })
     expect(screen.getByText('Showing 1-1 of 1 week matching "wh" across all grades.')).toBeInTheDocument()
   })
 
   it('shows an empty message when nothing matches', () => {
     render(<PrebuiltLibrarySection />)
-    fireEvent.change(screen.getByLabelText('Search prebuilt lists by pattern'), { target: { value: 'zzzqqq' } })
-    expect(screen.getByText('No prebuilt weeks match "zzzqqq".')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search ready-made lists by pattern'), { target: { value: 'zzzqqq' } })
+    expect(screen.getByText('No ready-made weeks match "zzzqqq".')).toBeInTheDocument()
     expect(screen.queryByTestId('prebuilt-grid')).not.toBeInTheDocument()
   })
 
   it('clears the search with the clear button', () => {
     render(<PrebuiltLibrarySection />)
-    const search = screen.getByLabelText('Search prebuilt lists by pattern')
+    const search = screen.getByLabelText('Search ready-made lists by pattern')
     fireEvent.change(search, { target: { value: 'tion' } })
     expect(screen.queryByTestId('prebuilt-grid')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Clear pattern search'))
@@ -120,10 +120,10 @@ describe('PrebuiltLibrarySection', () => {
     render(<PrebuiltLibrarySection />)
     fireEvent.click(screen.getByRole('button', { name: 'Go to page 3' }))
 
-    const search = screen.getByLabelText('Search prebuilt lists by pattern')
+    const search = screen.getByLabelText('Search ready-made lists by pattern')
     fireEvent.change(search, { target: { value: 'tion' } })
     expect(screen.getByText('Showing 1-8 of 8 weeks matching "tion" across all grades.')).toBeInTheDocument()
-    expect(screen.queryByRole('navigation', { name: 'Prebuilt library pages' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Ready-made library pages' })).not.toBeInTheDocument()
 
     fireEvent.change(search, { target: { value: '' } })
     expect(screen.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeInTheDocument()
@@ -132,7 +132,7 @@ describe('PrebuiltLibrarySection', () => {
   it('hides the pager when everything fits on one page', () => {
     render(<PrebuiltLibrarySection />)
     fireEvent.click(screen.getByRole('tab', { name: 'K' }))
-    expect(screen.queryByRole('navigation', { name: 'Prebuilt library pages' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Ready-made library pages' })).not.toBeInTheDocument()
   })
 })
 

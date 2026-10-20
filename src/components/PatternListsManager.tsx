@@ -518,7 +518,7 @@ export default function PatternListsManager() {
                   Create your own list
                 </Button>
                 <Button variant="secondary" onClick={scrollToPrebuiltLibrary}>
-                  Start from a prebuilt list
+                  Start from a ready-made list
                 </Button>
               </div>
             </div>

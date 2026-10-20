@@ -200,10 +200,10 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('My word lists (1)')
-    expect(screen.getByRole('heading', { name: 'Prebuilt library' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ready-made library' })).toBeInTheDocument()
     // The teacher's own lists stay primary: her section heading outranks the library's.
     const myHeading = screen.getByRole('heading', { name: 'My word lists (1)' })
-    const libHeading = screen.getByRole('heading', { name: 'Prebuilt library' })
+    const libHeading = screen.getByRole('heading', { name: 'Ready-made library' })
     expect(myHeading.tagName).toBe('H3')
     expect(libHeading.compareDocumentPosition(myHeading) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
@@ -213,7 +213,7 @@ describe('PatternListsManager', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('No word lists yet')
-    expect(screen.getByRole('heading', { name: 'Prebuilt library' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ready-made library' })).toBeInTheDocument()
   })
 
   it('navigates to the new-list page from the empty state', async () => {
@@ -1081,7 +1081,7 @@ describe('PatternListsManager empty-state guide (issue #463, Phase C)', () => {
       screen.getByText(/Build your own from scratch, or start from 162 weeks of ready-made pattern lists/)
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create your own list' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Start from a prebuilt list' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start from a ready-made list' })).toBeInTheDocument()
   })
 
   it('scrolls to the prebuilt library section from the guide', async () => {
@@ -1096,7 +1096,7 @@ describe('PatternListsManager empty-state guide (issue #463, Phase C)', () => {
     render(<PatternListsManager />)
 
     await screen.findByText('No word lists yet')
-    fireEvent.click(screen.getByRole('button', { name: 'Start from a prebuilt list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start from a ready-made list' }))
 
     expect(getElementById).toHaveBeenCalledWith('prebuilt-library')
     expect(scrollIntoView).toHaveBeenCalled()

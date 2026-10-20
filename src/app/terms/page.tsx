@@ -94,15 +94,15 @@ export default function TermsOfServicePage() {
             </p>
           </Section>
 
-          <Section id="prebuilt-content" title="Prebuilt content">
+          <Section id="prebuilt-content" title="Ready-made content">
             <p>
-              PatternSpell also includes a library of prebuilt spelling lists. These lists are original PatternSpell
+              PatternSpell also includes a library of ready-made spelling lists. These lists are original PatternSpell
               content, written for classroom use. They are not affiliated with, endorsed by, or aligned to any
               curriculum publisher or program.
             </p>
             <p>
-              We grant you a non-exclusive, non-transferable license to copy, modify, and use the prebuilt lists for
-              classroom instruction. When you copy a prebuilt list or pull its patterns into one of your lists, the
+              We grant you a non-exclusive, non-transferable license to copy, modify, and use the ready-made lists for
+              classroom instruction. When you copy a ready-made list or pull its patterns into one of your lists, the
               result is your content, covered by the &ldquo;Your content&rdquo; section above.
             </p>
           </Section>

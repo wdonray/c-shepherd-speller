@@ -164,7 +164,7 @@ describe('practice page prebuilt weeks (issue #463)', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Practice: Grade 2 - Week 6/ })).toBeInTheDocument()
     })
-    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(screen.getByText('Ready-made')).toBeInTheDocument()
     expect(getList).not.toHaveBeenCalled()
     expect(getLists).not.toHaveBeenCalled()
   })
