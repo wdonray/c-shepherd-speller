@@ -81,4 +81,38 @@ describe('ListSortMenu', () => {
     render(<ListSortMenu sort={'bogus' as ListSort} onSortChange={onSortChange} />)
     expect(screen.getByRole('button', { name: 'Sort: Recently modified' })).toBeInTheDocument()
   })
+
+  it('renders an icon-only trigger with an active state when the sort is non-default', () => {
+    mockMatchMedia(true)
+    render(<ListSortMenu sort="name" onSortChange={onSortChange} iconOnly />)
+    const trigger = screen.getByRole('button', { name: 'Sort lists' })
+    expect(trigger).toHaveAttribute('aria-pressed', 'true')
+    expect(trigger.className).toContain('bg-ink')
+  })
+
+  it('renders an inactive icon-only trigger for the default sort', () => {
+    mockMatchMedia(true)
+    render(<ListSortMenu sort="recent" onSortChange={onSortChange} iconOnly />)
+    const trigger = screen.getByRole('button', { name: 'Sort lists' })
+    expect(trigger).toHaveAttribute('aria-pressed', 'false')
+    expect(trigger.className).not.toContain('bg-ink')
+  })
+
+  it('opens the bottom sheet from the icon-only trigger on mobile', async () => {
+    mockMatchMedia(true)
+    render(<ListSortMenu sort="recent" onSortChange={onSortChange} iconOnly />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sort lists' }))
+    expect(await screen.findByRole('dialog', { name: 'Sort lists' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Name A-Z' }))
+    expect(onSortChange).toHaveBeenCalledWith('name')
+  })
+
+  it('opens the dropdown from the icon-only trigger on desktop', async () => {
+    mockMatchMedia(false)
+    render(<ListSortMenu sort="recent" onSortChange={onSortChange} iconOnly />)
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Sort lists' }), { pointerType: 'mouse' })
+    const option = await screen.findByRole('menuitemradio', { name: 'Name A-Z' })
+    fireEvent.click(option)
+    expect(onSortChange).toHaveBeenCalledWith('name')
+  })
 })

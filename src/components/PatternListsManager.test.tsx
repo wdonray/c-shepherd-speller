@@ -108,6 +108,20 @@ const list2: WordList = {
   updatedAt: '2026-10-06T00:00:00.000Z',
 }
 
+// jsdom's scrollTo is a not-implemented no-op; stub it once so the
+// scroll-to-top behavior (issue #484) is observable in tests and the
+// console stays quiet. vi.clearAllMocks() in each beforeEach resets its
+// call history without removing the stub.
+window.scrollTo = vi.fn() as typeof window.scrollTo
+
+/**
+ * The toolbar renders twice: the compact mobile bar (below md) and the
+ * full desktop bar (md and up). Both stay mounted with CSS visibility,
+ * so toolbar queries scope to the desktop bar here; the mobile bar has
+ * its own test file.
+ */
+const desktopBar = () => within(screen.getByTestId('desktop-filter-bar'))
+
 describe('PatternListsManager', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -384,7 +398,7 @@ describe('favorites (issue #275)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
     await waitFor(() => {
-      expect(screen.getByRole('tablist', { name: 'List views' })).toBeInTheDocument()
+      expect(desktopBar().getByRole('tablist', { name: 'List views' })).toBeInTheDocument()
     })
   })
 
@@ -394,11 +408,11 @@ describe('favorites (issue #275)', () => {
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'All' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'All' }))
     expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
     expect(screen.getByText('Week 6')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Remove Week 5: Long A from favorites' })).toBeInTheDocument()
@@ -409,13 +423,13 @@ describe('favorites (issue #275)', () => {
     getLists.mockResolvedValue([starred, list2])
     const { unmount } = render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
     expect(window.localStorage.getItem('patternspell:lists-view')).toBe('favorites')
     unmount()
 
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    expect(screen.getByRole('tab', { name: 'Favorites' })).toHaveAttribute('aria-selected', 'true')
+    expect(desktopBar().getByRole('tab', { name: 'Favorites' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
   })
 
@@ -465,7 +479,7 @@ describe('favorites (issue #275)', () => {
     await screen.findByText('My word lists (2)')
     expect(screen.queryByRole('button', { name: /Drag to reorder/ })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
     expect(screen.getByRole('button', { name: 'Drag to reorder Week 5: Long A' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Drag to reorder Week 6' })).toBeInTheDocument()
   })
@@ -477,7 +491,7 @@ describe('favorites (issue #275)', () => {
     updateList.mockResolvedValue({} as WordList)
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     const dragEvent = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
     await act(async () => {
@@ -527,7 +541,7 @@ describe('favorites (issue #275)', () => {
     getLists.mockResolvedValue([favA])
     render(<PatternListsManager />)
     await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     const unknown = { active: { id: 'nope' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
     await act(async () => {
@@ -541,7 +555,7 @@ describe('favorites (issue #275)', () => {
     getLists.mockResolvedValue([favA])
     render(<PatternListsManager />)
     await screen.findByText('My word lists (1)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     const noTarget = { active: { id: 'l1' }, over: null } as unknown as import('@dnd-kit/core').DragEndEvent
     const noMove = { active: { id: 'l1' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
@@ -564,7 +578,7 @@ describe('favorites (issue #275)', () => {
       </>
     )
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     // Both the save and the re-sync fail.
     getLists.mockRejectedValue(new Error('network down'))
@@ -590,7 +604,7 @@ describe('favorites (issue #275)', () => {
       </>
     )
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     // The re-sync returns the pre-drag order.
     getLists.mockResolvedValue([favA, favB])
@@ -688,7 +702,7 @@ describe('sorting (issue #275)', () => {
     await screen.findByText('My word lists (2)')
     expect(screen.getByRole('button', { name: /Sort:/ })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
     expect(screen.queryByRole('button', { name: /Sort:/ })).not.toBeInTheDocument()
   })
 
@@ -749,7 +763,7 @@ describe('sorting (issue #275)', () => {
     await screen.findByText('My word lists (2)')
 
     // Start a search (filters to one list), then pick Custom order.
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
+    fireEvent.change(desktopBar().getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
     // Wait for the search to filter (Week 6 disappears from the list).
     await waitFor(() => {
       expect(screen.queryByText('Week 6')).not.toBeInTheDocument()
@@ -816,7 +830,7 @@ describe('sorting (issue #275)', () => {
     updateList.mockImplementation(() => new Promise((resolve) => resolvers.push(resolve)))
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     const firstDrag = { active: { id: 'l1' }, over: { id: 'l2' } } as unknown as import('@dnd-kit/core').DragEndEvent
     const secondDrag = { active: { id: 'l2' }, over: { id: 'l1' } } as unknown as import('@dnd-kit/core').DragEndEvent
@@ -930,7 +944,7 @@ describe('search (issue #275)', () => {
   }
 
   function searchInput() {
-    return screen.getByRole('textbox', { name: 'Search lists' })
+    return desktopBar().getByRole('textbox', { name: 'Search lists' })
   }
 
   it('filters lists as the teacher types', async () => {
@@ -951,10 +965,10 @@ describe('search (issue #275)', () => {
     getLists.mockResolvedValue([starred, listB])
     render(<PatternListsManager />)
     await screen.findByText('My word lists (2)')
-    fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }))
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
 
     // The search input is available on the Favorites tab too.
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
+    fireEvent.change(searchInput(), { target: { value: 'cake' } })
     await waitFor(() => {
       expect(screen.getByText('1 result for "cake".')).toBeInTheDocument()
     })
@@ -1087,5 +1101,128 @@ describe('PatternListsManager empty-state guide (issue #463, Phase C)', () => {
     expect(getElementById).toHaveBeenCalledWith('prebuilt-library')
     expect(scrollIntoView).toHaveBeenCalled()
     getElementById.mockRestore()
+  })
+})
+
+describe('compact mobile bar scroll behavior (issue #484)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    window.localStorage.clear()
+    // The favorites describe's toggle override leaks across describes; the
+    // top-level beforeEach only resets it for its own tests.
+    toggleFavoriteOverride.current = null
+  })
+
+  afterEach(() => {
+    mockDesktopViewport()
+  })
+
+  function mockMobileViewport() {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: (query: string) => ({
+        matches: query === '(max-width: 767px)',
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    })
+  }
+
+  function mockDesktopViewport() {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: () => ({
+        matches: false,
+        media: '',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    })
+  }
+
+  it('scrolls to top when the view tab changes', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'Favorites' }))
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('does not scroll when the active tab is re-clicked', async () => {
+    const starred = { ...list, isFavorite: true, favoriteOrder: 0 }
+    getLists.mockResolvedValue([starred, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(desktopBar().getByRole('tab', { name: 'All' }))
+    expect(window.scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('scrolls to top when the sort changes', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.pointerDown(desktopBar().getByRole('button', { name: /Sort:/ }), { pointerType: 'mouse' })
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Name A-Z' }))
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('does not scroll when the current sort is re-selected', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.pointerDown(desktopBar().getByRole('button', { name: /Sort:/ }), { pointerType: 'mouse' })
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Recently modified' }))
+    expect(window.scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('scrolls to top when the search query changes', async () => {
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.change(desktopBar().getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('does not scroll when closing an empty mobile search', async () => {
+    mockMobileViewport()
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    const mobileBar = () => within(screen.getByTestId('mobile-filter-bar'))
+    fireEvent.click(mobileBar().getByRole('button', { name: 'Search lists' }))
+    fireEvent.click(mobileBar().getByRole('button', { name: 'Clear search and close' }))
+    expect(window.scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('does not scroll when a list is favorited', async () => {
+    getLists.mockResolvedValue([list, list2])
+    updateList.mockResolvedValue({ ...list, isFavorite: true, favoriteOrder: 0 })
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Week 5: Long A to favorites' }))
+    await waitFor(() => expect(updateList).toHaveBeenCalled())
+    expect(window.scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('expands the mobile search when / is pressed on a narrow viewport', async () => {
+    mockMobileViewport()
+    getLists.mockResolvedValue([list, list2])
+    render(<PatternListsManager />)
+    await screen.findByText('My word lists (2)')
+
+    fireEvent.keyDown(window, { key: '/' })
+    expect(screen.getByTestId('mobile-search-expanded')).toBeInTheDocument()
+    expect(within(screen.getByTestId('mobile-filter-bar')).getByRole('textbox', { name: 'Search lists' })).toHaveFocus()
   })
 })

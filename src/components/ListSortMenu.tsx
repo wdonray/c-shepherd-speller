@@ -20,6 +20,12 @@ const MOBILE_QUERY = '(max-width: 767px)'
 interface ListSortMenuProps {
   sort: ListSort
   onSortChange: (sort: ListSort) => void
+  /**
+   * Icon-only trigger for the compact mobile filter bar (issue #484):
+   * a 44px sort button that opens the same bottom sheet. Shows a filled
+   * active state when the sort is not the default.
+   */
+  iconOnly?: boolean
 }
 
 /**
@@ -29,25 +35,42 @@ interface ListSortMenuProps {
  * for tablet-at-the-board use). The teacher's choice persists via the
  * parent's localStorage hook.
  */
-export default function ListSortMenu({ sort, onSortChange }: ListSortMenuProps) {
+export default function ListSortMenu({ sort, onSortChange, iconOnly = false }: ListSortMenuProps) {
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const [sheetOpen, setSheetOpen] = useState(false)
   const activeLabel = LIST_SORT_OPTIONS.find((o) => o.value === sort)?.label ?? 'Recently modified'
+  const isActiveSort = sort !== 'recent'
 
   const choose = (value: ListSort) => {
     onSortChange(value)
     setSheetOpen(false)
   }
 
+  // The icon trigger keeps the 44px touch target and mirrors the labeled
+  // trigger's active state with a filled treatment when the sort is not
+  // the default. `secondary` (not the deprecated `outline` alias) per the
+  // design system.
+  const trigger = iconOnly ? (
+    <Button
+      variant="secondary"
+      size="icon"
+      aria-label="Sort lists"
+      aria-pressed={isActiveSort}
+      className={cn('size-11 shrink-0', isActiveSort && 'border-ink bg-ink text-background')}
+    >
+      <ArrowUpDownIcon className="size-5" aria-hidden="true" />
+    </Button>
+  ) : (
+    <Button variant="outline" className="min-h-[44px]">
+      <ArrowUpDownIcon className="size-4" aria-hidden="true" />
+      Sort: {activeLabel}
+    </Button>
+  )
+
   if (isMobile) {
     return (
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" className="min-h-[44px]">
-            <ArrowUpDownIcon className="size-4" aria-hidden="true" />
-            Sort: {activeLabel}
-          </Button>
-        </SheetTrigger>
+        <SheetTrigger asChild>{trigger}</SheetTrigger>
         <SheetContent side="bottom" className="gap-0 rounded-t-[20px] px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {/* iOS-style grabber, centered at the top of the sheet. */}
           <div className="flex justify-center pt-3" aria-hidden="true">
@@ -83,12 +106,7 @@ export default function ListSortMenu({ sort, onSortChange }: ListSortMenuProps) 
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="min-h-[44px]">
-          <ArrowUpDownIcon className="size-4" aria-hidden="true" />
-          Sort: {activeLabel}
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[220px]">
         <DropdownMenuRadioGroup value={sort} onValueChange={(value) => onSortChange(value as ListSort)}>
           {LIST_SORT_OPTIONS.map((option) => (
