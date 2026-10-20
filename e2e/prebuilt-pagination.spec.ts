@@ -15,7 +15,7 @@ test.describe('prebuilt library pagination (issue #481)', () => {
 
   test('paginates grade weeks at 12 per page', async ({ page }) => {
     await page.goto('/lists')
-    await expect(page.getByRole('heading', { name: 'Prebuilt library' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ready-made library' })).toBeVisible()
 
     const grid = page.getByTestId('prebuilt-grid')
     await expect(page.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
@@ -38,7 +38,7 @@ test.describe('prebuilt library pagination (issue #481)', () => {
 
   test('resets to page 1 when the grade changes', async ({ page }) => {
     await page.goto('/lists')
-    await expect(page.getByRole('heading', { name: 'Prebuilt library' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ready-made library' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Go to page 2' }).click()
     await expect(page.getByText('Showing 13-24 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
@@ -46,19 +46,19 @@ test.describe('prebuilt library pagination (issue #481)', () => {
     await page.getByRole('tab', { name: 'K' }).click()
     await expect(page.getByText('Showing 1-12 of 12 weeks of Kindergarten spelling patterns.')).toBeVisible()
     // A single page needs no pager.
-    await expect(page.getByRole('navigation', { name: 'Prebuilt library pages' })).toHaveCount(0)
+    await expect(page.getByRole('navigation', { name: 'Ready-made library pages' })).toHaveCount(0)
   })
 
   test('resets to page 1 when the search changes', async ({ page }) => {
     await page.goto('/lists')
-    await expect(page.getByRole('heading', { name: 'Prebuilt library' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ready-made library' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Go to page 2' }).click()
     await expect(page.getByText('Showing 13-24 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
 
-    await page.getByLabel('Search prebuilt lists by pattern').fill('tion')
+    await page.getByLabel('Search ready-made lists by pattern').fill('tion')
     await expect(page.getByText(/Showing 1-8 of 8 weeks matching "tion" across all grades/)).toBeVisible()
-    await expect(page.getByRole('navigation', { name: 'Prebuilt library pages' })).toHaveCount(0)
+    await expect(page.getByRole('navigation', { name: 'Ready-made library pages' })).toHaveCount(0)
   })
 })
 

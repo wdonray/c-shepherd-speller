@@ -6,7 +6,7 @@ import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 
 export const metadata: Metadata = {
   title: 'Print worksheets | PatternSpell',
-  description: 'Print the selected worksheets for a prebuilt spelling list, with answer keys.',
+  description: 'Print the selected worksheets for a ready-made spelling list, with answer keys.',
 }
 
 /**

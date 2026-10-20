@@ -1334,7 +1334,7 @@ describe('DisplayMode prebuilt weeks (issue #463)', () => {
       expect(screen.getByRole('heading', { name: /Grade 2 - Week 6/ })).toBeInTheDocument()
     })
     // The badge marks the prebuilt distinction in present mode.
-    expect(screen.getByText('Prebuilt')).toBeInTheDocument()
+    expect(screen.getByText('Ready-made')).toBeInTheDocument()
     // No API fetch for prebuilt weeks.
     expect(getLists).not.toHaveBeenCalled()
     expect(getListWithClassroom).not.toHaveBeenCalled()

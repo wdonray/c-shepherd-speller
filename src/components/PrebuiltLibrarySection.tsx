@@ -85,7 +85,7 @@ export default function PrebuiltLibrarySection() {
   return (
     <section id="prebuilt-library" aria-labelledby="prebuilt-library-heading" className="pt-4 scroll-mt-20">
       <h3 id="prebuilt-library-heading" className="text-lg font-bold">
-        Prebuilt library
+        Ready-made library
       </h3>
       <p className="mt-1 text-[15px] text-muted-foreground">
         162 weeks of ready-made spelling lists for grades K through 5. Search by pattern or pick a grade, preview a
@@ -95,7 +95,7 @@ export default function PrebuiltLibrarySection() {
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <div
           role="tablist"
-          aria-label="Filter prebuilt lists by grade"
+          aria-label="Filter ready-made lists by grade"
           className="inline-flex flex-wrap rounded-full border-2 border-line bg-card p-1"
         >
           {PREBUILT_GRADES.map((g) => (
@@ -124,7 +124,7 @@ export default function PrebuiltLibrarySection() {
             value={query}
             onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="Search patterns, e.g. ai, sh, tion"
-            aria-label="Search prebuilt lists by pattern"
+            aria-label="Search ready-made lists by pattern"
             className="min-h-[44px] rounded-full pl-10 pr-10"
           />
           {query && (
@@ -147,7 +147,7 @@ export default function PrebuiltLibrarySection() {
       <p className="mt-3 text-[15px] text-muted-foreground" role="status">
         {searching
           ? weeks.length === 0
-            ? `No prebuilt weeks match "${query.trim()}".`
+            ? `No ready-made weeks match "${query.trim()}".`
             : `Showing ${start}-${end} of ${weeks.length} ${weekWord} matching "${query.trim()}" across all grades.`
           : `Showing ${start}-${end} of ${weeks.length} ${weekWord} of ${prebuiltGradeLabel(grade)} spelling patterns.`}
       </p>
@@ -174,7 +174,7 @@ export default function PrebuiltLibrarySection() {
       )}
 
       {pageCount > 1 && (
-        <nav aria-label="Prebuilt library pages" className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <nav aria-label="Ready-made library pages" className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => setPage(safePage - 1)}

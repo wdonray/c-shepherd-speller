@@ -7,8 +7,8 @@ import PrebuiltWeekActions from '@/components/PrebuiltWeekActions'
 import { getPrebuiltWeek, prebuiltGradeLabel, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
 
 export const metadata: Metadata = {
-  title: 'Prebuilt spelling list preview | PatternSpell',
-  description: 'Preview a prebuilt spelling pattern list. Read-only.',
+  title: 'Ready-made spelling list preview | PatternSpell',
+  description: 'Preview a ready-made spelling pattern list. Read-only.',
 }
 
 /**

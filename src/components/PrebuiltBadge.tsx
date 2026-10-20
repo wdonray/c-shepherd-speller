@@ -6,5 +6,5 @@ import { Badge } from '@/components/ui/badge'
  * between the prebuilt library and the teacher's own lists.
  */
 export default function PrebuiltBadge() {
-  return <Badge variant="secondary">Prebuilt</Badge>
+  return <Badge variant="secondary">Ready-made</Badge>
 }
