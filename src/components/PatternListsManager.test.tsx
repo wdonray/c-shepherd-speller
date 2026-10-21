@@ -1078,7 +1078,7 @@ describe('PatternListsManager empty-state guide (issue #463, Phase C)', () => {
 
     await screen.findByText('No word lists yet')
     expect(
-      screen.getByText(/Build your own from scratch, or start from 162 weeks of ready-made pattern lists/)
+      screen.getByText(/Build your own from scratch, or start from ready-made pattern lists in two sequences/)
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create your own list' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Start from a ready-made list' })).toBeInTheDocument()

@@ -74,7 +74,8 @@ describe('PrebuiltLibrarySection', () => {
   })
 
   it('keeps the grade-1 week count consistent with the data', () => {
-    expect(getPrebuiltWeeks('1')).toHaveLength(30)
+    expect(getPrebuiltWeeks('standard', '1')).toHaveLength(30)
+    expect(getPrebuiltWeeks('ufli', '1')).toHaveLength(30)
   })
 
   it('paginates grade weeks at 12 per page (issue #481)', () => {
@@ -133,6 +134,83 @@ describe('PrebuiltLibrarySection', () => {
     render(<PrebuiltLibrarySection />)
     fireEvent.click(screen.getByRole('tab', { name: 'K' }))
     expect(screen.queryByRole('navigation', { name: 'Ready-made library pages' })).not.toBeInTheDocument()
+  })
+})
+
+describe('PrebuiltLibrarySection set selector (issue #506)', () => {
+  it('offers the standard and UFLI sequences, standard selected by default', () => {
+    render(<PrebuiltLibrarySection />)
+    const setTabs = screen.getByRole('tablist', { name: 'Choose ready-made list set' })
+    expect(within(setTabs).getByRole('tab', { name: 'Standard sequence' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(setTabs).getByRole('tab', { name: 'UFLI sequence' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByText(/162 weeks of ready-made spelling lists/)).toBeInTheDocument()
+    expect(screen.queryByText(/Not created by, affiliated with/)).not.toBeInTheDocument()
+  })
+
+  it('switches to the UFLI sequence with its own grades, weeks, and disclaimer', () => {
+    render(<PrebuiltLibrarySection />)
+    fireEvent.click(screen.getByRole('tab', { name: 'UFLI sequence' }))
+
+    expect(screen.getByRole('tab', { name: 'UFLI sequence' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText(/90 weeks of ready-made spelling lists/)).toBeInTheDocument()
+    expect(screen.getByText(/Not created by, affiliated with, or endorsed by/)).toBeInTheDocument()
+
+    // UFLI Foundations is K-2 plus advanced Grade 3: no grades 4 or 5.
+    const gradeTabs = screen.getByRole('tablist', { name: 'Filter ready-made lists by grade' })
+    expect(within(gradeTabs).getByRole('tab', { name: '3' })).toBeInTheDocument()
+    expect(within(gradeTabs).queryByRole('tab', { name: '4' })).not.toBeInTheDocument()
+    expect(within(gradeTabs).queryByRole('tab', { name: '5' })).not.toBeInTheDocument()
+
+    expect(screen.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeInTheDocument()
+    const grid = screen.getByTestId('prebuilt-grid')
+    const link = within(grid).getByRole('link', { name: 'Preview: UFLI Grade 1 - Week 1' })
+    expect(link).toHaveAttribute('href', '/lists/prebuilt/ufli-g1-w01')
+    expect(within(grid).getAllByText('Ready-made').length).toBeGreaterThan(0)
+  })
+
+  it('scopes the pattern search to the selected set', () => {
+    render(<PrebuiltLibrarySection />)
+    fireEvent.click(screen.getByRole('tab', { name: 'UFLI sequence' }))
+    fireEvent.change(screen.getByLabelText('Search ready-made lists by pattern'), { target: { value: 'tion' } })
+    // The UFLI -tion/-sion weeks (plus "VCe exceptions") match; the standard set is not searched.
+    expect(screen.getByText('Showing 1-4 of 4 weeks matching "tion" across all grades.')).toBeInTheDocument()
+    const grid = screen.getByTestId('prebuilt-grid')
+    const hrefs = within(grid)
+      .getAllByRole('link', { name: /Preview:/ })
+      .map((l) => l.getAttribute('href'))
+    expect(hrefs).toHaveLength(4)
+    expect(hrefs.every((h) => h?.startsWith('/lists/prebuilt/ufli-'))).toBe(true)
+  })
+
+  it('falls back to the set’s first grade when the current grade is not covered', () => {
+    render(<PrebuiltLibrarySection />)
+    fireEvent.click(screen.getByRole('tab', { name: '5' }))
+    expect(screen.getByText('Showing 1-12 of 30 weeks of Grade 5 spelling patterns.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'UFLI sequence' }))
+    // Grade 5 is not in the UFLI set: falls back to Kindergarten, its first grade.
+    expect(screen.getByText('Showing 1-12 of 12 weeks of Kindergarten spelling patterns.')).toBeInTheDocument()
+    const grid = screen.getByTestId('prebuilt-grid')
+    expect(within(grid).getByRole('link', { name: 'Preview: UFLI Kindergarten - Week 1' })).toBeInTheDocument()
+  })
+
+  it('resets to page 1 when the set changes', () => {
+    render(<PrebuiltLibrarySection />)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to page 3' }))
+    expect(screen.getByText('Showing 25-30 of 30 weeks of Grade 1 spelling patterns.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'UFLI sequence' }))
+    expect(screen.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeInTheDocument()
+  })
+
+  it('switches back to the standard sequence', () => {
+    render(<PrebuiltLibrarySection />)
+    fireEvent.click(screen.getByRole('tab', { name: 'UFLI sequence' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Standard sequence' }))
+    expect(screen.getByText(/162 weeks of ready-made spelling lists/)).toBeInTheDocument()
+    expect(screen.queryByText(/Not created by, affiliated with/)).not.toBeInTheDocument()
+    const grid = screen.getByTestId('prebuilt-grid')
+    expect(within(grid).getByRole('link', { name: 'Preview: Grade 1 - Week 1' })).toBeInTheDocument()
   })
 })
 

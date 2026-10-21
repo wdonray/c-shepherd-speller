@@ -510,7 +510,8 @@ export default function PatternListsManager() {
             <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
               <p className="text-xl font-bold">No word lists yet</p>
               <p className="mt-2 text-[15px] text-muted-foreground">
-                Build your own from scratch, or start from 162 weeks of ready-made pattern lists and make them yours.
+                Build your own from scratch, or start from ready-made pattern lists in two sequences (standard and UFLI)
+                and make them yours.
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
                 <Button onClick={() => router.push('/lists/new')}>

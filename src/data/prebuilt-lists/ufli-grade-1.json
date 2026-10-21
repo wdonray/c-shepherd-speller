@@ -1,0 +1,680 @@
+{
+  "weeks": [
+    {
+      "id": "ufli-g1-w01",
+      "title": "UFLI Grade 1 - Week 1",
+      "grade": "1",
+      "week": 1,
+      "source": "prebuilt",
+      "lessons": "Lessons 42-46",
+      "patterns": [
+        {
+          "sound": "digraph sh",
+          "pattern": "sh",
+          "frequency": "common",
+          "words": ["ship", "shop", "fish", "dish", "wish", "cash", "brush", "flash", "shut", "fresh"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w02",
+      "title": "UFLI Grade 1 - Week 2",
+      "grade": "1",
+      "week": 2,
+      "source": "prebuilt",
+      "lessons": "Lessons 42-46",
+      "patterns": [
+        {
+          "sound": "digraph ch",
+          "pattern": "ch",
+          "frequency": "common",
+          "words": ["chin", "chip", "chat", "chick", "lunch", "bench", "rich", "such", "march", "catch"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w03",
+      "title": "UFLI Grade 1 - Week 3",
+      "grade": "1",
+      "week": 3,
+      "source": "prebuilt",
+      "lessons": "Lessons 46-47",
+      "patterns": [
+        {
+          "sound": "digraph th",
+          "pattern": "th",
+          "frequency": "common",
+          "words": ["this", "that", "them", "with", "thin", "thick", "bath", "path", "moth", "teeth"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w04",
+      "title": "UFLI Grade 1 - Week 4",
+      "grade": "1",
+      "week": 4,
+      "source": "prebuilt",
+      "lessons": "Lessons 48-50",
+      "patterns": [
+        {
+          "sound": "digraph wh",
+          "pattern": "wh",
+          "frequency": "common",
+          "words": ["whip", "when", "whale", "white", "which", "while"]
+        },
+        {
+          "sound": "digraph ph",
+          "pattern": "ph",
+          "frequency": "common",
+          "words": ["phone", "photo", "graph", "dolphin", "elephant", "trophy"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w05",
+      "title": "UFLI Grade 1 - Week 5",
+      "grade": "1",
+      "week": 5,
+      "source": "prebuilt",
+      "lessons": "Lessons 42-46",
+      "patterns": [
+        {
+          "sound": "-ck",
+          "pattern": "ck",
+          "frequency": "common",
+          "words": ["back", "neck", "sick", "rock", "duck", "black", "trick", "clock", "snack", "brick"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w06",
+      "title": "UFLI Grade 1 - Week 6",
+      "grade": "1",
+      "week": 6,
+      "source": "prebuilt",
+      "lessons": "Lesson 51",
+      "patterns": [
+        {
+          "sound": "ng",
+          "pattern": "ng",
+          "frequency": "common",
+          "words": ["sing", "long", "king", "song", "rang", "hang"]
+        },
+        {
+          "sound": "nk",
+          "pattern": "nk",
+          "frequency": "common",
+          "words": ["bank", "sink", "pink", "trunk", "wink", "drunk"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w07",
+      "title": "UFLI Grade 1 - Week 7",
+      "grade": "1",
+      "week": 7,
+      "source": "prebuilt",
+      "lessons": "Lesson 42",
+      "patterns": [
+        {
+          "sound": "-all",
+          "pattern": "all",
+          "frequency": "common",
+          "words": ["ball", "call", "tall", "fall", "small", "wall"]
+        },
+        {
+          "sound": "-oll, -ull",
+          "pattern": "oll",
+          "frequency": "common",
+          "words": ["doll", "roll", "toll", "stroll", "full", "pull"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w08",
+      "title": "UFLI Grade 1 - Week 8",
+      "grade": "1",
+      "week": 8,
+      "source": "prebuilt",
+      "lessons": "Lessons 47-53",
+      "patterns": [
+        {
+          "sound": "s-blends",
+          "pattern": "st, sp",
+          "frequency": "common",
+          "words": ["stop", "spin", "step", "spot", "spill"]
+        },
+        {
+          "sound": "s-blends",
+          "pattern": "sm, sn, sw",
+          "frequency": "common",
+          "words": ["smell", "snake", "swim", "snow", "swift"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w09",
+      "title": "UFLI Grade 1 - Week 9",
+      "grade": "1",
+      "week": 9,
+      "source": "prebuilt",
+      "lessons": "Lessons 47-53",
+      "patterns": [
+        {
+          "sound": "l-blends",
+          "pattern": "bl, cl",
+          "frequency": "common",
+          "words": ["black", "blast", "clock", "clap", "blimp"]
+        },
+        {
+          "sound": "l-blends",
+          "pattern": "fl, gl, pl, sl",
+          "frequency": "common",
+          "words": ["flag", "flip", "glad", "glass", "plan", "sled"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w10",
+      "title": "UFLI Grade 1 - Week 10",
+      "grade": "1",
+      "week": 10,
+      "source": "prebuilt",
+      "lessons": "Lessons 47-53",
+      "patterns": [
+        {
+          "sound": "r-blends",
+          "pattern": "br, cr, dr",
+          "frequency": "common",
+          "words": ["crab", "drip", "drum", "brick", "brown", "crack"]
+        },
+        {
+          "sound": "r-blends",
+          "pattern": "fr, gr, pr, tr",
+          "frequency": "common",
+          "words": ["frog", "frost", "grass", "grin", "press", "trap"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w11",
+      "title": "UFLI Grade 1 - Week 11",
+      "grade": "1",
+      "week": 11,
+      "source": "prebuilt",
+      "lessons": "Lessons 47-53",
+      "patterns": [
+        {
+          "sound": "review: blends",
+          "pattern": "st",
+          "frequency": "common",
+          "words": ["frost", "nest", "fast", "best", "must"]
+        },
+        {
+          "sound": "review: blends",
+          "pattern": "nd",
+          "frequency": "common",
+          "words": ["pond", "hand", "sand", "bend", "land"]
+        },
+        {
+          "sound": "review: blends",
+          "pattern": "mp, sk",
+          "frequency": "common",
+          "words": ["lamp", "camp", "mask", "desk", "risk"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w12",
+      "title": "UFLI Grade 1 - Week 12",
+      "grade": "1",
+      "week": 12,
+      "source": "prebuilt",
+      "lessons": "Lessons 42-53",
+      "patterns": [
+        {
+          "sound": "review: digraphs",
+          "pattern": "sh",
+          "frequency": "common",
+          "words": ["ship", "fish"]
+        },
+        {
+          "sound": "review: digraphs",
+          "pattern": "ch",
+          "frequency": "common",
+          "words": ["chin", "lunch"]
+        },
+        {
+          "sound": "review: digraphs",
+          "pattern": "th",
+          "frequency": "common",
+          "words": ["this", "thin"]
+        },
+        {
+          "sound": "review: digraphs",
+          "pattern": "ck",
+          "frequency": "common",
+          "words": ["back", "duck"]
+        },
+        {
+          "sound": "review: digraphs",
+          "pattern": "ng",
+          "frequency": "common",
+          "words": ["sing", "long"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w13",
+      "title": "UFLI Grade 1 - Week 13",
+      "grade": "1",
+      "week": 13,
+      "source": "prebuilt",
+      "lessons": "Lessons 54-55",
+      "patterns": [
+        {
+          "sound": "long a",
+          "pattern": "a_e",
+          "frequency": "common",
+          "words": ["cake", "name", "game", "lake", "plane", "late", "grape", "snake", "brave", "place"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w14",
+      "title": "UFLI Grade 1 - Week 14",
+      "grade": "1",
+      "week": 14,
+      "source": "prebuilt",
+      "lessons": "Lessons 56-57",
+      "patterns": [
+        {
+          "sound": "long i",
+          "pattern": "i_e",
+          "frequency": "common",
+          "words": ["like", "time", "bike", "five", "kite", "ride", "nine", "smile", "white", "wide"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w15",
+      "title": "UFLI Grade 1 - Week 15",
+      "grade": "1",
+      "week": 15,
+      "source": "prebuilt",
+      "lessons": "Lesson 58",
+      "patterns": [
+        {
+          "sound": "long o",
+          "pattern": "o_e",
+          "frequency": "common",
+          "words": ["home", "nose", "rope", "stone", "those", "bone", "broke", "stove", "close", "whole"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w16",
+      "title": "UFLI Grade 1 - Week 16",
+      "grade": "1",
+      "week": 16,
+      "source": "prebuilt",
+      "lessons": "Lesson 58",
+      "patterns": [
+        {
+          "sound": "long u",
+          "pattern": "u_e",
+          "frequency": "common",
+          "words": ["cube", "cute", "mule", "tune", "June", "flute", "huge", "use", "duke", "rule"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w17",
+      "title": "UFLI Grade 1 - Week 17",
+      "grade": "1",
+      "week": 17,
+      "source": "prebuilt",
+      "lessons": "Lesson 59",
+      "patterns": [
+        {
+          "sound": "long e",
+          "pattern": "e_e",
+          "frequency": "less-common",
+          "words": ["these", "eve", "theme", "gene", "Pete", "Steve", "complete", "extreme"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w18",
+      "title": "UFLI Grade 1 - Week 18",
+      "grade": "1",
+      "week": 18,
+      "source": "prebuilt",
+      "lessons": "Lessons 54-59",
+      "patterns": [
+        {
+          "sound": "review: VCe",
+          "pattern": "a_e",
+          "frequency": "common",
+          "words": ["cake", "game"]
+        },
+        {
+          "sound": "review: VCe",
+          "pattern": "i_e",
+          "frequency": "common",
+          "words": ["like", "time"]
+        },
+        {
+          "sound": "review: VCe",
+          "pattern": "o_e",
+          "frequency": "common",
+          "words": ["home", "nose"]
+        },
+        {
+          "sound": "review: VCe",
+          "pattern": "u_e",
+          "frequency": "common",
+          "words": ["cube", "tune"]
+        },
+        {
+          "sound": "review: VCe",
+          "pattern": "e_e",
+          "frequency": "less-common",
+          "words": ["these", "eve"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w19",
+      "title": "UFLI Grade 1 - Week 19",
+      "grade": "1",
+      "week": 19,
+      "source": "prebuilt",
+      "lessons": "Lessons 54-62",
+      "patterns": [
+        {
+          "sound": "VCe exceptions",
+          "pattern": "ve",
+          "frequency": "less-common",
+          "words": ["have", "give", "live", "love", "glove"]
+        },
+        {
+          "sound": "VCe exceptions",
+          "pattern": "o_e",
+          "frequency": "less-common",
+          "words": ["come", "some", "done", "none", "dove"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w20",
+      "title": "UFLI Grade 1 - Week 20",
+      "grade": "1",
+      "week": 20,
+      "source": "prebuilt",
+      "lessons": "Lesson 60",
+      "patterns": [
+        {
+          "sound": "soft c",
+          "pattern": "ce",
+          "frequency": "common",
+          "words": ["face", "ice", "place", "rice", "twice"]
+        },
+        {
+          "sound": "soft c",
+          "pattern": "ci",
+          "frequency": "less-common",
+          "words": ["city", "cent", "pencil", "dance", "fancy"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w21",
+      "title": "UFLI Grade 1 - Week 21",
+      "grade": "1",
+      "week": 21,
+      "source": "prebuilt",
+      "lessons": "Lesson 61",
+      "patterns": [
+        {
+          "sound": "soft g",
+          "pattern": "ge",
+          "frequency": "common",
+          "words": ["age", "cage", "page", "large", "huge", "wage"]
+        },
+        {
+          "sound": "soft g",
+          "pattern": "gi",
+          "frequency": "less-common",
+          "words": ["gem", "giant", "ginger", "magic", "frigid"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w22",
+      "title": "UFLI Grade 1 - Week 22",
+      "grade": "1",
+      "week": 22,
+      "source": "prebuilt",
+      "lessons": "Lesson 63",
+      "patterns": [
+        {
+          "sound": "suffix -es",
+          "pattern": "es",
+          "frequency": "common",
+          "words": ["boxes", "wishes", "buses", "classes", "buzzes", "dishes", "foxes", "branches", "kisses", "mixes"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w23",
+      "title": "UFLI Grade 1 - Week 23",
+      "grade": "1",
+      "week": 23,
+      "source": "prebuilt",
+      "lessons": "Lesson 64",
+      "patterns": [
+        {
+          "sound": "suffix -ed",
+          "pattern": "ed",
+          "frequency": "common",
+          "words": ["jumped", "walked", "played", "wanted", "needed", "rained", "helped", "folded", "landed", "mixed"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w24",
+      "title": "UFLI Grade 1 - Week 24",
+      "grade": "1",
+      "week": 24,
+      "source": "prebuilt",
+      "lessons": "Lessons 63-68",
+      "patterns": [
+        {
+          "sound": "suffix -ing",
+          "pattern": "ing",
+          "frequency": "common",
+          "words": [
+            "running",
+            "jumping",
+            "playing",
+            "going",
+            "helping",
+            "reading",
+            "asking",
+            "walking",
+            "singing",
+            "talking"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w25",
+      "title": "UFLI Grade 1 - Week 25",
+      "grade": "1",
+      "week": 25,
+      "source": "prebuilt",
+      "lessons": "Lessons 63-68",
+      "patterns": [
+        {
+          "sound": "compound words",
+          "pattern": "two words",
+          "frequency": "common",
+          "words": [
+            "sunset",
+            "pancake",
+            "bathtub",
+            "cowboy",
+            "football",
+            "backpack",
+            "raincoat",
+            "cupcake",
+            "sandbox",
+            "toothbrush"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w26",
+      "title": "UFLI Grade 1 - Week 26",
+      "grade": "1",
+      "week": 26,
+      "source": "prebuilt",
+      "lessons": "Lessons 66-68",
+      "patterns": [
+        {
+          "sound": "open syllables",
+          "pattern": "open",
+          "frequency": "common",
+          "words": ["open", "baby", "robot", "music", "even"]
+        },
+        {
+          "sound": "closed syllables",
+          "pattern": "closed",
+          "frequency": "common",
+          "words": ["silent", "lemon", "cabin", "pilot", "moment"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w27",
+      "title": "UFLI Grade 1 - Week 27",
+      "grade": "1",
+      "week": 27,
+      "source": "prebuilt",
+      "lessons": "Lessons 63-68",
+      "patterns": [
+        {
+          "sound": "review: longer words",
+          "pattern": "es",
+          "frequency": "common",
+          "words": ["boxes", "wishes"]
+        },
+        {
+          "sound": "review: longer words",
+          "pattern": "ed",
+          "frequency": "common",
+          "words": ["jumped", "walked"]
+        },
+        {
+          "sound": "review: longer words",
+          "pattern": "ing",
+          "frequency": "common",
+          "words": ["running", "playing"]
+        },
+        {
+          "sound": "review: longer words",
+          "pattern": "compound",
+          "frequency": "common",
+          "words": ["sunset", "pancake"]
+        },
+        {
+          "sound": "review: longer words",
+          "pattern": "open",
+          "frequency": "common",
+          "words": ["open", "baby"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w28",
+      "title": "UFLI Grade 1 - Week 28",
+      "grade": "1",
+      "week": 28,
+      "source": "prebuilt",
+      "lessons": "Lessons 69-70",
+      "patterns": [
+        {
+          "sound": "-tch",
+          "pattern": "tch",
+          "frequency": "common",
+          "words": ["watch", "catch", "match", "pitch", "witch", "fetch"]
+        },
+        {
+          "sound": "-dge",
+          "pattern": "dge",
+          "frequency": "less-common",
+          "words": ["bridge", "fudge", "badge", "edge", "judge", "dodge"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w29",
+      "title": "UFLI Grade 1 - Week 29",
+      "grade": "1",
+      "week": 29,
+      "source": "prebuilt",
+      "lessons": "Lessons 73-75",
+      "patterns": [
+        {
+          "sound": "-le",
+          "pattern": "le",
+          "frequency": "common",
+          "words": ["table", "little", "apple", "bottle", "puzzle"]
+        },
+        {
+          "sound": "y as a vowel",
+          "pattern": "y",
+          "frequency": "common",
+          "words": ["baby", "happy", "candy", "penny", "city"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g1-w30",
+      "title": "UFLI Grade 1 - Week 30",
+      "grade": "1",
+      "week": 30,
+      "source": "prebuilt",
+      "lessons": "Lessons 69-76",
+      "patterns": [
+        {
+          "sound": "review: ending patterns",
+          "pattern": "tch",
+          "frequency": "common",
+          "words": ["watch", "catch"]
+        },
+        {
+          "sound": "review: ending patterns",
+          "pattern": "dge",
+          "frequency": "less-common",
+          "words": ["bridge", "fudge"]
+        },
+        {
+          "sound": "review: ending patterns",
+          "pattern": "le",
+          "frequency": "common",
+          "words": ["table", "apple"]
+        },
+        {
+          "sound": "review: ending patterns",
+          "pattern": "y",
+          "frequency": "common",
+          "words": ["baby", "happy"]
+        }
+      ]
+    }
+  ]
+}

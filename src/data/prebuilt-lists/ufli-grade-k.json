@@ -1,0 +1,274 @@
+{
+  "weeks": [
+    {
+      "id": "ufli-gk-w01",
+      "title": "UFLI Kindergarten - Week 1",
+      "grade": "k",
+      "week": 1,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "short a",
+          "pattern": "a",
+          "frequency": "common",
+          "words": ["cat", "map", "sat", "man", "hat", "ran", "tap", "bag", "jam", "van"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w02",
+      "title": "UFLI Kindergarten - Week 2",
+      "grade": "k",
+      "week": 2,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "short i",
+          "pattern": "i",
+          "frequency": "common",
+          "words": ["pig", "fin", "sit", "win", "big", "hit", "lip", "six", "pin", "mix"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w03",
+      "title": "UFLI Kindergarten - Week 3",
+      "grade": "k",
+      "week": 3,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "short o",
+          "pattern": "o",
+          "frequency": "common",
+          "words": ["log", "dog", "hot", "pot", "box", "fox", "mop", "top", "hop", "not"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w04",
+      "title": "UFLI Kindergarten - Week 4",
+      "grade": "k",
+      "week": 4,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "short u",
+          "pattern": "u",
+          "frequency": "common",
+          "words": ["cup", "bus", "sun", "run", "tub", "hug", "mud", "pup", "nut", "rug"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w05",
+      "title": "UFLI Kindergarten - Week 5",
+      "grade": "k",
+      "week": 5,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "short e",
+          "pattern": "e",
+          "frequency": "common",
+          "words": ["bed", "red", "pen", "ten", "leg", "hen", "pet", "men", "net", "wet"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w06",
+      "title": "UFLI Kindergarten - Week 6",
+      "grade": "k",
+      "week": 6,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "review: short vowels",
+          "pattern": "a",
+          "frequency": "common",
+          "words": ["cap", "hat", "map", "bag", "tap"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "i",
+          "frequency": "common",
+          "words": ["pin", "big", "sit", "win", "fin"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w07",
+      "title": "UFLI Kindergarten - Week 7",
+      "grade": "k",
+      "week": 7,
+      "source": "prebuilt",
+      "lessons": "Lessons 1-34",
+      "patterns": [
+        {
+          "sound": "review: short vowels",
+          "pattern": "o",
+          "frequency": "common",
+          "words": ["hot", "dog", "box", "mop", "fox"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "u",
+          "frequency": "common",
+          "words": ["cup", "sun", "tub", "run", "hug"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "e",
+          "frequency": "common",
+          "words": ["bed", "red", "pen", "pet", "net"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w08",
+      "title": "UFLI Kindergarten - Week 8",
+      "grade": "k",
+      "week": 8,
+      "source": "prebuilt",
+      "lessons": "Lessons 35-37",
+      "patterns": [
+        {
+          "sound": "review: short vowels",
+          "pattern": "a",
+          "frequency": "common",
+          "words": ["cat", "map"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "i",
+          "frequency": "common",
+          "words": ["pig", "sit"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "o",
+          "frequency": "common",
+          "words": ["log", "dog"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "u",
+          "frequency": "common",
+          "words": ["cup", "sun"]
+        },
+        {
+          "sound": "review: short vowels",
+          "pattern": "e",
+          "frequency": "common",
+          "words": ["bed", "red"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w09",
+      "title": "UFLI Kindergarten - Week 9",
+      "grade": "k",
+      "week": 9,
+      "source": "prebuilt",
+      "lessons": "Lessons 35-41",
+      "patterns": [
+        {
+          "sound": "floss rule",
+          "pattern": "-ff",
+          "frequency": "common",
+          "words": ["cliff", "stuff", "sniff", "staff", "puff"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-ll",
+          "frequency": "common",
+          "words": ["bell", "hill", "doll", "mill", "sell"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w10",
+      "title": "UFLI Kindergarten - Week 10",
+      "grade": "k",
+      "week": 10,
+      "source": "prebuilt",
+      "lessons": "Lessons 35-41",
+      "patterns": [
+        {
+          "sound": "floss rule",
+          "pattern": "-ss",
+          "frequency": "common",
+          "words": ["class", "glass", "miss", "dress", "mess"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-zz",
+          "frequency": "common",
+          "words": ["buzz", "jazz", "fuzz", "whizz", "frizz"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w11",
+      "title": "UFLI Kindergarten - Week 11",
+      "grade": "k",
+      "week": 11,
+      "source": "prebuilt",
+      "lessons": "Lessons 39-41",
+      "patterns": [
+        {
+          "sound": "review: short vowels",
+          "pattern": "a",
+          "frequency": "common",
+          "words": ["cat", "map"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-ff",
+          "frequency": "common",
+          "words": ["puff", "cliff"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-ll",
+          "frequency": "common",
+          "words": ["bell", "hill"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-ss",
+          "frequency": "common",
+          "words": ["class", "glass"]
+        },
+        {
+          "sound": "floss rule",
+          "pattern": "-zz",
+          "frequency": "common",
+          "words": ["buzz", "jazz"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-gk-w12",
+      "title": "UFLI Kindergarten - Week 12",
+      "grade": "k",
+      "week": 12,
+      "source": "prebuilt",
+      "lessons": "Lessons 35-41",
+      "patterns": [
+        {
+          "sound": "review: short vowels and floss rule",
+          "pattern": "mixed",
+          "frequency": "common",
+          "words": ["map", "cliff", "bed", "glass", "pig", "stuff", "cup", "jazz", "log", "miss"]
+        }
+      ]
+    }
+  ]
+}

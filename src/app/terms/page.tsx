@@ -97,8 +97,10 @@ export default function TermsOfServicePage() {
           <Section id="prebuilt-content" title="Ready-made content">
             <p>
               PatternSpell also includes a library of ready-made spelling lists. These lists are original PatternSpell
-              content, written for classroom use. They are not affiliated with, endorsed by, or aligned to any
-              curriculum publisher or program.
+              content, written for classroom use. The standard sequence lists are written to a general phonics
+              progression. The UFLI sequence lists are written to follow UFLI&apos;s published scope and sequence; they
+              are not created by, affiliated with, or endorsed by the University of Florida Literacy Institute. No
+              ready-made list is affiliated with or endorsed by any curriculum publisher or program.
             </p>
             <p>
               We grant you a non-exclusive, non-transferable license to copy, modify, and use the ready-made lists for

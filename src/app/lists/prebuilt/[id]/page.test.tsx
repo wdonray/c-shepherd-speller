@@ -37,4 +37,17 @@ describe('PrebuiltWeekPage', () => {
   it('calls notFound for an unknown week id', async () => {
     await expect(PrebuiltWeekPage({ params: Promise.resolve({ id: 'nope' }) })).rejects.toThrow('notFound')
   })
+
+  it('shows the UFLI lesson range and disclaimer for a UFLI week', async () => {
+    render(await PrebuiltWeekPage({ params: Promise.resolve({ id: 'ufli-g1-w03' }) }))
+    expect(screen.getByRole('heading', { name: 'UFLI Grade 1 - Week 3' })).toBeInTheDocument()
+    expect(screen.getByText(/UFLI Lessons 46-47/)).toBeInTheDocument()
+    expect(screen.getByText(/Not created by, affiliated with, or endorsed by/)).toBeInTheDocument()
+  })
+
+  it('shows no lesson range or disclaimer for a standard week', async () => {
+    render(await PrebuiltWeekPage({ params: Promise.resolve({ id: 'prebuilt-g1-w01' }) }))
+    expect(screen.queryByText(/UFLI Lessons/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Not created by, affiliated with/)).not.toBeInTheDocument()
+  })
 })

@@ -5,7 +5,7 @@ import ReportPageName from '@/components/report-page-name'
 import PatternChartDisplay from '@/components/PatternChartDisplay'
 import PrebuiltBadge from '@/components/PrebuiltBadge'
 import PrebuiltWeekActions from '@/components/PrebuiltWeekActions'
-import { getPrebuiltWeek, prebuiltGradeLabel, prebuiltWeekToWordList } from '@/lib/prebuilt-lists'
+import { getPrebuiltWeek, prebuiltGradeLabel, prebuiltWeekToWordList, UFLI_DISCLAIMER } from '@/lib/prebuilt-lists'
 
 export const metadata: Metadata = {
   title: 'Ready-made spelling list preview | PatternSpell',
@@ -36,9 +36,10 @@ export default async function PrebuiltWeekPage({ params }: { params: Promise<{ i
           <PrebuiltBadge />
         </div>
         <p className="text-[15px] text-muted-foreground">
-          {prebuiltGradeLabel(week.grade)}: {week.patterns.length} patterns, {totalWords} words. This is a read-only
-          preview.
+          {prebuiltGradeLabel(week.grade)}: {week.patterns.length} patterns, {totalWords} words.
+          {week.lessons ? ` UFLI ${week.lessons}.` : ''} This is a read-only preview.
         </p>
+        {week.set === 'ufli' && <p className="text-sm text-muted-foreground">{UFLI_DISCLAIMER}</p>}
       </div>
       <div className="mt-4">
         <PrebuiltWeekActions week={week} />
