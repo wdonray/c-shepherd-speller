@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { WordList, SpellingPattern, PatternFrequency, PatternVideo } from '@/models/WordList'
-import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon, PlayIcon } from 'lucide-react'
+import { Volume2Icon, LockIcon, LockOpenIcon, PencilIcon, PlayIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import { PowerBar, FREQUENCY_LABELS, type PowerBarLevel } from '@/components/ui/power-bar'
 import { speak } from '@/lib/tts'
 import { getPatternUnderlineRanges } from '@/lib/pattern-underline'
@@ -17,6 +17,12 @@ interface PatternChartDisplayProps {
   list: WordList
   /** When provided, each column header gets a lock/unlock toggle for progressive reveal. */
   onToggleLock?: (patternId: string) => void
+  /**
+   * When provided, each column header gets a show/hide toggle for the
+   * pattern's frequency row (issue #510). Omitted for display-only usages
+   * (print, sample chart, prebuilt lists), mirroring onToggleLock.
+   */
+  onToggleFrequency?: (patternId: string) => void
   /**
    * The list's classroom rules by pattern text. The class rule wins over
    * the pattern's unscoped rule when both exist (issue #263 moved
@@ -89,6 +95,7 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
 export default function PatternChartDisplay({
   list,
   onToggleLock,
+  onToggleFrequency,
   classRules,
   onSaveRule,
   onSaveVideos,
@@ -242,6 +249,35 @@ export default function PatternChartDisplay({
   }
 
   /**
+   * Show/hide toggle for the pattern's frequency row (issue #510). Present
+   * variant only, next to the lock toggle; the printed poster hides all
+   * buttons. Follows the app's show/hide idiom (eye icons, aria-pressed,
+   * like RulesVisibilityToggle) in the column header's 44px round-button
+   * style. Always visible while the row itself is hidden, so the teacher
+   * can turn the row back on.
+   */
+  const renderFrequencyToggle = (pattern: SpellingPattern) => {
+    if (!onToggleFrequency || isPrint) return null
+    const shown = pattern.showFrequency === true
+    return (
+      <button
+        type="button"
+        onClick={() => onToggleFrequency(pattern.id)}
+        aria-pressed={shown}
+        aria-label={`${shown ? 'Hide' : 'Show'} frequency for pattern ${pattern.pattern}`}
+        title={`${shown ? 'Hide' : 'Show'} frequency for pattern ${pattern.pattern}`}
+        className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none transition hover:bg-line/50 hover:text-ink focus-visible:bg-line/50 focus-visible:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60"
+      >
+        {shown ? (
+          <EyeIcon className="size-5" aria-hidden="true" />
+        ) : (
+          <EyeOffIcon className="size-5" aria-hidden="true" />
+        )}
+      </button>
+    )
+  }
+
+  /**
    * Subtle play button opening the pattern's song videos (issue #401).
    * Present variant only, next to the lock toggle; the printed poster
    * hides all buttons.
@@ -353,15 +389,17 @@ export default function PatternChartDisplay({
               conditional elements above aligned content reserve a fixed slot
               so the rule callouts below stay level), and renders nothing
               when there are no actions so no dead space appears (the print
-              poster shows no buttons). */}
+              poster shows no buttons). Issue #510's frequency eye toggle
+              shares the same row. */}
           <div className="flex flex-col items-center">
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
-            {(onToggleLock != null || onSaveVideos != null) && !isPrint && (
+            {(onToggleLock != null || onSaveVideos != null || onToggleFrequency != null) && !isPrint && (
               <div
                 data-testid="pattern-header-buttons"
                 className="mt-1 flex min-h-[44px] items-center justify-center gap-2"
               >
                 {renderLockToggle(pattern)}
+                {renderFrequencyToggle(pattern)}
                 {renderVideoButton(pattern)}
               </div>
             )}
@@ -375,10 +413,24 @@ export default function PatternChartDisplay({
           {!isPrint && (
             <p className="mt-1 min-h-[1.75rem] text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
           )}
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <PowerBar level={level} filledClassName="bg-ink" />
-            <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
-          </div>
+          {/* Issue #510: the frequency row is off by default and toggled per
+              pattern. When hidden on the present chart it keeps its space
+              (invisible) so toggling never shifts the column layout. The
+              print poster has no toggle, so it omits the hidden row entirely
+              instead of reserving blank space. */}
+          {(!isPrint || pattern.showFrequency === true) && (
+            <div
+              data-testid="frequency-row"
+              className={cn(
+                'mt-2 flex items-center justify-center gap-2',
+                pattern.showFrequency !== true && 'invisible'
+              )}
+              aria-hidden={pattern.showFrequency !== true || undefined}
+            >
+              <PowerBar level={level} filledClassName="bg-ink" />
+              <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
+            </div>
+          )}
           {renderRuleDisplay(pattern)}
         </div>
         {/* Issue #488: words are compact chips in a responsive grid instead

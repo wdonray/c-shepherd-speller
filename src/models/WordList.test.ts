@@ -75,6 +75,23 @@ describe('WordList model', () => {
       }
     })
 
+    it('accepts a pattern with the frequency row shown (issue #510)', () => {
+      const result = SpellingPatternSchema.safeParse({ ...validPattern, showFrequency: true })
+      expect(result.success).toBe(true)
+      // The flag must survive parsing, not just be stripped as an unknown key.
+      if (result.success) {
+        expect(result.data.showFrequency).toBe(true)
+      }
+    })
+
+    it('treats a missing showFrequency as hidden (issue #510, backwards compatible)', () => {
+      const result = SpellingPatternSchema.safeParse(validPattern)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.showFrequency).toBeUndefined()
+      }
+    })
+
     it('accepts a pattern with a keyword emoji anchor', () => {
       const result = SpellingPatternSchema.safeParse({ ...validPattern, keywordEmoji: '🐝' })
       expect(result.success).toBe(true)

@@ -18,6 +18,9 @@ const SAMPLE_LIST: WordList = {
       sound: 'long a',
       pattern: 'a_e',
       frequency: 'common',
+      // The sample showcases the chart's full feature set, so the
+      // opt-in frequency row (issue #510) stays visible here.
+      showFrequency: true,
       words: ['cake', 'bake', 'made', 'late', 'game', 'take'],
     },
     {
@@ -25,6 +28,7 @@ const SAMPLE_LIST: WordList = {
       sound: 'long a',
       pattern: 'ai',
       frequency: 'less-common',
+      showFrequency: true,
       words: ['rain', 'train', 'paint', 'wait'],
     },
     {
@@ -32,6 +36,7 @@ const SAMPLE_LIST: WordList = {
       sound: 'long a',
       pattern: 'ay',
       frequency: 'rare',
+      showFrequency: true,
       words: ['day', 'play', 'say'],
     },
   ],

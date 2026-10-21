@@ -100,11 +100,12 @@ describe('PatternChartDisplay', () => {
       'sm:grid-cols-[repeat(2,minmax(0,420px))]',
       'lg:grid-cols-[repeat(3,minmax(0,420px))]'
     )
-    // Power bars and frequency labels encode commonness.
-    expect(within(aE).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
-    expect(within(aE).getByText('Common')).toBeInTheDocument()
-    expect(within(ai).getByText('Less common')).toBeInTheDocument()
-    expect(within(eigh).getByText('Rare')).toBeInTheDocument()
+    // Issue #510: frequency rows are hidden by default. Each row keeps its
+    // space (invisible) so toggling never shifts the column layout.
+    for (const column of [aE, ai, eigh]) {
+      expect(within(column).queryByRole('img', { name: /Frequency:/ })).not.toBeInTheDocument()
+      expect(within(column).getByTestId('frequency-row')).toHaveClass('invisible')
+    }
   })
 
   describe('present-mode column sizing', () => {
@@ -425,10 +426,12 @@ describe('PatternChartDisplay', () => {
     render(<PatternChartDisplay list={list} onToggleLock={vi.fn()} />)
     const column = screen.getByRole('region', { name: 'Pattern a_e' })
     expect(within(column).queryByRole('img', { name: /keyword image/i })).not.toBeInTheDocument()
-    // Header is unchanged: name, lock toggle, and power bar all present.
+    // Header is unchanged: name and lock toggle present. The frequency row
+    // is hidden by default (issue #510) but reserves its space.
     expect(within(column).getByRole('heading', { name: 'a_e' })).toBeInTheDocument()
     expect(within(column).getByRole('button', { name: 'Lock pattern a_e' })).toBeInTheDocument()
-    expect(within(column).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+    expect(within(column).queryByRole('img', { name: 'Frequency: Common' })).not.toBeInTheDocument()
+    expect(within(column).getByTestId('frequency-row')).toHaveClass('invisible')
   })
 
   it('hides the keyword emoji behind the locked placeholder when the pattern is locked', () => {
@@ -521,7 +524,7 @@ describe('PatternChartDisplay', () => {
       expect(screen.getByText(/No patterns in this list yet/)).toBeInTheDocument()
     })
 
-    it('shows the list name, large emoji, power bar, and frequency label per column', () => {
+    it('shows the list name and large emoji per column; the frequency row is omitted when off (issue #510)', () => {
       render(<PatternChartDisplay list={withEmoji} variant="print" />)
       expect(screen.getByText('Week 5: Long A')).toBeInTheDocument()
       expect(screen.queryByText('long a')).not.toBeInTheDocument()
@@ -529,11 +532,26 @@ describe('PatternChartDisplay', () => {
       const emoji = within(column).getByRole('img', { name: 'Keyword image for pattern a_e' })
       expect(emoji).toHaveTextContent('🐝')
       expect(emoji).toHaveClass('text-5xl')
-      expect(within(column).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
-      expect(within(column).getByText('Common')).toBeInTheDocument()
+      // The poster has no toggle, so the hidden row is omitted entirely
+      // instead of reserving blank space.
+      expect(within(column).queryByRole('img', { name: 'Frequency: Common' })).not.toBeInTheDocument()
+      expect(within(column).queryByTestId('frequency-row')).not.toBeInTheDocument()
       // Columns stay in frequency order, most common first.
       const ai = screen.getByRole('region', { name: 'Pattern ai' })
       expect(column.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('prints the frequency row when showFrequency is true (issue #510)', () => {
+      const shown: WordList = {
+        ...withEmoji,
+        patterns: [{ ...withEmoji.patterns[0], showFrequency: true }, ...withEmoji.patterns.slice(1)],
+      }
+      render(<PatternChartDisplay list={shown} variant="print" />)
+      const column = screen.getByRole('region', { name: 'Pattern a_e' })
+      expect(within(column).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+      expect(within(column).getByText('Common')).toBeInTheDocument()
+      // No toggle button on the non-interactive poster, even when shown.
+      expect(within(column).queryByRole('button', { name: /frequency/i })).not.toBeInTheDocument()
     })
 
     it('hides the interactive caption in print', () => {
@@ -913,5 +931,55 @@ describe('PatternChartDisplay song video save errors (issue #401)', () => {
     // Hiding an attached video also unattaches it from the pattern.
     expect(onSaveVideos).toHaveBeenCalledWith('p2', [])
     expect(blockVideo).toHaveBeenCalledWith(expect.objectContaining({ videoId: video.videoId }))
+  })
+})
+
+describe('PatternChartDisplay frequency toggle (issue #510)', () => {
+  it('renders a per-pattern frequency toggle when onToggleFrequency is provided', () => {
+    render(<PatternChartDisplay list={list} onToggleFrequency={vi.fn()} />)
+    for (const name of ['a_e', 'ai', 'eigh']) {
+      const column = screen.getByRole('region', { name: `Pattern ${name}` })
+      const toggle = within(column).getByRole('button', { name: `Show frequency for pattern ${name}` })
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
+      // 44px touch targets, in the column header next to the pattern name.
+      expect(toggle).toHaveClass('min-h-[44px]', 'min-w-[44px]')
+    }
+  })
+
+  it('calls onToggleFrequency with the pattern id when the toggle is clicked', () => {
+    const onToggleFrequency = vi.fn()
+    render(<PatternChartDisplay list={list} onToggleFrequency={onToggleFrequency} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show frequency for pattern ai' }))
+    expect(onToggleFrequency).toHaveBeenCalledTimes(1)
+    expect(onToggleFrequency).toHaveBeenCalledWith('p2')
+  })
+
+  it('shows the frequency row and marks the toggle pressed when showFrequency is true', () => {
+    const shown: WordList = {
+      ...list,
+      patterns: [{ ...list.patterns[0], showFrequency: true }, ...list.patterns.slice(1)],
+    }
+    render(<PatternChartDisplay list={shown} onToggleFrequency={vi.fn()} />)
+    const aE = screen.getByRole('region', { name: 'Pattern a_e' })
+    // Power bars and frequency labels encode commonness when shown.
+    expect(within(aE).getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+    expect(within(aE).getByText('Common')).toBeInTheDocument()
+    expect(within(aE).getByTestId('frequency-row')).not.toHaveClass('invisible')
+    const toggle = within(aE).getByRole('button', { name: 'Hide frequency for pattern a_e' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    // The other patterns stay hidden.
+    const ai = screen.getByRole('region', { name: 'Pattern ai' })
+    expect(within(ai).queryByRole('img', { name: 'Frequency: Less common' })).not.toBeInTheDocument()
+    expect(within(ai).getByTestId('frequency-row')).toHaveClass('invisible')
+  })
+
+  it('does not render the toggle when onToggleFrequency is omitted', () => {
+    render(<PatternChartDisplay list={list} />)
+    expect(screen.queryByRole('button', { name: /frequency/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render the toggle in the print variant, even with onToggleFrequency', () => {
+    render(<PatternChartDisplay list={list} variant="print" onToggleFrequency={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /frequency/i })).not.toBeInTheDocument()
   })
 })

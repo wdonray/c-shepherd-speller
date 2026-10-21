@@ -49,9 +49,11 @@ test.describe('word chips', () => {
     const grid = page.locator('section[aria-label="Pattern a_e"] ul')
     await expect(grid).toHaveClass(/grid-cols-2/)
 
-    // Pattern headers are untouched: sound, frequency label, and rule slot.
+    // Pattern headers: the sound is untouched. The frequency row (issue #510)
+    // is hidden by default on the present chart, so its label is not shown
+    // until the pattern's eye toggle is turned on.
     await expect(page.getByText('long a').first()).toBeVisible()
-    await expect(page.getByText('Common').first()).toBeVisible()
+    await expect(page.getByText('Common', { exact: true }).first()).toBeHidden()
   })
 
   test('tapping a chip speaks the word', async ({ page }) => {
