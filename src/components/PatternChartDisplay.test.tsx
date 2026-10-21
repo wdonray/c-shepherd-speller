@@ -250,6 +250,53 @@ describe('PatternChartDisplay', () => {
     expect(onToggleLock).toHaveBeenCalledWith('p2')
   })
 
+  describe('pattern header buttons (issue #508)', () => {
+    const renderWithButtons = () =>
+      render(<PatternChartDisplay list={list} onToggleLock={vi.fn()} onSaveVideos={vi.fn()} />)
+
+    it('puts the lock and video buttons on their own row under the pattern, not beside it', () => {
+      renderWithButtons()
+      const column = screen.getByRole('region', { name: 'Pattern ai' })
+      const heading = within(column).getByRole('heading', { name: 'ai' })
+      const lockButton = within(column).getByRole('button', { name: 'Lock pattern ai' })
+      const videoButton = within(column).getByRole('button', { name: 'Song videos for pattern ai' })
+      // The pattern name stands alone; both buttons share the row below it.
+      expect(lockButton.parentElement).not.toBe(heading.parentElement)
+      expect(videoButton.parentElement).toBe(lockButton.parentElement)
+      expect(heading.nextElementSibling).toBe(lockButton.parentElement)
+    })
+
+    it('reserves the same button-row slot in every column so the headers stay level', () => {
+      renderWithButtons()
+      for (const name of ['a_e', 'ai', 'eigh']) {
+        const column = screen.getByRole('region', { name: `Pattern ${name}` })
+        const row = column.querySelector('[data-testid="pattern-header-buttons"]')
+        expect(row).toBeInTheDocument()
+        expect(row).toHaveClass('min-h-[44px]')
+      }
+    })
+
+    it('renders no dead button row when the header has no actions', () => {
+      render(<PatternChartDisplay list={list} />)
+      const column = screen.getByRole('region', { name: 'Pattern ai' })
+      expect(column.querySelector('[data-testid="pattern-header-buttons"]')).not.toBeInTheDocument()
+    })
+
+    it('renders no button row in the print variant even when callbacks are provided', () => {
+      render(<PatternChartDisplay list={list} variant="print" onToggleLock={vi.fn()} onSaveVideos={vi.fn()} />)
+      const column = screen.getByRole('region', { name: 'Pattern ai' })
+      expect(column.querySelector('[data-testid="pattern-header-buttons"]')).not.toBeInTheDocument()
+    })
+
+    it('keeps both buttons at 44px touch targets', () => {
+      renderWithButtons()
+      const column = screen.getByRole('region', { name: 'Pattern ai' })
+      for (const name of ['Lock pattern ai', 'Song videos for pattern ai']) {
+        expect(within(column).getByRole('button', { name })).toHaveClass('min-h-[44px]', 'min-w-[44px]')
+      }
+    })
+  })
+
   it('renders a locked pattern as a locked placeholder that keeps its position and width', () => {
     const locked: WordList = {
       ...list,

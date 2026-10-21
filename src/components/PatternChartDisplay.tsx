@@ -346,10 +346,25 @@ export default function PatternChartDisplay({
               ) : null}
             </div>
           ) : null}
-          <div className="flex items-center justify-center gap-2">
+          {/* Issue #508: the lock and play buttons used to share the pattern's
+              row, crowding the header. They now sit on their own row under
+              the pattern so it has breathing room. The row keeps a fixed
+              44px slot whenever header actions exist (issue #420 convention:
+              conditional elements above aligned content reserve a fixed slot
+              so the rule callouts below stay level), and renders nothing
+              when there are no actions so no dead space appears (the print
+              poster shows no buttons). */}
+          <div className="flex flex-col items-center">
             <h2 className="text-2xl font-extrabold text-ink">{pattern.pattern}</h2>
-            {renderLockToggle(pattern)}
-            {renderVideoButton(pattern)}
+            {(onToggleLock != null || onSaveVideos != null) && !isPrint && (
+              <div
+                data-testid="pattern-header-buttons"
+                className="mt-1 flex min-h-[44px] items-center justify-center gap-2"
+              >
+                {renderLockToggle(pattern)}
+                {renderVideoButton(pattern)}
+              </div>
+            )}
           </div>
           {/* Issue #379: the pattern's target sound always reads under the
               pattern name. Present-mode projector size keeps it subtle but
