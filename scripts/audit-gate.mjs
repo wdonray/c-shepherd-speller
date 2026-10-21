@@ -26,6 +26,12 @@ export const ALLOWLIST = {
   'GHSA-VFJ7-8CJW-P6XM':
     'braces@3.0.3 (high): no patched version exists — latest 3.0.3 is within the vulnerable range. Transitive via micromatch; build-time glob expansion only, never handles untrusted input at runtime.',
   'GHSA-GRV7-FG5C-XMJG': 'braces@3.0.3 (high): same as above — no patched version exists.',
+  'GHSA-587H-7WMJ-H5PM':
+    'vite@8.3.2 (high): launch-editor fs.existsSync bypass on Windows only. vite is present solely via vitest (test-time dev dependency); the repo never runs a vite dev server, and CI runs Linux, so the Windows dev-server attack surface is unreachable here. (Found 2026-10-21: issue #510.)',
+  'GHSA-698V-4R3X-3VCV':
+    'vite@8.3.2 (medium): launch-editor % escaping gap on Windows only — same as above: vitest-bundled, no dev server, Linux CI. (Found 2026-10-21: issue #510.)',
+  'GHSA-R825-W8MM-5PXW':
+    'vite@8.3.2 (medium): launch-editor CLI flag misinterpretation on Windows only — same as above: vitest-bundled, no dev server, Linux CI. (Found 2026-10-21: issue #510.)',
 }
 
 const GHSA_RE = /GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/gi
