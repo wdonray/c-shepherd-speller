@@ -165,6 +165,7 @@ function WorksheetsJob({
   const [removedWords, setRemovedWords] = useState<Set<string>>(new Set())
   const [typedSentences, setTypedSentences] = useState<Record<string, string>>({})
   const [busyWord, setBusyWord] = useState<string | null>(null)
+  const [approving, setApproving] = useState(false)
   const [gapError, setGapError] = useState<string | null>(null)
   const [seed] = useState(() => Date.now())
   /** First-sentence suggestions each gap word loaded, keyed by word. */
@@ -239,6 +240,55 @@ function WorksheetsJob({
   }
   const allSuggestionsLoaded = gapWords.every((w) => Object.hasOwn(suggestionsByWord, w.word))
 
+  /**
+   * Issue #511: the accept button flips to "Approve all" once every gap
+   * word has a sentence waiting in its typed box. A saved word leaves
+   * gapWords, so only drafts matter here; a whitespace-only box counts as
+   * empty, exactly like the per-word "Use this sentence" enable rule.
+   */
+  const allGapsFilled =
+    gapWords.length > 0 &&
+    gapWords.every((w) => {
+      const draft = Object.hasOwn(typedSentences, w.word) ? typedSentences[w.word] : ''
+      return draft.trim() !== ''
+    })
+
+  /**
+   * Issue #511: persist every typed draft in one write, then advance. The
+   * gaps clear, so the print job renders and the page moves to the print
+   * step. One updateList call (never per word): the per-word save and this
+   * are mutually disabled while either is in flight, so two
+   * read-modify-write updates can never race on the same patterns.
+   */
+  const approveAllSentences = async () => {
+    setApproving(true)
+    setGapError(null)
+    try {
+      const drafts: Record<string, string> = {}
+      for (const word of gapWords) {
+        const draft = Object.hasOwn(typedSentences, word.word) ? typedSentences[word.word].trim() : ''
+        if (draft !== '') drafts[word.word] = draft
+      }
+      const nextPatterns: SpellingPattern[] = list.patterns.map((p) => {
+        const updates: Record<string, string> = {}
+        for (const w of p.words) {
+          if (drafts[w] !== undefined) updates[w] = drafts[w]
+        }
+        return Object.keys(updates).length > 0 ? { ...p, sentences: { ...(p.sentences ?? {}), ...updates } } : p
+      })
+      if (!isPrebuilt) {
+        await updateList(list.id, { patterns: nextPatterns })
+      }
+      onListUpdated({ ...list, patterns: nextPatterns })
+      setTypedSentences({})
+    } catch (err) {
+      reportError(err, { location: 'WorksheetsJob.approveAllSentences' })
+      setGapError('Could not save those sentences. Check your connection and try again.')
+    } finally {
+      setApproving(false)
+    }
+  }
+
   const job: PrintJob | null = useMemo(() => {
     if (showGaps) return null
     const rand = mulberry32(seed)
@@ -307,21 +357,33 @@ function WorksheetsJob({
             {gapError}
           </p>
         )}
+        {/* Issue #511: two-state button. It accepts suggestions until every
+            gap word has a sentence waiting, then turns into the primary
+            green "Approve all" that saves everything and advances to print.
+            One button, same spot, min-w reserving the wider accept label so
+            the state change never shifts the layout. */}
         <div className="mt-4">
-          <Button
-            variant="secondary"
-            disabled={busyWord !== null || !allSuggestionsLoaded}
-            onClick={acceptAllSuggestions}
-          >
-            Accept all suggestions
-          </Button>
+          {allGapsFilled ? (
+            <Button className="min-w-60" disabled={busyWord !== null || approving} onClick={approveAllSentences}>
+              Approve all
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              className="min-w-60"
+              disabled={busyWord !== null || approving || !allSuggestionsLoaded}
+              onClick={acceptAllSuggestions}
+            >
+              Accept all suggestions
+            </Button>
+          )}
         </div>
         <div className="mt-6 space-y-4">
           {gapWords.map((word) => (
             <GapWordRow
               key={word.word}
               word={word}
-              busy={busyWord !== null}
+              busy={busyWord !== null || approving}
               // hasOwn: a word like "constructor" would otherwise read the
               // inherited Object constructor off the prototype.
               typedValue={Object.hasOwn(typedSentences, word.word) ? typedSentences[word.word] : ''}
