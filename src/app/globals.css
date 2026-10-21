@@ -221,6 +221,21 @@
     }
   }
 }
+
+@layer utilities {
+  /*
+   * Unsaved-field marker (issue #509): a field that loses focus with
+   * unsaved edits gets `data-unsaved="true"`, painted as a high-contrast
+   * amber ring. It lives in the utilities layer so it beats the Input's
+   * `outline-none` utility (same specificity, later layer wins). `outline`
+   * draws outside the border box, so the ring never shifts layout when it
+   * appears or clears. The attribute is removed when a save confirms.
+   */
+  [data-unsaved='true'] {
+    outline: 3px solid var(--color-amber-700);
+    outline-offset: 1px;
+  }
+}
 /*
  * Print styles for the pattern chart poster (the /lists/[id]/print route).
  * Goals: high-contrast ink-on-white, pastel fills dropped to white, borders

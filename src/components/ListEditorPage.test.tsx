@@ -2078,4 +2078,86 @@ describe('ListEditorPage per-pattern rule editor (issue #313)', () => {
       )
     })
   })
+
+  describe('unsaved-field markers (issue #509)', () => {
+    it('marks a field on blur when its value changed and the save is still pending', async () => {
+      await renderReady()
+      const nameInput = screen.getByLabelText('List name')
+
+      fireEvent.focus(nameInput)
+      fireEvent.change(nameInput, { target: { value: 'Week 6: Long A' } })
+      // No ring while typing: the signal appears on blur, not during edits.
+      expect(nameInput).not.toHaveAttribute('data-unsaved', 'true')
+      fireEvent.blur(nameInput)
+      expect(nameInput).toHaveAttribute('data-unsaved', 'true')
+
+      // The pending debounced save still fires afterwards.
+      await waitForSave()
+    })
+
+    it('does not mark a field blurred without changes, even while another edit is pending', async () => {
+      await renderReady()
+      const nameInput = screen.getByLabelText('List name')
+      const gradeInput = screen.getByLabelText('Grade level')
+
+      fireEvent.change(nameInput, { target: { value: 'Week 6: Long A' } })
+      fireEvent.focus(gradeInput)
+      fireEvent.blur(gradeInput)
+      expect(gradeInput).not.toHaveAttribute('data-unsaved', 'true')
+
+      await waitForSave()
+    })
+
+    it('does not mark a field blurred after the save already landed', async () => {
+      await renderReady()
+      const nameInput = screen.getByLabelText('List name')
+
+      fireEvent.change(nameInput, { target: { value: 'Week 6: Long A' } })
+      await waitForSave()
+
+      fireEvent.focus(nameInput)
+      fireEvent.blur(nameInput)
+      expect(nameInput).not.toHaveAttribute('data-unsaved', 'true')
+    })
+
+    it('clears the mark once the debounced save confirms', async () => {
+      await renderReady()
+      const nameInput = screen.getByLabelText('List name')
+
+      fireEvent.focus(nameInput)
+      fireEvent.change(nameInput, { target: { value: 'Week 6: Long A' } })
+      fireEvent.blur(nameInput)
+      expect(nameInput).toHaveAttribute('data-unsaved', 'true')
+
+      await waitForSave()
+      await waitFor(() => expect(nameInput).not.toHaveAttribute('data-unsaved', 'true'))
+    })
+
+    it('marks pattern fields too: one handler covers the whole page', async () => {
+      await renderReady()
+      const soundInput = screen.getByLabelText('Target sound')
+
+      fireEvent.focus(soundInput)
+      fireEvent.change(soundInput, { target: { value: 'short a' } })
+      fireEvent.blur(soundInput)
+      expect(soundInput).toHaveAttribute('data-unsaved', 'true')
+
+      await waitForSave()
+    })
+
+    it('ignores focus and blur on non-field elements', async () => {
+      await renderReady()
+      const nameInput = screen.getByLabelText('List name')
+      const addButton = screen.getByRole('button', { name: '+ Add a pattern' })
+
+      // Focusing a button snapshots nothing; blurring it marks nothing.
+      fireEvent.focus(addButton)
+      fireEvent.blur(addButton)
+      expect(addButton).not.toHaveAttribute('data-unsaved', 'true')
+
+      // Blurring a field that was never focused is a no-op.
+      fireEvent.blur(nameInput)
+      expect(nameInput).not.toHaveAttribute('data-unsaved', 'true')
+    })
+  })
 })
