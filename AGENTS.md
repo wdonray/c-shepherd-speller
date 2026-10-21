@@ -213,6 +213,15 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   Use a token that adapts, e.g. `accent-ink`, which also matches the
   checked card's `border-ink` highlight (found 2026-10-18: issue #435,
   worksheet picker checkboxes).
+- **Shrinkable grid tracks plus break-words wraps mid-word.** A grid whose
+  tracks shrink below their max (3-up word chips inside pattern columns
+  squeezed under their 420px cap at ~1200px viewports) gives
+  `overflow-wrap: break-word` permission to break anywhere, so "train"
+  renders as "trai"+"n" and rows go uneven. When a track can shrink under
+  its content, keep words whole with `whitespace-nowrap` and pick the
+  column count for the longest real content (2 roomy columns beat 3
+  cramped ones); `min-w-0` on the items still guards against grid blowout
+  (found 2026-10-21: issue #507, word chips wrapped mid-word).
 
 ## Reliability
 

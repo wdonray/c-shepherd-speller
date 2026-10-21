@@ -366,10 +366,13 @@ export default function PatternChartDisplay({
           </div>
           {renderRuleDisplay(pattern)}
         </div>
-        {/* Issue #488: words are compact chips in a responsive grid (2 on
-            mobile, 3 on desktop) instead of full-width cards, so more
-            patterns stay visible at once. */}
-        <ul className="grid grid-cols-2 gap-2 md:grid-cols-3">
+        {/* Issue #488: words are compact chips in a responsive grid instead
+            of full-width cards, so more patterns stay visible at once.
+            Issue #507: the grid is always 2-up. A 3-up grid squeezed the
+            chips to ~101px when three pattern columns shared a ~1200px
+            viewport, and break-words wrapped "train" into "trai"+"n". Two
+            roomy columns keep every word whole and every row even. */}
+        <ul className="grid grid-cols-2 gap-2">
           {pattern.words.map((word) => renderWordChip(word, pattern, `${pattern.id}-${word}`))}
         </ul>
       </section>
@@ -445,11 +448,14 @@ export default function PatternChartDisplay({
           type="button"
           onClick={() => speak(word)}
           aria-label={`Hear the word ${word}`}
-          // Issue #415: a long word keeps the chip at its max-content
-          // width and bleeds past the grid track on the projector. min-w-0
-          // lets the grid item shrink, break-words wraps the long word
-          // instead of overflowing it.
-          className="flex min-h-[56px] w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-2 text-[22px] font-bold break-words text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:border-sky-deep focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
+          // Issue #507: words must stay whole inside their chips. The old
+          // break-words (from issue #415) wrapped "train" into "trai"+"n"
+          // once the grid tracks shrank, breaking the grid into uneven rows.
+          // whitespace-nowrap keeps one word per line; min-w-0 still lets the
+          // grid item shrink inside its track for grid blowout protection.
+          // Two roomy columns (see the grid above) give real spelling words
+          // the width they need, so nothing spills past the chip edge.
+          className="flex min-h-[56px] w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-line bg-card px-3 py-2 text-[22px] font-bold whitespace-nowrap text-ink outline-none transition-colors hover:border-sky-deep hover:bg-sky-soft focus-visible:border-sky-deep focus-visible:bg-sky-soft focus-visible:ring-[3px] focus-visible:ring-ring/60"
         >
           <Volume2Icon className="size-5 shrink-0 text-sky-deep" aria-hidden="true" />
           <span className="min-w-0">{showUnderlines ? renderUnderlinedWord(word, pattern) : word}</span>
