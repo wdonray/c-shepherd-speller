@@ -92,6 +92,13 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
 - **Status indicators must never shift layout.** Things like save/unsaved
   indicators reserve their space or overlay; they never push content around
   when they appear, change, or disappear.
+- **Custom state CSS that must beat utilities belongs in `@layer utilities`.**
+  Tailwind v4 resolves equal-specificity conflicts by layer order (utilities
+  beats base), so a state rule in `@layer base` loses to a utility like
+  `outline-none` on the same element even when specificities tie. Put the
+  rule in `@layer utilities`, after the tailwind import, so it lands later
+  in the winning layer (found 2026-10-21: issue #509, the unsaved-field ring
+  never painted until it moved out of the base layer).
 - **Hold teacher-scoped content until the session resolves.** A client page
   that filters content by the signed-in teacher (e.g. hidden videos) must
   hold its content while next-auth `status === 'loading'`, not just until

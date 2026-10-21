@@ -28,6 +28,7 @@ import {
 } from '@/models/WordList'
 import { useUnsavedChangesGuard, type LeaveTarget } from '@/lib/use-unsaved-changes-guard'
 import { reportPageName } from '@/lib/navigation-history'
+import { clearUnsavedFieldMarks, fieldSnapshotValue, markFieldUnsaved } from '@/lib/unsaved-field-marker'
 import PatternEditor from './PatternEditor'
 import ListColorPicker from './ListColorPicker'
 import ClassroomSelector from './ClassroomSelector'
@@ -233,6 +234,13 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const bottomButtonShiftRef = useRef<{ el: HTMLDivElement; y: number } | null>(null)
   /** In-flight shift animation on the bottom button wrapper, if any. */
   const bottomButtonAnimationRef = useRef<Animation | null>(null)
+  /** Root of the editor; the unsaved-field marker handlers attach here. */
+  const editorRootRef = useRef<HTMLDivElement>(null)
+  /**
+   * Focus-time value of each field, for the blur-compare in issue #509.
+   * WeakMap so entries vanish with their elements; no cleanup needed.
+   */
+  const fieldSnapshotRef = useRef<WeakMap<Element, string | null>>(new WeakMap())
 
   useEffect(() => {
     let cancelled = false
@@ -540,6 +548,47 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   const isDirty = hasPendingSave || saveStatus === 'saving' || localOnlyCount > 0 || saveFailed
   const { depart } = useUnsavedChangesGuard(isDirty, setLeaveTarget)
 
+  // A confirmed save means every edit reached the server, so every
+  // unsaved-field ring comes off (issue #509). Failed saves keep their
+  // rings: those edits are still unsaved. Saves only run on the loaded
+  // editor, so the root ref is always set when this fires.
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      clearUnsavedFieldMarks(editorRootRef.current!)
+    }
+  }, [saveStatus])
+
+  /**
+   * Snapshot each field's value as it gains focus, so blur can tell whether
+   * the teacher actually changed it (issue #509). Capture phase: one
+   * handler on the root covers every input on the page, including fields
+   * added later by dynamic pattern cards.
+   */
+  const handleFieldFocus = (event: React.FocusEvent<HTMLDivElement>) => {
+    const target = event.target as Element
+    const snapshot = fieldSnapshotValue(target)
+    if (snapshot !== null) fieldSnapshotRef.current.set(target, snapshot)
+  }
+
+  /**
+   * On blur (never while typing), mark the field when its value changed
+   * since focus and the form still has unsaved changes. Blurring an
+   * unchanged field, or blurring after the debounced save already landed,
+   * leaves it unmarked: there is nothing unsaved to show.
+   */
+  const handleFieldBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    const target = event.target as Element
+    const snapshot = fieldSnapshotRef.current.get(target)
+    fieldSnapshotRef.current.delete(target)
+    if (snapshot === undefined) return
+    // A null current value cannot happen for an element that produced a
+    // snapshot (elements do not change kind), so a plain comparison covers
+    // every reachable case: unchanged values never mark.
+    if (fieldSnapshotValue(target) !== snapshot && isDirty) {
+      markFieldUnsaved(target)
+    }
+  }
+
   const cancelLeave = () => setLeaveTarget(null)
   const confirmLeave = () => {
     // Only reachable from the dialog's confirm button, which renders while leaveTarget is set.
@@ -722,7 +771,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6">
+    <div
+      ref={editorRootRef}
+      onFocusCapture={handleFieldFocus}
+      onBlurCapture={handleFieldBlur}
+      className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6"
+    >
       <div className="flex items-center justify-between gap-4">
         <BackBreadcrumb href="/lists" label="My spelling lists" />
         <Button asChild variant="secondary" className="shrink-0">
