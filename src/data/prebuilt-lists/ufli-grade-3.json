@@ -1,0 +1,469 @@
+{
+  "weeks": [
+    {
+      "id": "ufli-g3-w01",
+      "title": "UFLI Grade 3 - Week 1",
+      "grade": "3",
+      "week": 1,
+      "source": "prebuilt",
+      "lessons": "Lesson 111",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ar",
+          "frequency": "common",
+          "words": ["sharp", "scarf", "charm", "spark"]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "or",
+          "frequency": "common",
+          "words": ["forest", "corner", "actor", "harbor"]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["better", "after", "dollar", "never"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w02",
+      "title": "UFLI Grade 3 - Week 2",
+      "grade": "3",
+      "week": 2,
+      "source": "prebuilt",
+      "lessons": "Lesson 112",
+      "patterns": [
+        {
+          "sound": "air",
+          "pattern": "air",
+          "frequency": "common",
+          "words": ["hair", "fair", "chair", "stair", "pair", "repair"]
+        },
+        {
+          "sound": "are",
+          "pattern": "are",
+          "frequency": "less-common",
+          "words": ["care", "share", "dare", "scare", "rare", "aware"]
+        },
+        {
+          "sound": "ear (as in bear)",
+          "pattern": "ear",
+          "frequency": "less-common",
+          "words": ["bear", "wear", "pear", "tear", "swear", "unbearable"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w03",
+      "title": "UFLI Grade 3 - Week 3",
+      "grade": "3",
+      "week": 3,
+      "source": "prebuilt",
+      "lessons": "Lesson 113",
+      "patterns": [
+        {
+          "sound": "ear (as in hear)",
+          "pattern": "ear",
+          "frequency": "common",
+          "words": ["hear", "near", "year", "dear", "fear", "clear", "beard", "appear", "rear", "gear"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w04",
+      "title": "UFLI Grade 3 - Week 4",
+      "grade": "3",
+      "week": 4,
+      "source": "prebuilt",
+      "lessons": "Lesson 114",
+      "patterns": [
+        {
+          "sound": "ei",
+          "pattern": "ei",
+          "frequency": "less-common",
+          "words": ["ceiling", "receive", "deceive", "either", "neither", "protein"]
+        },
+        {
+          "sound": "eigh",
+          "pattern": "eigh",
+          "frequency": "less-common",
+          "words": ["weigh", "eight", "neighbor", "sleigh", "freight", "weight"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w05",
+      "title": "UFLI Grade 3 - Week 5",
+      "grade": "3",
+      "week": 5,
+      "source": "prebuilt",
+      "lessons": "Lesson 116",
+      "patterns": [
+        {
+          "sound": "ough",
+          "pattern": "ough",
+          "frequency": "less-common",
+          "words": ["though", "through", "thought", "bought", "tough", "enough", "cough", "rough", "fought", "brought"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w06",
+      "title": "UFLI Grade 3 - Week 6",
+      "grade": "3",
+      "week": 6,
+      "source": "prebuilt",
+      "lessons": "Lesson 117",
+      "patterns": [
+        {
+          "sound": "review: soft c",
+          "pattern": "ce, ci",
+          "frequency": "common",
+          "words": ["city", "face", "nice", "dance", "pencil"]
+        },
+        {
+          "sound": "review: soft g",
+          "pattern": "ge, gi",
+          "frequency": "common",
+          "words": ["gem", "giant", "age", "cage", "large"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w07",
+      "title": "UFLI Grade 3 - Week 7",
+      "grade": "3",
+      "week": 7,
+      "source": "prebuilt",
+      "lessons": "Lesson 118",
+      "patterns": [
+        {
+          "sound": "ch (as in chef, school)",
+          "pattern": "ch",
+          "frequency": "less-common",
+          "words": ["chef", "machine", "parachute", "mustache", "school", "chorus"]
+        },
+        {
+          "sound": "gn",
+          "pattern": "gn",
+          "frequency": "less-common",
+          "words": ["sign", "design", "assign", "resign", "foreign", "campaign"]
+        },
+        {
+          "sound": "silent t",
+          "pattern": "t",
+          "frequency": "less-common",
+          "words": ["listen", "castle", "whistle", "often", "soften", "hasten"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w08",
+      "title": "UFLI Grade 3 - Week 8",
+      "grade": "3",
+      "week": 8,
+      "source": "prebuilt",
+      "lessons": "Lessons 111-118",
+      "patterns": [
+        {
+          "sound": "review: low-frequency patterns",
+          "pattern": "ei",
+          "frequency": "less-common",
+          "words": ["ceiling", "receive"]
+        },
+        {
+          "sound": "review: low-frequency patterns",
+          "pattern": "ough",
+          "frequency": "less-common",
+          "words": ["though", "tough"]
+        },
+        {
+          "sound": "review: low-frequency patterns",
+          "pattern": "air",
+          "frequency": "common",
+          "words": ["hair", "fair"]
+        },
+        {
+          "sound": "review: low-frequency patterns",
+          "pattern": "gn",
+          "frequency": "less-common",
+          "words": ["sign", "design"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w09",
+      "title": "UFLI Grade 3 - Week 9",
+      "grade": "3",
+      "week": 9,
+      "source": "prebuilt",
+      "lessons": "Lesson 119",
+      "patterns": [
+        {
+          "sound": "-tion",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": [
+            "nation",
+            "action",
+            "motion",
+            "station",
+            "fraction",
+            "mention",
+            "question",
+            "caption",
+            "option",
+            "section"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w10",
+      "title": "UFLI Grade 3 - Week 10",
+      "grade": "3",
+      "week": 10,
+      "source": "prebuilt",
+      "lessons": "Lesson 119",
+      "patterns": [
+        {
+          "sound": "-sion",
+          "pattern": "sion",
+          "frequency": "common",
+          "words": [
+            "mission",
+            "vision",
+            "passion",
+            "tension",
+            "mansion",
+            "session",
+            "confession",
+            "expression",
+            "decision",
+            "occasion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w11",
+      "title": "UFLI Grade 3 - Week 11",
+      "grade": "3",
+      "week": 11,
+      "source": "prebuilt",
+      "lessons": "Lesson 119",
+      "patterns": [
+        {
+          "sound": "review: suffixes",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": ["nation", "action", "station"]
+        },
+        {
+          "sound": "review: suffixes",
+          "pattern": "sion",
+          "frequency": "common",
+          "words": ["mission", "vision", "passion"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w12",
+      "title": "UFLI Grade 3 - Week 12",
+      "grade": "3",
+      "week": 12,
+      "source": "prebuilt",
+      "lessons": "Lesson 120",
+      "patterns": [
+        {
+          "sound": "-ture",
+          "pattern": "ture",
+          "frequency": "less-common",
+          "words": [
+            "future",
+            "nature",
+            "picture",
+            "adventure",
+            "creature",
+            "furniture",
+            "mixture",
+            "capture",
+            "culture",
+            "lecture"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w13",
+      "title": "UFLI Grade 3 - Week 13",
+      "grade": "3",
+      "week": 13,
+      "source": "prebuilt",
+      "lessons": "Lesson 121",
+      "patterns": [
+        {
+          "sound": "suffixes -er, -or",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["teacher", "farmer", "sailor", "visitor", "doctor", "actor"]
+        },
+        {
+          "sound": "suffix -ist",
+          "pattern": "ist",
+          "frequency": "less-common",
+          "words": ["artist", "pianist", "scientist", "florist", "novelist"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w14",
+      "title": "UFLI Grade 3 - Week 14",
+      "grade": "3",
+      "week": 14,
+      "source": "prebuilt",
+      "lessons": "Lessons 122-125",
+      "patterns": [
+        {
+          "sound": "prefix un-",
+          "pattern": "un",
+          "frequency": "common",
+          "words": ["unhappy", "unsafe", "unable", "unfair", "unwrap"]
+        },
+        {
+          "sound": "prefix dis-",
+          "pattern": "dis",
+          "frequency": "common",
+          "words": ["disagree", "dislike", "distrust", "dishonest", "disappear"]
+        },
+        {
+          "sound": "prefix mis-",
+          "pattern": "mis",
+          "frequency": "less-common",
+          "words": ["mistake", "misspell", "misplace", "misunderstand", "mislead"]
+        },
+        {
+          "sound": "prefix pre-",
+          "pattern": "pre",
+          "frequency": "common",
+          "words": ["preview", "prepay", "preheat", "pretest", "preorder"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w15",
+      "title": "UFLI Grade 3 - Week 15",
+      "grade": "3",
+      "week": 15,
+      "source": "prebuilt",
+      "lessons": "Lesson 126",
+      "patterns": [
+        {
+          "sound": "suffix -able",
+          "pattern": "able",
+          "frequency": "common",
+          "words": ["breakable", "washable", "readable", "lovable", "comfortable"]
+        },
+        {
+          "sound": "suffix -ible",
+          "pattern": "ible",
+          "frequency": "less-common",
+          "words": ["terrible", "possible", "visible", "horrible", "sensible"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w16",
+      "title": "UFLI Grade 3 - Week 16",
+      "grade": "3",
+      "week": 16,
+      "source": "prebuilt",
+      "lessons": "Lessons 127-128",
+      "patterns": [
+        {
+          "sound": "suffix -ly",
+          "pattern": "ly",
+          "frequency": "common",
+          "words": ["quickly", "slowly", "kindly", "loudly", "softly"]
+        },
+        {
+          "sound": "suffix -ness",
+          "pattern": "ness",
+          "frequency": "common",
+          "words": ["kindness", "darkness", "happiness", "sadness", "illness"]
+        },
+        {
+          "sound": "suffix -ment",
+          "pattern": "ment",
+          "frequency": "common",
+          "words": ["payment", "movement", "moment", "comment", "basement"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w17",
+      "title": "UFLI Grade 3 - Week 17",
+      "grade": "3",
+      "week": 17,
+      "source": "prebuilt",
+      "lessons": "Lessons 119-128",
+      "patterns": [
+        {
+          "sound": "prefix bi-",
+          "pattern": "bi",
+          "frequency": "less-common",
+          "words": ["bicycle", "bilingual", "bimonthly"]
+        },
+        {
+          "sound": "prefix tri-",
+          "pattern": "tri",
+          "frequency": "less-common",
+          "words": ["tricycle", "triangle", "triple", "tripod"]
+        },
+        {
+          "sound": "prefix uni-",
+          "pattern": "uni",
+          "frequency": "less-common",
+          "words": ["unicorn", "unify", "unison", "uniform"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g3-w18",
+      "title": "UFLI Grade 3 - Week 18",
+      "grade": "3",
+      "week": 18,
+      "source": "prebuilt",
+      "lessons": "Lessons 119-128",
+      "patterns": [
+        {
+          "sound": "review: affixes",
+          "pattern": "tion",
+          "frequency": "common",
+          "words": ["nation", "action"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "un",
+          "frequency": "common",
+          "words": ["unhappy", "unpack"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "able",
+          "frequency": "common",
+          "words": ["breakable", "washable"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "ly",
+          "frequency": "common",
+          "words": ["quickly", "slowly"]
+        }
+      ]
+    }
+  ]
+}

@@ -73,7 +73,15 @@ describe('TermsOfServicePage prebuilt content (issue #463)', () => {
     expect(screen.getByRole('heading', { name: /ready-made content/i, level: 2 })).toBeInTheDocument()
     expect(screen.getAllByText(/non-exclusive, non-transferable license/i).length).toBeGreaterThan(0)
     expect(
-      screen.getAllByText(/not affiliated with, endorsed by, or aligned to any curriculum/i).length
+      screen.getAllByText(/No ready-made list is affiliated with or endorsed by any curriculum/i).length
+    ).toBeGreaterThan(0)
+  })
+
+  it('discloses the UFLI sequence alignment without implying endorsement', () => {
+    render(<TermsOfServicePage />)
+    expect(screen.getAllByText(/written to follow UFLI's published scope and sequence/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(/not created by, affiliated with, or endorsed by the University of Florida/i).length
     ).toBeGreaterThan(0)
   })
 })

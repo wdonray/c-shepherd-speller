@@ -1,0 +1,745 @@
+{
+  "weeks": [
+    {
+      "id": "ufli-g2-w01",
+      "title": "UFLI Grade 2 - Week 1",
+      "grade": "2",
+      "week": 1,
+      "source": "prebuilt",
+      "lessons": "Lessons 77-78",
+      "patterns": [
+        {
+          "sound": "r-controlled ar",
+          "pattern": "ar",
+          "frequency": "common",
+          "words": ["car", "barn", "park", "farm", "star", "hard", "shark", "yard", "part", "card"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w02",
+      "title": "UFLI Grade 2 - Week 2",
+      "grade": "2",
+      "week": 2,
+      "source": "prebuilt",
+      "lessons": "Lessons 79-80",
+      "patterns": [
+        {
+          "sound": "r-controlled or",
+          "pattern": "or",
+          "frequency": "common",
+          "words": ["corn", "horse", "fork", "storm", "short", "north"]
+        },
+        {
+          "sound": "r-controlled ore",
+          "pattern": "ore",
+          "frequency": "less-common",
+          "words": ["more", "store", "chore", "before", "wore", "shore"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w03",
+      "title": "UFLI Grade 2 - Week 3",
+      "grade": "2",
+      "week": 3,
+      "source": "prebuilt",
+      "lessons": "Lessons 81-83",
+      "patterns": [
+        {
+          "sound": "r-controlled er",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["her", "fern", "verb", "perch", "herd", "clerk"]
+        },
+        {
+          "sound": "r-controlled ir",
+          "pattern": "ir",
+          "frequency": "common",
+          "words": ["bird", "girl", "first", "third", "shirt", "chirp"]
+        },
+        {
+          "sound": "r-controlled ur",
+          "pattern": "ur",
+          "frequency": "common",
+          "words": ["curl", "hurt", "turn", "fur", "burst", "surf"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w04",
+      "title": "UFLI Grade 2 - Week 4",
+      "grade": "2",
+      "week": 4,
+      "source": "prebuilt",
+      "lessons": "Lessons 77-80",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ar",
+          "frequency": "common",
+          "words": ["park", "farm", "card"]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "or",
+          "frequency": "common",
+          "words": ["corn", "horse", "storm"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w05",
+      "title": "UFLI Grade 2 - Week 5",
+      "grade": "2",
+      "week": 5,
+      "source": "prebuilt",
+      "lessons": "Lessons 81-83",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["her", "fern"]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ir",
+          "frequency": "common",
+          "words": ["bird", "girl"]
+        },
+        {
+          "sound": "review: r-controlled",
+          "pattern": "ur",
+          "frequency": "common",
+          "words": ["curl", "turn"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w06",
+      "title": "UFLI Grade 2 - Week 6",
+      "grade": "2",
+      "week": 6,
+      "source": "prebuilt",
+      "lessons": "Lessons 77-83",
+      "patterns": [
+        {
+          "sound": "review: r-controlled",
+          "pattern": "mixed",
+          "frequency": "common",
+          "words": ["barn", "store", "bird", "park", "corn", "hurt", "farm", "horse", "girl", "turn"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w07",
+      "title": "UFLI Grade 2 - Week 7",
+      "grade": "2",
+      "week": 7,
+      "source": "prebuilt",
+      "lessons": "Lesson 84",
+      "patterns": [
+        {
+          "sound": "long a",
+          "pattern": "ai",
+          "frequency": "common",
+          "words": ["rain", "train", "wait", "snail", "paint", "chain"]
+        },
+        {
+          "sound": "long a",
+          "pattern": "ay",
+          "frequency": "common",
+          "words": ["play", "day", "say", "away", "stay", "tray"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w08",
+      "title": "UFLI Grade 2 - Week 8",
+      "grade": "2",
+      "week": 8,
+      "source": "prebuilt",
+      "lessons": "Lesson 85",
+      "patterns": [
+        {
+          "sound": "long e",
+          "pattern": "ee",
+          "frequency": "common",
+          "words": ["tree", "feet", "see", "teeth", "green", "sweet"]
+        },
+        {
+          "sound": "long e",
+          "pattern": "ea",
+          "frequency": "common",
+          "words": ["team", "leaf", "read", "teach", "beach", "dream"]
+        },
+        {
+          "sound": "long e",
+          "pattern": "ey",
+          "frequency": "less-common",
+          "words": ["honey", "monkey", "valley", "journey", "turkey"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w09",
+      "title": "UFLI Grade 2 - Week 9",
+      "grade": "2",
+      "week": 9,
+      "source": "prebuilt",
+      "lessons": "Lesson 86",
+      "patterns": [
+        {
+          "sound": "long o",
+          "pattern": "oa",
+          "frequency": "common",
+          "words": ["boat", "road", "loaf", "toast", "coach", "throat"]
+        },
+        {
+          "sound": "long o",
+          "pattern": "ow",
+          "frequency": "common",
+          "words": ["grow", "snow", "yellow", "crow", "throw", "window"]
+        },
+        {
+          "sound": "long o",
+          "pattern": "oe",
+          "frequency": "less-common",
+          "words": ["toe", "goes", "doe", "foe", "aloe"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w10",
+      "title": "UFLI Grade 2 - Week 10",
+      "grade": "2",
+      "week": 10,
+      "source": "prebuilt",
+      "lessons": "Lesson 87",
+      "patterns": [
+        {
+          "sound": "long i",
+          "pattern": "ie",
+          "frequency": "less-common",
+          "words": ["pie", "tie", "lie", "die", "cried", "flies"]
+        },
+        {
+          "sound": "long i",
+          "pattern": "igh",
+          "frequency": "common",
+          "words": ["high", "night", "light", "right", "bright", "flight"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w11",
+      "title": "UFLI Grade 2 - Week 11",
+      "grade": "2",
+      "week": 11,
+      "source": "prebuilt",
+      "lessons": "Lesson 88",
+      "patterns": [
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ai",
+          "frequency": "common",
+          "words": ["rain", "train"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ee",
+          "frequency": "common",
+          "words": ["tree", "feet"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "oa",
+          "frequency": "common",
+          "words": ["boat", "road"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "igh",
+          "frequency": "common",
+          "words": ["night", "light"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w12",
+      "title": "UFLI Grade 2 - Week 12",
+      "grade": "2",
+      "week": 12,
+      "source": "prebuilt",
+      "lessons": "Lesson 89",
+      "patterns": [
+        {
+          "sound": "short oo",
+          "pattern": "oo",
+          "frequency": "common",
+          "words": ["book", "look", "foot", "good", "wood", "took", "cook", "stood", "wool", "hook"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w13",
+      "title": "UFLI Grade 2 - Week 13",
+      "grade": "2",
+      "week": 13,
+      "source": "prebuilt",
+      "lessons": "Lesson 89",
+      "patterns": [
+        {
+          "sound": "long u",
+          "pattern": "oo",
+          "frequency": "common",
+          "words": ["moon", "soon", "food", "room", "zoo", "spoon", "noon", "proof", "school", "smooth"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w14",
+      "title": "UFLI Grade 2 - Week 14",
+      "grade": "2",
+      "week": 14,
+      "source": "prebuilt",
+      "lessons": "Lesson 90",
+      "patterns": [
+        {
+          "sound": "ew",
+          "pattern": "ew",
+          "frequency": "common",
+          "words": ["new", "few", "drew", "chew", "blew", "crew"]
+        },
+        {
+          "sound": "ui, ue",
+          "pattern": "ui",
+          "frequency": "less-common",
+          "words": ["juice", "suit", "fruit", "blue", "true", "clue"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w15",
+      "title": "UFLI Grade 2 - Week 15",
+      "grade": "2",
+      "week": 15,
+      "source": "prebuilt",
+      "lessons": "Lesson 93",
+      "patterns": [
+        {
+          "sound": "aw",
+          "pattern": "aw",
+          "frequency": "common",
+          "words": ["saw", "draw", "law", "crawl", "yawn", "straw"]
+        },
+        {
+          "sound": "au",
+          "pattern": "au",
+          "frequency": "common",
+          "words": ["author", "August", "pause", "fault", "launch", "haul"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w16",
+      "title": "UFLI Grade 2 - Week 16",
+      "grade": "2",
+      "week": 16,
+      "source": "prebuilt",
+      "lessons": "Lesson 94",
+      "patterns": [
+        {
+          "sound": "al",
+          "pattern": "al",
+          "frequency": "common",
+          "words": ["walk", "talk", "calm", "palm", "chalk", "half"]
+        },
+        {
+          "sound": "wa",
+          "pattern": "wa",
+          "frequency": "less-common",
+          "words": ["water", "want", "wash", "watch", "wasp", "wander"]
+        },
+        {
+          "sound": "qua",
+          "pattern": "qua",
+          "frequency": "less-common",
+          "words": ["quad", "quality", "quack", "squash", "quart"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w17",
+      "title": "UFLI Grade 2 - Week 17",
+      "grade": "2",
+      "week": 17,
+      "source": "prebuilt",
+      "lessons": "Lessons 89-94",
+      "patterns": [
+        {
+          "sound": "review: vowel teams",
+          "pattern": "oo",
+          "frequency": "common",
+          "words": ["book", "moon"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "ew",
+          "frequency": "common",
+          "words": ["new", "drew"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "aw",
+          "frequency": "common",
+          "words": ["saw", "draw"]
+        },
+        {
+          "sound": "review: vowel teams",
+          "pattern": "al",
+          "frequency": "common",
+          "words": ["walk", "talk"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w18",
+      "title": "UFLI Grade 2 - Week 18",
+      "grade": "2",
+      "week": 18,
+      "source": "prebuilt",
+      "lessons": "Lessons 95-96",
+      "patterns": [
+        {
+          "sound": "diphthong ow",
+          "pattern": "ow",
+          "frequency": "common",
+          "words": ["cow", "now", "brown", "down", "town", "crowd"]
+        },
+        {
+          "sound": "diphthong ou",
+          "pattern": "ou",
+          "frequency": "common",
+          "words": ["cloud", "house", "out", "sound", "mouse", "found"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w19",
+      "title": "UFLI Grade 2 - Week 19",
+      "grade": "2",
+      "week": 19,
+      "source": "prebuilt",
+      "lessons": "Lessons 95-96",
+      "patterns": [
+        {
+          "sound": "diphthong oy",
+          "pattern": "oy",
+          "frequency": "common",
+          "words": ["boy", "toy", "joy", "enjoy", "royal", "voyage"]
+        },
+        {
+          "sound": "diphthong oi",
+          "pattern": "oi",
+          "frequency": "common",
+          "words": ["coin", "oil", "join", "point", "soil", "voice"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w20",
+      "title": "UFLI Grade 2 - Week 20",
+      "grade": "2",
+      "week": 20,
+      "source": "prebuilt",
+      "lessons": "Lessons 95-97",
+      "patterns": [
+        {
+          "sound": "review: diphthongs",
+          "pattern": "ow",
+          "frequency": "common",
+          "words": ["cow", "brown"]
+        },
+        {
+          "sound": "review: diphthongs",
+          "pattern": "ou",
+          "frequency": "common",
+          "words": ["cloud", "house"]
+        },
+        {
+          "sound": "review: diphthongs",
+          "pattern": "oy",
+          "frequency": "common",
+          "words": ["boy", "joy"]
+        },
+        {
+          "sound": "review: diphthongs",
+          "pattern": "oi",
+          "frequency": "common",
+          "words": ["coin", "oil"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w21",
+      "title": "UFLI Grade 2 - Week 21",
+      "grade": "2",
+      "week": 21,
+      "source": "prebuilt",
+      "lessons": "Lesson 98",
+      "patterns": [
+        {
+          "sound": "silent letters",
+          "pattern": "kn",
+          "frequency": "less-common",
+          "words": ["knee", "know", "knock", "knife", "knot", "kneel"]
+        },
+        {
+          "sound": "silent letters",
+          "pattern": "wr",
+          "frequency": "less-common",
+          "words": ["write", "wrong", "wrist", "wrap", "wreck", "wrinkle"]
+        },
+        {
+          "sound": "silent letters",
+          "pattern": "mb",
+          "frequency": "less-common",
+          "words": ["lamb", "climb", "comb", "thumb", "numb", "crumb"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w22",
+      "title": "UFLI Grade 2 - Week 22",
+      "grade": "2",
+      "week": 22,
+      "source": "prebuilt",
+      "lessons": "Lesson 99",
+      "patterns": [
+        {
+          "sound": "suffixes",
+          "pattern": "s, es",
+          "frequency": "common",
+          "words": ["cats", "dogs", "books", "runs", "jumps", "plays", "helps", "wishes", "boxes", "buses"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w23",
+      "title": "UFLI Grade 2 - Week 23",
+      "grade": "2",
+      "week": 23,
+      "source": "prebuilt",
+      "lessons": "Lesson 100",
+      "patterns": [
+        {
+          "sound": "suffix -er",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["taller", "faster", "longer", "shorter", "colder"]
+        },
+        {
+          "sound": "suffix -est",
+          "pattern": "est",
+          "frequency": "common",
+          "words": ["biggest", "fastest", "smallest", "warmest", "darkest"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w24",
+      "title": "UFLI Grade 2 - Week 24",
+      "grade": "2",
+      "week": 24,
+      "source": "prebuilt",
+      "lessons": "Lesson 102",
+      "patterns": [
+        {
+          "sound": "suffix -less",
+          "pattern": "less",
+          "frequency": "common",
+          "words": ["helpless", "careless", "endless", "fearless", "restless"]
+        },
+        {
+          "sound": "suffix -ful",
+          "pattern": "ful",
+          "frequency": "common",
+          "words": ["useful", "careful", "hopeful", "thankful", "joyful"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w25",
+      "title": "UFLI Grade 2 - Week 25",
+      "grade": "2",
+      "week": 25,
+      "source": "prebuilt",
+      "lessons": "Lessons 103-105",
+      "patterns": [
+        {
+          "sound": "prefix un-",
+          "pattern": "un",
+          "frequency": "common",
+          "words": ["undo", "unhappy", "unpack", "unlock", "untie"]
+        },
+        {
+          "sound": "prefix re-",
+          "pattern": "re",
+          "frequency": "common",
+          "words": ["redo", "rewrite", "replay", "refill", "reheat"]
+        },
+        {
+          "sound": "prefixes pre-, dis-",
+          "pattern": "pre",
+          "frequency": "less-common",
+          "words": ["preview", "preheat", "disagree", "disloyal", "distrust"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w26",
+      "title": "UFLI Grade 2 - Week 26",
+      "grade": "2",
+      "week": 26,
+      "source": "prebuilt",
+      "lessons": "Lesson 106",
+      "patterns": [
+        {
+          "sound": "review: affixes",
+          "pattern": "un",
+          "frequency": "common",
+          "words": ["undo", "unhappy"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "er",
+          "frequency": "common",
+          "words": ["taller", "faster"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "less",
+          "frequency": "common",
+          "words": ["helpless", "careless"]
+        },
+        {
+          "sound": "review: affixes",
+          "pattern": "ful",
+          "frequency": "common",
+          "words": ["careful", "hopeful"]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w27",
+      "title": "UFLI Grade 2 - Week 27",
+      "grade": "2",
+      "week": 27,
+      "source": "prebuilt",
+      "lessons": "Lessons 107-108",
+      "patterns": [
+        {
+          "sound": "doubling rule",
+          "pattern": "double the consonant",
+          "frequency": "common",
+          "words": [
+            "running",
+            "sitting",
+            "swimming",
+            "shopping",
+            "clapping",
+            "dropped",
+            "grabbed",
+            "planning",
+            "bigger",
+            "hottest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w28",
+      "title": "UFLI Grade 2 - Week 28",
+      "grade": "2",
+      "week": 28,
+      "source": "prebuilt",
+      "lessons": "Lesson 109",
+      "patterns": [
+        {
+          "sound": "drop-e rule",
+          "pattern": "drop the e",
+          "frequency": "common",
+          "words": [
+            "making",
+            "coming",
+            "taking",
+            "hoping",
+            "riding",
+            "writing",
+            "baking",
+            "smiling",
+            "using",
+            "shaking"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w29",
+      "title": "UFLI Grade 2 - Week 29",
+      "grade": "2",
+      "week": 29,
+      "source": "prebuilt",
+      "lessons": "Lesson 110",
+      "patterns": [
+        {
+          "sound": "y-to-i rule",
+          "pattern": "y to i",
+          "frequency": "common",
+          "words": [
+            "happiest",
+            "funniest",
+            "babies",
+            "stories",
+            "tried",
+            "carried",
+            "flies",
+            "puppies",
+            "candies",
+            "pennies"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ufli-g2-w30",
+      "title": "UFLI Grade 2 - Week 30",
+      "grade": "2",
+      "week": 30,
+      "source": "prebuilt",
+      "lessons": "Lessons 107-110",
+      "patterns": [
+        {
+          "sound": "review: suffix rules",
+          "pattern": "doubling",
+          "frequency": "common",
+          "words": ["running", "sitting"]
+        },
+        {
+          "sound": "review: suffix rules",
+          "pattern": "drop-e",
+          "frequency": "common",
+          "words": ["making", "taking"]
+        },
+        {
+          "sound": "review: suffix rules",
+          "pattern": "y-to-i",
+          "frequency": "common",
+          "words": ["happiest", "babies"]
+        }
+      ]
+    }
+  ]
+}

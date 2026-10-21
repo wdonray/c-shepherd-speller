@@ -5,11 +5,17 @@ import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, XIcon } from 'lucide-rea
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import {
-  PREBUILT_GRADES,
+  PREBUILT_SET_DESCRIPTION,
+  PREBUILT_SET_GRADES,
+  PREBUILT_SET_IDS,
+  PREBUILT_SET_LABEL,
+  UFLI_DISCLAIMER,
   getPrebuiltWeeks,
+  gradeForSet,
   prebuiltGradeLabel,
   prebuiltWeekToWordList,
   type PrebuiltGrade,
+  type PrebuiltSetId,
   type PrebuiltWeek,
 } from '@/lib/prebuilt-lists'
 import WordListCard from './WordListCard'
@@ -22,15 +28,16 @@ function weekMatchesQuery(week: PrebuiltWeek, query: string): boolean {
   return week.patterns.some((p) => p.pattern.toLowerCase().includes(q) || p.sound.toLowerCase().includes(q))
 }
 
-function allWeeks(): PrebuiltWeek[] {
-  return PREBUILT_GRADES.flatMap((g) => getPrebuiltWeeks(g))
+function allWeeks(setId: PrebuiltSetId): PrebuiltWeek[] {
+  return PREBUILT_SET_GRADES[setId].flatMap((g) => getPrebuiltWeeks(setId, g))
 }
 
 /**
  * Weeks per page (issue #481): the card grid is 3 columns on desktop, 2 on
  * small screens, 1 on mobile, so 12 is 4 / 6 / 12 full rows. Rendering all
- * 30 grade weeks (up to 162 on a cross-grade search) at once kept /lists
- * interactive at ~2-4s; paginating targets under 500ms.
+ * 30 grade weeks (up to 162 on a cross-grade search of the standard set, 90
+ * for the UFLI set) at once kept /lists interactive at ~2-4s; paginating
+ * targets under 500ms.
  */
 export const PREBUILT_WEEKS_PER_PAGE = 12
 
@@ -45,27 +52,37 @@ export function prebuiltPageWindow(current: number, total: number): number[] {
 
 /**
  * The prebuilt curriculum library as a section of the lists overview page
- * (issue #463 redesign). The teacher's own lists stay primary above; this
- * section is secondary and additive. Pattern search is the primary way in:
- * it matches weeks across all grades by spelling pattern or sound. The
- * grade pills browse one grade at a time. Week cards reuse WordListCard so
- * the section reads as part of the page, with the Prebuilt badge as the
- * distinction from the teacher's own lists.
+ * (issue #463 redesign; #506 adds the set selector). The teacher's own lists
+ * stay primary above; this section is secondary and additive. The set
+ * selector switches between the standard sequence and the UFLI sequence;
+ * grade pills, pattern search, and week cards then operate on the selected
+ * set. Pattern search is the primary way in: it matches weeks across all of
+ * the set's grades by spelling pattern or sound. The grade pills browse one
+ * grade at a time. Week cards reuse WordListCard so the section reads as part
+ * of the page, with the Prebuilt badge as the distinction from the teacher's
+ * own lists.
  */
 export default function PrebuiltLibrarySection() {
+  const [setId, setSetId] = useState<PrebuiltSetId>('standard')
   const [grade, setGrade] = useState<PrebuiltGrade>('1')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
 
+  const setGrades = PREBUILT_SET_GRADES[setId]
   const searching = query.trim().length > 0
   const weeks = useMemo(() => {
-    const pool = searching ? allWeeks() : getPrebuiltWeeks(grade)
+    const pool = searching ? allWeeks(setId) : getPrebuiltWeeks(setId, grade)
     return pool.filter((week) => weekMatchesQuery(week, query))
-  }, [grade, query, searching])
+  }, [setId, grade, query, searching])
 
-  // A new grade or search is a new result set: always start on page 1.
+  // A new set, grade, or search is a new result set: always start on page 1.
   // Reset in the event handlers (not a useEffect) so the first render after
   // the change already shows page 1 instead of flashing the old page.
+  const handleSetChange = (next: PrebuiltSetId) => {
+    setSetId(next)
+    setGrade(gradeForSet(next, grade))
+    setPage(1)
+  }
   const handleGradeChange = (next: PrebuiltGrade) => {
     setGrade(next)
     setPage(1)
@@ -87,18 +104,38 @@ export default function PrebuiltLibrarySection() {
       <h3 id="prebuilt-library-heading" className="text-lg font-bold">
         Ready-made library
       </h3>
-      <p className="mt-1 text-[15px] text-muted-foreground">
-        162 weeks of ready-made spelling lists for grades K through 5. Search by pattern or pick a grade, preview a
-        week, then make it your own.
-      </p>
+      <p className="mt-1 text-[15px] text-muted-foreground">{PREBUILT_SET_DESCRIPTION[setId]}</p>
+      {setId === 'ufli' && <p className="mt-1 text-sm text-muted-foreground">{UFLI_DISCLAIMER}</p>}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div
+          role="tablist"
+          aria-label="Choose ready-made list set"
+          className="inline-flex flex-wrap rounded-full border-2 border-line bg-card p-1"
+        >
+          {PREBUILT_SET_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={setId === id}
+              onClick={() => handleSetChange(id)}
+              className={cn(
+                'min-h-[44px] rounded-full px-5 py-2 text-[15px] font-bold outline-none transition-colors',
+                'focus-visible:ring-[3px] focus-visible:ring-ring/60',
+                setId === id ? 'bg-ink text-background' : 'text-muted-foreground hover:text-ink'
+              )}
+            >
+              {PREBUILT_SET_LABEL[id]}
+            </button>
+          ))}
+        </div>
         <div
           role="tablist"
           aria-label="Filter ready-made lists by grade"
           className="inline-flex flex-wrap rounded-full border-2 border-line bg-card p-1"
         >
-          {PREBUILT_GRADES.map((g) => (
+          {setGrades.map((g) => (
             <button
               key={g}
               type="button"

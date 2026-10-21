@@ -60,6 +60,26 @@ test.describe('prebuilt library pagination (issue #481)', () => {
     await expect(page.getByText(/Showing 1-8 of 8 weeks matching "tion" across all grades/)).toBeVisible()
     await expect(page.getByRole('navigation', { name: 'Ready-made library pages' })).toHaveCount(0)
   })
+
+  test('switches between the standard and UFLI sequences (issue #506)', async ({ page }) => {
+    await page.goto('/lists')
+    await expect(page.getByRole('heading', { name: 'Ready-made library' })).toBeVisible()
+
+    await page.getByRole('tab', { name: 'UFLI sequence' }).click()
+    await expect(page.getByText('Showing 1-12 of 30 weeks of Grade 1 spelling patterns.')).toBeVisible()
+    const grid = page.getByTestId('prebuilt-grid')
+    await expect(grid.getByRole('link', { name: 'Preview: UFLI Grade 1 - Week 1', exact: true })).toBeVisible()
+    // UFLI Foundations is K-2 plus advanced Grade 3: no grades 4 or 5.
+    const gradeTabs = page.getByRole('tablist', { name: 'Filter ready-made lists by grade' })
+    await expect(gradeTabs.getByRole('tab', { name: '4' })).toHaveCount(0)
+    await expect(gradeTabs.getByRole('tab', { name: '5' })).toHaveCount(0)
+    // The non-endorsement disclaimer shows for the UFLI set.
+    await expect(page.getByText(/Not created by, affiliated with, or endorsed by/)).toBeVisible()
+
+    await page.getByRole('tab', { name: 'Standard sequence' }).click()
+    await expect(grid.getByRole('link', { name: 'Preview: Grade 1 - Week 1', exact: true })).toBeVisible()
+    await expect(gradeTabs.getByRole('tab', { name: '5' })).toBeVisible()
+  })
 })
 
 test.describe('video thumbnails (issue #481)', () => {
