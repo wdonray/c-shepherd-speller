@@ -128,6 +128,25 @@ function DisplayModeInner() {
     }
   }, [])
 
+  // Show/hide a pattern's frequency row in present mode (issue #510):
+  // optimistic update, then persist, mirroring the lock toggle above. A
+  // hidden row drops the field so legacy reads stay clean; absent means
+  // off (the default).
+  const handleToggleFrequency = useCallback(async (patternId: string, current: WordList) => {
+    const nextPatterns = current.patterns.map((p) =>
+      p.id === patternId ? { ...p, showFrequency: p.showFrequency === true ? undefined : true } : p
+    )
+    setList({ ...current, patterns: nextPatterns })
+    setToggleError(null)
+    try {
+      const saved = await updateList(current.id, { patterns: nextPatterns })
+      setList(saved)
+    } catch {
+      setList(current)
+      setToggleError(LOAD_ERROR)
+    }
+  }, [])
+
   // Save a pattern's attached song videos in present mode (issue #401):
   // optimistic update, then persist, mirroring the lock toggle above. An
   // emptied video list drops the field so legacy reads stay clean. Rethrows
@@ -420,6 +439,7 @@ function DisplayModeInner() {
             // video saves (issue #463). The callbacks stay undefined, exactly
             // like the library preview.
             onToggleLock={isPrebuilt ? undefined : (patternId) => handleToggleLock(patternId, list)}
+            onToggleFrequency={isPrebuilt ? undefined : (patternId) => handleToggleFrequency(patternId, list)}
             classRules={classRules}
             onSaveRule={
               isPrebuilt

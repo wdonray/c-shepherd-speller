@@ -46,6 +46,14 @@ export const SpellingPatternSchema = z.object({
   /** True when the teacher has locked this pattern; hidden until taught */
   isLocked: z.boolean().optional(),
   /**
+   * Whether the frequency row (power bar + Common/Rare label) is shown for
+   * this pattern on the present chart (issue #510). Off by default: the
+   * teacher toggles it per pattern and the choice persists with the list.
+   * Dropped when off so legacy reads stay clean (same convention as the
+   * emptied song-video list, issue #401).
+   */
+  showFrequency: z.boolean().optional(),
+  /**
    * Unscoped spelling rule for this pattern, e.g. "ai comes in the middle
    * of a word, ay at the end." Shown when sorting without a class (labeled
    * "The rule:"); a class's own rule takes precedence when one is active.

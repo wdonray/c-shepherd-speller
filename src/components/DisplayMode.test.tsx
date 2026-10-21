@@ -497,6 +497,101 @@ describe('DisplayMode', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('toggles the frequency row optimistically and persists via updateList (issue #510)', async () => {
+    mockListParam('l1')
+    getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
+    // Keep the save pending so the optimistic update is observable.
+    updateList.mockImplementation(() => new Promise(() => {}))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Show frequency for pattern a_e' })).toBeInTheDocument()
+    })
+    // Hidden by default.
+    expect(screen.queryByRole('img', { name: 'Frequency: Common' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Show frequency for pattern a_e' }))
+
+    // Optimistic: the row shows immediately, before the save resolves, and
+    // the other pattern stays hidden.
+    expect(screen.getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Frequency: Less common' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide frequency for pattern a_e' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    expect(updateList).toHaveBeenCalledWith('l1', {
+      patterns: [{ ...twoPatternList.patterns[0], showFrequency: true }, twoPatternList.patterns[1]],
+    })
+  })
+
+  it('keeps the frequency row shown after a successful save (issue #510)', async () => {
+    mockListParam('l1')
+    getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
+    const saved: WordList = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], showFrequency: true }, twoPatternList.patterns[1]],
+      updatedAt: '2026-10-09T00:00:00.000Z',
+    }
+    updateList.mockResolvedValue(saved)
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Show frequency for pattern a_e' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Show frequency for pattern a_e' }))
+
+    await waitFor(() => {
+      expect(updateList).toHaveBeenCalled()
+    })
+    // Still shown once the save resolves; the hide toggle is available.
+    expect(screen.getByRole('img', { name: 'Frequency: Common' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide frequency for pattern a_e' })).toBeInTheDocument()
+  })
+
+  it('drops the showFrequency field when toggling the row off (issue #510)', async () => {
+    const shownList: WordList = {
+      ...twoPatternList,
+      patterns: [{ ...twoPatternList.patterns[0], showFrequency: true }, twoPatternList.patterns[1]],
+    }
+    mockListParam('l1')
+    getListWithClassroom.mockResolvedValue({ list: shownList, classroom: null })
+    updateList.mockImplementation(() => new Promise(() => {}))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Hide frequency for pattern a_e' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Hide frequency for pattern a_e' }))
+
+    // The row hides again and the field is dropped so legacy reads stay clean.
+    expect(screen.queryByRole('img', { name: 'Frequency: Common' })).not.toBeInTheDocument()
+    expect(updateList).toHaveBeenCalledWith('l1', {
+      patterns: [{ ...twoPatternList.patterns[0], showFrequency: undefined }, twoPatternList.patterns[1]],
+    })
+  })
+
+  it('reverts the frequency toggle and shows an error when saving fails (issue #510)', async () => {
+    mockListParam('l1')
+    getListWithClassroom.mockResolvedValue({ list: twoPatternList, classroom: null })
+    updateList.mockRejectedValue(new Error('offline'))
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Show frequency for pattern a_e' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Show frequency for pattern a_e' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not load the word list')
+    })
+    // Reverted: the row is hidden again and the toggle is back to Show.
+    expect(screen.queryByRole('img', { name: 'Frequency: Common' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show frequency for pattern a_e' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+  })
+
   describe('week filter chips', () => {
     const weekFive: WordList = { ...list, id: 'w5', name: 'Week 5 list', week: '5' }
     const weekTen: WordList = { ...list, id: 'w10', name: 'Week 10 list', week: '10' }
@@ -1355,6 +1450,17 @@ describe('DisplayMode prebuilt weeks (issue #463)', () => {
     // Lock toggles render as buttons named "Lock <pattern>" when the
     // onToggleLock callback is provided; prebuilt passes undefined.
     expect(screen.queryByRole('button', { name: /lock/i })).not.toBeInTheDocument()
+  })
+
+  it('renders the prebuilt chart read-only: no frequency toggle control (issue #510)', async () => {
+    prebuiltParams('prebuilt-g2-w06')
+    render(<DisplayMode />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Grade 2 - Week 6/ })).toBeInTheDocument()
+    })
+    // Prebuilt weeks are read-only: nothing can persist, so no toggle.
+    expect(screen.queryByRole('button', { name: /frequency/i })).not.toBeInTheDocument()
   })
 
   it('shows the load error for an unknown prebuilt week id', async () => {
