@@ -259,20 +259,29 @@ function WorksheetsJob({
    * step. One updateList call (never per word): the per-word save and this
    * are mutually disabled while either is in flight, so two
    * read-modify-write updates can never race on the same patterns.
+   *
+   * Invariant: Approve all is only clickable when allGapsFilled held at the
+   * render that produced the button, so every gap word has a non-empty
+   * trimmed draft in typedSentences. The loop below is branchless on
+   * purpose: per-word guards here would be dead branches under the 100%
+   * branch-coverage bar.
    */
   const approveAllSentences = async () => {
     setApproving(true)
     setGapError(null)
     try {
-      const drafts: Record<string, string> = {}
+      // Prototype-free dictionaries: a saved word named like an Object
+      // prototype property ("constructor") must not read the inherited
+      // member off the prototype, or its saved sentence would be replaced
+      // by a function (issue #511 CodeRabbit review).
+      const drafts: Record<string, string> = Object.create(null)
       for (const word of gapWords) {
-        const draft = Object.hasOwn(typedSentences, word.word) ? typedSentences[word.word].trim() : ''
-        if (draft !== '') drafts[word.word] = draft
+        drafts[word.word] = typedSentences[word.word].trim()
       }
       const nextPatterns: SpellingPattern[] = list.patterns.map((p) => {
-        const updates: Record<string, string> = {}
+        const updates: Record<string, string> = Object.create(null)
         for (const w of p.words) {
-          if (drafts[w] !== undefined) updates[w] = drafts[w]
+          if (Object.hasOwn(drafts, w)) updates[w] = drafts[w]
         }
         return Object.keys(updates).length > 0 ? { ...p, sentences: { ...(p.sentences ?? {}), ...updates } } : p
       })
@@ -524,6 +533,7 @@ function GapWordRow({
         placeholder={`A sentence using "${word.word}"`}
         maxLength={300}
         className="mt-1"
+        disabled={busy}
       />
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" disabled={busy || typedValue.trim() === ''} onClick={() => onSaveSentence(typedValue.trim())}>

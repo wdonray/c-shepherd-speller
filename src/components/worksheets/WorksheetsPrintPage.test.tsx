@@ -455,6 +455,64 @@ describe('WorksheetsPrintPage', () => {
       await waitFor(() => expect(printSpy).toHaveBeenCalled())
     })
 
+    it('leaves already-saved patterns untouched when approving', async () => {
+      // The base list fixture has p2 fully saved (rain/train have sentences),
+      // so only bake is a gap word: this exercises the no-draft-word and
+      // unchanged-pattern branches of the approve-all merge.
+      const acceptAll = await renderGapPage(list)
+      fireEvent.click(acceptAll)
+      fireEvent.click(screen.getByRole('button', { name: 'Approve all' }))
+
+      expect(updateList).toHaveBeenCalledTimes(1)
+      const patternsArg = updateList.mock.calls[0][1].patterns
+      expect(patternsArg[0]).toEqual(
+        expect.objectContaining({
+          id: 'p1',
+          sentences: { cake: 'We baked a cake for the party.', bake: 'Bake the bread.' },
+        })
+      )
+      // p2 had nothing to approve: it passes through as the same object,
+      // sentences intact.
+      expect(patternsArg[1]).toBe(list.patterns[1])
+      expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
+      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+    })
+
+    it('keeps a saved sentence for a word named like an Object prototype property', async () => {
+      // Regression: drafts is a plain lookup, so drafts["constructor"] must
+      // not resolve to the inherited Object constructor and clobber the
+      // saved sentence (issue #511 CodeRabbit review).
+      const acceptAll = await renderGapPage({
+        ...list,
+        patterns: [
+          {
+            id: 'p1',
+            sound: 'long a',
+            pattern: 'a_e',
+            frequency: 'common',
+            words: ['constructor', 'bake'],
+            sentences: { constructor: 'The constructor built the house.' },
+          },
+        ],
+      })
+      fireEvent.click(acceptAll)
+      fireEvent.click(screen.getByRole('button', { name: 'Approve all' }))
+
+      expect(updateList).toHaveBeenCalledTimes(1)
+      expect(updateList).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({
+          patterns: [
+            expect.objectContaining({
+              id: 'p1',
+              sentences: { constructor: 'The constructor built the house.', bake: 'Bake the bread.' },
+            }),
+          ],
+        })
+      )
+      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+    })
+
     it('reverts to Accept all suggestions when a filled sentence is emptied', async () => {
       const acceptAll = await renderGapPage()
       fireEvent.click(acceptAll)
