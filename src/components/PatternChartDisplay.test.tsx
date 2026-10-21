@@ -140,10 +140,12 @@ describe('PatternChartDisplay', () => {
 
   it('renders words as chips in a responsive grid (issue #488)', () => {
     render(<PatternChartDisplay list={list} />)
-    // 2 columns on mobile, 3 on desktop, nested inside each pattern column.
+    // Always 2 columns nested inside each pattern column (issue #507: a
+    // 3-up grid squeezed chips until words wrapped mid-word).
     const column = screen.getByRole('region', { name: 'Pattern a_e' })
     const grid = column.querySelector('ul')
-    expect(grid).toHaveClass('grid', 'grid-cols-2', 'md:grid-cols-3')
+    expect(grid).toHaveClass('grid', 'grid-cols-2')
+    expect(grid).not.toHaveClass('md:grid-cols-3')
     // Each word is one chip; the whole chip is the audio tap target.
     const chip = screen.getByRole('button', { name: 'Hear the word cake' })
     expect(chip.closest('li')).not.toBeNull()
@@ -209,7 +211,7 @@ describe('PatternChartDisplay', () => {
     )
   })
 
-  it('wraps long words inside their chips instead of overflowing (issue #415)', () => {
+  it('never wraps words mid-word inside their chips (issue #507)', () => {
     const longWord = 'antidisestablishmentarianism'
     const longList: WordList = {
       ...list,
@@ -217,11 +219,13 @@ describe('PatternChartDisplay', () => {
     }
     render(<PatternChartDisplay list={longList} />)
     const button = screen.getByRole('button', { name: `Hear the word ${longWord}` })
-    // The chip must be allowed to shrink inside the grid track (min-w-0)
-    // and the long word must wrap (break-words); without both, the chip
-    // keeps its max-content width and bleeds past the grid track on the
-    // projector.
-    expect(button).toHaveClass('min-w-0', 'break-words')
+    // The chip must be allowed to shrink inside the grid track (min-w-0),
+    // but the word must stay whole (whitespace-nowrap, never break-words):
+    // break-words wrapped "train" into "trai"+"n" once the grid tracks
+    // shrank, breaking the grid into uneven rows. Two roomy columns give
+    // real spelling words the width they need instead.
+    expect(button).toHaveClass('min-w-0', 'whitespace-nowrap')
+    expect(button).not.toHaveClass('break-words')
   })
 
   it('renders no lock toggles when onToggleLock is absent', () => {
