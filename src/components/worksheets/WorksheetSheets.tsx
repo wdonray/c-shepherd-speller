@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import type { WordList } from '@/models/WordList'
 import { formatTestDate, plainPatternSpelling, type PatternWordGroup } from '@/lib/worksheets'
-import type { WordSearchResult } from '@/lib/word-search'
+import type { WordSearchDifficulty, WordSearchResult } from '@/lib/word-search'
 import type { CrosswordResult } from '@/lib/crossword'
 import type { PrintPreset } from '@/lib/print-options'
 
@@ -272,8 +272,29 @@ function BlankedSentence({ item }: { item: FillBlankItem }) {
 }
 
 /**
+ * Word-search letter sizes by grade band (issue #519): the youngest readers
+ * always get large print (18pt, 44px cells), older bands meet the >=14pt
+ * floor on the standard preset. The teacher's large-print preset always wins
+ * except for beginners, who already get it.
+ */
+const WS_CELL: Record<WordSearchDifficulty, string> = {
+  beginner: 'h-11 w-11',
+  intermediate: 'h-10 w-10',
+  upper: 'h-8 w-8',
+}
+
+const WS_LETTER: Record<WordSearchDifficulty, string> = {
+  beginner: 'text-2xl',
+  intermediate: 'text-[16pt]',
+  upper: 'text-[14pt]',
+}
+
+/**
  * 4. Word search. Student: the letter grid and a word bank. Key: the grid
- * with each found word circled with bolder letters.
+ * with each found word circled with bolder letters. Difficulty follows the
+ * list's grade band (issue #519): beginners get straight-only placements on
+ * a fixed 10x10 grid with large-print letters; older bands get diagonals
+ * and up to 14x14.
  */
 export function WordSearchSheet({ result, answerKey }: { result: WordSearchResult; answerKey: boolean }) {
   const preset = usePrintPreset()
@@ -283,9 +304,17 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
       for (const cell of placement.cells) placedCells.add(`${cell.row},${cell.col}`)
     }
   }
+  const teacherLargePrint = preset === 'large-print' && result.difficulty !== 'beginner'
+  const cellClass = teacherLargePrint ? GRID_CELL[preset] : WS_CELL[result.difficulty]
+  const letterClass = teacherLargePrint ? GRID_LETTER[preset] : WS_LETTER[result.difficulty]
+  const instructions =
+    result.difficulty === 'beginner'
+      ? 'Find each spelling word in the grid. Words run across or down.'
+      : 'Find each spelling word in the grid. Words can run across, down, or diagonally.'
+  const wordBank = [...result.placements].sort((a, b) => a.word.localeCompare(b.word))
   return (
     <WorksheetSection title="Word search">
-      <p className="text-black">Find each spelling word in the grid. Words can run across, down, or diagonally.</p>
+      <p className="text-black">{instructions}</p>
       <table className="mt-4 border-collapse" aria-label="Word search grid">
         <tbody>
           {result.grid.map((row, r) => (
@@ -293,7 +322,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
               {row.map((letter, c) => (
                 <td
                   key={c}
-                  className={`${GRID_CELL[preset]} border border-neutral-400 text-center font-mono ${GRID_LETTER[preset]} text-black ${
+                  className={`${cellClass} border border-neutral-400 text-center font-mono ${letterClass} text-black ${
                     placedCells.has(`${r},${c}`) ? 'rounded-full border-2 border-black font-black' : ''
                   }`}
                 >
@@ -305,7 +334,13 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
         </tbody>
       </table>
       <h3 className={`mt-4 ${SUBHEADING[preset]} font-bold text-black`}>Word bank</h3>
-      <p className="text-black">{result.placements.map((p) => p.word).join(', ')}</p>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1" aria-label="Word bank">
+        {wordBank.map((placement) => (
+          <span key={placement.word} className="text-black">
+            {placement.word}
+          </span>
+        ))}
+      </div>
       {result.unplaced.length > 0 && (
         <p className="mt-2 text-black">These words did not fit in the grid: {result.unplaced.join(', ')}.</p>
       )}
