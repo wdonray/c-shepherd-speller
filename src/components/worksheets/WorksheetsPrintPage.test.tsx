@@ -4,6 +4,7 @@ import WorksheetsPrintPage from './WorksheetsPrintPage'
 import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
 import type { WordList } from '@/models/WordList'
 import type { WorksheetType } from '@/lib/worksheets'
+import { PRINT_PRESET_STORAGE_KEY } from '@/lib/print-options'
 
 const { getList, updateList } = vi.hoisted(() => ({ getList: vi.fn(), updateList: vi.fn() }))
 vi.mock('@/lib/lists-api', () => ({ getList, updateList }))
@@ -76,6 +77,7 @@ describe('WorksheetsPrintPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
     getList.mockResolvedValue(list)
     updateList.mockResolvedValue({} as WordList)
     fetchExampleSentences.mockResolvedValue({ sentences: ['Bake the bread.'], source: 'local' })
@@ -104,11 +106,11 @@ describe('WorksheetsPrintPage', () => {
     await waitFor(() => expect(getList).toHaveBeenCalledTimes(2))
   })
 
-  it('prints every selected worksheet followed by its answer key', async () => {
+  it('renders every selected worksheet followed by its answer key; the Print button opens the dialog', async () => {
     getList.mockResolvedValue(fullList)
     render(<WorksheetsPrintPage listId="l1" selectedTypes={ALL_TYPES} />)
-    await waitFor(() => expect(printSpy).toHaveBeenCalled())
     // Every keyed worksheet renders twice: the sheet and its answer key.
+    expect(await screen.findByRole('heading', { name: 'Answer key' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { name: 'Spelling list' })).toHaveLength(2)
     expect(screen.getAllByRole('heading', { name: 'Cut and sort' })).toHaveLength(2)
     expect(screen.getAllByRole('heading', { name: 'Fill in the blank' })).toHaveLength(2)
@@ -117,16 +119,16 @@ describe('WorksheetsPrintPage', () => {
     expect(screen.getAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
     // The parent note has no key: it renders once, after the answer key.
     expect(screen.getAllByRole('heading', { name: 'A note for families' })).toHaveLength(1)
-    expect(screen.getByRole('heading', { name: 'Answer key' })).toBeInTheDocument()
-    // The toolbar Print button re-opens the dialog.
-    fireEvent.click(screen.getByRole('button', { name: 'Print' }))
-    expect(printSpy).toHaveBeenCalledTimes(2)
+    // The dialog no longer opens on its own; the options panel Print button opens it.
+    expect(printSpy).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Print worksheets' }))
+    expect(printSpy).toHaveBeenCalledTimes(1)
   })
 
   it('marks the print job for portrait orientation (issue #451)', async () => {
     getList.mockResolvedValue(fullList)
     const { container } = render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
-    await waitFor(() => expect(printSpy).toHaveBeenCalled())
+    expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
     // The CSS `page: worksheet` hook (globals.css @page worksheet) forces
     // portrait; this class is what wires the print root to that page.
     expect(container.querySelector('.print-page.worksheet-print')).toBeInTheDocument()
@@ -136,7 +138,6 @@ describe('WorksheetsPrintPage', () => {
     getList.mockResolvedValue({ ...fullList, week: undefined })
     render(<WorksheetsPrintPage listId="l1" selectedTypes={['parent-note']} />)
     expect(await screen.findByRole('heading', { name: 'A note for families' })).toBeInTheDocument()
-    await waitFor(() => expect(printSpy).toHaveBeenCalled())
     expect(screen.queryByRole('heading', { name: 'Answer key' })).not.toBeInTheDocument()
   })
 
@@ -151,7 +152,7 @@ describe('WorksheetsPrintPage', () => {
   })
 
   describe('sentence gap flow', () => {
-    it('holds printing until the gap is resolved, then prints', async () => {
+    it('holds printing until the gap is resolved, then shows the preview', async () => {
       render(<WorksheetsPrintPage listId="l1" selectedTypes={['reading']} />)
       expect(await screen.findByRole('heading', { name: 'Sentences needed' })).toBeInTheDocument()
       expect(printSpy).not.toHaveBeenCalled()
@@ -170,7 +171,11 @@ describe('WorksheetsPrintPage', () => {
         })
       )
       expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      // The dialog no longer opens on its own: the teacher reviews the
+      // preview and prints from the options panel.
+      expect(printSpy).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: 'Print worksheets' }))
+      expect(printSpy).toHaveBeenCalledTimes(1)
     })
 
     it('accepts a teacher-typed sentence', async () => {
@@ -196,7 +201,8 @@ describe('WorksheetsPrintPage', () => {
           ]),
         })
       )
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
+      expect(printSpy).not.toHaveBeenCalled()
     })
 
     it('removes the word from the worksheet instead', async () => {
@@ -206,7 +212,7 @@ describe('WorksheetsPrintPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove bake from worksheet' }))
       expect(updateList).not.toHaveBeenCalled()
       expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      expect(printSpy).not.toHaveBeenCalled()
       expect(screen.queryByText('Bake the bread.')).not.toBeInTheDocument()
     })
 
@@ -434,7 +440,7 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.queryByRole('button', { name: 'Accept all suggestions' })).not.toBeInTheDocument()
     })
 
-    it('saves every draft in a single write and advances to print', async () => {
+    it('saves every draft in a single write and advances to the preview', async () => {
       const acceptAll = await renderGapPage()
       fireEvent.click(acceptAll)
       fireEvent.click(screen.getByRole('button', { name: 'Approve all' }))
@@ -452,7 +458,7 @@ describe('WorksheetsPrintPage', () => {
         })
       )
       expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      expect(printSpy).not.toHaveBeenCalled()
     })
 
     it('leaves already-saved patterns untouched when approving', async () => {
@@ -475,7 +481,7 @@ describe('WorksheetsPrintPage', () => {
       // sentences intact.
       expect(patternsArg[1]).toBe(list.patterns[1])
       expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      expect(printSpy).not.toHaveBeenCalled()
     })
 
     it('keeps a saved sentence for a word named like an Object prototype property', async () => {
@@ -510,7 +516,8 @@ describe('WorksheetsPrintPage', () => {
           ],
         })
       )
-      await waitFor(() => expect(printSpy).toHaveBeenCalled())
+      expect(await screen.findAllByRole('heading', { name: 'Reading practice' })).toHaveLength(2)
+      expect(printSpy).not.toHaveBeenCalled()
     })
 
     it('reverts to Accept all suggestions when a filled sentence is emptied', async () => {
@@ -592,7 +599,7 @@ describe('WorksheetsPrintPage', () => {
 
       await waitFor(() => expect(updateList).not.toHaveBeenCalled())
       // The gap resolves locally and the print job renders.
-      expect(await screen.findByRole('button', { name: 'Print' })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Print worksheets' })).toBeInTheDocument()
     })
   })
   describe('WorksheetsPrintPage prebuilt weeks (issue #463)', () => {
@@ -602,7 +609,7 @@ describe('WorksheetsPrintPage', () => {
       render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Print worksheets' })).toBeInTheDocument()
       })
       expect(getList).not.toHaveBeenCalled()
     })
@@ -611,7 +618,7 @@ describe('WorksheetsPrintPage', () => {
       render(<WorksheetsPrintPage prebuiltWeek={week} selectedTypes={['spelling-list']} />)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Print' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Print worksheets' })).toBeInTheDocument()
       })
       expect(screen.getByRole('link', { name: /back to worksheets/i })).toHaveAttribute(
         'href',
@@ -629,6 +636,65 @@ describe('WorksheetsPrintPage', () => {
       await waitFor(() => {
         expect(updateList).not.toHaveBeenCalled()
       })
+    })
+  })
+
+  describe('pre-print options (issue #512)', () => {
+    const renderPreview = async () => {
+      getList.mockResolvedValue(fullList)
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={ALL_TYPES} />)
+      expect(await screen.findByRole('region', { name: 'Print options' })).toBeInTheDocument()
+    }
+
+    const sheetsPreset = () => document.querySelector('.print-sheets')?.getAttribute('data-preset')
+
+    it('shows the options panel with the standard preset selected by default', async () => {
+      await renderPreview()
+      expect(screen.getByRole('radio', { name: /Standard/ })).toBeChecked()
+      expect(screen.getByRole('radio', { name: /Large print/ })).not.toBeChecked()
+      expect(screen.getByRole('radio', { name: /Dyslexia-friendly/ })).not.toBeChecked()
+      expect(screen.getByRole('checkbox', { name: /Include answer key/ })).toBeChecked()
+      // The preview carries the preset so the print CSS applies to the sheets.
+      expect(sheetsPreset()).toBe('standard')
+      // The dialog no longer opens on its own.
+      expect(printSpy).not.toHaveBeenCalled()
+    })
+
+    it('applies the large-print preset to the preview and persists it per teacher', async () => {
+      await renderPreview()
+      fireEvent.click(screen.getByRole('radio', { name: /Large print/ }))
+      expect(sheetsPreset()).toBe('large-print')
+      expect(window.localStorage.getItem(PRINT_PRESET_STORAGE_KEY)).toBe('large-print')
+    })
+
+    it('restores the persisted preset on load', async () => {
+      window.localStorage.setItem(PRINT_PRESET_STORAGE_KEY, 'dyslexia-friendly')
+      await renderPreview()
+      expect(screen.getByRole('radio', { name: /Dyslexia-friendly/ })).toBeChecked()
+      expect(sheetsPreset()).toBe('dyslexia-friendly')
+    })
+
+    it('falls back to standard for an unknown stored preset', async () => {
+      window.localStorage.setItem(PRINT_PRESET_STORAGE_KEY, 'fancy')
+      await renderPreview()
+      expect(screen.getByRole('radio', { name: /Standard/ })).toBeChecked()
+      expect(sheetsPreset()).toBe('standard')
+    })
+
+    it('omits the answer key when the toggle is off', async () => {
+      await renderPreview()
+      expect(screen.getByRole('heading', { name: 'Answer key' })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('checkbox', { name: /Include answer key/ }))
+      expect(screen.queryByRole('heading', { name: 'Answer key' })).not.toBeInTheDocument()
+      // The student sheets stay; only the key is gone.
+      expect(screen.getAllByRole('heading', { name: 'Spelling list' })).toHaveLength(1)
+      expect(screen.getAllByRole('heading', { name: 'Word search' })).toHaveLength(1)
+    })
+
+    it('opens the print dialog from the options panel', async () => {
+      await renderPreview()
+      fireEvent.click(screen.getByRole('button', { name: 'Print worksheets' }))
+      expect(printSpy).toHaveBeenCalledTimes(1)
     })
   })
 })

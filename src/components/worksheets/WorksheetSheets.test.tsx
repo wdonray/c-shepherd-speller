@@ -10,12 +10,14 @@ import {
   CutSortSheet,
   FillBlankSheet,
   ParentNoteSheet,
+  PrintPresetContext,
   ReadingSheet,
   SpellingListSheet,
   WordSearchSheet,
   WorksheetSection,
   highlightWord,
   shuffleWords,
+  usePrintPreset,
 } from './WorksheetSheets'
 
 const groups: PatternWordGroup[] = [
@@ -385,5 +387,82 @@ describe('ParentNoteSheet', () => {
     )
     expect(screen.queryByText(/week 5/)).not.toBeInTheDocument()
     expect(screen.getByText(/rain, train$/)).toBeInTheDocument()
+  })
+})
+
+describe('print presets (issue #512)', () => {
+  function PresetProbe() {
+    return <span data-testid="preset">{usePrintPreset()}</span>
+  }
+
+  it('defaults to standard without a provider', () => {
+    render(<PresetProbe />)
+    expect(screen.getByTestId('preset')).toHaveTextContent('standard')
+  })
+
+  it('reads the preset from the provider', () => {
+    render(
+      <PrintPresetContext.Provider value="large-print">
+        <PresetProbe />
+      </PrintPresetContext.Provider>
+    )
+    expect(screen.getByTestId('preset')).toHaveTextContent('large-print')
+  })
+
+  it('large print grows the word search grid cells and letters', () => {
+    const { container } = render(
+      <PrintPresetContext.Provider value="large-print">
+        <WordSearchSheet result={wordSearch} answerKey={false} />
+      </PrintPresetContext.Provider>
+    )
+    const cell = container.querySelector('table tbody tr:first-child td')
+    expect(cell).toHaveClass('h-11', 'w-11', 'text-2xl')
+    expect(cell).not.toHaveClass('h-8', 'w-8', 'text-lg')
+  })
+
+  it('large print grows the crossword grid, clue numbers, and sub-headings', () => {
+    const { container } = render(
+      <PrintPresetContext.Provider value="large-print">
+        <CrosswordSheet result={crossword} answerKey={false} />
+      </PrintPresetContext.Provider>
+    )
+    const blocked = container.querySelector('td.crossword-blocked')
+    expect(blocked).toHaveClass('h-11', 'w-11')
+    const letterCell = container.querySelector('table tbody tr:first-child td:not(.crossword-blocked)')
+    expect(letterCell).toHaveClass('h-11', 'w-11', 'text-2xl')
+    const clueNumber = letterCell?.querySelector('span')
+    expect(clueNumber).toHaveClass('text-xs')
+    expect(screen.getByRole('heading', { name: 'Across' })).toHaveClass('text-[17pt]')
+  })
+
+  it('large print grows section body text and sub-headings', () => {
+    const { container } = render(
+      <PrintPresetContext.Provider value="large-print">
+        <SpellingListSheet groups={groups} />
+      </PrintPresetContext.Provider>
+    )
+    expect(container.querySelector('section.worksheet-sheet > div')).toHaveClass('text-[14pt]')
+    expect(screen.getByRole('heading', { name: /a_e/ })).toHaveClass('text-[17pt]')
+  })
+
+  it('dyslexia-friendly keeps standard sizes (its spacing comes from the container CSS)', () => {
+    const { container } = render(
+      <PrintPresetContext.Provider value="dyslexia-friendly">
+        <WordSearchSheet result={wordSearch} answerKey={false} />
+      </PrintPresetContext.Provider>
+    )
+    const cell = container.querySelector('table tbody tr:first-child td')
+    expect(cell).toHaveClass('h-8', 'w-8', 'text-lg')
+    expect(screen.getByRole('heading', { name: 'Word bank' })).toHaveClass('text-lg')
+  })
+
+  it('standard keeps the existing sizes', () => {
+    const { container } = render(
+      <PrintPresetContext.Provider value="standard">
+        <WordSearchSheet result={wordSearch} answerKey={false} />
+      </PrintPresetContext.Provider>
+    )
+    const cell = container.querySelector('table tbody tr:first-child td')
+    expect(cell).toHaveClass('h-8', 'w-8', 'text-lg')
   })
 })

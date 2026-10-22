@@ -1,8 +1,58 @@
 import type { ReactNode } from 'react'
+import { createContext, useContext } from 'react'
 import type { WordList } from '@/models/WordList'
 import type { PatternWordGroup } from '@/lib/worksheets'
 import type { WordSearchResult } from '@/lib/word-search'
 import type { CrosswordResult } from '@/lib/crossword'
+import type { PrintPreset } from '@/lib/print-options'
+
+/**
+ * The active pre-print style preset for the worksheet sheets (issue #512).
+ * Set by the print page's options panel; defaults to 'standard' so sheets
+ * render standalone (tests, future reuse) without a provider.
+ */
+export const PrintPresetContext = createContext<PrintPreset>('standard')
+
+export function usePrintPreset(): PrintPreset {
+  return useContext(PrintPresetContext)
+}
+
+/**
+ * Preset-driven type sizes. Large print follows the worksheet research: body
+ * to the 14pt floor for younger readers, sub-headings staying 20%+ above the
+ * body (BDA), puzzle letters to 18pt with cells clearing the 9mm spec.
+ * Dyslexia-friendly keeps standard sizes; its spacing comes from the
+ * `.print-sheets[data-preset]` container rule in globals.css, which inherits.
+ */
+const BODY_TEXT: Record<PrintPreset, string> = {
+  standard: '',
+  'large-print': 'text-[14pt]',
+  'dyslexia-friendly': '',
+}
+
+const SUBHEADING: Record<PrintPreset, string> = {
+  standard: 'text-lg',
+  'large-print': 'text-[17pt]',
+  'dyslexia-friendly': 'text-lg',
+}
+
+const GRID_CELL: Record<PrintPreset, string> = {
+  standard: 'h-8 w-8',
+  'large-print': 'h-11 w-11',
+  'dyslexia-friendly': 'h-8 w-8',
+}
+
+const GRID_LETTER: Record<PrintPreset, string> = {
+  standard: 'text-lg',
+  'large-print': 'text-2xl',
+  'dyslexia-friendly': 'text-lg',
+}
+
+const CLUE_NUMBER: Record<PrintPreset, string> = {
+  standard: 'text-[10px]',
+  'large-print': 'text-xs',
+  'dyslexia-friendly': 'text-[10px]',
+}
 
 /**
  * Presentational worksheet sheets for the print job (issue #402).
@@ -54,10 +104,11 @@ export function shuffleWords(words: string[]): string[] {
 
 /** One worksheet section of the print job. Never splits across pages. */
 export function WorksheetSection({ title, children }: { title: string; children: ReactNode }) {
+  const preset = usePrintPreset()
   return (
     <section className="worksheet-sheet" aria-label={title}>
       <h2 className="mt-8 text-2xl font-bold text-black first:mt-0">{title}</h2>
-      <div className="mt-4">{children}</div>
+      <div className={`mt-4 ${BODY_TEXT[preset]}`}>{children}</div>
     </section>
   )
 }
@@ -73,12 +124,13 @@ export function AnswerKeyHeading() {
 
 /** 1. The week's words, grouped by spelling pattern. The key is the list itself. */
 export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
+  const preset = usePrintPreset()
   return (
     <WorksheetSection title="Spelling list">
       <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
         {groups.map((group) => (
           <div key={group.patternId}>
-            <h3 className="text-lg font-bold text-black">
+            <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>
               {group.pattern} <span className="font-normal text-neutral-600">({group.sound})</span>
             </h3>
             <ol className="mt-2 list-decimal space-y-1 pl-6 text-black">
@@ -98,6 +150,7 @@ export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
  * empty columns to sort them under. Key: the columns filled in.
  */
 export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]; answerKey: boolean }) {
+  const preset = usePrintPreset()
   // The student cut-out bank is shuffled so same-pattern words do not sit
   // next to each other. The answer-key columns stay grouped by pattern.
   const words = shuffleWords(groups.flatMap((group) => group.words))
@@ -116,13 +169,13 @@ export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]
               </div>
             ))}
           </div>
-          <h3 className="mt-8 text-lg font-bold text-black">Sort the words</h3>
+          <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Sort the words</h3>
         </>
       )}
       <div className={`grid grid-cols-2 gap-6 md:grid-cols-3 ${answerKey ? '' : 'mt-4'}`}>
         {groups.map((group) => (
           <div key={group.patternId} className="rounded-lg border-2 border-black p-3">
-            <h3 className="text-lg font-bold text-black">
+            <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>
               {group.pattern} <span className="font-normal text-neutral-600">({group.sound})</span>
             </h3>
             <ol className="mt-2 space-y-2">
@@ -191,6 +244,7 @@ function BlankedSentence({ item }: { item: FillBlankItem }) {
  * with each found word circled with bolder letters.
  */
 export function WordSearchSheet({ result, answerKey }: { result: WordSearchResult; answerKey: boolean }) {
+  const preset = usePrintPreset()
   const placedCells = new Set<string>()
   if (answerKey) {
     for (const placement of result.placements) {
@@ -207,7 +261,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
               {row.map((letter, c) => (
                 <td
                   key={c}
-                  className={`h-8 w-8 border border-neutral-400 text-center font-mono text-lg text-black ${
+                  className={`${GRID_CELL[preset]} border border-neutral-400 text-center font-mono ${GRID_LETTER[preset]} text-black ${
                     placedCells.has(`${r},${c}`) ? 'rounded-full border-2 border-black font-black' : ''
                   }`}
                 >
@@ -218,7 +272,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
           ))}
         </tbody>
       </table>
-      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <h3 className={`mt-4 ${SUBHEADING[preset]} font-bold text-black`}>Word bank</h3>
       <p className="text-black">{result.placements.map((p) => p.word).join(', ')}</p>
       {result.unplaced.length > 0 && (
         <p className="mt-2 text-black">These words did not fit in the grid: {result.unplaced.join(', ')}.</p>
@@ -233,6 +287,7 @@ export function WordSearchSheet({ result, answerKey }: { result: WordSearchResul
  * lists. Key: the completed grid.
  */
 export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult; answerKey: boolean }) {
+  const preset = usePrintPreset()
   const across = result.placements.filter((p) => p.direction === 'across')
   const down = result.placements.filter((p) => p.direction === 'down')
   const numbers = new Map<string, number>()
@@ -254,12 +309,15 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
               {row.map((cell, c) => {
                 const key = `${r},${c}`
                 if (cell === null) {
-                  return <td key={c} className="crossword-blocked h-8 w-8" aria-hidden="true" />
+                  return <td key={c} className={`crossword-blocked ${GRID_CELL[preset]}`} aria-hidden="true" />
                 }
                 return (
-                  <td key={c} className="relative h-8 w-8 border border-black text-center text-lg font-bold text-black">
+                  <td
+                    key={c}
+                    className={`relative ${GRID_CELL[preset]} border border-black text-center ${GRID_LETTER[preset]} font-bold text-black`}
+                  >
                     {numbers.get(key) != null && (
-                      <span className="absolute top-0 left-0.5 text-[10px] leading-none font-normal">
+                      <span className={`absolute top-0 left-0.5 ${CLUE_NUMBER[preset]} leading-none font-normal`}>
                         {numbers.get(key)}
                       </span>
                     )}
@@ -273,7 +331,7 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
       </table>
       <div className="mt-4 grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="text-lg font-bold text-black">Across</h3>
+          <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>Across</h3>
           <ol className="mt-2 space-y-1">
             {across.map((p) => (
               <li key={`across-${p.number}`} className="text-black">
@@ -283,7 +341,7 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
           </ol>
         </div>
         <div>
-          <h3 className="text-lg font-bold text-black">Down</h3>
+          <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>Down</h3>
           <ol className="mt-2 space-y-1">
             {down.map((p) => (
               <li key={`down-${p.number}`} className="text-black">
@@ -293,7 +351,7 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
           </ol>
         </div>
       </div>
-      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <h3 className={`mt-4 ${SUBHEADING[preset]} font-bold text-black`}>Word bank</h3>
       <p className="text-black">
         {result.placements
           .map((p) => p.word)
@@ -319,6 +377,7 @@ export function ReadingSheet({
   items: { word: string; sentence: string }[]
   answerKey: boolean
 }) {
+  const preset = usePrintPreset()
   return (
     <WorksheetSection title="Reading practice">
       <p className="text-black">
@@ -331,7 +390,7 @@ export function ReadingSheet({
           </li>
         ))}
       </ol>
-      <h3 className="mt-4 text-lg font-bold text-black">Word bank</h3>
+      <h3 className={`mt-4 ${SUBHEADING[preset]} font-bold text-black`}>Word bank</h3>
       <p className="text-black">
         {items
           .map((item) => item.word)
@@ -364,6 +423,7 @@ const PARENT_PRACTICE_IDEAS = [
 
 /** 7. A note for families: the week's patterns plus practice ideas. No answer key. */
 export function ParentNoteSheet({ list, groups }: { list: WordList; groups: PatternWordGroup[] }) {
+  const preset = usePrintPreset()
   return (
     <WorksheetSection title="A note for families">
       <p className="text-black">Dear families,</p>
@@ -379,7 +439,7 @@ export function ParentNoteSheet({ list, groups }: { list: WordList; groups: Patt
           </li>
         ))}
       </ul>
-      <h3 className="mt-6 text-lg font-bold text-black">Ways to practice at home</h3>
+      <h3 className={`mt-6 ${SUBHEADING[preset]} font-bold text-black`}>Ways to practice at home</h3>
       <ul className="mt-2 list-disc space-y-1 pl-6">
         {PARENT_PRACTICE_IDEAS.map((idea) => (
           <li key={idea} className="text-black">
