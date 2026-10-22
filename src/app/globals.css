@@ -339,17 +339,20 @@
     break-before: page;
   }
 
-  /* Blanked pattern letters: spaced underscores with an underline. */
-  .worksheet-blank {
-    letter-spacing: 0.25em;
-    border-bottom: 2px solid #000;
-    font-weight: bold;
-  }
-
   /* Crossword blocked cells: solid black squares. */
   .crossword-blocked {
     background: #000 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* Worksheet uniform blanks (issue #517): one fixed width on every sheet,
+   independent of word length, so blank length never cues the answer.
+   Lives outside @media print because the blanks are empty spans now;
+   the print-preview screen needs the same geometry as the printed page. */
+.worksheet-blank {
+  display: inline-block;
+  width: 4em;
+  border-bottom: 2px solid #000;
 }

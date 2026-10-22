@@ -247,16 +247,23 @@ export function FillBlankSheet({ items, answerKey }: { items: FillBlankItem[]; a
   )
 }
 
+/**
+ * One uniform blank for every worksheet sheet: a fixed-width writing line
+ * with a photocopy-safe black underline, independent of the answer's
+ * length, so the blank's size never cues the word (issue #517).
+ */
+function WorksheetBlank({ word }: { word: string }) {
+  return <span className="worksheet-blank" aria-label={`Blank for ${word}`} />
+}
+
 function BlankedSentence({ item }: { item: FillBlankItem }) {
   const parts = splitOnFirst(item.blankedSentence, item.blankedWord)
   if (!parts) return <>{item.blankedSentence}</>
-  const [before, match, after] = parts
+  const [before, , after] = parts
   return (
     <>
       {before}
-      <span className="worksheet-blank" aria-label={`Blank for ${item.word}`}>
-        {match}
-      </span>
+      <WorksheetBlank word={item.word} />
       {after}
     </>
   )
@@ -433,8 +440,13 @@ function BlankedReadingSentence({ item }: { item: { word: string; sentence: stri
   const parts = splitOnFirst(item.sentence, item.word)
   if (!parts) return <>{item.sentence}</>
   const [before, , after] = parts
-  const blankedWord = '_'.repeat(item.word.length)
-  return <BlankedSentence item={{ ...item, blankedSentence: `${before}${blankedWord}${after}`, blankedWord }} />
+  return (
+    <>
+      {before}
+      <WorksheetBlank word={item.word} />
+      {after}
+    </>
+  )
 }
 
 const PARENT_PRACTICE_IDEAS = [

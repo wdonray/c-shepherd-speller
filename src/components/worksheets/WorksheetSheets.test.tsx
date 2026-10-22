@@ -286,7 +286,11 @@ describe('FillBlankSheet', () => {
   it('student version shows the sentence with the pattern blanked', () => {
     render(<FillBlankSheet items={fillBlankItems} answerKey={false} />)
     expect(screen.getByRole('heading', { name: 'Fill in the blank' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Blank for cake')).toHaveTextContent('c_k_')
+    // The blank is a fixed-width writing line; it shows no letters, so its
+    // size never cues the answer (issue #517).
+    const blank = screen.getByLabelText('Blank for cake')
+    expect(blank).toHaveClass('worksheet-blank')
+    expect(blank).toHaveTextContent('')
     expect(screen.queryByText('cake')).not.toBeInTheDocument()
   })
 
@@ -402,8 +406,14 @@ describe('ReadingSheet', () => {
       screen.getByText('Read each sentence. Fill in each blank with a word from the word bank.')
     ).toBeInTheDocument()
     // Each spelling word becomes a blank; no bold completed word anywhere.
-    expect(screen.getByLabelText('Blank for rain')).toHaveTextContent('____')
-    expect(screen.getByLabelText('Blank for cake')).toHaveTextContent('____')
+    // Blanks are fixed-width writing lines with no letters, so their size
+    // never cues the answer (issue #517).
+    const rainBlank = screen.getByLabelText('Blank for rain')
+    const cakeBlank = screen.getByLabelText('Blank for cake')
+    for (const blank of [rainBlank, cakeBlank]) {
+      expect(blank).toHaveClass('worksheet-blank')
+      expect(blank).toHaveTextContent('')
+    }
     expect(document.querySelectorAll('strong')).toHaveLength(0)
     // The bank is alphabetical even though the items are not.
     expect(screen.getByRole('heading', { name: 'Word bank' })).toBeInTheDocument()
