@@ -40,7 +40,12 @@ export default function BackBreadcrumb({
   const previousPage = usePreviousPage()
 
   const classNames = cn(
-    'inline-flex items-center gap-1.5 rounded-lg text-[14px] font-semibold text-muted-foreground outline-none transition hover:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60',
+    // Issue #537: the control measured 113x21px, below the WCAG 2.2 AA 24px
+    // touch-target floor. Vertical padding grows the hit area to 45px (past
+    // the repo's 44px preferred target) while the equal negative margin
+    // keeps the in-flow box and the header geometry exactly unchanged; the
+    // visible link text stays text-sized and nothing shifts.
+    'inline-flex items-center gap-1.5 rounded-lg py-3 -my-3 text-[14px] font-semibold text-muted-foreground outline-none transition hover:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60',
     className
   )
 
