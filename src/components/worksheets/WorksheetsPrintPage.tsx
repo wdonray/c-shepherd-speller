@@ -31,7 +31,7 @@ import {
   type WorksheetType,
   type WorksheetWord,
 } from '@/lib/worksheets'
-import { generateWordSearch, type WordSearchResult } from '@/lib/word-search'
+import { generateWordSearch, gradeBandForGradeLevel, type WordSearchResult } from '@/lib/word-search'
 import { generateCrossword, type CrosswordResult } from '@/lib/crossword'
 import {
   AnswerKeyHeading,
@@ -331,7 +331,13 @@ function WorksheetsJob({
       wordSearch: selectedTypes.includes('word-search')
         ? generateWordSearch(
             words.map((w) => w.word),
-            rand
+            rand,
+            {
+              // Difficulty follows the list's grade band (issue #519).
+              difficulty: gradeBandForGradeLevel(list.gradeLevel),
+              // Fillers prefer the list's pattern letters over random A-Z.
+              patternSpellings: words.map((w) => w.pattern).join(' '),
+            }
           )
         : null,
       crossword: selectedTypes.includes('crossword')

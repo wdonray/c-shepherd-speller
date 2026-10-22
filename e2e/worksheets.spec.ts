@@ -359,3 +359,72 @@ test.describe('name-date baseline alignment', () => {
     })
   }
 })
+
+/**
+ * Word search difficulty by grade band (issue #519). A grade-1 list gets a
+ * fixed 10x10 grid, straight-only instructions, large-print cells, and an
+ * alphabetical word bank. Desktop and 390px.
+ */
+test.describe('word search difficulty by grade band', () => {
+  test.beforeEach(async ({ context }) => {
+    await ensureE2EUser()
+    await context.addCookies([await sessionCookie()])
+    // Never open a real print dialog in the test browser.
+    await context.addInitScript(() => {
+      window.print = () => {}
+    })
+  })
+
+  async function seedGrade1List(request: import('@playwright/test').APIRequestContext): Promise<string> {
+    const response = await request.post('/api/lists', {
+      data: {
+        name: 'E2E Grade 1 Word Search',
+        gradeLevel: '1',
+        patterns: [
+          {
+            sound: 'long a',
+            pattern: 'a_e',
+            frequency: 'common',
+            words: ['rain', 'cake', 'bake'],
+            sentences: {
+              rain: 'The rain fell all afternoon.',
+              cake: 'We baked a cake for the party.',
+              bake: 'I like to bake bread on Sundays.',
+            },
+          },
+        ],
+      },
+    })
+    expect(response.ok()).toBeTruthy()
+    return (await response.json()).list.id as string
+  }
+
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`grade-1 list gets the beginner word search at ${viewport.width}px`, async ({ page }) => {
+      const listId = await seedGrade1List(page.request)
+      await page.setViewportSize(viewport)
+      await page.goto(`/lists/${listId}/worksheets/print?types=word-search`)
+      await expect(page.getByRole('heading', { name: 'Word search' }).first()).toBeVisible()
+
+      // Beginners are told words run across or down only (no diagonals).
+      await expect(page.getByText('Words run across or down.').first()).toBeVisible()
+      await expect(page.getByText('or diagonally')).toHaveCount(0)
+
+      // Fixed 10x10 grid with large-print cells.
+      const grid = page.locator('table[aria-label="Word search grid"]').first()
+      await expect(grid.locator('tbody tr')).toHaveCount(10)
+      await expect(grid.locator('tbody tr').first().locator('td')).toHaveCount(10)
+      const cell = grid.locator('tbody tr td').first()
+      await expect(cell).toHaveClass(/h-11/)
+      await expect(cell).toHaveClass(/w-11/)
+      await expect(cell).toHaveClass(/text-2xl/)
+
+      // The word bank is alphabetical, not placement order.
+      const bank = page.getByLabel('Word bank').first()
+      await expect(bank.locator('span')).toHaveText(['BAKE', 'CAKE', 'RAIN'])
+    })
+  }
+})

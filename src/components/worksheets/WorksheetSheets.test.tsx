@@ -28,6 +28,7 @@ const groups: PatternWordGroup[] = [
 
 const wordSearch: WordSearchResult = {
   size: 3,
+  difficulty: 'upper',
   grid: [
     ['C', 'A', 'T'],
     ['X', 'Q', 'Z'],
@@ -348,6 +349,28 @@ describe('WordSearchSheet', () => {
     const filler = container.querySelectorAll('table tbody tr:nth-child(2) td')[0]
     expect(filler).not.toHaveClass('rounded-full', 'border-black', 'font-black')
   })
+
+  it('beginners get straight-only instructions and an alphabetical word bank', () => {
+    const result: WordSearchResult = {
+      ...wordSearch,
+      difficulty: 'beginner',
+      placements: [
+        { word: 'TRAIN', cells: [{ row: 0, col: 0 }] },
+        { word: 'CAKE', cells: [{ row: 1, col: 0 }] },
+      ],
+    }
+    render(<WordSearchSheet result={result} answerKey={false} />)
+    expect(screen.getByText('Find each spelling word in the grid. Words run across or down.')).toBeInTheDocument()
+    const bank = screen.getByLabelText('Word bank', { selector: 'div' })
+    expect(bank.textContent).toBe('CAKETRAIN')
+  })
+
+  it('older bands get diagonal instructions', () => {
+    render(<WordSearchSheet result={wordSearch} answerKey={false} />)
+    expect(
+      screen.getByText('Find each spelling word in the grid. Words can run across, down, or diagonally.')
+    ).toBeInTheDocument()
+  })
 })
 
 describe('CrosswordSheet', () => {
@@ -557,17 +580,39 @@ describe('print presets (issue #512)', () => {
       </PrintPresetContext.Provider>
     )
     const cell = container.querySelector('table tbody tr:first-child td')
-    expect(cell).toHaveClass('h-8', 'w-8', 'text-lg')
+    expect(cell).toHaveClass('h-8', 'w-8', 'text-[14pt]')
     expect(screen.getByRole('heading', { name: 'Word bank' })).toHaveClass('text-lg')
   })
 
-  it('standard keeps the existing sizes', () => {
+  it('standard meets the 14pt floor for the upper band (issue #519)', () => {
     const { container } = render(
       <PrintPresetContext.Provider value="standard">
         <WordSearchSheet result={wordSearch} answerKey={false} />
       </PrintPresetContext.Provider>
     )
     const cell = container.querySelector('table tbody tr:first-child td')
-    expect(cell).toHaveClass('h-8', 'w-8', 'text-lg')
+    expect(cell).toHaveClass('h-8', 'w-8', 'text-[14pt]')
+  })
+
+  it('beginners always get large print, whatever the preset', () => {
+    const beginner = { ...wordSearch, difficulty: 'beginner' as const }
+    for (const preset of ['standard', 'large-print', 'dyslexia-friendly'] as const) {
+      const { container, unmount } = render(
+        <PrintPresetContext.Provider value={preset}>
+          <WordSearchSheet result={beginner} answerKey={false} />
+        </PrintPresetContext.Provider>
+      )
+      const cell = container.querySelector('table tbody tr:first-child td')
+      expect(cell).toHaveClass('h-11', 'w-11', 'text-2xl')
+      unmount()
+    }
+  })
+
+  it('intermediate band lands between beginner and upper sizes', () => {
+    const { container } = render(
+      <WordSearchSheet result={{ ...wordSearch, difficulty: 'intermediate' }} answerKey={false} />
+    )
+    const cell = container.querySelector('table tbody tr:first-child td')
+    expect(cell).toHaveClass('h-10', 'w-10', 'text-[16pt]')
   })
 })
