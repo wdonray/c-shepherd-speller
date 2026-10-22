@@ -1,6 +1,6 @@
 {
   "name": "c-shepherd-speller",
-  "version": "0.115.2",
+  "version": "0.116.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
