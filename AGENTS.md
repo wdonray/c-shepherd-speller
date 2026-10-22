@@ -230,6 +230,14 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   cramped ones); `min-w-0` on the items still guards against grid blowout
   (found 2026-10-21: issue #507, word chips wrapped mid-word).
 
+- **Grow sub-24px touch targets with padding, canceled by negative margin.**
+  Padding on the control grows the hit area while the visible text stays
+  text-sized; an equal negative margin keeps the in-flow box (and any fixed
+  header geometry) exactly unchanged. No background paints on these controls,
+  so nothing shifts and nothing looks different (found 2026-10-22: issue
+  #537, the present-chart back link measured 21px; `py-3 -my-3` took the hit
+  area to 45px with the header pixel-identical before/after).
+
 - **@media print rules never paint the on-screen print preview.** The
   preview route renders the same DOM the printer will see, but print-scoped
   rules do not apply until printing. An element that is invisible without

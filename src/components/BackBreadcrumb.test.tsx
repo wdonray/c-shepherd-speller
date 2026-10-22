@@ -46,6 +46,23 @@ describe('BackBreadcrumb', () => {
     expect(link).toHaveClass('inline-flex')
   })
 
+  it('keeps the back control at a 44px minimum touch target without shifting layout (issue #537)', () => {
+    // The visible link stays text-sized; vertical padding grows the hit area
+    // while an equal negative margin keeps the header geometry unchanged.
+    // Both render modes share the same style string.
+    const { unmount } = render(<BackBreadcrumb href="/display" label="Present a list" />)
+    expect(screen.getByRole('link', { name: 'Present a list' })).toHaveClass('py-3', '-my-3')
+    // Unmount: the mounted instance follows the navigation tracker and would
+    // flip to button mode with the notes below.
+    unmount()
+
+    historyLengthSpy.mockReturnValue(2)
+    noteNavigation('/home', '/home')
+    noteNavigation('/display?list=abc', '/display?list=abc')
+    render(<BackBreadcrumb href="/display" label="Present a list" />)
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('py-3', '-my-3')
+  })
+
   it('names the previous page and goes back through history when one exists (issue #504)', () => {
     historyLengthSpy.mockReturnValue(2)
     noteNavigation('/home', '/home')

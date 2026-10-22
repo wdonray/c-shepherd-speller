@@ -110,4 +110,36 @@ test.describe('history-aware back button', () => {
     await expect(page).toHaveURL(/\/display$/)
     await expect(page.getByRole('link', { name: 'Home', exact: true })).toBeVisible()
   })
+
+  test('present chart back control is a 44px touch target and keeps the header geometry (issue #537)', async ({
+    page,
+  }) => {
+    const name = `E2E Back Target ${Date.now()}`
+    await seedList(page.request, name)
+
+    await page.goto('/display')
+    await page.getByRole('link', { name: `Present chart: ${name}` }).click()
+    await expect(page).toHaveURL(/\/display\?list=/)
+    const back = page.getByRole('button', { name: 'Present a list' })
+    await expect(back).toBeVisible()
+
+    // The real hit area in the browser: 44px is the repo's preferred target,
+    // 24px the WCAG 2.2 AA floor. (The issue measured 21px before the fix.)
+    const box = await back.boundingBox()
+    expect(box?.height).toBeGreaterThanOrEqual(44)
+
+    // The padding that grows the hit area is canceled by an equal negative
+    // margin, so the in-flow box (and the header geometry) never changes.
+    const { paddingTop, marginTop } = await back.evaluate((el) => {
+      const style = getComputedStyle(el)
+      return { paddingTop: parseFloat(style.paddingTop), marginTop: parseFloat(style.marginTop) }
+    })
+    expect(paddingTop).toBeGreaterThan(0)
+    expect(marginTop).toBe(-paddingTop)
+
+    // Same guarantee at the 390px mobile width.
+    await page.setViewportSize({ width: 390, height: 844 })
+    const mobileBox = await back.boundingBox()
+    expect(mobileBox?.height).toBeGreaterThanOrEqual(44)
+  })
 })
