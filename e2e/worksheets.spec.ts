@@ -231,3 +231,59 @@ test.describe('approve-all button', () => {
     await expect(page.getByRole('button', { name: 'Approve all' })).toHaveCount(0)
   })
 })
+
+/**
+ * Name/Date write-in line alignment (issue #533). The rule must sit at the
+ * label's text baseline, where handwriting rests, not vertically centered
+ * against the label. Desktop and 390px.
+ */
+test.describe('name-date baseline alignment', () => {
+  test.beforeEach(async ({ context }) => {
+    await ensureE2EUser()
+    await context.addCookies([await sessionCookie()])
+  })
+
+  async function seedBaselineList(request: import('@playwright/test').APIRequestContext): Promise<string> {
+    const response = await request.post('/api/lists', {
+      data: {
+        name: 'E2E NameDate Baseline',
+        patterns: [
+          {
+            sound: 'long a',
+            pattern: 'a_e',
+            frequency: 'common',
+            words: ['cake'],
+            sentences: { cake: 'We baked a cake for the party.' },
+          },
+        ],
+      },
+    })
+    expect(response.ok()).toBeTruthy()
+    return (await response.json()).list.id as string
+  }
+
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`write-in line sits at the label baseline at ${viewport.width}px`, async ({ page }) => {
+      const listId = await seedBaselineList(page.request)
+      await page.setViewportSize(viewport)
+      await page.goto(`/lists/${listId}/worksheets/print?types=reading`)
+      await expect(page.getByRole('heading', { name: 'Reading practice' }).first()).toBeVisible()
+
+      const header = page.locator('[aria-label="Name and date lines"]').first()
+      const label = header.locator('span.text-sm').first()
+      const line = header.locator('span[aria-hidden="true"]').first()
+      const labelBox = await label.boundingBox()
+      const lineBox = await line.boundingBox()
+      expect(labelBox).not.toBeNull()
+      expect(lineBox).not.toBeNull()
+      // The rule's bottom edge must land in the lower part of the label's
+      // line box (at the text baseline), not at its vertical center.
+      const lineBottom = lineBox!.y + lineBox!.height
+      expect(lineBottom).toBeGreaterThanOrEqual(labelBox!.y + labelBox!.height * 0.7)
+      expect(lineBottom).toBeLessThanOrEqual(labelBox!.y + labelBox!.height)
+    })
+  }
+})
