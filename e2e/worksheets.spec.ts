@@ -51,9 +51,12 @@ test.describe('printable worksheets', () => {
   test('picker selects types and the print page renders sheets with answer keys', async ({ page }) => {
     const listId = await seedList(page.request)
 
-    // Never open a real print dialog in the test browser.
+    // Never open a real print dialog in the test browser; count calls instead.
     await page.addInitScript(() => {
-      window.print = () => {}
+      ;(window as unknown as { __printCalls: number }).__printCalls = 0
+      window.print = () => {
+        ;(window as unknown as { __printCalls: number }).__printCalls += 1
+      }
     })
 
     await page.goto(`/lists/${listId}/worksheets`)
@@ -72,6 +75,14 @@ test.describe('printable worksheets', () => {
     await expect(page).toHaveURL(new RegExp(`/lists/${listId}/worksheets/print`))
     expect(page.url()).not.toContain('word-search')
 
+    // The pre-print options panel (issue #512): presets plus the answer-key
+    // toggle, with the dialog opening only from the Print button.
+    await expect(page.getByRole('region', { name: 'Print options' })).toBeVisible()
+    await expect(page.getByRole('radio', { name: /Standard/ })).toBeChecked()
+    await expect(page.getByRole('radio', { name: /Large print/ })).toBeVisible()
+    await expect(page.getByRole('radio', { name: /Dyslexia-friendly/ })).toBeVisible()
+    await expect(page.getByRole('checkbox', { name: /Include answer key/ })).toBeChecked()
+
     // The print job renders the remaining worksheets and their answer keys.
     await expect(page.getByRole('heading', { name: 'Spelling list' }).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Cut and sort' }).first()).toBeVisible()
@@ -82,6 +93,18 @@ test.describe('printable worksheets', () => {
     await expect(page.getByRole('heading', { name: 'Answer key' })).toBeVisible()
     // The deselected type is absent from both the worksheets and the key.
     await expect(page.getByRole('heading', { name: 'Word search', exact: true })).toHaveCount(0)
+
+    // Switching presets updates the preview in place; the answer-key toggle
+    // drops the key without touching the student sheets.
+    await page.getByRole('radio', { name: /Large print/ }).check()
+    await expect(page.locator('.print-sheets')).toHaveAttribute('data-preset', 'large-print')
+    await page.getByRole('checkbox', { name: /Include answer key/ }).uncheck()
+    await expect(page.getByRole('heading', { name: 'Answer key' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Spelling list' })).toHaveCount(1)
+
+    // The dialog opens only from the Print button.
+    await page.getByRole('button', { name: 'Print worksheets' }).click()
+    expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls)).toBe(1)
   })
 
   test('print page shows the sentence gap flow when a word has no sentence', async ({ page }) => {

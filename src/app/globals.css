@@ -244,6 +244,22 @@
  * segments print as outlined boxes, using borders so they render even when
  * the browser is set to skip background graphics.
  */
+/*
+ * Pre-print presets (issue #512). The dyslexia-friendly preset widens
+ * letter, word, and line spacing per the British Dyslexia Association style
+ * guide (research: spacing matters more than typeface). Spacing inherits, so
+ * one container rule styles every sheet, and it applies on screen as well as
+ * in print so the preview matches the printed page. Type sizes per preset
+ * are set per element in WorksheetSheets.tsx.
+ */
+@layer utilities {
+  .print-sheets[data-preset='dyslexia-friendly'] {
+    letter-spacing: 0.03em;
+    word-spacing: 0.1em;
+    line-height: 1.5;
+  }
+}
+
 @media print {
   body {
     background: #fff !important;

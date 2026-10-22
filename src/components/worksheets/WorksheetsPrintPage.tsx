@@ -9,6 +9,14 @@ import { getList, updateList } from '@/lib/lists-api'
 import { prebuiltWeekToWordList, type PrebuiltWeek } from '@/lib/prebuilt-lists'
 import PrebuiltBadge from '@/components/PrebuiltBadge'
 import { fetchExampleSentences } from '@/lib/example-sentences'
+import { useLocalStorage } from '@/lib/use-local-storage'
+import {
+  DEFAULT_PRINT_PRESET,
+  PRINT_PRESETS,
+  PRINT_PRESET_STORAGE_KEY,
+  parsePrintPreset,
+  type PrintPreset,
+} from '@/lib/print-options'
 import type { SpellingPattern, WordList } from '@/models/WordList'
 import { reportError } from '@/lib/report-error'
 import {
@@ -31,6 +39,7 @@ import {
   CutSortSheet,
   FillBlankSheet,
   ParentNoteSheet,
+  PrintPresetContext,
   ReadingSheet,
   SpellingListSheet,
   WordSearchSheet,
@@ -49,9 +58,10 @@ interface PrintJob {
 /**
  * Print route for the selected worksheets (issue #402). Loads the list,
  * resolves any missing per-word sentences first (the sentence gap flow),
- * then renders the worksheets followed by their answer keys as one print
- * job and opens the print dialog. Every puzzle is computed once from a
- * single seeded RNG, so each answer key matches its worksheet.
+ * then shows a print preview with pre-print options (issue #512): a print
+ * style preset and an answer-key toggle. The teacher reviews the preview and
+ * opens the print dialog with the Print button. Every puzzle is computed once
+ * from a single seeded RNG, so each answer key matches its worksheet.
  */
 export default function WorksheetsPrintPage({
   listId,
@@ -168,6 +178,14 @@ function WorksheetsJob({
   const [approving, setApproving] = useState(false)
   const [gapError, setGapError] = useState<string | null>(null)
   const [seed] = useState(() => Date.now())
+  /**
+   * Pre-print options (issue #512). The print style preset persists per
+   * teacher in localStorage so she sets it once; the stored value is
+   * validated on read. The answer-key toggle is per print job, not persisted.
+   */
+  const [storedPreset, setStoredPreset] = useLocalStorage<string>(PRINT_PRESET_STORAGE_KEY, DEFAULT_PRINT_PRESET)
+  const preset: PrintPreset = parsePrintPreset(storedPreset)
+  const [includeAnswerKey, setIncludeAnswerKey] = useState(true)
   /** First-sentence suggestions each gap word loaded, keyed by word. */
   const [suggestionsByWord, setSuggestionsByWord] = useState<Record<string, string[]>>({})
 
@@ -329,11 +347,6 @@ function WorksheetsJob({
     }
   }, [words, selectedTypes, seed, showGaps])
 
-  const readyToPrint = !showGaps && words.length > 0 && job !== null
-  useEffect(() => {
-    if (readyToPrint) window.print()
-  }, [readyToPrint])
-
   if (words.length === 0) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center">
@@ -435,27 +448,101 @@ function WorksheetsJob({
 
   return (
     <div className="print-page worksheet-print mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
+      <div className="mb-6 print:hidden">
         <Link href={worksheetsHref} className="text-sm font-bold text-sky-ink hover:underline">
           &larr; Back to worksheets
         </Link>
-        <Button onClick={() => window.print()}>Print</Button>
       </div>
-      <h1 className="text-3xl font-bold text-black">
-        {list.name}: worksheets{list.week ? ` (week ${list.week})` : ''}
-      </h1>
-      {orderedTypes.map((type) => (
-        <Fragment key={`sheet-${type}`}>{renderSheet(type, false)}</Fragment>
-      ))}
-      {keyedTypes.length > 0 && (
-        <>
-          <AnswerKeyHeading />
-          {keyedTypes.map((type) => (
-            <Fragment key={`key-${type}`}>{renderSheet(type, true)}</Fragment>
+      <PrintOptionsPanel
+        preset={preset}
+        onPresetChange={setStoredPreset}
+        includeAnswerKey={includeAnswerKey}
+        onIncludeAnswerKeyChange={setIncludeAnswerKey}
+      />
+      <PrintPresetContext.Provider value={preset}>
+        <div className="print-sheets" data-preset={preset}>
+          <h1 className="text-3xl font-bold text-black">
+            {list.name}: worksheets{list.week ? ` (week ${list.week})` : ''}
+          </h1>
+          {orderedTypes.map((type) => (
+            <Fragment key={`sheet-${type}`}>{renderSheet(type, false)}</Fragment>
           ))}
-        </>
-      )}
+          {includeAnswerKey && keyedTypes.length > 0 && (
+            <>
+              <AnswerKeyHeading />
+              {keyedTypes.map((type) => (
+                <Fragment key={`key-${type}`}>{renderSheet(type, true)}</Fragment>
+              ))}
+            </>
+          )}
+        </div>
+      </PrintPresetContext.Provider>
     </div>
+  )
+}
+
+/**
+ * Pre-print options panel (issue #512). Screen only, never printed: the
+ * teacher picks a print style preset and whether the job includes the answer
+ * key, sees the preview update live below, then opens the print dialog.
+ * The preset persists per teacher; the answer-key toggle is per print job.
+ */
+function PrintOptionsPanel({
+  preset,
+  onPresetChange,
+  includeAnswerKey,
+  onIncludeAnswerKeyChange,
+}: {
+  preset: PrintPreset
+  onPresetChange: (preset: PrintPreset) => void
+  includeAnswerKey: boolean
+  onIncludeAnswerKeyChange: (include: boolean) => void
+}) {
+  return (
+    <section aria-label="Print options" className="mb-8 rounded-2xl border-2 border-line bg-card p-6 print:hidden">
+      <h2 className="text-xl font-bold">Print options</h2>
+      <p className="mt-1 text-[15px] text-muted-foreground">
+        Set how the worksheets print. Your print style is saved for next time.
+      </p>
+      <fieldset className="mt-4">
+        <legend className="text-sm font-bold">Print style</legend>
+        <div className="mt-2 space-y-2">
+          {PRINT_PRESETS.map((option) => (
+            <label key={option.id} className="flex cursor-pointer items-start gap-3">
+              <input
+                type="radio"
+                name="print-preset"
+                value={option.id}
+                checked={preset === option.id}
+                onChange={() => onPresetChange(option.id)}
+                className="mt-1 h-5 w-5 shrink-0 accent-black"
+              />
+              <span>
+                <span className="block text-[15px] font-bold">{option.label}</span>
+                <span className="block text-sm text-muted-foreground">{option.description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <label className="mt-4 flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={includeAnswerKey}
+          onChange={(event) => onIncludeAnswerKeyChange(event.target.checked)}
+          className="mt-1 h-5 w-5 shrink-0 accent-black"
+        />
+        <span>
+          <span className="block text-[15px] font-bold">Include answer key</span>
+          <span className="block text-sm text-muted-foreground">
+            Print the teacher answer key after the worksheets.
+          </span>
+        </span>
+      </label>
+      <Button onClick={() => window.print()} className="mt-6">
+        Print worksheets
+      </Button>
+    </section>
   )
 }
 
