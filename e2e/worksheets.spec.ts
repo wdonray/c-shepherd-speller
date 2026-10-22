@@ -231,3 +231,75 @@ test.describe('approve-all button', () => {
     await expect(page.getByRole('button', { name: 'Approve all' })).toHaveCount(0)
   })
 })
+
+/**
+ * Uniform blank widths (issue #517). Every blank on the fill-in-the-blank
+ * and reading sheets is one fixed width, so blank length can never cue
+ * the answer.
+ */
+test.describe('uniform blank widths', () => {
+  test.beforeEach(async ({ context }) => {
+    await ensureE2EUser()
+    await context.addCookies([await sessionCookie()])
+  })
+
+  async function seedBlankList(page: import('@playwright/test').Page): Promise<string> {
+    const response = await page.request.post('/api/lists', {
+      data: {
+        name: 'E2E Uniform Blanks',
+        patterns: [
+          {
+            sound: 'long a',
+            pattern: 'a_e',
+            frequency: 'common',
+            // Short and long words on purpose: widths must not differ.
+            words: ['late', 'bake'],
+            sentences: {
+              late: 'The bus was late this morning.',
+              bake: 'I like to bake bread on Sundays.',
+            },
+          },
+          {
+            sound: 'long a',
+            pattern: 'ai',
+            frequency: 'common',
+            words: ['rain', 'train'],
+            sentences: {
+              rain: 'The rain fell all afternoon.',
+              train: 'We rode the train to the city.',
+            },
+          },
+        ],
+      },
+    })
+    expect(response.ok()).toBeTruthy()
+    return (await response.json()).list.id as string
+  }
+
+  async function blankWidths(page: import('@playwright/test').Page, sectionName: string): Promise<number[]> {
+    const section = page.locator('section', { has: page.getByRole('heading', { name: sectionName }) })
+    const blanks = section.locator('.worksheet-blank')
+    await expect(blanks.first()).toBeVisible()
+    const boxes = await blanks.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width))
+    expect(boxes.length).toBeGreaterThan(1)
+    return boxes
+  }
+
+  test('fill-in-the-blank and reading blanks render identical widths for short and long words', async ({ page }) => {
+    const listId = await seedBlankList(page)
+    await page.goto(`/lists/${listId}/worksheets/print?types=fill-blank,reading`)
+    await expect(page.getByRole('heading', { name: 'Fill in the blank' }).first()).toBeVisible()
+
+    const fillWidths = await blankWidths(page, 'Fill in the blank')
+    const readingWidths = await blankWidths(page, 'Reading practice')
+
+    // Every blank on a sheet is the same width even though the answers
+    // have different lengths, and both sheets share the one width.
+    const allWidths = [...fillWidths, ...readingWidths]
+    const first = allWidths[0]
+    for (const width of allWidths) {
+      expect(width).toBeCloseTo(first, 0)
+    }
+    expect(first).toBeGreaterThan(0)
+  })
+})

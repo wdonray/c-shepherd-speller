@@ -230,6 +230,15 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   cramped ones); `min-w-0` on the items still guards against grid blowout
   (found 2026-10-21: issue #507, word chips wrapped mid-word).
 
+- **@media print rules never paint the on-screen print preview.** The
+  preview route renders the same DOM the printer will see, but print-scoped
+  rules do not apply until printing. An element that is invisible without
+  its styling (an empty span, not visible text) needs its geometry rule
+  outside `@media print`, or the preview shows nothing where the printed
+  page has content (found 2026-10-22: issue #517, the uniform worksheet
+  blanks lived in the print block and vanished from the preview once they
+  stopped rendering underscore text).
+
 ## Reliability
 
 - **List reads are cached; every write path must invalidate.** `getLists`,
