@@ -458,6 +458,31 @@ describe('ParentNoteSheet', () => {
     expect(screen.getByText('Teacher signature')).toBeInTheDocument()
   })
 
+  it('describes patterns in plain language, sound first', () => {
+    render(<ParentNoteSheet list={list} groups={groups} />)
+    const line = screen.getByText(
+      (_, element) => element?.textContent === 'The long a sound, spelled a-e: cake, bake, late, and more'
+    )
+    expect(line.tagName).toBe('LI')
+    expect(screen.queryByText('a_e')).not.toBeInTheDocument()
+  })
+
+  it('shows the test date when the teacher typed one', () => {
+    render(<ParentNoteSheet list={list} groups={groups} testDate="2026-10-30" />)
+    expect(screen.getByText(/The spelling test for these words is on/)).toBeInTheDocument()
+    expect(screen.getByText('Friday, October 30')).toBeInTheDocument()
+  })
+
+  it('omits the test date when none was entered', () => {
+    render(<ParentNoteSheet list={list} groups={groups} />)
+    expect(screen.queryByText(/spelling test for these words/)).not.toBeInTheDocument()
+  })
+
+  it('omits the test date when it is not a real date', () => {
+    render(<ParentNoteSheet list={list} groups={groups} testDate="2026-02-30" />)
+    expect(screen.queryByText(/spelling test for these words/)).not.toBeInTheDocument()
+  })
+
   it('omits the week and the "and more" suffix when they do not apply', () => {
     render(
       <ParentNoteSheet

@@ -118,6 +118,26 @@ describe('WorksheetPicker', () => {
     )
   })
 
+  it('shows the test date field only while the family note is selected', async () => {
+    render(<WorksheetPicker listId="l1" />)
+    await screen.findByRole('heading', { name: 'Printable worksheets' })
+
+    expect(screen.getByLabelText(/Spelling test date/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Note for families' }))
+    expect(screen.queryByLabelText(/Spelling test date/)).not.toBeInTheDocument()
+  })
+
+  it('appends the typed test date to the print URL for the family note', async () => {
+    render(<WorksheetPicker listId="l1" />)
+    await screen.findByRole('heading', { name: 'Printable worksheets' })
+
+    fireEvent.change(screen.getByLabelText(/Spelling test date/), { target: { value: '2026-10-30' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview and print' }))
+    expect(push).toHaveBeenCalledWith(
+      '/lists/l1/worksheets/print?types=spelling-list,cut-sort,fill-blank,word-search,crossword,reading,parent-note&testDate=2026-10-30'
+    )
+  })
+
   it('toggles a single type off and prints the rest', async () => {
     render(<WorksheetPicker listId="l1" />)
     await screen.findByRole('heading', { name: 'Printable worksheets' })

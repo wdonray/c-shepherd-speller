@@ -60,6 +60,9 @@ export default function WorksheetPicker({ listId, prebuiltWeek }: { listId?: str
   const [list, setList] = useState<WordList | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [selected, setSelected] = useState<Set<WorksheetType>>(new Set(WORKSHEET_TYPES))
+  // Spelling test date for the family note (issue #518): typed at print time,
+  // never stored on the list.
+  const [testDate, setTestDate] = useState('')
 
   // Routes and labels for the back link and the print job: prebuilt weeks
   // live under /lists/prebuilt, teacher lists under /lists.
@@ -110,7 +113,8 @@ export default function WorksheetPicker({ listId, prebuiltWeek }: { listId?: str
 
   const handlePrint = () => {
     const ordered = WORKSHEET_TYPES.filter((type) => selected.has(type))
-    router.push(`${printBase}?types=${ordered.join(',')}`)
+    const query = `types=${ordered.join(',')}${selected.has('parent-note') && testDate ? `&testDate=${testDate}` : ''}`
+    router.push(`${printBase}?${query}`)
   }
 
   if (loadState === 'loading') {
@@ -210,6 +214,21 @@ export default function WorksheetPicker({ listId, prebuiltWeek }: { listId?: str
               )
             })}
           </fieldset>
+          {selected.has('parent-note') && (
+            <div className="mt-4">
+              <label className="block text-sm font-bold" htmlFor="test-date">
+                Spelling test date{' '}
+                <span className="font-normal text-muted-foreground">(optional, prints on the family note)</span>
+              </label>
+              <input
+                id="test-date"
+                type="date"
+                value={testDate}
+                onChange={(e) => setTestDate(e.target.value)}
+                className="mt-1 rounded-xl border-2 border-line bg-card px-3 py-2 text-[15px]"
+              />
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button onClick={handlePrint} disabled={!canPrint} size="lg">
               Preview and print

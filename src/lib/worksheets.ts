@@ -146,6 +146,37 @@ export function groupWordsByPattern(words: WorksheetWord[]): PatternWordGroup[] 
   return groups
 }
 
+/**
+ * Render a teacher-authored pattern shorthand in parent-friendly form.
+ * Patterns are free-form teacher input (`a_e`, `ai`), so no lookup table can
+ * cover them; the underscore slot becomes a hyphen (`a_e` -> `a-e`), matching
+ * how phonics family materials print spellings for parents.
+ */
+export function plainPatternSpelling(pattern: string): string {
+  return pattern.replace(/_+/g, '-')
+}
+
+/**
+ * Format a `YYYY-MM-DD` test date the way the parent note shows it:
+ * "Friday, October 30", in the teacher's local timezone. Returns null for
+ * anything that is not a real calendar date, so a hand-typed URL param can
+ * never render a bogus date on the note.
+ */
+export function formatTestDate(value: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  // Constructed as a local date (not UTC) so the weekday matches the
+  // teacher's calendar; then confirm it round-trips to catch e.g. Feb 30.
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null
+  }
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(date)
+}
+
 /** Which worksheet types need a per-word sentence. */
 export const TYPES_NEEDING_SENTENCES: readonly WorksheetType[] = ['fill-blank', 'crossword', 'reading']
 

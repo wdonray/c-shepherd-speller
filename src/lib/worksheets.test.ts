@@ -5,8 +5,10 @@ import {
   blankWordForPattern,
   blankWordInSentence,
   extractWorksheetWords,
+  formatTestDate,
   groupWordsByPattern,
   mulberry32,
+  plainPatternSpelling,
   TYPES_NEEDING_SENTENCES,
   WORKSHEET_TYPES,
 } from './worksheets'
@@ -182,6 +184,36 @@ describe('groupWordsByPattern', () => {
 
   it('returns an empty array for no words', () => {
     expect(groupWordsByPattern([])).toEqual([])
+  })
+})
+
+describe('plainPatternSpelling', () => {
+  it('turns the underscore slot into a hyphen', () => {
+    expect(plainPatternSpelling('a_e')).toBe('a-e')
+  })
+
+  it('leaves plain patterns untouched', () => {
+    expect(plainPatternSpelling('ai')).toBe('ai')
+  })
+
+  it('collapses runs of underscores', () => {
+    expect(plainPatternSpelling('a__e')).toBe('a-e')
+  })
+})
+
+describe('formatTestDate', () => {
+  it('formats a real date as weekday, month, and day', () => {
+    expect(formatTestDate('2026-10-30')).toBe('Friday, October 30')
+  })
+
+  it('returns null for non-date input', () => {
+    expect(formatTestDate('next friday')).toBeNull()
+    expect(formatTestDate('')).toBeNull()
+  })
+
+  it('returns null for impossible calendar dates', () => {
+    expect(formatTestDate('2026-02-30')).toBeNull()
+    expect(formatTestDate('2026-13-01')).toBeNull()
   })
 })
 

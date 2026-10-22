@@ -3,8 +3,21 @@ import { render, screen } from '@testing-library/react'
 import PrebuiltWorksheetsPrintPage, { metadata } from './page'
 
 vi.mock('@/components/worksheets/WorksheetsPrintPage', () => ({
-  default: ({ prebuiltWeek, selectedTypes }: { prebuiltWeek: { id: string }; selectedTypes: string[] }) => (
-    <div data-testid="worksheets-print" data-week={prebuiltWeek.id} data-types={selectedTypes.join(',')} />
+  default: ({
+    prebuiltWeek,
+    selectedTypes,
+    testDate,
+  }: {
+    prebuiltWeek: { id: string }
+    selectedTypes: string[]
+    testDate?: string
+  }) => (
+    <div
+      data-testid="worksheets-print"
+      data-week={prebuiltWeek.id}
+      data-types={selectedTypes.join(',')}
+      data-test-date={testDate ?? ''}
+    />
   ),
 }))
 
@@ -47,5 +60,27 @@ describe('PrebuiltWorksheetsPrintPage', () => {
     await expect(
       PrebuiltWorksheetsPrintPage({ params: Promise.resolve({ id: 'nope' }), searchParams: Promise.resolve({}) })
     ).rejects.toThrow('notFound')
+  })
+
+  it('passes a valid test date through to the print page', async () => {
+    render(
+      await PrebuiltWorksheetsPrintPage({
+        params: Promise.resolve({ id: 'prebuilt-g2-w06' }),
+        searchParams: Promise.resolve({ types: 'parent-note', testDate: '2026-10-30' }),
+      })
+    )
+
+    expect(screen.getByTestId('worksheets-print')).toHaveAttribute('data-test-date', '2026-10-30')
+  })
+
+  it('ignores a test date that is not YYYY-MM-DD shaped', async () => {
+    render(
+      await PrebuiltWorksheetsPrintPage({
+        params: Promise.resolve({ id: 'prebuilt-g2-w06' }),
+        searchParams: Promise.resolve({ types: 'parent-note', testDate: 'tomorrow' }),
+      })
+    )
+
+    expect(screen.getByTestId('worksheets-print')).toHaveAttribute('data-test-date', '')
   })
 })

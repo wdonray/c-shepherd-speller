@@ -141,6 +141,13 @@ describe('WorksheetsPrintPage', () => {
     expect(screen.queryByRole('heading', { name: 'Answer key' })).not.toBeInTheDocument()
   })
 
+  it('threads the test date into the family note (issue #518)', async () => {
+    getList.mockResolvedValue(fullList)
+    render(<WorksheetsPrintPage listId="l1" selectedTypes={['parent-note']} testDate="2026-10-30" />)
+    expect(await screen.findByRole('heading', { name: 'A note for families' })).toBeInTheDocument()
+    expect(screen.getByText('Friday, October 30')).toBeInTheDocument()
+  })
+
   it('shows a no-words state when the list has nothing printable', async () => {
     getList.mockResolvedValue({
       ...list,
