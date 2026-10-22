@@ -13,6 +13,8 @@ export const metadata: Metadata = {
  * Print route for a prebuilt curriculum week's worksheets (issue #463).
  * The ?types= query param carries the selected worksheet types
  * (comma-separated); unknown or missing values fall back to every type.
+ * The optional ?testDate=YYYY-MM-DD param carries the teacher-typed spelling
+ * test date for the family note (issue #518); non-date values are ignored.
  * Sentences typed in the gap flow apply to this print job only; the week
  * itself is never modified.
  */
@@ -21,17 +23,22 @@ export default async function PrebuiltWorksheetsPrintPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ types?: string }>
+  searchParams: Promise<{ types?: string; testDate?: string }>
 }) {
   const { id } = await params
-  const { types } = await searchParams
+  const { types, testDate } = await searchParams
   const week = getPrebuiltWeek(id)
   if (!week) notFound()
 
   const requested = (types ?? '').split(',').map((t) => t.trim()) as WorksheetType[]
   const selected = requested.filter((t): t is WorksheetType => (WORKSHEET_TYPES as readonly string[]).includes(t))
+  const testDateParam = testDate && /^\d{4}-\d{2}-\d{2}$/.test(testDate) ? testDate : undefined
 
   return (
-    <WorksheetsPrintPage prebuiltWeek={week} selectedTypes={selected.length > 0 ? selected : [...WORKSHEET_TYPES]} />
+    <WorksheetsPrintPage
+      prebuiltWeek={week}
+      selectedTypes={selected.length > 0 ? selected : [...WORKSHEET_TYPES]}
+      testDate={testDateParam}
+    />
   )
 }

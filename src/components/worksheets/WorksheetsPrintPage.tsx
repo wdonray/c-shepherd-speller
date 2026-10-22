@@ -67,12 +67,16 @@ export default function WorksheetsPrintPage({
   listId,
   prebuiltWeek,
   selectedTypes,
+  testDate,
 }: {
   listId?: string
   /** Print worksheets for a prebuilt curriculum week (issue #463): the list
    * loads from the bundled data, no API fetch, and nothing is persisted. */
   prebuiltWeek?: PrebuiltWeek
   selectedTypes: WorksheetType[]
+  /** Teacher-typed spelling test date (`YYYY-MM-DD`) for the family note
+   * (issue #518); omitted when the teacher leaves the picker field empty. */
+  testDate?: string
 }) {
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [list, setList] = useState<WordList | null>(null)
@@ -149,6 +153,7 @@ export default function WorksheetsPrintPage({
       selectedTypes={selectedTypes}
       onListUpdated={setList}
       worksheetsHref={worksheetsHref}
+      testDate={testDate}
       isPrebuilt={prebuiltWeek !== undefined}
     />
   )
@@ -165,12 +170,14 @@ function WorksheetsJob({
   onListUpdated,
   worksheetsHref,
   isPrebuilt,
+  testDate,
 }: {
   list: WordList
   selectedTypes: WorksheetType[]
   onListUpdated: (list: WordList) => void
   worksheetsHref: string
   isPrebuilt: boolean
+  testDate?: string
 }) {
   const [removedWords, setRemovedWords] = useState<Set<string>>(new Set())
   const [typedSentences, setTypedSentences] = useState<Record<string, string>>({})
@@ -442,7 +449,7 @@ function WorksheetsJob({
       case 'reading':
         return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} answerKey={answerKey} />
       case 'parent-note':
-        return <ParentNoteSheet list={list} groups={groups} />
+        return <ParentNoteSheet list={list} groups={groups} testDate={testDate} />
     }
   }
 

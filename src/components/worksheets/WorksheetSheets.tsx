@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { createContext, useContext } from 'react'
 import type { WordList } from '@/models/WordList'
-import type { PatternWordGroup } from '@/lib/worksheets'
+import { formatTestDate, plainPatternSpelling, type PatternWordGroup } from '@/lib/worksheets'
 import type { WordSearchResult } from '@/lib/word-search'
 import type { CrosswordResult } from '@/lib/crossword'
 import type { PrintPreset } from '@/lib/print-options'
@@ -458,9 +458,18 @@ const PARENT_PRACTICE_IDEAS = [
   'A few minutes of practice each day beats one long session.',
 ]
 
-/** 7. A note for families: the week's patterns plus practice ideas. No answer key. */
-export function ParentNoteSheet({ list, groups }: { list: WordList; groups: PatternWordGroup[] }) {
+/** 7. A note for families: the week's patterns in plain language, plus practice ideas and the test date. No answer key. */
+export function ParentNoteSheet({
+  list,
+  groups,
+  testDate,
+}: {
+  list: WordList
+  groups: PatternWordGroup[]
+  testDate?: string
+}) {
   const preset = usePrintPreset()
+  const testDateLabel = testDate ? formatTestDate(testDate) : null
   return (
     <WorksheetSection title="A note for families">
       <p className="text-black">Dear families,</p>
@@ -468,10 +477,16 @@ export function ParentNoteSheet({ list, groups }: { list: WordList; groups: Patt
         This week in spelling{list.week ? ` (week ${list.week})` : ''}, your child is working on the words in &ldquo;
         {list.name}&rdquo;. Here are the spelling patterns we are practicing in class:
       </p>
+      {testDateLabel && (
+        <p className="mt-3 text-black">
+          The spelling test for these words is on <strong>{testDateLabel}</strong>.
+        </p>
+      )}
       <ul className="mt-4 space-y-2">
         {groups.map((group) => (
           <li key={group.patternId} className="text-black">
-            <strong>{group.pattern}</strong> ({group.sound}): {group.words.slice(0, 3).join(', ')}
+            The <strong>{group.sound}</strong> sound, spelled <strong>{plainPatternSpelling(group.pattern)}</strong>:{' '}
+            {group.words.slice(0, 3).join(', ')}
             {group.words.length > 3 ? ', and more' : ''}
           </li>
         ))}
