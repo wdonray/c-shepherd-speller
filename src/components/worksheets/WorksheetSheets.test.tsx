@@ -9,6 +9,7 @@ import {
   CrosswordSheet,
   CutSortSheet,
   FillBlankSheet,
+  NameDateHeader,
   ParentNoteSheet,
   PrintPresetContext,
   ReadingSheet,
@@ -116,6 +117,60 @@ describe('WorksheetSection', () => {
     )
     expect(screen.getByRole('heading', { name: 'Demo' })).toBeInTheDocument()
     expect(screen.getByText('body')).toBeInTheDocument()
+  })
+})
+
+describe('NameDateHeader (issue #516)', () => {
+  const readingItems = [
+    { word: 'rain', sentence: 'The rain fell all afternoon.' },
+    { word: 'cake', sentence: 'We baked a cake for the party.' },
+  ]
+
+  it('renders Name and Date labels with write-in lines', () => {
+    render(<NameDateHeader />)
+    const header = screen.getByLabelText('Name and date lines')
+    expect(within(header).getByText('Name:')).toBeInTheDocument()
+    expect(within(header).getByText('Date:')).toBeInTheDocument()
+    // Two presentational write-in lines (aria-hidden, like the parent
+    // note's signature line); the wrapper's aria-label covers AT.
+    const lines = header.querySelectorAll('span[aria-hidden="true"]')
+    expect(lines).toHaveLength(2)
+    lines.forEach((line) => expect(line).toHaveClass('border-b-2', 'border-black'))
+  })
+
+  it('sits under the section title and above the content', () => {
+    const { container } = render(
+      <WorksheetSection title="Demo">
+        <p>body</p>
+      </WorksheetSection>
+    )
+    const section = container.querySelector('section.worksheet-sheet')
+    const [h2, header, content] = Array.from(section?.children ?? [])
+    expect(h2?.tagName).toBe('H2')
+    expect(header?.getAttribute('aria-label')).toBe('Name and date lines')
+    expect(content?.textContent).toBe('body')
+  })
+
+  it('renders on every sheet type', () => {
+    const sheets = [
+      <SpellingListSheet key="list" groups={groups} />,
+      <CutSortSheet key="cut" groups={groups} answerKey={false} />,
+      <FillBlankSheet key="fill" items={fillBlankItems} answerKey={false} />,
+      <WordSearchSheet key="search" result={wordSearch} answerKey={false} />,
+      <CrosswordSheet key="cross" result={crossword} answerKey={false} />,
+      <ReadingSheet key="reading" items={readingItems} answerKey={false} />,
+      <ParentNoteSheet key="note" list={list} groups={groups} />,
+    ]
+    for (const sheet of sheets) {
+      const { unmount } = render(sheet)
+      expect(screen.getByLabelText('Name and date lines')).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('renders on answer key sheets too', () => {
+    render(<CutSortSheet groups={groups} answerKey={true} />)
+    expect(screen.getByLabelText('Name and date lines')).toBeInTheDocument()
   })
 })
 
@@ -441,7 +496,7 @@ describe('print presets (issue #512)', () => {
         <SpellingListSheet groups={groups} />
       </PrintPresetContext.Provider>
     )
-    expect(container.querySelector('section.worksheet-sheet > div')).toHaveClass('text-[14pt]')
+    expect(container.querySelector('section.worksheet-sheet > div:last-of-type')).toHaveClass('text-[14pt]')
     expect(screen.getByRole('heading', { name: /a_e/ })).toHaveClass('text-[17pt]')
   })
 

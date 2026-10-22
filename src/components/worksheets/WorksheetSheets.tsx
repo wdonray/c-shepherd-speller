@@ -108,8 +108,31 @@ export function WorksheetSection({ title, children }: { title: string; children:
   return (
     <section className="worksheet-sheet" aria-label={title}>
       <h2 className="mt-8 text-2xl font-bold text-black first:mt-0">{title}</h2>
+      <NameDateHeader />
       <div className={`mt-4 ${BODY_TEXT[preset]}`}>{children}</div>
     </section>
+  )
+}
+
+/**
+ * Name/Date write-in lines (issue #516). Renders at the top of every
+ * worksheet sheet, under the section title, so there is always a place to
+ * write a name on each printed sheet. Always rendered: the space is
+ * reserved on every sheet, so it never shifts the printed layout.
+ * Classroom language, black and white (borders always print).
+ */
+export function NameDateHeader() {
+  return (
+    <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2" aria-label="Name and date lines">
+      <span className="flex min-w-48 flex-1 items-center gap-2">
+        <span className="text-sm font-bold text-black">Name:</span>
+        <span className="min-w-32 flex-1 border-b-2 border-black" aria-hidden="true" />
+      </span>
+      <span className="flex min-w-40 flex-1 items-center gap-2">
+        <span className="text-sm font-bold text-black">Date:</span>
+        <span className="min-w-24 flex-1 border-b-2 border-black" aria-hidden="true" />
+      </span>
+    </div>
   )
 }
 
