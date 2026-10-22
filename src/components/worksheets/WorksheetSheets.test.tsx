@@ -138,6 +138,21 @@ describe('NameDateHeader (issue #516)', () => {
     lines.forEach((line) => expect(line).toHaveClass('border-b-2', 'border-black'))
   })
 
+  it('aligns each write-in line to the label baseline (issue #533)', () => {
+    render(<NameDateHeader />)
+    const header = screen.getByLabelText('Name and date lines')
+    const lines = header.querySelectorAll('span[aria-hidden="true"]')
+    expect(lines).toHaveLength(2)
+    // The rule must sit at the text baseline where handwriting rests, not
+    // vertically centered against the label (which floats it at mid-text
+    // height). items-baseline puts the empty line span's bottom border on
+    // the label's baseline.
+    lines.forEach((line) => {
+      expect(line.parentElement).toHaveClass('items-baseline')
+      expect(line.parentElement).not.toHaveClass('items-center')
+    })
+  })
+
   it('sits under the section title and above the content', () => {
     const { container } = render(
       <WorksheetSection title="Demo">
