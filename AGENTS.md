@@ -247,6 +247,17 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   blanks lived in the print block and vanished from the preview once they
   stopped rendering underscore text).
 
+- **The worksheet `@page` pins US Letter with 0.75in margins.** Margins left
+  to browser defaults vary by browser and printer, so the named page
+  declares them explicitly. Lexend stays the print font: it is self-hosted
+  via next/font/local (no network fetch to fail) and the worksheet blanks
+  are sized in em, so the print preview must use the same font as the
+  printed page. Chromium subset-embeds it into print PDFs as Type 3 vector
+  outlines (not an sfnt /FontFile2 stream); the assertions in
+  e2e/worksheet-print-output.spec.ts check the CSSPageRule, the loaded font
+  face, and the embedded-subset tag (`XXXXXX+Lexend`) in a real print PDF
+  (found 2026-10-23: issue #524).
+
 ## Reliability
 
 - **List reads are cached; every write path must invalidate.** `getLists`,

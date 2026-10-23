@@ -321,8 +321,12 @@
 
   /* Worksheet print job (issue #451): worksheets print in portrait.
      Named page so the chart poster route keeps its own print behavior. */
+  /* Worksheet print margins (issue #524): explicit 0.75in margins on
+     US Letter (research basis: 0.75-1in). Without these, margins fall back
+     to browser defaults, which vary by browser and printer. */
   @page worksheet {
-    size: portrait;
+    size: letter portrait;
+    margin: 0.75in;
   }
 
   .worksheet-print {
