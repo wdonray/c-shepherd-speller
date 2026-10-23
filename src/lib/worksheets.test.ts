@@ -362,6 +362,22 @@ describe('blankWholeWordInSentence', () => {
     expect(blankWholeWordInSentence('Cake, cake, cake.', 'cake')).toBe('____, cake, cake.')
   })
 
+  it('blanks the whole-word occurrence, never a substring inside a longer word', () => {
+    expect(blankWholeWordInSentence('The artist made art.', 'art')).toBe('The artist made ___.')
+  })
+
+  it('leaves the sentence unchanged when the word occurs only inside a longer word', () => {
+    expect(blankWholeWordInSentence('The cat sat.', 'at')).toBe('The cat sat.')
+  })
+
+  it('blanks through adjacent punctuation', () => {
+    expect(blankWholeWordInSentence("The cat's tail is long.", 'cat')).toBe("The ___'s tail is long.")
+  })
+
+  it('treats regex special characters in the word literally', () => {
+    expect(blankWholeWordInSentence('I like a.c better.', 'a.c')).toBe('I like ___ better.')
+  })
+
   it('returns the sentence unchanged when the word is absent', () => {
     expect(blankWholeWordInSentence('The rain fell.', 'cake')).toBe('The rain fell.')
   })

@@ -282,16 +282,19 @@ export function blankWordInSentence(sentence: string, word: string, pattern: str
 }
 
 /**
- * Replace the first case-insensitive occurrence of `word` in `sentence`
- * with underscores matching its length, blanking the whole word out.
- * Used for crossword clues, where the sentence gives the context but the
- * word itself must not be visible. Returns the sentence unchanged when
- * the word does not occur in it.
+ * Replace the first case-insensitive whole-word occurrence of `word` in
+ * `sentence` with underscores matching its length, blanking the whole word
+ * out. Used for crossword clues, where the sentence gives the context but the
+ * word itself must not be visible. Only a whole word matches: the word must
+ * not sit inside a longer word, so "art" never blanks inside "artist" (which
+ * would leave the real answer visible later in the clue). Returns the
+ * sentence unchanged when the word does not occur as a whole word in it.
  */
 export function blankWholeWordInSentence(sentence: string, word: string): string {
   if (word.length === 0) return sentence
-  const index = sentence.toLowerCase().indexOf(word.toLowerCase())
-  if (index === -1) return sentence
-  const blank = '_'.repeat(sentence.slice(index, index + word.length).length)
-  return sentence.slice(0, index) + blank + sentence.slice(index + word.length)
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'iu').exec(sentence)
+  if (match === null) return sentence
+  const blank = '_'.repeat(match[0].length)
+  return sentence.slice(0, match.index) + blank + sentence.slice(match.index + match[0].length)
 }
