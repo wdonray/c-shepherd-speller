@@ -15,6 +15,7 @@ import {
   mulberry32,
   plainPatternSpelling,
   READING_SENTENCES_PER_PAGE,
+  stablePuzzleSeed,
   TYPES_NEEDING_SENTENCES,
   WORKSHEET_TYPES,
 } from './worksheets'
@@ -133,6 +134,31 @@ describe('mulberry32', () => {
       expect(value).toBeGreaterThanOrEqual(0)
       expect(value).toBeLessThan(1)
     }
+  })
+})
+
+describe('stablePuzzleSeed', () => {
+  it('returns the same seed for the same list id', () => {
+    expect(stablePuzzleSeed('list-abc')).toBe(stablePuzzleSeed('list-abc'))
+  })
+
+  it('returns different seeds for different list ids', () => {
+    expect(stablePuzzleSeed('list-abc')).not.toBe(stablePuzzleSeed('list-def'))
+  })
+
+  it('returns an unsigned 32-bit integer', () => {
+    for (const id of ['l1', 'another-list-id', '', 'x'.repeat(200)]) {
+      const seed = stablePuzzleSeed(id)
+      expect(Number.isInteger(seed)).toBe(true)
+      expect(seed).toBeGreaterThanOrEqual(0)
+      expect(seed).toBeLessThanOrEqual(0xffffffff)
+    }
+  })
+
+  it('drives mulberry32 deterministically per list id', () => {
+    const a = Array.from({ length: 50 }, () => mulberry32(stablePuzzleSeed('l1'))())
+    const b = Array.from({ length: 50 }, () => mulberry32(stablePuzzleSeed('l1'))())
+    expect(a).toEqual(b)
   })
 })
 

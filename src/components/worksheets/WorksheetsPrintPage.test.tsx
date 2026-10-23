@@ -761,4 +761,65 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.queryByRole('heading', { name: 'Answer key' })).not.toBeInTheDocument()
     })
   })
+
+  describe('stable puzzle seed (issue #532)', () => {
+    async function renderWordSearch() {
+      getList.mockResolvedValue(fullList)
+      const result = render(<WorksheetsPrintPage listId="l1" selectedTypes={['word-search']} />)
+      await screen.findAllByRole('table', { name: 'Word search grid' })
+      return result
+    }
+
+    /** The sheet grid and the answer-key grid, in render order. */
+    function wordSearchGrids() {
+      const tables = screen.getAllByRole('table', { name: 'Word search grid' })
+      expect(tables).toHaveLength(2)
+      return { sheet: tables[0].textContent ?? '', key: tables[1].textContent ?? '' }
+    }
+
+    it('generates the same puzzle on every visit for the same list', async () => {
+      const { unmount } = await renderWordSearch()
+      const first = wordSearchGrids()
+      // The answer key matches the puzzle it was generated with.
+      expect(first.sheet).toBe(first.key)
+      expect(first.sheet.length).toBeGreaterThan(0)
+
+      // A fresh mount (a new "visit") produces the identical puzzle.
+      unmount()
+      await renderWordSearch()
+      const second = wordSearchGrids()
+      expect(second.sheet).toBe(first.sheet)
+      expect(second.key).toBe(first.key)
+    })
+
+    it('regenerates a fresh puzzle with a matching key when New version is clicked', async () => {
+      await renderWordSearch()
+      const before = wordSearchGrids().sheet
+
+      fireEvent.click(screen.getByRole('button', { name: 'New version' }))
+
+      const after = wordSearchGrids()
+      expect(after.sheet).not.toBe(before)
+      // The single seeded RNG still drives both, so the key matches the new puzzle.
+      expect(after.sheet).toBe(after.key)
+      // Regenerating previews the new layout; it does not open the print dialog.
+      expect(printSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows the button and helper text for the crossword alone', async () => {
+      getList.mockResolvedValue(fullList)
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['crossword']} />)
+      expect(await screen.findByRole('button', { name: 'New version' })).toBeInTheDocument()
+      expect(screen.getByText(/stay the same every time you open this page/)).toBeInTheDocument()
+    })
+
+    it('hides the button and helper text when no puzzle type is selected', async () => {
+      getList.mockResolvedValue({ ...fullList, week: undefined })
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['parent-note']} />)
+      expect(await screen.findByRole('heading', { name: 'A note for families' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'New version' })).not.toBeInTheDocument()
+      expect(screen.queryByText(/stay the same every time you open this page/)).not.toBeInTheDocument()
+    })
+    })
+  })
 })
