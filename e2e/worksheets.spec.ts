@@ -445,3 +445,119 @@ test.describe('word search difficulty by grade band', () => {
     })
   }
 })
+
+/**
+ * Sentence-sheet pagination (issue #522). Seeds a 24-word list with a
+ * sentence for every word (no gap flow), then checks that fill-in-the-blank
+ * paginates at 8 sentences/page and reading at 6/page, with numbering
+ * continuing across pages and a per-page word bank on reading sheets.
+ */
+test.describe('sentence sheet pagination', () => {
+  test.beforeEach(async ({ context }) => {
+    await ensureE2EUser()
+    await context.addCookies([await sessionCookie()])
+  })
+
+  const AE_WORDS: [string, string][] = [
+    ['cake', 'We baked a cake for the party.'],
+    ['bake', 'I like to bake bread on Sundays.'],
+    ['late', 'The bus was late this morning.'],
+    ['date', 'The date on the calendar is Friday.'],
+    ['game', 'We played a fun game at recess.'],
+    ['name', 'She wrote her name on the paper.'],
+    ['made', 'They made a birdhouse in class.'],
+    ['take', 'Take your umbrella with you.'],
+  ]
+  const AI_WORDS: [string, string][] = [
+    ['rain', 'The rain fell all afternoon.'],
+    ['train', 'We rode the train to the city.'],
+    ['paint', 'She will paint the fence blue.'],
+    ['mail', 'The mail truck came early.'],
+    ['snail', 'A snail crawled across the leaf.'],
+    ['tail', 'The dog wagged its tail.'],
+    ['chain', 'He fixed the bike chain.'],
+    ['plain', 'The bagel is plain, no butter.'],
+  ]
+  const EE_WORDS: [string, string][] = [
+    ['tree', 'A tall tree grows by the school.'],
+    ['green', 'The grass is green in spring.'],
+    ['sleep', 'We sleep when it gets dark.'],
+    ['feet', 'Wash your feet before bed.'],
+    ['street', 'Look both ways to cross the street.'],
+    ['free', 'The library book is free to borrow.'],
+    ['deep', 'The lake is deep in the middle.'],
+    ['keep', 'Keep your desk clean.'],
+  ]
+
+  async function seedLongList(request: import('@playwright/test').APIRequestContext): Promise<string> {
+    const toPattern = (pattern: string, sound: string, words: [string, string][]) => ({
+      sound,
+      pattern,
+      frequency: 'common',
+      words: words.map(([word]) => word),
+      sentences: Object.fromEntries(words),
+    })
+    const response = await request.post('/api/lists', {
+      data: {
+        name: 'E2E Pagination Week',
+        patterns: [
+          toPattern('a_e', 'long a', AE_WORDS),
+          toPattern('ai', 'long a', AI_WORDS),
+          toPattern('ee', 'long e', EE_WORDS),
+        ],
+      },
+    })
+    expect(response.ok()).toBeTruthy()
+    return (await response.json()).list.id as string
+  }
+
+  test('24-word list paginates with continued numbering and per-page banks', async ({ page }) => {
+    const listId = await seedLongList(page.request)
+    await page.goto(`/lists/${listId}/worksheets/print?types=fill-blank,reading`)
+
+    // Fill-in-the-blank caps at 8 sentences per page: 3 student sheets,
+    // then the 3 answer-key sheets.
+    const fillSections = page.locator('section[aria-label="Fill in the blank"]')
+    await expect(fillSections).toHaveCount(6)
+    const fillStarts: (string | null)[] = [null, '9', '17']
+    for (let i = 0; i < 3; i++) {
+      const section = fillSections.nth(i)
+      await expect(section.locator('ol li')).toHaveCount(8)
+      const ol = section.locator('ol')
+      if (fillStarts[i] === null) {
+        await expect(ol).not.toHaveAttribute('start')
+      } else {
+        await expect(ol).toHaveAttribute('start', fillStarts[i] as string)
+      }
+    }
+    // The key mirrors the same pagination.
+    for (let i = 3; i < 6; i++) {
+      await expect(fillSections.nth(i).locator('ol li')).toHaveCount(8)
+    }
+
+    // Reading caps at 6 sentences per page: 4 student sheets, then 4 key sheets.
+    const readSections = page.locator('section[aria-label="Reading practice"]')
+    await expect(readSections).toHaveCount(8)
+    const readStarts: (string | null)[] = [null, '7', '13', '19']
+    for (let i = 0; i < 4; i++) {
+      const section = readSections.nth(i)
+      await expect(section.locator('ol li')).toHaveCount(6)
+      const ol = section.locator('ol')
+      if (readStarts[i] === null) {
+        await expect(ol).not.toHaveAttribute('start')
+      } else {
+        await expect(ol).toHaveAttribute('start', readStarts[i] as string)
+      }
+      // The bank on each student page lists only that page's words.
+      const pageWords = [...AE_WORDS, ...AI_WORDS, ...EE_WORDS]
+        .slice(i * 6, i * 6 + 6)
+        .map(([word]) => word)
+        .sort((a, b) => a.localeCompare(b))
+        .join(', ')
+      await expect(section.locator('h3 + p')).toHaveText(pageWords)
+    }
+    for (let i = 4; i < 8; i++) {
+      await expect(readSections.nth(i).locator('ol li')).toHaveCount(6)
+    }
+  })
+})

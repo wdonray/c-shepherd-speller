@@ -5,13 +5,16 @@ import {
   blankWordForPattern,
   blankWordInSentence,
   chunkCutSortPages,
+  chunkSentencePages,
   CUT_SORT_WORDS_PER_PAGE,
   CUT_SORT_WORDS_PER_PATTERN,
   extractWorksheetWords,
+  FILL_BLANK_SENTENCES_PER_PAGE,
   formatTestDate,
   groupWordsByPattern,
   mulberry32,
   plainPatternSpelling,
+  READING_SENTENCES_PER_PAGE,
   TYPES_NEEDING_SENTENCES,
   WORKSHEET_TYPES,
 } from './worksheets'
@@ -246,6 +249,41 @@ describe('chunkCutSortPages (issue #520)', () => {
     expect(flat).toEqual(['cake', 'bake', 'late', 'date', 'rain', 'train'])
     expect(pages[0].map((g) => g.patternId)).toEqual(['pat-ae'])
     expect(pages[1].map((g) => g.patternId)).toEqual(['pat-ai'])
+  })
+})
+
+describe('chunkSentencePages (issue #522)', () => {
+  const words = ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9', 'w10']
+
+  it('caps fill-in-the-blank pages at FILL_BLANK_SENTENCES_PER_PAGE', () => {
+    // <=8-10 sentences per page is the worksheet norm; 8 is the conservative end.
+    expect(FILL_BLANK_SENTENCES_PER_PAGE).toBe(8)
+    const pages = chunkSentencePages(words)
+    expect(pages).toEqual([words.slice(0, 8), words.slice(8)])
+    for (const page of pages) {
+      expect(page.length).toBeLessThanOrEqual(FILL_BLANK_SENTENCES_PER_PAGE)
+    }
+  })
+
+  it('caps reading pages at READING_SENTENCES_PER_PAGE', () => {
+    // ~44-47 words is the tested 2nd-grade comfort zone; at 6.62 avg
+    // words/sentence, 6 sentences land at ~40 words per page.
+    expect(READING_SENTENCES_PER_PAGE).toBe(6)
+    const pages = chunkSentencePages(words, READING_SENTENCES_PER_PAGE)
+    expect(pages).toEqual([words.slice(0, 6), words.slice(6)])
+  })
+
+  it('keeps a short list on one page', () => {
+    expect(chunkSentencePages(['a', 'b'], 8)).toEqual([['a', 'b']])
+  })
+
+  it('returns no pages for no items', () => {
+    expect(chunkSentencePages([], 8)).toEqual([])
+  })
+
+  it('preserves item order across pages', () => {
+    const pages = chunkSentencePages(words, 4)
+    expect(pages.flat()).toEqual(words)
   })
 })
 

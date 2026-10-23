@@ -206,6 +206,34 @@ export function chunkCutSortPages(
 }
 
 /**
+ * Sentences per fill-in-the-blank page (issue #522). The worksheet norm is
+ * <=8-10 sentences per page; 8 is the conservative end so a page never
+ * overwhelms. Sections never split across pages, so the cap decides where
+ * pages break.
+ */
+export const FILL_BLANK_SENTENCES_PER_PAGE = 8
+
+/**
+ * Sentences per reading-practice page (issue #522). The tested 2nd-grade
+ * reading comfort zone is ~44-47 words total; the sentence bank averages
+ * 6.62 words per sentence, so 6 sentences land at ~40 words per page.
+ */
+export const READING_SENTENCES_PER_PAGE = 6
+
+/**
+ * Split sentence-based sheet items into pages (issue #522): at most `cap`
+ * sentences per page, preserving order. The caller decides which cap
+ * applies (fill-in-the-blank vs reading).
+ */
+export function chunkSentencePages<T>(items: T[], cap: number = FILL_BLANK_SENTENCES_PER_PAGE): T[][] {
+  const pages: T[][] = []
+  for (let i = 0; i < items.length; i += cap) {
+    pages.push(items.slice(i, i + cap))
+  }
+  return pages
+}
+
+/**
  * Render a teacher-authored pattern shorthand in parent-friendly form.
  * Patterns are free-form teacher input (`a_e`, `ai`), so no lookup table can
  * cover them; the underscore slot becomes a hyphen (`a_e` -> `a-e`), matching

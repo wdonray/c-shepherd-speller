@@ -304,15 +304,26 @@ export interface FillBlankItem {
 
 /**
  * 3. Fill in the blank. Student: sentences with the spelling pattern
- * blanked out of each word. Key: the completed sentences.
+ * blanked out of each word. Key: the completed sentences. When a list
+ * exceeds the per-page cap (issue #522), the caller renders one sheet per
+ * page and passes the running offset in `startIndex` so the printed
+ * numbering continues across pages instead of restarting at 1.
  */
-export function FillBlankSheet({ items, answerKey }: { items: FillBlankItem[]; answerKey: boolean }) {
+export function FillBlankSheet({
+  items,
+  answerKey,
+  startIndex = 0,
+}: {
+  items: FillBlankItem[]
+  answerKey: boolean
+  startIndex?: number
+}) {
   return (
     <WorksheetSection title="Fill in the blank">
       <p className="text-black">
         {answerKey ? 'Completed sentences.' : 'Fill in the missing spelling pattern in each sentence.'}
       </p>
-      <ol className="mt-4 list-decimal space-y-3 pl-6">
+      <ol className="mt-4 list-decimal space-y-3 pl-6" start={startIndex > 0 ? startIndex + 1 : undefined}>
         {items.map((item) => (
           <li key={item.word} className="text-black">
             {answerKey ? highlightWord(item.sentence, item.word) : <BlankedSentence item={item} />}
@@ -511,12 +522,22 @@ export function CrosswordSheet({ result, answerKey }: { result: CrosswordResult;
  * out, plus an alphabetical word bank (issue #454). Key: the completed
  * sentences.
  */
+/**
+ * 6. Reading practice. Student: sentences with the spelling word blanked
+ * out, plus an alphabetical word bank (issue #454). Key: the completed
+ * sentences. When a list exceeds the per-page cap (issue #522), the caller
+ * renders one sheet per page: `startIndex` continues the printed numbering
+ * across pages, and the word bank shows only that page's words so each
+ * page is a self-contained task (no page-flipping to find the bank).
+ */
 export function ReadingSheet({
   items,
   answerKey,
+  startIndex = 0,
 }: {
   items: { word: string; sentence: string }[]
   answerKey: boolean
+  startIndex?: number
 }) {
   const preset = usePrintPreset()
   return (
@@ -524,7 +545,7 @@ export function ReadingSheet({
       <p className="text-black">
         {answerKey ? 'Completed sentences.' : 'Read each sentence. Fill in each blank with a word from the word bank.'}
       </p>
-      <ol className="mt-4 list-decimal space-y-3 pl-6">
+      <ol className="mt-4 list-decimal space-y-3 pl-6" start={startIndex > 0 ? startIndex + 1 : undefined}>
         {items.map((item) => (
           <li key={item.word} className="text-black">
             {answerKey ? highlightWord(item.sentence, item.word) : <BlankedReadingSentence item={item} />}
