@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import BackBreadcrumb from '@/components/BackBreadcrumb'
 import { Button } from '@/components/ui/button'
@@ -445,54 +445,71 @@ function WorksheetsJob({
   const orderedTypes = WORKSHEET_TYPES.filter((type) => selectedTypes.includes(type))
   const keyedTypes = orderedTypes.filter((type) => type !== 'parent-note')
 
-  const renderSheet = (type: WorksheetType, answerKey: boolean) => {
+  /**
+   * Issue #531: every printed page is its own white-paper sheet in the
+   * preview, in all site themes. The page wrapper is the paper card on
+   * screen (white background, shadow, gap between pages) and collapses to
+   * nothing in print CSS, so the printed job is unchanged. One sheet per
+   * page: WorksheetSection's break-inside: avoid plus break-before on every
+   * page after the first means the preview's page boundaries match the real
+   * print pagination exactly, with no merged pages.
+   */
+  function WorksheetPage({ children }: { children: ReactNode }) {
+    return <div className="worksheet-page">{children}</div>
+  }
+
+  const renderSheets = (type: WorksheetType, answerKey: boolean): ReactNode[] => {
     switch (type) {
       case 'spelling-list':
-        return <SpellingListSheet groups={groups} />
+        return [<SpellingListSheet key={`spelling-${answerKey ? 'key' : 'sheet'}`} groups={groups} />]
       case 'cut-sort':
         // Issue #520: paste boxes sized to the cut-out cards only fit one
         // page, so the words chunk into pages of at most six; each page is
         // its own unbroken WorksheetSection. Card and box sizes follow the
         // list's grade band (issue #519's banding).
-        return (
-          <>
-            {chunkCutSortPages(groups).map((pageGroups, i) => (
-              <CutSortSheet
-                key={`cut-${answerKey ? 'key' : 'sheet'}-${i}`}
-                groups={pageGroups}
-                answerKey={answerKey}
-                gradeBand={gradeBand}
-              />
-            ))}
-          </>
-        )
+        return chunkCutSortPages(groups).map((pageGroups, i) => (
+          <CutSortSheet
+            key={`cut-${answerKey ? 'key' : 'sheet'}-${i}`}
+            groups={pageGroups}
+            answerKey={answerKey}
+            gradeBand={gradeBand}
+          />
+        ))
       case 'fill-blank': {
         // Issue #522: sentences chunk into pages of at most
         // FILL_BLANK_SENTENCES_PER_PAGE; each page is its own unbroken
         // WorksheetSection and the printed numbering continues across pages.
         const fillBlank = printJob.fillBlank as FillBlankItem[]
         let fillOffset = 0
-        return (
-          <>
-            {chunkSentencePages(fillBlank, FILL_BLANK_SENTENCES_PER_PAGE).map((page, i) => {
-              const startIndex = fillOffset
-              fillOffset += page.length
-              return (
-                <FillBlankSheet
-                  key={`fill-${answerKey ? 'key' : 'sheet'}-${i}`}
-                  items={page}
-                  answerKey={answerKey}
-                  startIndex={startIndex}
-                />
-              )
-            })}
-          </>
-        )
+        return chunkSentencePages(fillBlank, FILL_BLANK_SENTENCES_PER_PAGE).map((page, i) => {
+          const startIndex = fillOffset
+          fillOffset += page.length
+          return (
+            <FillBlankSheet
+              key={`fill-${answerKey ? 'key' : 'sheet'}-${i}`}
+              items={page}
+              answerKey={answerKey}
+              startIndex={startIndex}
+            />
+          )
+        })
       }
       case 'word-search':
-        return <WordSearchSheet result={printJob.wordSearch as WordSearchResult} answerKey={answerKey} />
+        return [
+          <WordSearchSheet
+            key={`word-search-${answerKey ? 'key' : 'sheet'}`}
+            result={printJob.wordSearch as WordSearchResult}
+            answerKey={answerKey}
+          />,
+        ]
       case 'crossword':
-        return <CrosswordSheet result={printJob.crossword as CrosswordResult} answerKey={answerKey} />
+        return [
+          <CrosswordSheet
+            key={`crossword-${answerKey ? 'key' : 'sheet'}`}
+            result={printJob.crossword as CrosswordResult}
+            answerKey={answerKey}
+          />,
+        ]
       case 'reading': {
         // Issue #522: like fill-in-the-blank above, reading sentences chunk
         // into pages of at most READING_SENTENCES_PER_PAGE with continued
@@ -500,27 +517,32 @@ function WorksheetsJob({
         // words only, so each page is self-contained.
         const reading = printJob.reading as { word: string; sentence: string }[]
         let readOffset = 0
-        return (
-          <>
-            {chunkSentencePages(reading, READING_SENTENCES_PER_PAGE).map((page, i) => {
-              const startIndex = readOffset
-              readOffset += page.length
-              return (
-                <ReadingSheet
-                  key={`reading-${answerKey ? 'key' : 'sheet'}-${i}`}
-                  items={page}
-                  answerKey={answerKey}
-                  startIndex={startIndex}
-                />
-              )
-            })}
-          </>
-        )
+        return chunkSentencePages(reading, READING_SENTENCES_PER_PAGE).map((page, i) => {
+          const startIndex = readOffset
+          readOffset += page.length
+          return (
+            <ReadingSheet
+              key={`reading-${answerKey ? 'key' : 'sheet'}-${i}`}
+              items={page}
+              answerKey={answerKey}
+              startIndex={startIndex}
+            />
+          )
+        })
       }
       case 'parent-note':
-        return <ParentNoteSheet list={list} groups={groups} testDate={testDate} />
+        // The parent note has no answer key (it is not in keyedTypes), so
+        // answerKey is always false here: a static key keeps the 100%
+        // branch-coverage bar.
+        return [<ParentNoteSheet key="parent-note-sheet" list={list} groups={groups} testDate={testDate} />]
     }
   }
+
+  // One printed page per sheet (issue #531). The job title heads the first
+  // student page, exactly where it prints; the answer key starts on a fresh
+  // page headed by AnswerKeyHeading, exactly where it prints.
+  const studentSheets = orderedTypes.flatMap((type) => renderSheets(type, false))
+  const keySheets = includeAnswerKey ? keyedTypes.flatMap((type) => renderSheets(type, true)) : []
 
   return (
     <div className="print-page worksheet-print mx-auto w-full max-w-4xl px-4 py-8">
@@ -537,17 +559,23 @@ function WorksheetsJob({
       />
       <PrintPresetContext.Provider value={preset}>
         <div className="print-sheets" data-preset={preset}>
-          <h1 className="text-3xl font-bold text-black">
-            {list.name}: worksheets{list.week ? ` (week ${list.week})` : ''}
-          </h1>
-          {orderedTypes.map((type) => (
-            <Fragment key={`sheet-${type}`}>{renderSheet(type, false)}</Fragment>
+          <WorksheetPage>
+            <h1 className="text-3xl font-bold text-black">
+              {list.name}: worksheets{list.week ? ` (week ${list.week})` : ''}
+            </h1>
+            {studentSheets[0]}
+          </WorksheetPage>
+          {studentSheets.slice(1).map((sheet, i) => (
+            <WorksheetPage key={`student-page-${i + 1}`}>{sheet}</WorksheetPage>
           ))}
-          {includeAnswerKey && keyedTypes.length > 0 && (
+          {keySheets.length > 0 && (
             <>
-              <AnswerKeyHeading />
-              {keyedTypes.map((type) => (
-                <Fragment key={`key-${type}`}>{renderSheet(type, true)}</Fragment>
+              <WorksheetPage key="key-page-0">
+                <AnswerKeyHeading />
+                {keySheets[0]}
+              </WorksheetPage>
+              {keySheets.slice(1).map((sheet, i) => (
+                <WorksheetPage key={`key-page-${i + 1}`}>{sheet}</WorksheetPage>
               ))}
             </>
           )}
