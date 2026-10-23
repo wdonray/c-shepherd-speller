@@ -200,8 +200,11 @@ const PASTE_BOX: Record<WordSearchDifficulty, string> = {
  * 2. Cut-and-paste sorting. One page of at most CUT_SORT_WORDS_PER_PAGE words:
  * the caller chunks longer lists so each page fits on one printed sheet.
  * Student: labeled sort columns with paste boxes at the top, then the dashed
- * word cards to cut out at the bottom. Key: the same columns with each box
- * filled in. All functional marks are black (photocopy-safe).
+ * word cards to cut out at the bottom. The student sheet carries one worked
+ * example (issue #523): the first word of the first column is pre-placed in
+ * its paste box, marked as the example, and removed from the cut-out bank.
+ * Key: the same columns with each box filled in (no example marker).
+ * All functional marks are black (photocopy-safe).
  */
 export function CutSortSheet({
   groups,
@@ -215,28 +218,50 @@ export function CutSortSheet({
   const preset = usePrintPreset()
   // The student cut-out bank is shuffled so same-pattern words do not sit
   // next to each other. The answer-key columns stay grouped by pattern.
-  const words = shuffleWords(groups.flatMap((group) => group.words))
+  // The worked example is dropped from the bank by index, so a same-spelled
+  // word in another column would survive.
+  const words = shuffleWords(groups.flatMap((group, gi) => group.words.filter((_, wi) => gi !== 0 || wi !== 0)))
+  const boxClass = `flex items-center justify-center border-2 border-black px-1 ${PASTE_BOX[gradeBand]}`
   const columns = (
     <div className="grid grid-cols-2 gap-6 md:grid-cols-3" aria-label="Sort the words">
-      {groups.map((group) => (
+      {groups.map((group, gi) => (
         <div key={group.patternId} className="rounded-lg border-2 border-black p-3">
           <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>
             {group.pattern} <span className="font-normal text-neutral-600">({group.sound})</span>
           </h3>
           <ol className="mt-2 space-y-2">
-            {group.words.map((word, i) => (
-              <li
-                key={word}
-                className={`flex items-center justify-center border-2 border-black px-1 ${PASTE_BOX[gradeBand]}`}
-                aria-label={answerKey ? undefined : `Paste box ${i + 1} under ${group.pattern}`}
-              >
-                {answerKey ? (
-                  <span className="text-center font-bold break-words text-black">{word}</span>
-                ) : (
-                  <span aria-hidden="true">&nbsp;</span>
-                )}
-              </li>
-            ))}
+            {group.words.map((word, i) => {
+              // The worked example: pre-placed in its column on the student
+              // sheet, marked so the student knows it is the example. The
+              // box keeps its fixed size, so nothing shifts.
+              const isExample = !answerKey && gi === 0 && i === 0
+              return (
+                <li
+                  key={word}
+                  className={isExample ? `${boxClass} flex-col` : boxClass}
+                  aria-label={
+                    answerKey
+                      ? undefined
+                      : isExample
+                        ? `Example: ${word} is sorted under ${group.pattern}`
+                        : `Paste box ${i + 1} under ${group.pattern}`
+                  }
+                >
+                  {answerKey || isExample ? (
+                    <>
+                      <span className="text-center font-bold break-words text-black">{word}</span>
+                      {isExample && (
+                        <span className="mt-1 text-xs font-bold uppercase tracking-wide text-black" aria-hidden="true">
+                          Example
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span aria-hidden="true">&nbsp;</span>
+                  )}
+                </li>
+              )
+            })}
           </ol>
         </div>
       ))}
@@ -246,7 +271,10 @@ export function CutSortSheet({
     <WorksheetSection title="Cut and sort">
       {!answerKey && (
         <>
-          <p className="text-black">Cut out the word cards. Sort each word under its spelling pattern, then glue.</p>
+          <p className="text-black">
+            Cut out the word cards. Sort each word under its spelling pattern, then glue. One word is placed as an
+            example.
+          </p>
           <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Sort the words</h3>
           <div className="mt-4">{columns}</div>
           <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Cut out the word cards</h3>

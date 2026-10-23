@@ -219,8 +219,35 @@ describe('CutSortSheet (issue #520)', () => {
     expect(columnsEl).not.toBeNull()
     expect(bankEl).not.toBeNull()
     expect(columnsEl!.compareDocumentPosition(bankEl!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // Paste boxes are labelled for assistive tech.
-    expect(screen.getByLabelText('Paste box 1 under a_e')).toBeInTheDocument()
+    // Paste boxes are labelled for assistive tech. The first box is the
+    // worked example (issue #523); the rest keep positional numbering.
+    expect(screen.getByLabelText('Example: cake is sorted under a_e')).toBeInTheDocument()
+    expect(screen.getByLabelText('Paste box 2 under a_e')).toBeInTheDocument()
+  })
+
+  it('pre-places the first word of the first column as a marked example (issue #523)', () => {
+    render(<CutSortSheet groups={groups} answerKey={false} gradeBand="beginner" />)
+    // The example word appears exactly once: in its box, not in the bank.
+    expect(screen.getAllByText('cake')).toHaveLength(1)
+    const exampleBox = screen.getByLabelText('Example: cake is sorted under a_e')
+    expect(exampleBox.tagName).toBe('LI')
+    expect(within(exampleBox as HTMLElement).getByText('Example')).toBeInTheDocument()
+    // Black and white only: the marker is plain text, never a gray border
+    // or tint (photocopy-safe per the existing paste-box test below).
+    const exampleMark = exampleBox.querySelector(
+      '[class*="border-neutral"], [class*="bg-neutral"], [class*="text-neutral"]'
+    )
+    expect(exampleMark).toBeNull()
+  })
+
+  it('removes the example word from the cut-out bank', () => {
+    render(<CutSortSheet groups={groups} answerKey={false} gradeBand="beginner" />)
+    const bank = screen.getByLabelText('Word cards to cut out')
+    expect(within(bank).queryByText('cake')).not.toBeInTheDocument()
+    // Every other word still has a card to cut out.
+    for (const word of ['bake', 'late', 'date', 'rain', 'train']) {
+      expect(within(bank).getByText(word)).toBeInTheDocument()
+    }
   })
 
   it('renders one fixed-size paste box per word, with black borders only', () => {
@@ -292,9 +319,17 @@ describe('CutSortSheet (issue #520)', () => {
       const bank = screen.getByLabelText('Word cards to cut out')
       const cards = within(bank).getAllByText(/.+/)
       // Fisher-Yates with Math.random always 0.5 over
-      // [cake, bake, late, date, rain, train].
-      expect(cards.map((card) => card.textContent)).toEqual(['cake', 'train', 'bake', 'rain', 'late', 'date'])
+      // [bake, late, date, rain, train] (the example word is not in the bank).
+      expect(cards.map((card) => card.textContent)).toEqual(['bake', 'rain', 'late', 'train', 'date'])
     })
+  })
+
+  it('answer key has no example marker (issue #523)', () => {
+    render(<CutSortSheet groups={groups} answerKey gradeBand="beginner" />)
+    expect(screen.queryByText('Example')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Example:/)).not.toBeInTheDocument()
+    // The key still shows every word, including the one that was the example.
+    expect(screen.getAllByText('cake')).toHaveLength(1)
   })
 })
 

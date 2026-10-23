@@ -92,7 +92,9 @@ test.describe('printable worksheets', () => {
     // write-in lines anywhere on the sheet.
     const cutSections = page.locator('section[aria-label="Cut and sort"]')
     const studentCut = cutSections.first()
-    await expect(studentCut.getByLabel(/Paste box \d+ under/)).toHaveCount(6)
+    // One box holds the worked example (issue #523); the rest are empty.
+    await expect(studentCut.getByLabel(/Paste box \d+ under/)).toHaveCount(5)
+    await expect(studentCut.getByLabel(/Example:/)).toHaveCount(1)
     await expect(studentCut.locator('[class*="border-neutral"]')).toHaveCount(0)
     const columnsBox = await studentCut.getByLabel('Sort the words').boundingBox()
     const bankBox = await studentCut.getByLabel('Word cards to cut out').boundingBox()
