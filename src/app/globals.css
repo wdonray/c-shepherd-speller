@@ -258,6 +258,38 @@
     word-spacing: 0.1em;
     line-height: 1.5;
   }
+
+  /*
+   * White-paper worksheet preview (issue #531). Every printed page renders
+   * as its own sheet in the preview, in all site themes: the sheet is
+   * always white paper with black content, WYSIWYG for the printer (the
+   * same split Google Docs and Canva use: themed chrome, paper document).
+   * The gap plus shadow between sheets is the visible page boundary. Sheet
+   * content uses fixed black/neutral tokens, so one wrapper fixes every
+   * sheet, student and answer key alike; color-scheme: light keeps native
+   * widgets light inside the paper. Lives in @layer utilities so the paper
+   * background beats any utility on the same element.
+   */
+  .worksheet-page {
+    background: #fff;
+    color: #000;
+    color-scheme: light;
+    padding: 1.25rem;
+    border-radius: 2px;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.14),
+      0 8px 24px rgb(0 0 0 / 0.14);
+  }
+
+  .worksheet-page + .worksheet-page {
+    margin-top: 1.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .worksheet-page {
+      padding: 2.5rem;
+    }
+  }
 }
 
 @media print {
@@ -340,6 +372,26 @@
   }
 
   .answer-key-break {
+    break-before: page;
+  }
+
+  /*
+   * Worksheet white-paper preview (issue #531): the .worksheet-page
+   * wrapper is the paper card on screen only. In print it collapses to
+   * nothing, so the printed job is unchanged; every page after the first
+   * starts on a fresh printed page, which is what makes the preview's page
+   * boundaries match the real print pagination (one sheet per page, no
+   * merged pages).
+   */
+  .worksheet-page {
+    background: #fff;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .worksheet-page + .worksheet-page {
+    margin-top: 0;
     break-before: page;
   }
 

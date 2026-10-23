@@ -704,4 +704,61 @@ describe('WorksheetsPrintPage', () => {
       expect(printSpy).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('white-paper page sheets (issue #531)', () => {
+    const eightWordList: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake', 'bake', 'late', 'make'] },
+        { id: 'p2', sound: 'long a', pattern: 'ai', frequency: 'common', words: ['rain', 'train', 'paint', 'snail'] },
+      ],
+    }
+
+    const pages = () => Array.from(document.querySelectorAll('.worksheet-page'))
+
+    it('renders one paper page per printed page, with the job title on the first', async () => {
+      getList.mockResolvedValue(fullList)
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['spelling-list']} />)
+      expect(await screen.findByRole('heading', { name: 'Answer key' })).toBeInTheDocument()
+
+      const pageEls = pages()
+      // One student page plus one answer-key page.
+      expect(pageEls).toHaveLength(2)
+      // The title prints at the top of the first page, with the first sheet.
+      expect(pageEls[0].querySelector('h1')).toHaveTextContent('Week 5: Long A: worksheets (week 5)')
+      expect(pageEls[0].querySelectorAll('section.worksheet-sheet')).toHaveLength(1)
+      // The answer key starts on its own fresh page.
+      expect(pageEls[1].querySelector('h2')).toHaveTextContent('Answer key')
+      expect(pageEls[1].querySelectorAll('section.worksheet-sheet')).toHaveLength(1)
+    })
+
+    it('gives every chunked sheet its own paper page', async () => {
+      getList.mockResolvedValue(eightWordList)
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['cut-sort']} />)
+      expect(await screen.findAllByRole('heading', { name: 'Cut and sort' })).toHaveLength(4)
+
+      const pageEls = pages()
+      // Eight words chunk into two cut-sort pages; each renders as a student
+      // sheet and an answer-key sheet, one paper page each.
+      expect(pageEls).toHaveLength(4)
+      for (const page of pageEls) {
+        expect(page.querySelectorAll('section.worksheet-sheet')).toHaveLength(1)
+      }
+      // The title shares the first student page rather than taking its own.
+      expect(pageEls[0].querySelector('h1')).toBeInTheDocument()
+      expect(pageEls[1].querySelector('h1')).not.toBeInTheDocument()
+    })
+
+    it('renders a single paper page when only the parent note is selected', async () => {
+      getList.mockResolvedValue(fullList)
+      render(<WorksheetsPrintPage listId="l1" selectedTypes={['parent-note']} />)
+      expect(await screen.findByRole('heading', { name: 'A note for families' })).toBeInTheDocument()
+
+      const pageEls = pages()
+      expect(pageEls).toHaveLength(1)
+      expect(pageEls[0].querySelector('h1')).toHaveTextContent('Week 5: Long A: worksheets (week 5)')
+      // The parent note has no answer key, so no key pages follow.
+      expect(screen.queryByRole('heading', { name: 'Answer key' })).not.toBeInTheDocument()
+    })
+  })
 })

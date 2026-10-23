@@ -247,6 +247,15 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   blanks lived in the print block and vanished from the preview once they
   stopped rendering underscore text).
 
+- **Worksheet preview pages are explicit DOM wrappers, one per printed
+  page.** The preview's `.worksheet-page` divs are the paper cards on
+  screen (white, shadow, gap between pages) and collapse to nothing in
+  print CSS, with `break-before: page` on every page after the first, so
+  print pagination matches the preview by construction instead of by flow
+  luck. Every new sheet type must render inside its own page wrapper; the
+  job title and the answer-key heading ride on the first page of their run
+  (found 2026-10-23: issue #531, white-paper preview and page boundaries).
+
 - **The worksheet `@page` pins US Letter with 0.75in margins.** Margins left
   to browser defaults vary by browser and printer, so the named page
   declares them explicitly. Lexend stays the print font: it is self-hosted
