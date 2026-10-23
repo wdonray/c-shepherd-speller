@@ -174,13 +174,11 @@ export function chunkCutSortPages(
     let words = group.words
     while (words.length > 0) {
       if (count === cap) flush()
+      // A second iteration for the same group always follows a flush (the
+      // first take fills the page), so the current page never already holds
+      // this pattern: each page carries at most one entry per pattern.
       const take = words.slice(0, cap - count)
-      const pageGroup = current.find((g) => g.patternId === group.patternId)
-      if (pageGroup) {
-        pageGroup.words.push(...take)
-      } else {
-        current.push({ ...group, words: [...take] })
-      }
+      current.push({ ...group, words: [...take] })
       count += take.length
       words = words.slice(take.length)
     }
