@@ -4,6 +4,9 @@ import {
   blankWholeWordInSentence,
   blankWordForPattern,
   blankWordInSentence,
+  chunkCutSortPages,
+  CUT_SORT_WORDS_PER_PAGE,
+  CUT_SORT_WORDS_PER_PATTERN,
   extractWorksheetWords,
   formatTestDate,
   groupWordsByPattern,
@@ -184,6 +187,65 @@ describe('groupWordsByPattern', () => {
 
   it('returns an empty array for no words', () => {
     expect(groupWordsByPattern([])).toEqual([])
+  })
+})
+
+describe('chunkCutSortPages (issue #520)', () => {
+  const ae = { pattern: 'a_e', sound: 'long a', patternId: 'pat-ae', words: ['cake', 'bake', 'late', 'date'] }
+  const ai = { pattern: 'ai', sound: 'long a', patternId: 'pat-ai', words: ['rain', 'train'] }
+
+  it('keeps a short list on one page', () => {
+    expect(chunkCutSortPages([ae, ai])).toEqual([[ae, ai]])
+  })
+
+  it('returns no pages for no groups', () => {
+    expect(chunkCutSortPages([])).toEqual([])
+  })
+
+  it('caps each page at CUT_SORT_WORDS_PER_PAGE', () => {
+    expect(CUT_SORT_WORDS_PER_PAGE).toBe(6)
+    const pages = chunkCutSortPages([ae, ai])
+    for (const page of pages) {
+      expect(page.flatMap((g) => g.words).length).toBeLessThanOrEqual(6)
+    }
+  })
+
+  it('starts a new page when a group would overflow the cap', () => {
+    const pages = chunkCutSortPages([ae, ai], 5)
+    expect(pages).toEqual([
+      [
+        { ...ae, words: ['cake', 'bake', 'late', 'date'] },
+        { ...ai, words: ['rain'] },
+      ],
+      [{ ...ai, words: ['train'] }],
+    ])
+  })
+
+  it('spans a group across pages when it exceeds the per-pattern cap alone', () => {
+    const big = { ...ae, words: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'] }
+    const pages = chunkCutSortPages([big])
+    expect(pages).toEqual([[{ ...big, words: ['w1', 'w2', 'w3', 'w4'] }], [{ ...big, words: ['w5', 'w6', 'w7'] }]])
+  })
+
+  it('never puts more than CUT_SORT_WORDS_PER_PATTERN of one pattern on a page', () => {
+    expect(CUT_SORT_WORDS_PER_PATTERN).toBe(4)
+    // Six tall boxes in one column overflow a portrait page (measured
+    // ~1140px against ~960px printable), so a lopsided pattern paginates.
+    const pages = chunkCutSortPages([{ ...ae, words: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6'] }])
+    expect(pages).toEqual([[{ ...ae, words: ['w1', 'w2', 'w3', 'w4'] }], [{ ...ae, words: ['w5', 'w6'] }]])
+    for (const page of pages) {
+      for (const group of page) {
+        expect(group.words.length).toBeLessThanOrEqual(CUT_SORT_WORDS_PER_PATTERN)
+      }
+    }
+  })
+
+  it('preserves pattern order and per-group word order across pages', () => {
+    const pages = chunkCutSortPages([ae, ai], 4)
+    const flat = pages.flatMap((page) => page.flatMap((g) => g.words))
+    expect(flat).toEqual(['cake', 'bake', 'late', 'date', 'rain', 'train'])
+    expect(pages[0].map((g) => g.patternId)).toEqual(['pat-ae'])
+    expect(pages[1].map((g) => g.patternId)).toEqual(['pat-ai'])
   })
 })
 

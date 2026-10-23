@@ -171,52 +171,98 @@ export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
 }
 
 /**
- * 2. Cut-and-paste sorting. Student: dashed word cards to cut out, then
- * empty columns to sort them under. Key: the columns filled in.
+ * Cut-out card and paste-box sizes by grade band (issue #520). The cards and
+ * the boxes share one size per band, so a card cut from the bank physically
+ * fits the box it gets pasted into. Beginners get the research floor:
+ * ~1 inch tall (min-h-24) for K-1 hands; older bands can go smaller.
  */
-export function CutSortSheet({ groups, answerKey }: { groups: PatternWordGroup[]; answerKey: boolean }) {
+const CUT_CARD: Record<WordSearchDifficulty, string> = {
+  // Beginner cards keep the research floor of ~1 inch tall (min-h-24); the
+  // minimum width stays under the narrowest paste-box interior (~139px at
+  // 390px) so a cut card always fits its box, even on the phone preview.
+  beginner: 'min-h-24 min-w-32 text-2xl',
+  intermediate: 'min-h-20 min-w-32 text-xl',
+  upper: 'min-h-16 min-w-28 text-lg',
+}
+
+/**
+ * Paste boxes are fixed-height (same value as the band's card min-height),
+ * so the box geometry never shifts with the word inside it; long words wrap
+ * instead of pushing the layout around.
+ */
+const PASTE_BOX: Record<WordSearchDifficulty, string> = {
+  beginner: 'h-24 text-2xl',
+  intermediate: 'h-20 text-xl',
+  upper: 'h-16 text-lg',
+}
+
+/**
+ * 2. Cut-and-paste sorting. One page of at most CUT_SORT_WORDS_PER_PAGE words:
+ * the caller chunks longer lists so each page fits on one printed sheet.
+ * Student: labeled sort columns with paste boxes at the top, then the dashed
+ * word cards to cut out at the bottom. Key: the same columns with each box
+ * filled in. All functional marks are black (photocopy-safe).
+ */
+export function CutSortSheet({
+  groups,
+  answerKey,
+  gradeBand,
+}: {
+  groups: PatternWordGroup[]
+  answerKey: boolean
+  gradeBand: WordSearchDifficulty
+}) {
   const preset = usePrintPreset()
   // The student cut-out bank is shuffled so same-pattern words do not sit
   // next to each other. The answer-key columns stay grouped by pattern.
   const words = shuffleWords(groups.flatMap((group) => group.words))
+  const columns = (
+    <div className="grid grid-cols-2 gap-6 md:grid-cols-3" aria-label="Sort the words">
+      {groups.map((group) => (
+        <div key={group.patternId} className="rounded-lg border-2 border-black p-3">
+          <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>
+            {group.pattern} <span className="font-normal text-neutral-600">({group.sound})</span>
+          </h3>
+          <ol className="mt-2 space-y-2">
+            {group.words.map((word, i) => (
+              <li
+                key={word}
+                className={`flex items-center justify-center border-2 border-black px-1 ${PASTE_BOX[gradeBand]}`}
+                aria-label={answerKey ? undefined : `Paste box ${i + 1} under ${group.pattern}`}
+              >
+                {answerKey ? (
+                  <span className="text-center font-bold break-words text-black">{word}</span>
+                ) : (
+                  <span aria-hidden="true">&nbsp;</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+  )
   return (
     <WorksheetSection title="Cut and sort">
       {!answerKey && (
         <>
           <p className="text-black">Cut out the word cards. Sort each word under its spelling pattern, then glue.</p>
+          <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Sort the words</h3>
+          <div className="mt-4">{columns}</div>
+          <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Cut out the word cards</h3>
           <div className="mt-4 flex flex-wrap gap-3" aria-label="Word cards to cut out">
             {words.map((word) => (
               <div
                 key={word}
-                className="flex min-h-20 min-w-36 items-center justify-center rounded-lg border-2 border-dashed border-black px-6 py-4 text-2xl font-bold text-black"
+                className={`flex ${CUT_CARD[gradeBand]} items-center justify-center rounded-lg border-2 border-dashed border-black px-6 py-4 font-bold text-black`}
               >
                 {word}
               </div>
             ))}
           </div>
-          <h3 className={`mt-8 ${SUBHEADING[preset]} font-bold text-black`}>Sort the words</h3>
         </>
       )}
-      <div className={`grid grid-cols-2 gap-6 md:grid-cols-3 ${answerKey ? '' : 'mt-4'}`}>
-        {groups.map((group) => (
-          <div key={group.patternId} className="rounded-lg border-2 border-black p-3">
-            <h3 className={`${SUBHEADING[preset]} font-bold text-black`}>
-              {group.pattern} <span className="font-normal text-neutral-600">({group.sound})</span>
-            </h3>
-            <ol className="mt-2 space-y-2">
-              {group.words.map((word, i) => (
-                <li
-                  key={word}
-                  className="min-h-8 border-b-2 border-neutral-400 px-1 py-1 text-black"
-                  aria-label={answerKey ? undefined : `Blank line ${i + 1} under ${group.pattern}`}
-                >
-                  {answerKey ? word : <span aria-hidden="true">&nbsp;</span>}
-                </li>
-              ))}
-            </ol>
-          </div>
-        ))}
-      </div>
+      {answerKey && <div className="mt-4">{columns}</div>}
     </WorksheetSection>
   )
 }
