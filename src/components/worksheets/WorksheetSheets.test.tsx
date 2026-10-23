@@ -401,6 +401,16 @@ describe('FillBlankSheet', () => {
     expect(screen.getByText('Completed sentences.')).toBeInTheDocument()
     expect(screen.getByText('cake').tagName).toBe('STRONG')
   })
+
+  it('numbers from 1 on the first page (issue #522)', () => {
+    const { container } = render(<FillBlankSheet items={fillBlankItems} answerKey={false} />)
+    expect(container.querySelector('ol')).not.toHaveAttribute('start')
+  })
+
+  it('continues numbering across pages with startIndex (issue #522)', () => {
+    const { container } = render(<FillBlankSheet items={fillBlankItems} answerKey={false} startIndex={8} />)
+    expect(container.querySelector('ol')).toHaveAttribute('start', '9')
+  })
 })
 
 describe('WordSearchSheet', () => {
@@ -543,6 +553,20 @@ describe('ReadingSheet', () => {
     expect(screen.getByText('rain').tagName).toBe('STRONG')
     expect(screen.getByText('cake').tagName).toBe('STRONG')
     expect(screen.getByText('cake, rain')).toBeInTheDocument()
+  })
+
+  it('numbers from 1 on the first page (issue #522)', () => {
+    const { container } = render(<ReadingSheet items={items} answerKey={false} />)
+    expect(container.querySelector('ol')).not.toHaveAttribute('start')
+  })
+
+  it('continues numbering and banks only the page words (issue #522)', () => {
+    const page = [items[1]]
+    const { container } = render(<ReadingSheet items={page} answerKey={false} startIndex={6} />)
+    expect(container.querySelector('ol')).toHaveAttribute('start', '7')
+    // The bank is self-contained to the page: only this page's word.
+    expect(screen.getByText('cake')).toBeInTheDocument()
+    expect(screen.queryByText('cake, rain')).not.toBeInTheDocument()
   })
 })
 

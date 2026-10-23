@@ -26,9 +26,12 @@ import {
   blankWordForPattern,
   blankWordInSentence,
   chunkCutSortPages,
+  chunkSentencePages,
   extractWorksheetWords,
+  FILL_BLANK_SENTENCES_PER_PAGE,
   groupWordsByPattern,
   mulberry32,
+  READING_SENTENCES_PER_PAGE,
   type WorksheetType,
   type WorksheetWord,
 } from '@/lib/worksheets'
@@ -463,14 +466,57 @@ function WorksheetsJob({
             ))}
           </>
         )
-      case 'fill-blank':
-        return <FillBlankSheet items={printJob.fillBlank as FillBlankItem[]} answerKey={answerKey} />
+      case 'fill-blank': {
+        // Issue #522: sentences chunk into pages of at most
+        // FILL_BLANK_SENTENCES_PER_PAGE; each page is its own unbroken
+        // WorksheetSection and the printed numbering continues across pages.
+        const fillBlank = printJob.fillBlank as FillBlankItem[]
+        let fillOffset = 0
+        return (
+          <>
+            {chunkSentencePages(fillBlank, FILL_BLANK_SENTENCES_PER_PAGE).map((page, i) => {
+              const startIndex = fillOffset
+              fillOffset += page.length
+              return (
+                <FillBlankSheet
+                  key={`fill-${answerKey ? 'key' : 'sheet'}-${i}`}
+                  items={page}
+                  answerKey={answerKey}
+                  startIndex={startIndex}
+                />
+              )
+            })}
+          </>
+        )
+      }
       case 'word-search':
         return <WordSearchSheet result={printJob.wordSearch as WordSearchResult} answerKey={answerKey} />
       case 'crossword':
         return <CrosswordSheet result={printJob.crossword as CrosswordResult} answerKey={answerKey} />
-      case 'reading':
-        return <ReadingSheet items={printJob.reading as { word: string; sentence: string }[]} answerKey={answerKey} />
+      case 'reading': {
+        // Issue #522: like fill-in-the-blank above, reading sentences chunk
+        // into pages of at most READING_SENTENCES_PER_PAGE with continued
+        // numbering. ReadingSheet renders the word bank from its page's
+        // words only, so each page is self-contained.
+        const reading = printJob.reading as { word: string; sentence: string }[]
+        let readOffset = 0
+        return (
+          <>
+            {chunkSentencePages(reading, READING_SENTENCES_PER_PAGE).map((page, i) => {
+              const startIndex = readOffset
+              readOffset += page.length
+              return (
+                <ReadingSheet
+                  key={`reading-${answerKey ? 'key' : 'sheet'}-${i}`}
+                  items={page}
+                  answerKey={answerKey}
+                  startIndex={startIndex}
+                />
+              )
+            })}
+          </>
+        )
+      }
       case 'parent-note':
         return <ParentNoteSheet list={list} groups={groups} testDate={testDate} />
     }
