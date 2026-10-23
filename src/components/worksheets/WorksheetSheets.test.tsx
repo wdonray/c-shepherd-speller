@@ -170,7 +170,7 @@ describe('NameDateHeader (issue #516)', () => {
   it('renders on every sheet type', () => {
     const sheets = [
       <SpellingListSheet key="list" groups={groups} />,
-      <CutSortSheet key="cut" groups={groups} answerKey={false} />,
+      <CutSortSheet key="cut" groups={groups} answerKey={false} gradeBand="beginner" />,
       <FillBlankSheet key="fill" items={fillBlankItems} answerKey={false} />,
       <WordSearchSheet key="search" result={wordSearch} answerKey={false} />,
       <CrosswordSheet key="cross" result={crossword} answerKey={false} />,
@@ -185,7 +185,7 @@ describe('NameDateHeader (issue #516)', () => {
   })
 
   it('renders on answer key sheets too', () => {
-    render(<CutSortSheet groups={groups} answerKey={true} />)
+    render(<CutSortSheet groups={groups} answerKey={true} gradeBand="beginner" />)
     expect(screen.getByLabelText('Name and date lines')).toBeInTheDocument()
   })
 })
@@ -206,40 +206,79 @@ describe('SpellingListSheet', () => {
   })
 })
 
-describe('CutSortSheet', () => {
-  it('student version shows cut-out cards and empty sort columns', () => {
-    render(<CutSortSheet groups={groups} answerKey={false} />)
+describe('CutSortSheet (issue #520)', () => {
+  it('student version shows sort columns first, then the cut-out bank below', () => {
+    const { container } = render(<CutSortSheet groups={groups} answerKey={false} gradeBand="beginner" />)
     expect(screen.getByRole('heading', { name: 'Cut and sort' })).toBeInTheDocument()
     expect(screen.getByLabelText('Word cards to cut out')).toBeInTheDocument()
     expect(screen.getByText('cake')).toBeInTheDocument()
-    // Blank sort lines are labelled for assistive tech.
-    expect(screen.getByLabelText('Blank line 1 under a_e')).toBeInTheDocument()
+    // The bank sits below the columns: a line says "write here" to a kid
+    // holding scissors and glue, so the norm is columns on top, bank bottom.
+    const columnsEl = container.querySelector('[aria-label="Sort the words"]')
+    const bankEl = container.querySelector('[aria-label="Word cards to cut out"]')
+    expect(columnsEl).not.toBeNull()
+    expect(bankEl).not.toBeNull()
+    expect(columnsEl!.compareDocumentPosition(bankEl!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // Paste boxes are labelled for assistive tech.
+    expect(screen.getByLabelText('Paste box 1 under a_e')).toBeInTheDocument()
   })
 
-  it('answer key fills the sort columns and hides the cards', () => {
-    render(<CutSortSheet groups={groups} answerKey />)
+  it('renders one fixed-size paste box per word, with black borders only', () => {
+    const { container } = render(<CutSortSheet groups={groups} answerKey={false} gradeBand="beginner" />)
+    const boxes = container.querySelectorAll('ol li')
+    expect(boxes).toHaveLength(6)
+    for (const box of boxes) {
+      expect(box).toHaveClass('border-2', 'border-black')
+      expect(box).not.toHaveClass('border-neutral-400')
+    }
+    // No gray write-in lines anywhere on the sheet: gray marks fail
+    // photocopy tests (report.md section 1).
+    const gray = container.querySelectorAll('[class*="border-neutral"]')
+    expect(gray).toHaveLength(0)
+  })
+
+  it('answer key fills each paste box and hides the cards', () => {
+    const { container } = render(<CutSortSheet groups={groups} answerKey gradeBand="beginner" />)
     expect(screen.queryByLabelText('Word cards to cut out')).not.toBeInTheDocument()
     expect(screen.getAllByText('cake')).toHaveLength(1)
-    expect(screen.queryByLabelText(/Blank line/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Paste box/)).not.toBeInTheDocument()
+    // The key mirrors the student layout: one filled box per word.
+    const boxes = container.querySelectorAll('ol li')
+    expect(boxes).toHaveLength(6)
+    for (const box of boxes) {
+      expect(box).toHaveClass('border-2', 'border-black')
+    }
   })
 
   it('answer key keeps words grouped by pattern in column order', () => {
-    const { container } = render(<CutSortSheet groups={groups} answerKey />)
+    const { container } = render(<CutSortSheet groups={groups} answerKey gradeBand="beginner" />)
     // a_e words first (cake, bake, late, date), then ai words (rain, train).
     const items = Array.from(container.querySelectorAll('ol li')).map((li) => li.textContent)
     expect(items).toEqual(['cake', 'bake', 'late', 'date', 'rain', 'train'])
   })
 
-  describe('word card size (issue #452)', () => {
-    it('renders larger cut-out cards for small hands', () => {
-      render(<CutSortSheet groups={groups} answerKey={false} />)
-      const bank = screen.getByLabelText('Word cards to cut out')
-      const cards = within(bank).getAllByText(/.+/)
-      expect(cards.length).toBeGreaterThan(0)
-      for (const card of cards) {
-        expect(card).toHaveClass('min-h-20', 'min-w-36', 'text-2xl')
+  describe('grade-band sizes', () => {
+    it.each([
+      ['beginner', 'min-h-24', 'min-w-36', 'text-2xl', 'h-24'],
+      ['intermediate', 'min-h-20', 'min-w-32', 'text-xl', 'h-20'],
+      ['upper', 'min-h-16', 'min-w-28', 'text-lg', 'h-16'],
+    ] as const)(
+      '%s cards and boxes share the band size, so a cut card fits its box',
+      (gradeBand, cardH, cardW, text, boxH) => {
+        const { container } = render(<CutSortSheet groups={groups} answerKey={false} gradeBand={gradeBand} />)
+        const bank = screen.getByLabelText('Word cards to cut out')
+        const cards = within(bank).getAllByText(/.+/)
+        expect(cards.length).toBeGreaterThan(0)
+        for (const card of cards) {
+          expect(card).toHaveClass(cardH, cardW, text)
+        }
+        // Beginners get the ~1-inch floor for K-1 hands; older bands smaller.
+        const boxes = container.querySelectorAll('ol li')
+        for (const box of boxes) {
+          expect(box).toHaveClass(boxH, text)
+        }
       }
-    })
+    )
   })
 
   describe('shuffled word bank (issue #452)', () => {
@@ -249,7 +288,7 @@ describe('CutSortSheet', () => {
 
     it('renders the word cards in shuffled order, not grouped by pattern', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5)
-      render(<CutSortSheet groups={groups} answerKey={false} />)
+      render(<CutSortSheet groups={groups} answerKey={false} gradeBand="beginner" />)
       const bank = screen.getByLabelText('Word cards to cut out')
       const cards = within(bank).getAllByText(/.+/)
       // Fisher-Yates with Math.random always 0.5 over

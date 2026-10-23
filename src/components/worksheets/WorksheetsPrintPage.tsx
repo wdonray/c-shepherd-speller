@@ -25,6 +25,7 @@ import {
   blankWholeWordInSentence,
   blankWordForPattern,
   blankWordInSentence,
+  chunkCutSortPages,
   extractWorksheetWords,
   groupWordsByPattern,
   mulberry32,
@@ -437,6 +438,7 @@ function WorksheetsJob({
   // runs for selected types, whose data the job always computes.
   const printJob = job as PrintJob
   const groups = groupWordsByPattern(words)
+  const gradeBand = gradeBandForGradeLevel(list.gradeLevel)
   const orderedTypes = WORKSHEET_TYPES.filter((type) => selectedTypes.includes(type))
   const keyedTypes = orderedTypes.filter((type) => type !== 'parent-note')
 
@@ -445,7 +447,22 @@ function WorksheetsJob({
       case 'spelling-list':
         return <SpellingListSheet groups={groups} />
       case 'cut-sort':
-        return <CutSortSheet groups={groups} answerKey={answerKey} />
+        // Issue #520: paste boxes sized to the cut-out cards only fit one
+        // page, so the words chunk into pages of at most six; each page is
+        // its own unbroken WorksheetSection. Card and box sizes follow the
+        // list's grade band (issue #519's banding).
+        return (
+          <>
+            {chunkCutSortPages(groups).map((pageGroups, i) => (
+              <CutSortSheet
+                key={`cut-${answerKey ? 'key' : 'sheet'}-${i}`}
+                groups={pageGroups}
+                answerKey={answerKey}
+                gradeBand={gradeBand}
+              />
+            ))}
+          </>
+        )
       case 'fill-blank':
         return <FillBlankSheet items={printJob.fillBlank as FillBlankItem[]} answerKey={answerKey} />
       case 'word-search':

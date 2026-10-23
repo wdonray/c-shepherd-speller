@@ -147,6 +147,49 @@ export function groupWordsByPattern(words: WorksheetWord[]): PatternWordGroup[] 
 }
 
 /**
+ * Words per cut-and-sort page (issue #520). Paste boxes sized to fit the
+ * cut-out cards only fit on one page, so longer lists paginate; worksheet
+ * sections never split across pages.
+ */
+export const CUT_SORT_WORDS_PER_PAGE = 6
+
+/**
+ * Split pattern groups into cut-and-sort pages of at most `CUT_SORT_WORDS_PER_PAGE`
+ * words each (issue #520). Pattern order and per-group word order are preserved;
+ * a group with more words than the cap spans pages.
+ */
+export function chunkCutSortPages(
+  groups: PatternWordGroup[],
+  cap: number = CUT_SORT_WORDS_PER_PAGE
+): PatternWordGroup[][] {
+  const pages: PatternWordGroup[][] = []
+  let current: PatternWordGroup[] = []
+  let count = 0
+  const flush = () => {
+    if (current.length > 0) pages.push(current)
+    current = []
+    count = 0
+  }
+  for (const group of groups) {
+    let words = group.words
+    while (words.length > 0) {
+      if (count === cap) flush()
+      const take = words.slice(0, cap - count)
+      const pageGroup = current.find((g) => g.patternId === group.patternId)
+      if (pageGroup) {
+        pageGroup.words.push(...take)
+      } else {
+        current.push({ ...group, words: [...take] })
+      }
+      count += take.length
+      words = words.slice(take.length)
+    }
+  }
+  flush()
+  return pages
+}
+
+/**
  * Render a teacher-authored pattern shorthand in parent-friendly form.
  * Patterns are free-form teacher input (`a_e`, `ai`), so no lookup table can
  * cover them; the underscore slot becomes a hyphen (`a_e` -> `a-e`), matching

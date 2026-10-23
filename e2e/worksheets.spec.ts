@@ -86,6 +86,21 @@ test.describe('printable worksheets', () => {
     // The print job renders the remaining worksheets and their answer keys.
     await expect(page.getByRole('heading', { name: 'Spelling list' }).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Cut and sort' }).first()).toBeVisible()
+
+    // Cut-and-sort (issue #520): one fixed-size paste box per word under
+    // labeled columns at the top, the cut-out bank at the bottom, no gray
+    // write-in lines anywhere on the sheet.
+    const cutSections = page.locator('section[aria-label="Cut and sort"]')
+    const studentCut = cutSections.first()
+    await expect(studentCut.getByLabel(/Paste box \d+ under/)).toHaveCount(6)
+    await expect(studentCut.locator('[class*="border-neutral"]')).toHaveCount(0)
+    const columnsBox = await studentCut.getByLabel('Sort the words').boundingBox()
+    const bankBox = await studentCut.getByLabel('Word cards to cut out').boundingBox()
+    expect(bankBox!.y).toBeGreaterThan(columnsBox!.y + columnsBox!.height)
+    // The answer key mirrors the student page: one filled box per word, no bank.
+    const keyCut = cutSections.nth(1)
+    await expect(keyCut.locator('ol li')).toHaveCount(6)
+    await expect(keyCut.getByLabel('Word cards to cut out')).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Fill in the blank' }).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Crossword' }).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Reading practice' }).first()).toBeVisible()
