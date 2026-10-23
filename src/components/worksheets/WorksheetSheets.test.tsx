@@ -259,7 +259,7 @@ describe('CutSortSheet (issue #520)', () => {
 
   describe('grade-band sizes', () => {
     it.each([
-      ['beginner', 'min-h-24', 'min-w-36', 'text-2xl', 'h-24'],
+      ['beginner', 'min-h-24', 'min-w-32', 'text-2xl', 'h-24'],
       ['intermediate', 'min-h-20', 'min-w-32', 'text-xl', 'h-20'],
       ['upper', 'min-h-16', 'min-w-28', 'text-lg', 'h-16'],
     ] as const)(

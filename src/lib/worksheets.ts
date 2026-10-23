@@ -154,32 +154,50 @@ export function groupWordsByPattern(words: WorksheetWord[]): PatternWordGroup[] 
 export const CUT_SORT_WORDS_PER_PAGE = 6
 
 /**
- * Split pattern groups into cut-and-sort pages of at most `CUT_SORT_WORDS_PER_PAGE`
- * words each (issue #520). Pattern order and per-group word order are preserved;
- * a group with more words than the cap spans pages.
+ * Words of one pattern per cut-and-sort page (issue #520). Six tall boxes in
+ * a single column measure ~1140px against ~960px of printable portrait
+ * height, so a lopsided pattern would overflow the page; four per column
+ * keeps every page printable.
+ */
+export const CUT_SORT_WORDS_PER_PATTERN = 4
+
+/**
+ * Split pattern groups into cut-and-sort pages (issue #520): at most
+ * `CUT_SORT_WORDS_PER_PAGE` words per page and at most
+ * `CUT_SORT_WORDS_PER_PATTERN` words of one pattern per page, so every page
+ * fits on one printed portrait sheet. Pattern order and per-group word order
+ * are preserved; a group with more words than the per-pattern cap spans
+ * pages.
  */
 export function chunkCutSortPages(
   groups: PatternWordGroup[],
-  cap: number = CUT_SORT_WORDS_PER_PAGE
+  cap: number = CUT_SORT_WORDS_PER_PAGE,
+  perPatternCap: number = CUT_SORT_WORDS_PER_PATTERN
 ): PatternWordGroup[][] {
   const pages: PatternWordGroup[][] = []
   let current: PatternWordGroup[] = []
   let count = 0
+  let patternCounts = new Map<string, number>()
   const flush = () => {
     if (current.length > 0) pages.push(current)
     current = []
     count = 0
+    patternCounts = new Map()
   }
   for (const group of groups) {
     let words = group.words
     while (words.length > 0) {
       if (count === cap) flush()
+      const patternCount = patternCounts.get(group.patternId) ?? 0
+      if (patternCount === perPatternCap) flush()
       // A second iteration for the same group always follows a flush (the
-      // first take fills the page), so the current page never already holds
-      // this pattern: each page carries at most one entry per pattern.
-      const take = words.slice(0, cap - count)
+      // first take fills the page or the pattern's share of it), so the
+      // current page never already holds this pattern: each page carries at
+      // most one entry per pattern.
+      const take = words.slice(0, Math.min(cap - count, perPatternCap - (patternCounts.get(group.patternId) ?? 0)))
       current.push({ ...group, words: [...take] })
       count += take.length
+      patternCounts.set(group.patternId, (patternCounts.get(group.patternId) ?? 0) + take.length)
       words = words.slice(take.length)
     }
   }

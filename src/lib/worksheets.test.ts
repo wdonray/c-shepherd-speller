@@ -6,6 +6,7 @@ import {
   blankWordInSentence,
   chunkCutSortPages,
   CUT_SORT_WORDS_PER_PAGE,
+  CUT_SORT_WORDS_PER_PATTERN,
   extractWorksheetWords,
   formatTestDate,
   groupWordsByPattern,
@@ -220,10 +221,23 @@ describe('chunkCutSortPages (issue #520)', () => {
     ])
   })
 
-  it('spans a group across pages when it exceeds the cap alone', () => {
+  it('spans a group across pages when it exceeds the per-pattern cap alone', () => {
     const big = { ...ae, words: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7'] }
-    const pages = chunkCutSortPages([big], 6)
-    expect(pages).toEqual([[{ ...big, words: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6'] }], [{ ...big, words: ['w7'] }]])
+    const pages = chunkCutSortPages([big])
+    expect(pages).toEqual([[{ ...big, words: ['w1', 'w2', 'w3', 'w4'] }], [{ ...big, words: ['w5', 'w6', 'w7'] }]])
+  })
+
+  it('never puts more than CUT_SORT_WORDS_PER_PATTERN of one pattern on a page', () => {
+    expect(CUT_SORT_WORDS_PER_PATTERN).toBe(4)
+    // Six tall boxes in one column overflow a portrait page (measured
+    // ~1140px against ~960px printable), so a lopsided pattern paginates.
+    const pages = chunkCutSortPages([{ ...ae, words: ['w1', 'w2', 'w3', 'w4', 'w5', 'w6'] }])
+    expect(pages).toEqual([[{ ...ae, words: ['w1', 'w2', 'w3', 'w4'] }], [{ ...ae, words: ['w5', 'w6'] }]])
+    for (const page of pages) {
+      for (const group of page) {
+        expect(group.words.length).toBeLessThanOrEqual(CUT_SORT_WORDS_PER_PATTERN)
+      }
+    }
   })
 
   it('preserves pattern order and per-group word order across pages', () => {

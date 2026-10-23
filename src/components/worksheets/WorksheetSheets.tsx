@@ -177,7 +177,10 @@ export function SpellingListSheet({ groups }: { groups: PatternWordGroup[] }) {
  * ~1 inch tall (min-h-24) for K-1 hands; older bands can go smaller.
  */
 const CUT_CARD: Record<WordSearchDifficulty, string> = {
-  beginner: 'min-h-24 min-w-36 text-2xl',
+  // Beginner cards keep the research floor of ~1 inch tall (min-h-24); the
+  // minimum width stays under the narrowest paste-box interior (~139px at
+  // 390px) so a cut card always fits its box, even on the phone preview.
+  beginner: 'min-h-24 min-w-32 text-2xl',
   intermediate: 'min-h-20 min-w-32 text-xl',
   upper: 'min-h-16 min-w-28 text-lg',
 }
