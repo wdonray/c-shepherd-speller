@@ -32,6 +32,7 @@ import {
   groupWordsByPattern,
   mulberry32,
   READING_SENTENCES_PER_PAGE,
+  stablePuzzleSeed,
   type WorksheetType,
   type WorksheetWord,
 } from '@/lib/worksheets'
@@ -188,7 +189,7 @@ function WorksheetsJob({
   const [busyWord, setBusyWord] = useState<string | null>(null)
   const [approving, setApproving] = useState(false)
   const [gapError, setGapError] = useState<string | null>(null)
-  const [seed] = useState(() => Date.now())
+  const [seed, setSeed] = useState(() => stablePuzzleSeed(list.id))
   /**
    * Pre-print options (issue #512). The print style preset persists per
    * teacher in localStorage so she sets it once; the stored value is
@@ -199,6 +200,13 @@ function WorksheetsJob({
   const [includeAnswerKey, setIncludeAnswerKey] = useState(true)
   /** First-sentence suggestions each gap word loaded, keyed by word. */
   const [suggestionsByWord, setSuggestionsByWord] = useState<Record<string, string[]>>({})
+
+  // Only crossword and word search are seeded puzzles; the other sheets are
+  // deterministic, so the regenerate button only applies to these two.
+  const hasPuzzles = selectedTypes.includes('word-search') || selectedTypes.includes('crossword')
+
+  /** Re-seed the generator for a fresh puzzle layout (issue #532). */
+  const regeneratePuzzles = () => setSeed(Math.floor(Math.random() * 0xffffffff) + 1)
 
   /** Rows report their suggestions on load; stable so the per-row fetch effect never re-runs. */
   const handleSuggestionsLoaded = useCallback((word: string, sentences: string[]) => {
@@ -546,11 +554,26 @@ function WorksheetsJob({
 
   return (
     <div className="print-page worksheet-print mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="mb-6 print:hidden">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
         <Link href={worksheetsHref} className="text-sm font-bold text-sky-ink hover:underline">
           &larr; Back to worksheets
         </Link>
+        {hasPuzzles && (
+          <Button
+            variant="secondary"
+            onClick={regeneratePuzzles}
+            title="Make a fresh layout for the crossword and word search"
+          >
+            New version
+          </Button>
+        )}
       </div>
+      {hasPuzzles && (
+        <p className="mb-6 text-[15px] text-muted-foreground print:hidden">
+          The default puzzles stay the same every time you open this page. If you make a new version, print or save the
+          answer key before leaving.
+        </p>
+      )}
       <PrintOptionsPanel
         preset={preset}
         onPresetChange={setStoredPreset}

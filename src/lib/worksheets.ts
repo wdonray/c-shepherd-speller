@@ -100,6 +100,21 @@ export function mulberry32(seed: number): () => number {
 }
 
 /**
+ * Stable puzzle seed for a list (issue #532): FNV-1a 32-bit hash of the list
+ * id, returned as an unsigned int. The same list always generates the same
+ * crossword and word search across visits, so a saved answer key keeps
+ * matching. Feed it to mulberry32, which normalizes the seed itself.
+ */
+export function stablePuzzleSeed(listId: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < listId.length; i++) {
+    hash ^= listId.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+/**
  * Blank the spelling pattern inside a word for fill-in-the-blank.
  * For each letter of `pattern` (ignoring '_' placeholders in split patterns
  * like "a_e"), replace the first still-unblanked occurrence of that letter
