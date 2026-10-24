@@ -590,7 +590,6 @@ function WorksheetsJob({
           {studentSheets.slice(1).map((sheet, i) => (
             <WorksheetPage key={`student-page-${i + 1}`}>{sheet}</WorksheetPage>
           ))}
-          ))}
           {keySheets.length > 0 && (
             <>
               <WorksheetPage key="key-page-0">

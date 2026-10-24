@@ -820,6 +820,5 @@ describe('WorksheetsPrintPage', () => {
       expect(screen.queryByRole('button', { name: 'New version' })).not.toBeInTheDocument()
       expect(screen.queryByText(/stay the same every time you open this page/)).not.toBeInTheDocument()
     })
-    })
   })
 })
