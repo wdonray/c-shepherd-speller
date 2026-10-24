@@ -570,7 +570,8 @@ function WorksheetsJob({
       </div>
       {hasPuzzles && (
         <p className="mb-6 text-[15px] text-muted-foreground print:hidden">
-          These puzzles stay the same every time you open this page. Make a new version for a fresh layout.
+          The default puzzles stay the same every time you open this page. If you make a new version, print or save the
+          answer key before leaving.
         </p>
       )}
       <PrintOptionsPanel
