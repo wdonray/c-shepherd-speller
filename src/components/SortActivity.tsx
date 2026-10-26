@@ -65,6 +65,14 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
   rare: 1,
 }
 
+/**
+ * Sort key for column order. Patterns without a frequency (issue #548)
+ * sort last, after Rare, in their original relative order (stable sort).
+ */
+function frequencySortLevel(frequency: PatternFrequency | undefined): number {
+  return frequency === undefined ? 0 : FREQUENCY_LEVEL[frequency]
+}
+
 const WORD_BANK_ID = 'word-bank'
 
 /**
@@ -293,7 +301,8 @@ function DropColumn({
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
-  const level = FREQUENCY_LEVEL[pattern.frequency]
+  // Issue #548: no frequency means no power bar in the column header.
+  const level = pattern.frequency === undefined ? undefined : FREQUENCY_LEVEL[pattern.frequency]
   return (
     <section
       ref={setNodeRef}
@@ -309,10 +318,12 @@ function DropColumn({
         {/* Issue #379: the pattern's target sound always reads under the
             pattern name, subtle but projector-readable. */}
         <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <PowerBar level={level} filledClassName="bg-ink" />
-          <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
-        </div>
+        {level !== undefined && (
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <PowerBar level={level} filledClassName="bg-ink" />
+            <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
+          </div>
+        )}
         <AnimatedRuleSlot show={showRules}>
           {rule ? (
             <RuleCard rule={rule} label={ruleLabel} editable={false} />
@@ -420,7 +431,8 @@ function MobileDropColumn({
 }) {
   const { setNodeRef } = useDroppable({ id: pattern.id })
   const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
-  const level = FREQUENCY_LEVEL[pattern.frequency]
+  // Issue #548: no frequency means no power bar in the column header.
+  const level = pattern.frequency === undefined ? undefined : FREQUENCY_LEVEL[pattern.frequency]
   return (
     <section
       ref={setNodeRef}
@@ -432,10 +444,12 @@ function MobileDropColumn({
         {/* Issue #379: the pattern's target sound always reads under the
             pattern name, subtle but projector-readable. */}
         <p className="mt-1 text-lg font-semibold text-muted-foreground">{pattern.sound}</p>
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <PowerBar level={level} filledClassName="bg-ink" />
-          <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
-        </div>
+        {level !== undefined && (
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <PowerBar level={level} filledClassName="bg-ink" />
+            <span className="text-sm font-bold text-muted-foreground">{FREQUENCY_LABELS[level]}</span>
+          </div>
+        )}
         <AnimatedRuleSlot show={showRules}>
           {rule ? (
             <RuleCard rule={rule} label={ruleLabel} editable={false} />
@@ -549,7 +563,7 @@ export default function SortActivity({ list, onExit, classId = null }: SortActiv
   const isMobile = useMediaQuery(MOBILE_QUERY)
 
   const patterns = useMemo(() => {
-    return [...list.patterns].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    return [...list.patterns].sort((a, b) => frequencySortLevel(b.frequency) - frequencySortLevel(a.frequency))
   }, [list])
 
   const placedIds = useMemo(() => new Set(Object.keys(placements)), [placements])

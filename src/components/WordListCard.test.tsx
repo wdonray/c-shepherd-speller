@@ -39,6 +39,20 @@ describe('WordListCard', () => {
     expect(screen.getByRole('img', { name: 'Frequency: Less common' })).toBeInTheDocument()
   })
 
+  it('omits the power bar for patterns without a frequency (issue #548)', () => {
+    const mixed: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p2', sound: 'long a', pattern: 'ay', words: ['day'] },
+      ],
+    }
+    render(<WordListCard list={mixed} onOpen={vi.fn()} primaryLabel="Edit list" />)
+    expect(screen.getByText('a_e')).toBeInTheDocument()
+    expect(screen.getByText('ay')).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: /^Frequency:/ })).toHaveLength(1)
+  })
+
   it('shows at most four patterns with a "+N more" indicator', () => {
     const manyPatterns: WordList = {
       ...list,

@@ -153,7 +153,10 @@ export default function WordListCard({
                 visiblePatterns.map((pattern) => (
                   <li key={pattern.id} className={cn('flex flex-col gap-1.5 rounded-xl px-3 py-2', accent.soft)}>
                     <span className={cn('truncate text-sm font-bold', accent.text)}>{pattern.pattern}</span>
-                    <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+                    {/* Issue #548: patterns without a frequency show no power bar. */}
+                    {pattern.frequency !== undefined && (
+                      <PowerBar level={frequencyToLevel[pattern.frequency]} filledClassName={accent.fill} />
+                    )}
                   </li>
                 ))
               ) : (

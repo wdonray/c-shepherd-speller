@@ -343,6 +343,20 @@ describe('ListEditorPage', () => {
     )
   })
 
+  it('adds a pattern with no frequency (issue #548)', async () => {
+    updateList.mockImplementation(async (_id: string, data: object) => ({ ...list, ...data }))
+    await renderReady({ patterns: [] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add a pattern' }))
+    fireEvent.change(screen.getByLabelText('Target sound'), { target: { value: 'long a' } })
+    fireEvent.change(screen.getByLabelText('Pattern spelling'), { target: { value: 'ai' } })
+
+    await waitForSave()
+    const saved = updateList.mock.calls.at(-1)?.[1] as { patterns: { frequency?: string }[] }
+    expect(saved.patterns).toHaveLength(1)
+    expect(saved.patterns[0].frequency).toBeUndefined()
+  })
+
   it('smooth-scrolls the new pattern card into view after adding', async () => {
     await renderReady({ patterns: [] })
 

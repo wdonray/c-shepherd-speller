@@ -728,11 +728,12 @@ export default function ListEditorPage({ listId }: { listId: string }) {
   }
 
   const addPattern = () => {
+    // Issue #548: new patterns start with no frequency; the teacher picks
+    // one in the editor, or leaves it blank.
     const newPattern: SpellingPattern = {
       id: generatePatternId(),
       sound: '',
       pattern: '',
-      frequency: 'common',
       words: [],
     }
     // Cancel any in-flight shift animation so the measurement below reads

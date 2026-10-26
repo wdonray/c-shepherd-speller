@@ -73,6 +73,14 @@ const FREQUENCY_LEVEL: Record<PatternFrequency, PowerBarLevel> = {
 }
 
 /**
+ * Sort key for column order. Patterns without a frequency (issue #548)
+ * sort last, after Rare, in their original relative order (stable sort).
+ */
+function frequencySortLevel(frequency: PatternFrequency | undefined): number {
+  return frequency === undefined ? 0 : FREQUENCY_LEVEL[frequency]
+}
+
+/**
  * Column border color comes from the pattern's sound type (vowels green,
  * consonants red, bossy R blue). Frequency is shown by the power-bar length
  * only, never by color, so the bar and its label stay neutral.
@@ -127,8 +135,8 @@ export default function PatternChartDisplay({
     // are excluded entirely.
     const teachable = isPrint ? list.patterns.filter((p) => !p.isLocked) : list.patterns
 
-    // Most common spelling first.
-    const columns = [...teachable].sort((a, b) => FREQUENCY_LEVEL[b.frequency] - FREQUENCY_LEVEL[a.frequency])
+    // Most common spelling first; patterns without a frequency sort last.
+    const columns = [...teachable].sort((a, b) => frequencySortLevel(b.frequency) - frequencySortLevel(a.frequency))
     const allLocked = columns.length > 0 && columns.every((p) => p.isLocked)
     return { columns, allLocked }
   }, [list, isPrint])
@@ -302,7 +310,8 @@ export default function PatternChartDisplay({
 
   const renderColumn = (pattern: SpellingPattern) => {
     const border = SOUND_TYPE_BORDER[getSoundType(pattern.pattern)]
-    const level = FREQUENCY_LEVEL[pattern.frequency]
+    // Issue #548: no frequency means no power bar anywhere in the column.
+    const level = pattern.frequency === undefined ? undefined : FREQUENCY_LEVEL[pattern.frequency]
     // A locked pattern keeps its equal-width column footprint (no layout
     // reflow when toggling) but hides its name and words behind a placeholder.
     if (pattern.isLocked) {
@@ -418,7 +427,7 @@ export default function PatternChartDisplay({
               (invisible) so toggling never shifts the column layout. The
               print poster has no toggle, so it omits the hidden row entirely
               instead of reserving blank space. */}
-          {(!isPrint || pattern.showFrequency === true) && (
+          {level !== undefined && (!isPrint || pattern.showFrequency === true) && (
             <div
               data-testid="frequency-row"
               className={cn(
