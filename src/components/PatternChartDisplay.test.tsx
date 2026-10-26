@@ -54,6 +54,23 @@ describe('PatternChartDisplay', () => {
     expect(within(aE).getByText('long a')).toBeInTheDocument()
   })
 
+  it('sorts patterns without a frequency last and shows no power bar for them (issue #548)', () => {
+    const mixed: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p0', sound: 'long a', pattern: 'ay', words: ['day'] },
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['eight'] },
+      ],
+    }
+    render(<PatternChartDisplay list={mixed} />)
+    const eigh = screen.getByRole('region', { name: 'Pattern eigh' })
+    const ay = screen.getByRole('region', { name: 'Pattern ay' })
+    expect(eigh.compareDocumentPosition(ay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(ay).queryByTestId('frequency-row')).not.toBeInTheDocument()
+    expect(within(ay).queryByRole('img', { name: /Frequency:/ })).not.toBeInTheDocument()
+  })
+
   it('shows the list name even when patterns disagree on sound', () => {
     const mixed: WordList = {
       ...list,

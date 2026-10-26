@@ -84,6 +84,19 @@ describe('WordList model', () => {
       }
     })
 
+    it('accepts a pattern without a frequency (issue #548)', () => {
+      const result = SpellingPatternSchema.safeParse({
+        id: 'pat_1',
+        sound: 'long a',
+        pattern: 'a_e',
+        words: ['cake', 'bake'],
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.frequency).toBeUndefined()
+      }
+    })
+
     it('treats a missing showFrequency as hidden (issue #510, backwards compatible)', () => {
       const result = SpellingPatternSchema.safeParse(validPattern)
       expect(result.success).toBe(true)

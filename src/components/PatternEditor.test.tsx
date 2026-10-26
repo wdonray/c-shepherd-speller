@@ -215,6 +215,19 @@ describe('PatternEditor', () => {
     expect(onChange).toHaveBeenCalledWith({ ...basePattern, frequency: 'less-common' })
   })
 
+  it('offers a None frequency that clears a picked value (issue #548)', () => {
+    const { onChange } = renderEditor()
+    const none = screen.getByRole('radio', { name: /^None\./ })
+    expect(none).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(none)
+    expect(onChange).toHaveBeenCalledWith({ ...basePattern, frequency: undefined })
+  })
+
+  it('marks None selected when the pattern has no frequency (issue #548)', () => {
+    renderEditor({ frequency: undefined })
+    expect(screen.getByRole('radio', { name: /^None\./ })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('marks the selected frequency', () => {
     renderEditor({ frequency: 'rare' })
     expect(screen.getByRole('radio', { name: /^Rare\./ })).toHaveAttribute('aria-checked', 'true')

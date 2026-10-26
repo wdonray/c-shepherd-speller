@@ -58,7 +58,14 @@ interface PatternEditorProps {
   onSaveRule?: (patternId: string, patternText: string, rule: string) => Promise<void>
 }
 
-const FREQUENCIES: { value: PatternFrequency; label: string; meaning: string; level: PowerBarLevel }[] = [
+const FREQUENCIES: { value: PatternFrequency | undefined; label: string; meaning: string; level?: PowerBarLevel }[] = [
+  {
+    // Issue #548: frequency is optional, so None is a first-class choice
+    // that clears a previously picked value back to unset.
+    value: undefined,
+    label: 'None',
+    meaning: 'No frequency picked yet. Pick one any time, or leave it blank.',
+  },
   {
     value: 'common',
     label: 'Common',
@@ -533,7 +540,7 @@ export default function PatternEditor({
                       const selected = pattern.frequency === f.value
                       return (
                         <button
-                          key={f.value}
+                          key={f.value ?? 'none'}
                           type="button"
                           role="radio"
                           aria-checked={selected}
@@ -544,7 +551,9 @@ export default function PatternEditor({
                             selected ? 'bg-sky-soft text-sky-ink' : 'text-muted-foreground hover:text-ink'
                           )}
                         >
-                          <PowerBar level={f.level} filledClassName={accent.fill} size="sm" />
+                          {f.level !== undefined && (
+                            <PowerBar level={f.level} filledClassName={accent.fill} size="sm" />
+                          )}
                           <span>{f.label}</span>
                         </button>
                       )

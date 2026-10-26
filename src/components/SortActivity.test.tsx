@@ -106,6 +106,22 @@ describe('SortActivity', () => {
     }
   })
 
+  it('sorts patterns without a frequency last and shows no power bar for them (issue #548)', () => {
+    const mixed: WordList = {
+      ...list,
+      patterns: [
+        { id: 'p0', sound: 'long a', pattern: 'ay', words: ['day'] },
+        { id: 'p1', sound: 'long a', pattern: 'a_e', frequency: 'common', words: ['cake'] },
+        { id: 'p3', sound: 'long a', pattern: 'eigh', frequency: 'rare', words: ['eight'] },
+      ],
+    }
+    render(<SortActivity list={mixed} onExit={vi.fn()} />)
+    const eigh = screen.getByRole('region', { name: 'Pattern eigh drop column' })
+    const ay = screen.getByRole('region', { name: 'Pattern ay drop column' })
+    expect(eigh.compareDocumentPosition(ay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(ay).queryByText(/Common|Less common|Rare|Very rare/)).not.toBeInTheDocument()
+  })
+
   it('renders sort columns at equal widths regardless of pattern frequency', () => {
     render(<SortActivity list={list} onExit={vi.fn()} />)
     // Columns are flex-1 with equal sizing (common, common, rare).

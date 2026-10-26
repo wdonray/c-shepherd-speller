@@ -39,8 +39,12 @@ export const SpellingPatternSchema = z.object({
   sound: z.string().min(1).max(50),
   /** The spelling pattern, e.g. "a_e", "ai", "ay" */
   pattern: z.string().min(1).max(20),
-  /** Frequency indicator (power bar) */
-  frequency: PatternFrequencySchema,
+  /**
+   * Frequency indicator (power bar). Optional (issue #548): a pattern has
+   * no frequency until the teacher picks one, and picking None clears it
+   * back to absent. Legacy items that carry a frequency still parse.
+   */
+  frequency: PatternFrequencySchema.optional(),
   /** Words using this pattern, e.g. ["cake", "bake", "late"] */
   words: z.array(z.string().min(1).max(50)).max(200),
   /** True when the teacher has locked this pattern; hidden until taught */
@@ -84,10 +88,10 @@ export type SpellingPattern = z.infer<typeof SpellingPatternSchema>
 
 /**
  * Whether a pattern has everything the API requires, so it is safe to
- * include in a save. `id` is generated, `frequency` has a UI default, and
- * `words` may be empty; the teacher must fill in the target sound and the
- * spelling pattern. Used to keep freshly added patterns local-only until
- * they are complete.
+ * include in a save. `id` is generated, `frequency` is optional (issue
+ * #548), and `words` may be empty; the teacher must fill in the target
+ * sound and the spelling pattern. Used to keep freshly added patterns
+ * local-only until they are complete.
  */
 export function isPatternComplete(pattern: SpellingPattern): boolean {
   return pattern.sound.trim() !== '' && pattern.pattern.trim() !== ''
