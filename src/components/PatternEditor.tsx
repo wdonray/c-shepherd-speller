@@ -534,7 +534,12 @@ export default function PatternEditor({
                   <div
                     role="radiogroup"
                     aria-labelledby={`frequency-${pattern.id}`}
-                    className="flex w-full gap-1 rounded-xl border-2 border-line bg-card p-1"
+                    // Issue #551: four options in one row squeezed each to
+                    // ~60px at 390px, wrapping "Less common" and stacking
+                    // the power bar over the label. Stack on mobile, pair
+                    // up at sm, and only run as one row at lg, where four
+                    // options fit with bar and label on one line.
+                    className="grid w-full grid-cols-1 gap-1 rounded-xl border-2 border-line bg-card p-1 sm:grid-cols-2 lg:flex"
                   >
                     {FREQUENCIES.map((f) => {
                       const selected = pattern.frequency === f.value
@@ -554,7 +559,7 @@ export default function PatternEditor({
                           {f.level !== undefined && (
                             <PowerBar level={f.level} filledClassName={accent.fill} size="sm" />
                           )}
-                          <span>{f.label}</span>
+                          <span className="whitespace-nowrap">{f.label}</span>
                         </button>
                       )
                     })}
