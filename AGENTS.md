@@ -169,6 +169,14 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   renders the element, every column reserves the same fixed-height slot;
   when none do, render nothing so no dead space appears (found
   2026-10-18: issue #420, present-chart rule boxes misaligned by 56px).
+- **A reserved slot between sections inflates the section gap.** A
+  reserved slot placed as a direct child of a spaced section container
+  adds its own height plus its spacing margin to the gap: the duplicate
+  pair notice's reserved slot turned the editor's 24px section rhythm
+  into a 72px dead band above Words. A rare validation notice is not a
+  status indicator, so render it only when present rather than reserving
+  a permanent slot between sections (found 2026-10-27: issue #553,
+  mobile pattern editor spacing).
 - **Sticky chrome must outrank card content, not tie it.** Equal z-index
   ties break by DOM order, so a sticky bar at z-10 loses to card action
   rows at z-10 that come later in the DOM: scrolling card buttons paint on

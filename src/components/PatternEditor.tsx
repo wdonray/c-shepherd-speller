@@ -384,14 +384,18 @@ export default function PatternEditor({
               />
             </div>
           </div>
-          {/* Reserved so the notice never shifts the layout when it appears. */}
-          <div className="min-h-6 pt-1">
-            {duplicatePatternPair && (
-              <p role="status" className="text-[13px] text-muted-foreground">
-                This spelling and sound are already used by another pattern in the list, so the change was not applied.
-              </p>
-            )}
-          </div>
+          {/* Rendered only when a duplicate pair is blocked (issue #414). An
+              always-rendered reserved slot here sat between the identity
+              fields and the Words section as a direct space-y-6 child, so
+              the Sound-to-Words gap measured 72px against the 24px section
+              rhythm (issue #553); and on mobile the notice wraps past the
+              reserved height anyway, so the slot never held the layout
+              steady in the first place. */}
+          {duplicatePatternPair && (
+            <p role="status" className="text-[13px] text-muted-foreground">
+              This spelling and sound are already used by another pattern in the list, so the change was not applied.
+            </p>
+          )}
 
           {/* B. Words */}
           <div className="space-y-4">
