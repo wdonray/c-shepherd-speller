@@ -315,6 +315,21 @@ describe('PatternEditor', () => {
     expect(unselected).not.toHaveClass('bg-sky-soft')
   })
 
+  it('stacks the frequency options on narrow screens instead of squeezing four across', () => {
+    // Issue #551: with None added (issue #548), four options in one row
+    // squeezed each to ~60px at 390px, wrapping "Less common" and stacking
+    // the power bar over the label. The group stacks on mobile, pairs up
+    // at sm, and only runs as one row at lg, where four options fit.
+    renderEditor()
+    const group = screen.getByRole('radiogroup', { name: 'Frequency' })
+    expect(group).toHaveClass('grid-cols-1', 'sm:grid-cols-2', 'lg:flex')
+    for (const label of ['None', 'Common', 'Less common', 'Rare']) {
+      const radio = screen.getByRole('radio', { name: new RegExp(`^${label}\\.`) })
+      const labelSpan = Array.from(radio.querySelectorAll('span')).find((span) => span.textContent === label)
+      expect(labelSpan).toHaveClass('whitespace-nowrap')
+    }
+  })
+
   it('renders a lock toggle pill', () => {
     renderEditor()
     const toggle = screen.getByRole('button', { name: 'Lock pattern' })
