@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { SearchIcon, XIcon } from 'lucide-react'
+import { SearchIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import ListSortMenu from './ListSortMenu'
 import type { ListSort } from '@/lib/list-organize'
@@ -20,7 +19,6 @@ interface ListsMobileFilterBarProps {
   onSortChange: (sort: ListSort) => void
   showSort: boolean
   query: string
-  onQueryChange: (query: string) => void
   searchExpanded: boolean
   onSearchExpandedChange: (expanded: boolean) => void
 }
@@ -29,12 +27,11 @@ interface ListsMobileFilterBarProps {
  * Compact single-row filter bar for the lists page on mobile (issue #484).
  * Below the md breakpoint the three stacked desktop toolbar rows collapse
  * into one 56px row: compact All/Favorites tabs, a sort icon button that
- * opens the existing bottom sheet, and a search icon that expands into the
- * full search field.
+ * opens the existing bottom sheet, and a search icon that opens the
+ * full-screen search view (issue #555, rendered by the parent).
  *
- * No layout shift: the row keeps a fixed h-14 geometry and the expanded
- * search renders as an absolute overlay, so expanding/collapsing never
- * moves the content below the sticky bar.
+ * No layout shift: the row keeps a fixed h-14 geometry, and opening the
+ * search view never moves the content below the sticky bar.
  */
 export default function ListsMobileFilterBar({
   view,
@@ -45,40 +42,25 @@ export default function ListsMobileFilterBar({
   onSortChange,
   showSort,
   query,
-  onQueryChange,
   searchExpanded,
   onSearchExpandedChange,
 }: ListsMobileFilterBarProps) {
   const searchToggleRef = useRef<HTMLButtonElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Focus choreography for the expanding search: expanding focuses the
-  // field; collapsing returns focus to the toggle that opened it, so
-  // keyboard users never lose their place. The toggle stays mounted behind
-  // the absolute overlay, so both refs are always live.
+  // Focus choreography for the search view: closing it returns focus to
+  // the toggle that opened it, so keyboard users never lose their place.
+  // The toggle stays mounted behind the full-screen view, so the ref is
+  // always live. The view itself focuses its field on open.
   const wasExpandedRef = useRef(searchExpanded)
   useEffect(() => {
-    if (searchExpanded) {
-      searchInputRef.current?.focus()
-    } else if (wasExpandedRef.current) {
+    if (!searchExpanded && wasExpandedRef.current) {
       searchToggleRef.current?.focus()
     }
     wasExpandedRef.current = searchExpanded
-    // Runs on expand/collapse transitions only: re-focusing on every render
-    // would steal focus back from the clear button after the user tabs to it.
   }, [searchExpanded])
 
-  const collapseSearch = () => {
-    onQueryChange('')
-    onSearchExpandedChange(false)
-  }
-
-  const onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') collapseSearch()
-  }
-
   return (
-    <div className="relative flex h-14 items-center gap-2" data-testid="mobile-filter-bar">
+    <div className="flex h-14 items-center gap-2" data-testid="mobile-filter-bar">
       {showFavoritesTab && !searching && (
         <div
           role="tablist"
@@ -119,32 +101,6 @@ export default function ListsMobileFilterBar({
           <SearchIcon className="size-5" aria-hidden="true" />
         </Button>
       </div>
-
-      {searchExpanded && (
-        <div className="absolute inset-0 flex items-center gap-1 bg-background" data-testid="mobile-search-expanded">
-          <SearchIcon className="ml-1 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <Input
-            ref={searchInputRef}
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={onSearchKeyDown}
-            placeholder="Search lists"
-            aria-label="Search lists"
-            className="min-h-[44px] flex-1 rounded-full"
-          />
-          <button
-            type="button"
-            onClick={collapseSearch}
-            aria-label="Clear search and close"
-            className={cn(
-              'flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors',
-              'hover:bg-line/60 hover:text-ink focus-visible:ring-[3px] focus-visible:ring-ring/60'
-            )}
-          >
-            <XIcon className="size-5" aria-hidden="true" />
-          </button>
-        </div>
-      )}
     </div>
   )
 }

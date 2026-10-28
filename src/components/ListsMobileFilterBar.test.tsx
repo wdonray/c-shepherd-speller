@@ -25,7 +25,6 @@ const props = {
   onSortChange: vi.fn(),
   showSort: true,
   query: '',
-  onQueryChange: vi.fn(),
   searchExpanded: false,
   onSearchExpandedChange: vi.fn(),
 }
@@ -49,7 +48,9 @@ describe('ListsMobileFilterBar (issue #484)', () => {
     expect(bar().getByRole('tab', { name: 'Favorites' })).toHaveAttribute('aria-selected', 'false')
     expect(bar().getByRole('button', { name: 'Sort lists' })).toBeInTheDocument()
     expect(bar().getByRole('button', { name: 'Search lists' })).toBeInTheDocument()
-    expect(bar().queryByTestId('mobile-search-expanded')).not.toBeInTheDocument()
+    // The bar holds no search field itself: tapping the toggle opens the
+    // parent's full-screen search view (issue #555).
+    expect(bar().queryByRole('textbox', { name: 'Search lists' })).not.toBeInTheDocument()
   })
 
   it('hides the tabs when there are no favorites', () => {
@@ -76,51 +77,17 @@ describe('ListsMobileFilterBar (issue #484)', () => {
     expect(props.onViewChange).toHaveBeenCalledWith('favorites')
   })
 
-  it('expands the search field and focuses it when the toggle is tapped', () => {
-    const { rerender } = render(<ListsMobileFilterBar {...props} />)
+  it('opens the full-screen search view when the toggle is tapped', () => {
+    render(<ListsMobileFilterBar {...props} />)
     fireEvent.click(bar().getByRole('button', { name: 'Search lists' }))
     expect(props.onSearchExpandedChange).toHaveBeenCalledWith(true)
-
-    rerender(<ListsMobileFilterBar {...props} searchExpanded />)
-    const input = bar().getByRole('textbox', { name: 'Search lists' })
-    expect(input).toBeInTheDocument()
-    expect(input).toHaveFocus()
   })
 
-  it('reports the query as the teacher types in the expanded field', () => {
-    render(<ListsMobileFilterBar {...props} searchExpanded />)
-    fireEvent.change(bar().getByRole('textbox', { name: 'Search lists' }), { target: { value: 'cake' } })
-    expect(props.onQueryChange).toHaveBeenCalledWith('cake')
-  })
-
-  it('clears the query and collapses when the X is tapped', () => {
-    render(<ListsMobileFilterBar {...props} searchExpanded query="cake" />)
-    fireEvent.click(bar().getByRole('button', { name: 'Clear search and close' }))
-    expect(props.onQueryChange).toHaveBeenCalledWith('')
-    expect(props.onSearchExpandedChange).toHaveBeenCalledWith(false)
-  })
-
-  it('collapses on Escape in the expanded field', () => {
-    render(<ListsMobileFilterBar {...props} searchExpanded query="cake" />)
-    fireEvent.keyDown(bar().getByRole('textbox', { name: 'Search lists' }), { key: 'Escape' })
-    expect(props.onQueryChange).toHaveBeenCalledWith('')
-    expect(props.onSearchExpandedChange).toHaveBeenCalledWith(false)
-  })
-
-  it('ignores non-Escape keys in the expanded field', () => {
-    render(<ListsMobileFilterBar {...props} searchExpanded />)
-    fireEvent.keyDown(bar().getByRole('textbox', { name: 'Search lists' }), { key: 'Enter' })
-    expect(props.onSearchExpandedChange).not.toHaveBeenCalled()
-    expect(bar().getByTestId('mobile-search-expanded')).toBeInTheDocument()
-  })
-
-  it('returns focus to the search toggle after collapsing', () => {
+  it('returns focus to the search toggle after the view closes', () => {
     const { rerender } = render(<ListsMobileFilterBar {...props} />)
     fireEvent.click(bar().getByRole('button', { name: 'Search lists' }))
 
     rerender(<ListsMobileFilterBar {...props} searchExpanded />)
-    expect(bar().getByRole('textbox', { name: 'Search lists' })).toHaveFocus()
-
     rerender(<ListsMobileFilterBar {...props} searchExpanded={false} />)
     expect(bar().getByRole('button', { name: 'Search lists' })).toHaveFocus()
   })
@@ -130,16 +97,11 @@ describe('ListsMobileFilterBar (issue #484)', () => {
     expect(document.activeElement).toBe(document.body)
   })
 
-  it('does not yank focus back to the field on re-renders while expanded', () => {
+  it('does not move focus on re-renders while the view is open', () => {
     const { rerender } = render(<ListsMobileFilterBar {...props} searchExpanded />)
-    const input = bar().getByRole('textbox', { name: 'Search lists' })
-    expect(input).toHaveFocus()
-
-    // The teacher tabs to the clear button; a re-render (e.g. a parent state
-    // update) must not steal focus back to the input.
-    bar().getByRole('button', { name: 'Clear search and close' }).focus()
+    bar().getByRole('button', { name: 'Search lists' }).focus()
     rerender(<ListsMobileFilterBar {...props} searchExpanded query="cake" />)
-    expect(bar().getByRole('button', { name: 'Clear search and close' })).toHaveFocus()
+    expect(bar().getByRole('button', { name: 'Search lists' })).toHaveFocus()
   })
 
   it('marks the search toggle active when a query is set but the field is collapsed', () => {
