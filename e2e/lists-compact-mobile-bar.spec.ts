@@ -83,7 +83,7 @@ test.describe('compact mobile filter bar', () => {
     await setFavorite(page, id, false)
   })
 
-  test('search expands, filters, and collapses back on mobile', async ({ page }) => {
+  test('search opens a full-screen view, filters, and closes back on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     const tag = Date.now().toString(36)
     const listName = `Compact Bar Zucchini ${tag}`
@@ -93,35 +93,32 @@ test.describe('compact mobile filter bar', () => {
     await page.getByTestId('lists-grid').waitFor()
     const mobileBar = page.getByTestId('mobile-filter-bar')
 
-    // Expanding the search must not move the content below the sticky bar:
-    // the field renders as an absolute overlay inside the fixed 56px row.
+    // Opening the full-screen view (issue #555) must not move the content
+    // below the sticky bar: the view is fixed, and the grid returns to
+    // exactly its old position when the view closes.
     const gridTopBefore = await page.evaluate(() => {
       const grid = document.querySelector('[data-testid="lists-grid"]')
       return grid?.getBoundingClientRect().top ?? null
     })
     await mobileBar.getByRole('button', { name: 'Search lists' }).click()
-    const searchInput = mobileBar.getByRole('textbox', { name: 'Search lists' })
+    const overlay = page.getByTestId('mobile-search-overlay')
+    await expect(overlay).toBeVisible()
+    const searchInput = overlay.getByRole('textbox', { name: 'Search lists' })
     await expect(searchInput).toBeVisible()
     await expect(searchInput).toBeFocused()
 
-    const gridTopExpanded = await page.evaluate(() => {
-      const grid = document.querySelector('[data-testid="lists-grid"]')
-      return grid?.getBoundingClientRect().top ?? null
-    })
-    expect(gridTopExpanded, 'expanding search must not shift the grid').toBe(gridTopBefore)
-
     await searchInput.fill(`zucchini ${tag}`)
     await expect(page.getByText(`1 result for "zucchini ${tag}".`)).toBeVisible()
-    await expect(page.getByText(listName)).toBeVisible()
+    await expect(overlay.getByText(listName)).toBeVisible()
 
-    await mobileBar.getByRole('button', { name: 'Clear search and close' }).click()
-    await expect(mobileBar.getByTestId('mobile-search-expanded')).toBeHidden()
+    await overlay.getByRole('button', { name: 'Cancel search', exact: true }).click()
+    await expect(overlay).toBeHidden()
     await expect(page.getByText(listName)).toBeVisible()
     const gridTopAfter = await page.evaluate(() => {
       const grid = document.querySelector('[data-testid="lists-grid"]')
       return grid?.getBoundingClientRect().top ?? null
     })
-    expect(gridTopAfter, 'collapsing search must not shift the grid').toBe(gridTopBefore)
+    expect(gridTopAfter, 'closing search must restore the grid position').toBe(gridTopBefore)
   })
 
   test('scrolls to top when the view tab changes on mobile', async ({ page }) => {
@@ -183,7 +180,11 @@ test.describe('compact mobile filter bar', () => {
 
     const mobileBar = page.getByTestId('mobile-filter-bar')
     await mobileBar.getByRole('button', { name: 'Search lists' }).click()
-    await mobileBar.getByRole('textbox', { name: 'Search lists' }).fill(`query ${tag} list 3`)
+    // The field lives in the full-screen search view (issue #555), not the bar.
+    await page
+      .getByTestId('mobile-search-overlay')
+      .getByRole('textbox', { name: 'Search lists' })
+      .fill(`query ${tag} list 3`)
     expect(await scrollY(page), 'changing the search query scrolls to top').toBe(0)
   })
 

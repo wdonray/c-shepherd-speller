@@ -44,6 +44,7 @@ import { searchLists } from '@/lib/list-search'
 import ListsOverviewCard from './ListsOverviewCard'
 import ListSortMenu from './ListSortMenu'
 import ListsMobileFilterBar, { type ListView } from './ListsMobileFilterBar'
+import ListsMobileSearchOverlay from './ListsMobileSearchOverlay'
 import PrebuiltLibrarySection from './PrebuiltLibrarySection'
 import { touchDragLiftModifier } from '@/lib/sort-drag'
 
@@ -168,6 +169,15 @@ export default function PatternListsManager() {
     },
     [query, scrollResultsToTop]
   )
+
+  // Closing the mobile full-screen search view (issue #555) clears the
+  // query, so dismissing search restores the list exactly as it was. A
+  // no-op query change (already empty) does not scroll, matching the old
+  // inline close.
+  const handleCloseMobileSearch = useCallback(() => {
+    handleQueryChange('')
+    setSearchExpanded(false)
+  }, [handleQueryChange])
 
   const handleToggleFavorite = useCallback(
     async (list: WordList) => {
@@ -422,7 +432,6 @@ export default function PatternListsManager() {
                 onSortChange={handleSortChange}
                 showSort={(effectiveView === 'all' || searching) && lists.length > 0}
                 query={query}
-                onQueryChange={handleQueryChange}
                 searchExpanded={searchExpanded}
                 onSearchExpandedChange={setSearchExpanded}
               />
@@ -498,7 +507,7 @@ export default function PatternListsManager() {
             </div>
           </div>
 
-          {searching && (
+          {searching && !searchExpanded && (
             <p className="text-[15px] text-muted-foreground" role="status">
               {visibleLists.length === 0
                 ? `No lists match "${query.trim()}".`
@@ -506,30 +515,38 @@ export default function PatternListsManager() {
             </p>
           )}
 
-          {lists.length === 0 ? (
-            <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
-              <p className="text-xl font-bold">No word lists yet</p>
-              <p className="mt-2 text-[15px] text-muted-foreground">
-                Build your own from scratch, or start from ready-made pattern lists in two sequences (standard and UFLI)
-                and make them yours.
-              </p>
-              <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
-                <Button onClick={() => router.push('/lists/new')}>
-                  <PlusIcon className="size-4" />
-                  Create your own list
-                </Button>
-                <Button variant="secondary" onClick={scrollToPrebuiltLibrary}>
-                  Start from a ready-made list
-                </Button>
+          {/*
+            The DndContext wraps the grid and the mobile search view
+            together (issue #555): the view's cards use the same draggable /
+            droppable hooks, so they must live inside this context. While
+            the view is open the page grid does not render at all: the
+            view covers it, and rendering both would duplicate draggable
+            ids and accessible names inside one context.
+          */}
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragCancel={handleDragCancel}
+            onDragEnd={handleDragEnd}
+          >
+            {lists.length === 0 ? (
+              <div className="rounded-[20px] border-2 border-line bg-card p-10 text-center">
+                <p className="text-xl font-bold">No word lists yet</p>
+                <p className="mt-2 text-[15px] text-muted-foreground">
+                  Build your own from scratch, or start from ready-made pattern lists in two sequences (standard and
+                  UFLI) and make them yours.
+                </p>
+                <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                  <Button onClick={() => router.push('/lists/new')}>
+                    <PlusIcon className="size-4" />
+                    Create your own list
+                  </Button>
+                  <Button variant="secondary" onClick={scrollToPrebuiltLibrary}>
+                    Start from a ready-made list
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              onDragStart={handleDragStart}
-              onDragCancel={handleDragCancel}
-              onDragEnd={handleDragEnd}
-            >
+            ) : searchExpanded ? null : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="lists-grid">
                 {visibleLists.map((list) => (
                   <ListsOverviewCard
@@ -543,23 +560,34 @@ export default function PatternListsManager() {
                   />
                 ))}
               </div>
-              <DragOverlay dropAnimation={null} modifiers={[touchDragLiftModifier]} style={{ zIndex: 100 }}>
-                {activeList && (
-                  // Inert ghost copy: the real handlers are unreachable while
-                  // the overlay is inert, but keep them wired for correctness.
-                  <div aria-hidden="true" inert>
-                    <ListsOverviewCard
-                      list={activeList}
-                      reorderable={false}
-                      onOpen={openList}
-                      onDelete={setDeleteListTarget}
-                      onToggleFavorite={handleToggleFavorite}
-                    />
-                  </div>
-                )}
-              </DragOverlay>
-            </DndContext>
-          )}
+            )}
+            <DragOverlay dropAnimation={null} modifiers={[touchDragLiftModifier]} style={{ zIndex: 100 }}>
+              {activeList && (
+                // Inert ghost copy: the real handlers are unreachable while
+                // the overlay is inert, but keep them wired for correctness.
+                <div aria-hidden="true" inert>
+                  <ListsOverviewCard
+                    list={activeList}
+                    reorderable={false}
+                    onOpen={openList}
+                    onDelete={setDeleteListTarget}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                </div>
+              )}
+            </DragOverlay>
+            {searchExpanded && (
+              <ListsMobileSearchOverlay
+                query={query}
+                onQueryChange={handleQueryChange}
+                onClose={handleCloseMobileSearch}
+                results={visibleLists}
+                onOpen={openList}
+                onDelete={setDeleteListTarget}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            )}
+          </DndContext>
         </>
       )}
 

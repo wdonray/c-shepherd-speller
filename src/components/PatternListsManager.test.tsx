@@ -1200,7 +1200,9 @@ describe('compact mobile bar scroll behavior (issue #484)', () => {
 
     const mobileBar = () => within(screen.getByTestId('mobile-filter-bar'))
     fireEvent.click(mobileBar().getByRole('button', { name: 'Search lists' }))
-    fireEvent.click(mobileBar().getByRole('button', { name: 'Clear search and close' }))
+    expect(screen.getByTestId('mobile-search-overlay')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel search' }))
+    expect(screen.queryByTestId('mobile-search-overlay')).not.toBeInTheDocument()
     expect(window.scrollTo).not.toHaveBeenCalled()
   })
 
@@ -1222,7 +1224,9 @@ describe('compact mobile bar scroll behavior (issue #484)', () => {
     await screen.findByText('My word lists (2)')
 
     fireEvent.keyDown(window, { key: '/' })
-    expect(screen.getByTestId('mobile-search-expanded')).toBeInTheDocument()
-    expect(within(screen.getByTestId('mobile-filter-bar')).getByRole('textbox', { name: 'Search lists' })).toHaveFocus()
+    expect(screen.getByTestId('mobile-search-overlay')).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('mobile-search-overlay')).getByRole('textbox', { name: 'Search lists' })
+    ).toHaveFocus()
   })
 })

@@ -228,6 +228,11 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   Use a token that adapts, e.g. `accent-ink`, which also matches the
   checked card's `border-ink` highlight (found 2026-10-18: issue #435,
   worksheet picker checkboxes).
+- **Size mobile full-screen views with h-dvh, not h-screen.** The dynamic
+  viewport height shrinks when the on-screen keyboard opens, so a fixed
+  view sized with h-dvh keeps its scrollable content above the keyboard;
+  h-screen extends behind it (found 2026-10-28: issue #555, mobile
+  full-screen search view).
 - **Shrinkable grid tracks plus break-words wraps mid-word.** A grid whose
   tracks shrink below their max (3-up word chips inside pattern columns
   squeezed under their 420px cap at ~1200px viewports) gives
@@ -393,6 +398,12 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   `toBeEnabled()/toBeDisabled()` on the Save button races that timer and
   flakes in CI; use `await waitFor(() => ...)` so the test settles after the
   metadata lands (found 2026-10-18: issue #435, VoiceRecorderModal flake).
+- **Playwright's getByRole name matching is substring, not exact.** A
+  button named "Back" also matches "Add Fullscreen Back Match ... to
+  favorites", so a list card whose name contains the control's label
+  breaks the locator with a strict-mode violation. Pass `exact: true`
+  for short control labels that a list name could contain (found
+  2026-10-28: issue #555, the search view's back arrow).
 - **Playwright's click scrolls the target into view before clicking.**
   When asserting that an action does NOT scroll the page (e.g. favoriting
   a list), a plain `click()` moves the page itself during actionability
