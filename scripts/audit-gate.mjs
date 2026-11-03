@@ -32,6 +32,10 @@ export const ALLOWLIST = {
     'vite@8.3.2 (medium): launch-editor % escaping gap on Windows only — same as above: vitest-bundled, no dev server, Linux CI. (Found 2026-10-21: issue #510.)',
   'GHSA-R825-W8MM-5PXW':
     'vite@8.3.2 (medium): launch-editor CLI flag misinterpretation on Windows only — same as above: vitest-bundled, no dev server, Linux CI. (Found 2026-10-21: issue #510.)',
+  'GHSA-3G3M-2FJR-6PW4':
+    'glob@13.0.6 (availability only, CVE-2026-118773): AbortSignal cancellation bypass — an aborted async walk keeps reading directories in the background. Fixed in glob 14.0.2, but the only consumer is @sentry/bundler-plugins (^13.0.6, build-time Next.js/Sentry plugin); a major-version override would break that range. Not exploitable here: the app never calls glob with an AbortSignal or over attacker-controlled trees, and the advisory reports no confidentiality or integrity impact.',
+  'GHSA-G3HV-75WG-M249':
+    'minimatch@3.1.4 / 9.0.9 (DoS, CVE-2026-118764): pattern amplification in firstPhasePreProcess when an attacker supplies the glob pattern. Fixed in minimatch 11.0.1, but both copies are transitive lint-time-only deps (via @eslint/eslintrc and eslint-config-next/typescript-eslint); no runtime or user-input path feeds patterns to minimatch. Upgrading would mean major-bumping transitive eslint deps for a dev-tooling-only surface.',
 }
 
 const GHSA_RE = /GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/gi
