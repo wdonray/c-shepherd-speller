@@ -31,6 +31,7 @@ import {
 } from './voice-recordings'
 import { getUserByEmail } from './spelling-api'
 import { reportError } from './report-error'
+import { timeoutSignal } from './timeout-signal'
 
 /** Retry backoff for queued operations: 1m, 5m, 15m, 1h (capped). */
 const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000]
@@ -129,7 +130,7 @@ async function uploadSingle(recording: VoiceRecording): Promise<number> {
     method: 'PUT',
     headers: { 'Content-Type': recording.mimeType },
     body: recording.audio,
-    signal: AbortSignal.timeout(S3_PUT_TIMEOUT_MS),
+    signal: timeoutSignal(S3_PUT_TIMEOUT_MS),
   })
   if (!putRes.ok) throw new Error(`Voice S3 upload failed with ${putRes.status}`)
 
