@@ -187,4 +187,22 @@ describe('useNewVersionAvailable', () => {
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
+
+  it('still polls when AbortSignal.timeout is missing (older browsers)', async () => {
+    const originalTimeout = AbortSignal.timeout
+    Object.defineProperty(AbortSignal, 'timeout', { value: undefined, configurable: true })
+    try {
+      fetchMock.mockResolvedValue(versionResponse('1.0.0'))
+      render(<Probe />)
+      await act(async () => {})
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/version',
+        expect.objectContaining({ cache: 'no-store', signal: expect.any(AbortSignal) })
+      )
+      expect(screen.getByTestId('update')).toHaveTextContent('false')
+    } finally {
+      Object.defineProperty(AbortSignal, 'timeout', { value: originalTimeout, configurable: true })
+    }
+  })
 })

@@ -3,6 +3,7 @@ import { version } from '../../../package.json'
 import VersionInfo from '@/components/version-info'
 import { RELEASES_API, sortReleasesNewestFirst, toRelease, type Release } from '@/lib/github'
 import { reportError } from '@/lib/report-error'
+import { timeoutSignal } from '@/lib/timeout-signal'
 
 export const metadata: Metadata = {
   title: 'Version',
@@ -23,7 +24,7 @@ async function getRecentReleases(): Promise<Release[]> {
     const res = await fetch(RELEASES_API, {
       headers,
       next: { revalidate: 300 },
-      signal: AbortSignal.timeout(4000),
+      signal: timeoutSignal(4000),
     })
     if (!res.ok) return []
     const data: unknown = await res.json()

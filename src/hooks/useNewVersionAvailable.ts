@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { reportError } from '@/lib/report-error'
+import { timeoutSignal } from '@/lib/timeout-signal'
 
 /** How often the deployed version is re-checked while the page is open. */
 export const POLL_INTERVAL_MS = 15 * 60 * 1000
@@ -19,7 +20,7 @@ async function fetchDeployedVersion(): Promise<string | null> {
   try {
     const res = await fetch('/api/version', {
       cache: 'no-store',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: timeoutSignal(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) return null
     const data: unknown = await res.json()

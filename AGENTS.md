@@ -332,6 +332,14 @@ hyphen-free dummy creds, e.g. `e2edummyid`).
   fresh read inside the loop (found 2026-10-19: issue #473, concurrent video
   pastes dropped a video from the personal library).
 
+- **Client-side fetch timeouts go through `timeoutSignal`, never raw
+  `AbortSignal.timeout`.** `AbortSignal.timeout()` is missing in older
+  browsers (Safari before 17.4), where calling it throws on every page
+  load from the version poller mounted in the root layout. The helper in
+  `src/lib/timeout-signal.ts` uses the native call when it exists and
+  falls back to an AbortController plus a timer that aborts with a
+  TimeoutError, matching the native rejection `reportError` already
+  treats as benign (found 2026-11-08: issue #558).
 - **Decouple the data fetch from the session, but clean up on session loss.**
   Fetching dashboard data in parallel with the client-side session check
   (no `status` dependency on the fetch effect) is faster, but a mounted
