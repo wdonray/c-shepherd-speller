@@ -17,7 +17,7 @@ Goal: real elementary teachers using PatternSpell for a real week of spelling, a
 
 ## Phase 1: Chaley's network (warmest, free, first)
 
-Chaley teaches, and her teacher network already shaped this app: the pattern chart itself came from teachers telling us the spelling tree was confusing and messy. Ask Chaley for 5 to 10 elementary teachers who teach spelling by pattern.
+Chaley is a teacher, and her teacher network already shaped this app: the pattern chart itself came from teachers telling us the spelling tree was confusing and messy. Ask Chaley for 5 to 10 elementary teachers who teach spelling by pattern.
 
 - Donray emails each one personally from his own Gmail. No blast, no campaign tool. A few personal emails beat a campaign for a group this small.
 - The ask: use PatternSpell for one real week of spelling, then tell us what happened through Menu → Give feedback in the app.
@@ -60,14 +60,14 @@ Only after Phase 1 is running. Facebook teacher groups, r/teachers and grade-lev
 Send from Donray's Gmail, one teacher at a time, personalizing the first line with how you know them and what they teach. Subject options:
 
 1. Will you test a free spelling tool for one week?
-2. A spelling chart tool built for my wife's classroom
+2. A spelling chart tool built for my wife, a teacher
 3. Free spelling lists by pattern, want to try it?
 
 Body:
 
 > Hi [First name],
 >
-> I'm Donray. My wife Chaley teaches elementary school, and I built her a tool for spelling. I'm looking for a few real teachers to try it for one week and tell me what breaks.
+> I'm Donray. My wife Chaley is a teacher, and I built her a tool for spelling. I'm looking for a few real teachers to try it for one week and tell me what breaks.
 >
 > PatternSpell is for teachers who teach spelling by pattern. You pick the week's patterns, add your words, and it shows them as one clear chart on your projector or smartboard, one column per pattern, every word visible at once. It works with whatever program you already teach: CKLA, Fundations, UFLI, Words Their Way, or your own sequence.
 >
