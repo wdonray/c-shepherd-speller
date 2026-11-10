@@ -64,11 +64,17 @@ accounts need no email.
    post of theirs, offer free access with no script and no obligation.
    Expect 0 to 1 replies; that is normal. Never pay, never ask for a
    positive review or a link.
-6. **Deferred:** Product Hunt (wrong audience, one shot, needs 20+ real
+6. **Teachers Pay Teachers (later phase, not week 1-2).** Donray has a
+   TpT account (Nov 10, 2026). Publish one free resource built from the
+   flagship page, e.g. a printable ai/ay word list or worksheet, priced
+   Free, with a link back to patternspell.org. Verify seller access
+   when the step comes up: if the account is not a seller account yet,
+   Basic seller is a one-time $29, a deliberate decision, not a
+   surprise. Do not build the listing until the first pattern pages are
+   live and the Facebook and Pinterest work is running.
+7. **Deferred:** Product Hunt (wrong audience, one shot, needs 20+ real
    users first), YouTube as a channel (support only: one 60 to 90 second
-   screen demo embedded on the SEO pages), Teachers Pay Teachers (a
-   seller account costs $29 one time, so it breaks a strict $0 budget;
-   revisit only as a deliberate $29 decision).
+   screen demo embedded on the SEO pages).
 
 ## First 2 weeks
 
@@ -107,6 +113,9 @@ Each weekly run does the next item in this order, as capacity allows:
 3. Draft one Pinterest pin for that page (pinning itself needs the account, GATE).
 4. Draft helpful answers for open teacher questions found that week (posting needs Donray, GATE).
 5. Draft one blogger pitch when the pitch queue runs dry (sending needs Donray, GATE).
+6. Later, once the first pattern pages are live: publish one free TpT
+   resource from the flagship page (GATE: posting publicly; verify
+   seller access first).
 
 Self-heal: if a step fails, a page underperforms, or a community removes a
 post, record the cause in the private marketing log and adjust the plan
@@ -136,8 +145,9 @@ unverified; run the Week 1 Day 2 check before building past the flagship.
 ## Hard gates (stop and report, never do without Donray's explicit approval)
 
 - Spend any money.
-- Create any account (Pinterest, Search Console, Teachers Pay Teachers,
-  Product Hunt, or anything else).
+- Create any account (Pinterest, Search Console, Product Hunt, or
+  anything else). Donray already has a Teachers Pay Teachers account;
+  only seller access is still to verify, when that step comes up.
 - Post anything publicly (Facebook groups, Reddit, Teachers Pay Teachers,
   Product Hunt, blogs).
 - Send any email as Donray.
