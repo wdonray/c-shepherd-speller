@@ -137,7 +137,8 @@ export const authOptions: NextAuthOptions = {
     // Email Donray on every new signup. A failed notification must never
     // break signup, so failures are reported to Sentry and swallowed.
     // Note: the Credentials provider never creates adapter users, so this
-    // fires for OAuth signups (Google, Cognito) only.
+    // fires for OAuth signups (Google, Cognito) only. Email signups notify
+    // from the signup route instead (src/app/api/auth/email/signup/route.ts).
     async createUser({ user }) {
       try {
         await sendSignupEmail({ name: user.name, email: user.email, signedUpAt: new Date() })

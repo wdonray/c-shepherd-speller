@@ -11,6 +11,14 @@ vi.mock('@/lib/db-utils', () => ({
   getUserByEmail: vi.fn(),
 }))
 
+vi.mock('@/lib/signup-email', () => ({
+  sendSignupEmail: vi.fn(),
+}))
+
+vi.mock('@/lib/report-error', () => ({
+  reportError: vi.fn(),
+}))
+
 vi.mock('@/lib/antibot', async (importOriginal) => ({
   ...((await importOriginal()) as object),
   checkRateLimit: vi.fn(() => ({ allowed: true })),
@@ -22,6 +30,10 @@ const { cognitoSignUp } = await import('@/lib/cognito-auth')
 const cognitoSignUpMock = vi.mocked(cognitoSignUp)
 const { getUserByEmail } = await import('@/lib/db-utils')
 const getUserByEmailMock = vi.mocked(getUserByEmail)
+const { sendSignupEmail } = await import('@/lib/signup-email')
+const sendSignupEmailMock = vi.mocked(sendSignupEmail)
+const { reportError } = await import('@/lib/report-error')
+const reportErrorMock = vi.mocked(reportError)
 const { checkRateLimit, verifyTurnstileToken } = await import('@/lib/antibot')
 const checkRateLimitMock = vi.mocked(checkRateLimit)
 const verifyTurnstileTokenMock = vi.mocked(verifyTurnstileToken)
@@ -48,6 +60,8 @@ beforeEach(() => {
   cognitoSignUpMock.mockReset()
   getUserByEmailMock.mockReset()
   getUserByEmailMock.mockResolvedValue(undefined)
+  sendSignupEmailMock.mockReset()
+  reportErrorMock.mockReset()
   checkRateLimitMock.mockReset()
   checkRateLimitMock.mockReturnValue({ allowed: true })
   verifyTurnstileTokenMock.mockReset()
@@ -68,6 +82,35 @@ describe('POST /api/auth/email/signup', () => {
     expect(await response.json()).toEqual({ ok: true, userConfirmed: false })
     expect(getUserByEmailMock).toHaveBeenCalledWith('t@e.com')
     expect(cognitoSignUpMock).toHaveBeenCalledWith('Chaley', 't@e.com', 'S3cure!pass')
+  })
+
+  it('emails Donray about the new email signup', async () => {
+    cognitoSignUpMock.mockResolvedValue({ userConfirmed: false })
+
+    const response = await post({ name: 'Chaley', email: 't@e.com', password: 'S3cure!pass' })
+
+    expect(response.status).toBe(200)
+    expect(sendSignupEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendSignupEmailMock).toHaveBeenCalledWith({
+      name: 'Chaley',
+      email: 't@e.com',
+      signedUpAt: expect.any(Date),
+    })
+    expect(reportErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('still returns ok when the signup notification fails', async () => {
+    cognitoSignUpMock.mockResolvedValue({ userConfirmed: true })
+    sendSignupEmailMock.mockRejectedValueOnce(new Error('SES is down'))
+
+    const response = await post({ name: 'Chaley', email: 't@e.com', password: 'S3cure!pass' })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, userConfirmed: true })
+    expect(reportErrorMock).toHaveBeenCalledTimes(1)
+    expect(reportErrorMock).toHaveBeenCalledWith(expect.any(Error), {
+      location: 'POST /api/auth/email/signup',
+    })
   })
 
   it('returns 409 without calling Cognito when the email already has an account', async () => {
