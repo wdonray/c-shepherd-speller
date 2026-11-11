@@ -4,6 +4,8 @@ import { cognitoSignUp } from '@/lib/cognito-auth'
 import { getUserByEmail } from '@/lib/db-utils'
 import { emailAuthErrorResponse, requireEmailAuth } from '@/lib/email-auth-api'
 import { checkRateLimit, getClientIp, rateLimitedResponse, verifyTurnstileToken } from '@/lib/antibot'
+import { reportError } from '@/lib/report-error'
+import { sendSignupEmail } from '@/lib/signup-email'
 
 const signupSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -49,6 +51,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, code: 'email-in-use' }, { status: 409 })
     }
     const { userConfirmed } = await cognitoSignUp(parsed.data.name, parsed.data.email, parsed.data.password)
+    // Email Donray about the new signup. The next-auth `createUser` event
+    // never fires for email signups (the Credentials provider creates no
+    // adapter user), so this route is the only place the notification can
+    // happen for them. A failed notification must never break signup, so
+    // failures are reported to Sentry and swallowed, same as that event.
+    try {
+      await sendSignupEmail({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        signedUpAt: new Date(),
+      })
+    } catch (error) {
+      reportError(error, { location: 'POST /api/auth/email/signup' })
+    }
     return NextResponse.json({ ok: true, userConfirmed })
   } catch (error) {
     return emailAuthErrorResponse(error, 'POST /api/auth/email/signup')

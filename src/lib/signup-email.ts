@@ -3,7 +3,10 @@
  * (us-east-1).
  *
  * Server only: never import this from a client component. It is called from
- * the NextAuth `createUser` event in `src/lib/auth.ts`.
+ * the NextAuth `createUser` event in `src/lib/auth.ts` (OAuth signups) and
+ * from the email signup route in `src/app/api/auth/email/signup/route.ts`
+ * (email/password signups, whose Credentials provider never creates an
+ * adapter user, so the event never fires for them).
  *
  * Mirrors the SES setup in `feedback-email.ts`: same region default, same
  * optional explicit credentials, same header sanitization. Kept as a
@@ -14,8 +17,9 @@
  * @aws-sdk/client-ses and sends the feedback form through it, so there is
  * no new vendor or account, and a handful of signup emails a day costs $0.
  *
- * A failed send throws; the caller (the createUser event) catches, reports,
- * and never lets a failed notification break signup.
+ * A failed send throws; the callers (the createUser event and the email
+ * signup route) catch, report, and never let a failed notification break
+ * signup.
  */
 import { SESClient, type SESClientConfig, SendEmailCommand } from '@aws-sdk/client-ses'
 
