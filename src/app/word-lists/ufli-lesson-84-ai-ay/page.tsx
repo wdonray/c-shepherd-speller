@@ -94,6 +94,22 @@ export default function UfliLesson84AiAyPage() {
           </div>
         </section>
 
+        <section aria-labelledby="build-heading" className="mt-10 rounded-lg border p-4">
+          <h2 id="build-heading" className="text-xl font-bold text-ink">
+            Use this list in PatternSpell
+          </h2>
+          <p className="mt-2 text-[15px] leading-7 text-ink/90">
+            A free PatternSpell account lets you project the interactive chart, print more worksheet types with answer
+            keys, and build your own lists for any week.
+          </p>
+          <Link
+            href="/lists/prebuilt/ufli-g2-w07"
+            className="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-[15px] font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Open this list in PatternSpell
+          </Link>
+        </section>
+
         <section aria-labelledby="worksheet-heading" className="mt-10">
           <h2 id="worksheet-heading" className="text-xl font-bold text-ink">
             Free printable worksheet
@@ -125,22 +141,6 @@ export default function UfliLesson84AiAyPage() {
           <div className="mt-4">
             <PrintButton />
           </div>
-        </section>
-
-        <section aria-labelledby="build-heading" className="mt-10 rounded-lg border p-4">
-          <h2 id="build-heading" className="text-xl font-bold text-ink">
-            Use this list in PatternSpell
-          </h2>
-          <p className="mt-2 text-[15px] leading-7 text-ink/90">
-            A free PatternSpell account lets you project the interactive chart, print more worksheet types with answer
-            keys, and build your own lists for any week.
-          </p>
-          <Link
-            href="/lists/prebuilt/ufli-g2-w07"
-            className="mt-3 inline-block rounded-md bg-primary px-4 py-2 text-[15px] font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Open this list in PatternSpell
-          </Link>
         </section>
 
         <p className="mt-10 text-sm text-muted-foreground">{UFLI_DISCLAIMER}</p>
