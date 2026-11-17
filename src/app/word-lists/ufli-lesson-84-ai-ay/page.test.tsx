@@ -76,6 +76,15 @@ describe('UfliLesson84AiAyPage', () => {
     expect(link).toHaveAttribute('href', '/lists/prebuilt/ufli-g2-w07')
   })
 
+  it('places the signup call to action after the chart and before the worksheet', () => {
+    render(<UfliLesson84AiAyPage />)
+    const chart = screen.getByRole('heading', { name: /projectable pattern chart/i, level: 2 })
+    const signup = screen.getByRole('heading', { name: /use this list in patternspell/i, level: 2 })
+    const worksheet = screen.getByRole('heading', { name: /free printable worksheet/i, level: 2 })
+    expect(chart.compareDocumentPosition(signup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(signup.compareDocumentPosition(worksheet) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('carries the UFLI non-endorsement disclaimer', () => {
     render(<UfliLesson84AiAyPage />)
     expect(screen.getByText(/not created by, affiliated with, or endorsed by/i)).toBeInTheDocument()
