@@ -1,8 +1,10 @@
 # Teachers Pay Teachers listing: ai and ay spelling words
 
-Status: DRAFT Nov 17, 2026. Seller access is being verified
-(browser task in flight). Do not publish until the store
-question below is decided.
+Status: DRAFT Nov 17, 2026. Seller access VERIFIED Nov 17 (Basic
+active, store Hide Zero Cards, one product live). Store question
+still open: same store vs a second PatternSpell store; research
+running on TpT rules and real multi-product stores. Do not publish
+until the store question is decided.
 
 ## Store question (needs Donray)
 
