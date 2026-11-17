@@ -1,19 +1,17 @@
 # Teachers Pay Teachers listing: ai and ay spelling words
 
 Status: DRAFT Nov 17, 2026. Seller access VERIFIED Nov 17 (Basic
-active, store Hide Zero Cards, one product live). Store question
-still open: same store vs a second PatternSpell store; research
-running on TpT rules and real multi-product stores. Do not publish
-until the store question is decided.
+active). Store RENAMED Nov 17 from Hide Zero Cards to Donray
+Williams (https://www.teacherspayteachers.com/store/donray-williams);
+existing product still live, seller now Donray Williams, price still
+Free. Do not publish until the price (Free vs $1) is decided.
 
-## Store question (needs Donray)
+## Store question (decided Nov 17, 2026)
 
-The existing seller account's store is Hide Zero Cards
-(https://www.teacherspayteachers.com/store/hide-zero-cards).
-One TpT account has one store. Either list this resource on
-that store, or open a second seller account for PatternSpell
-(another Basic, one-time $29). Donray decides once seller
-access is confirmed.
+Store renamed from Hide Zero Cards to Donray Williams
+(https://www.teacherspayteachers.com/store/donray-williams).
+One TpT account has one store, so this resource lists on the
+renamed store. No second seller account.
 
 ## TpT rules that matter
 
