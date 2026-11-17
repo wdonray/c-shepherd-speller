@@ -1,11 +1,15 @@
 # Teachers Pay Teachers listing: ai and ay spelling words
 
-Status: DRAFT Nov 17, 2026. Seller access VERIFIED Nov 17 (Basic
-active). Store RENAMED Nov 17 from Hide Zero Cards to Donray
-Williams (https://www.teacherspayteachers.com/store/donray-williams);
-existing product still live, seller now Donray Williams. Price
-DECIDED Nov 17: $1. Ready to publish once the cover is built
-and the PDF is rebuilt.
+Status: LIVE Nov 17, 2026.
+https://www.teacherspayteachers.com/Product/ai-and-ay-Spelling-Words-UFLI-Lesson-84-Grade-2-Printable-Word-List-18388158
+(Product ID 18388158), Free (changed from $1 the same day, Nov 17,
+to drive signups). Seller access VERIFIED Nov 17 (Basic
+active). Store: Donray Williams
+(https://www.teacherspayteachers.com/store/donray-williams).
+Payout method NOT set up yet (prompt dismissed with "Do this
+later" at publish time). The store is now 2 free products / 0 paid,
+against TpT's majority-paid guideline; that is Donray's call for
+the signup goal.
 
 ## Store question (decided Nov 17, 2026)
 
@@ -45,7 +49,7 @@ renamed store. No second seller account.
 
 Title: ai and ay Spelling Words - UFLI Lesson 84 Grade 2 - Printable Word List
 
-Price: $1
+Price: Free (changed from $1 Nov 17, 2026, to drive signups)
 
 Grades: 2nd. Also works for grades 1-3.
 
@@ -89,7 +93,7 @@ and what confused students.
    Digital Download.
 3. Upload `patternspell-ai-ay-word-list.pdf` as the main file.
 4. Paste the title, description, grades, subjects, and resource
-   type above. Set the price to $1.
+   type above. Set the price to Free.
 5. Upload the cover image and thumbnails. Make the listing
    active.
 6. Log the listing URL in the private marketing log

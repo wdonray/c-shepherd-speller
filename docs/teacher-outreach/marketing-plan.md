@@ -87,13 +87,22 @@ accounts need no email.
    and Pinterest both closed).** Donray has a TpT account (Nov 10,
    2026). Publish one free resource built from the flagship page,
    the printable ai/ay word list, priced Free, with a link back to
-   patternspell.org. The resource is built
-   (docs/teacher-outreach/patternspell-ai-ay-word-list.pdf); seller
-   access is being verified and the store question is open (the
-   existing Hide Zero Cards store vs a second PatternSpell store).
-   If the account is not a seller account yet, Basic seller is a
-   one-time $29, a deliberate decision, not a surprise.
-7. **Deferred:** Product Hunt (wrong audience, one shot, needs 20+ real
+   patternspell.org. LIVE Nov 17, 2026, Free: the ai/ay word list
+   at https://www.teacherspayteachers.com/Product/ai-and-ay-Spelling-Words-UFLI-Lesson-84-Grade-2-Printable-Word-List-18388158
+   (Product ID 18388158), on the Donray Williams store (renamed
+   from Hide Zero Cards the same day). Priced $1 at publish,
+   changed to Free the same day to drive signups. Payout method
+   not set up yet.
+7. **Common Sense Education review request.** Submitted Nov 17,
+   2026: PatternSpell as Developer, https://patternspell.org,
+   platform Web, subject ELA (spelling). They accept requests from
+   developers, consider every request, and never take payment for
+   a review; they review about 150 new tools a year, so odds are
+   low and the lead time is long. Confirmation received the same
+   day ("We've received your completed form."). They cannot
+   respond to all requests, so there is no reply to chase. If a
+   review is published, log it in `docs/teacher-feedback-log.md`.
+8. **Deferred:** Product Hunt (wrong audience, one shot, needs 20+ real
    users first), YouTube as a channel (support only: one 60 to 90 second
    screen demo embedded on the SEO pages).
 
@@ -141,9 +150,9 @@ Each weekly run does the next item in this order, as capacity allows:
 4. Draft helpful answers for open teacher questions found that week (posting
    needs Donray, GATE, and the Facebook account is permanently disabled).
 5. Draft one blogger pitch when the pitch queue runs dry (sending needs Donray, GATE).
-6. TpT resource is built (ai/ay word list); publish once seller
-   access is verified and the store is decided (GATE: posting
-   publicly).
+6. TpT resource is live (ai/ay word list, Free, Nov 17, 2026);
+   check downloads periodically. Common Sense Education review
+   request submitted Nov 17, 2026; no reply to chase.
 
 Self-heal: if a step fails, a page underperforms, or a community removes a
 post, record the cause in the private marketing log and adjust the plan
