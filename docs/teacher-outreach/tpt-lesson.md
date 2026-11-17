@@ -1,6 +1,6 @@
 # ai and ay Spelling Words: UFLI Lesson 84, Grade 2 Week 7
 
-A free one-page word list for elementary classrooms, built around
+A one-page word list for elementary classrooms, built around
 PatternSpell's chart at
 https://patternspell.org/word-lists/ufli-lesson-84-ai-ay. No login,
 no ads, no student accounts. Open the chart on a projector,

@@ -3,8 +3,9 @@
 Status: DRAFT Nov 17, 2026. Seller access VERIFIED Nov 17 (Basic
 active). Store RENAMED Nov 17 from Hide Zero Cards to Donray
 Williams (https://www.teacherspayteachers.com/store/donray-williams);
-existing product still live, seller now Donray Williams, price still
-Free. Do not publish until the price (Free vs $1) is decided.
+existing product still live, seller now Donray Williams. Price
+DECIDED Nov 17: $1. Ready to publish once the cover is built
+and the PDF is rebuilt.
 
 ## Store question (decided Nov 17, 2026)
 
@@ -15,8 +16,9 @@ renamed store. No second seller account.
 
 ## TpT rules that matter
 
-- The first resource a seller lists must be free. This list is
-  free, so it fits.
+- The first resource a seller lists must be free. That was the
+  Hide Zero Cards lesson, already live and free, so this
+  second product can be priced.
 - Resources must be your original authorship, complete, and
   accurate. This list was drafted from the app's own UFLI
   Grade 2 Week 7 list (Lesson 84). Donray should read it, edit
@@ -36,15 +38,14 @@ renamed store. No second seller account.
 
 - Main file: `patternspell-ai-ay-word-list.pdf`, one page,
   US Letter. Built from `tpt-lesson.md` in this folder.
-- Cover image: TODO. Build 1080x1080 from the flagship chart,
-  the way the Hide Zero Cards cover was built from a screenshot
-  of the real fan, not a redraw.
+- Cover image: `tpt-cover-ai-ay.png`, 1080x1080, built from a
+  screenshot of the real flagship chart, not a redraw.
 
 ## Listing copy
 
-Title: ai and ay Spelling Words - UFLI Lesson 84 Grade 2 - Free Printable Word List
+Title: ai and ay Spelling Words - UFLI Lesson 84 Grade 2 - Printable Word List
 
-Price: Free
+Price: $1
 
 Grades: 2nd. Also works for grades 1-3.
 
@@ -54,7 +55,7 @@ Resource type: Activities, Worksheets
 
 Description:
 
-A free printable ai and ay word list for Grade 2, built around
+A printable ai and ay word list for Grade 2, built around
 PatternSpell, a free chart tool at
 https://patternspell.org/word-lists/ufli-lesson-84-ai-ay.
 
@@ -88,7 +89,7 @@ and what confused students.
    Digital Download.
 3. Upload `patternspell-ai-ay-word-list.pdf` as the main file.
 4. Paste the title, description, grades, subjects, and resource
-   type above. Set the price to Free.
+   type above. Set the price to $1.
 5. Upload the cover image and thumbnails. Make the listing
    active.
 6. Log the listing URL in the private marketing log
