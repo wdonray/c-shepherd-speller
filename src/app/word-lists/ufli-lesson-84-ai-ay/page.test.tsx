@@ -2,6 +2,21 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import UfliLesson84AiAyPage, { metadata } from './page'
 import PrintButton from './print-button'
+import { getPrebuiltWeek } from '@/lib/prebuilt-lists'
+
+vi.mock('@/lib/prebuilt-lists', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/prebuilt-lists')>()
+  return {
+    ...actual,
+    getPrebuiltWeek: vi.fn((id: string) => actual.getPrebuiltWeek(id)),
+  }
+})
+
+vi.mock('next/navigation', () => ({
+  notFound: () => {
+    throw new Error('notFound')
+  },
+}))
 
 describe('UfliLesson84AiAyPage metadata', () => {
   it('targets the UFLI Lesson 84 ai/ay search phrase', () => {
@@ -15,6 +30,11 @@ describe('UfliLesson84AiAyPage', () => {
   it('renders the lesson heading', () => {
     render(<UfliLesson84AiAyPage />)
     expect(screen.getByRole('heading', { name: 'UFLI Lesson 84: ai and ay Words', level: 1 })).toBeInTheDocument()
+  })
+
+  it('calls notFound when the week is missing', () => {
+    vi.mocked(getPrebuiltWeek).mockReturnValueOnce(undefined)
+    expect(() => UfliLesson84AiAyPage()).toThrow('notFound')
   })
 
   it('shows every word from the app list, grouped by pattern', () => {
