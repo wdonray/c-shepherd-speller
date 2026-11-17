@@ -34,7 +34,9 @@ export const config = {
      * - favicon.ico, apple-icon.png, icon.png, icon.svg (icon files for browsers and home-screen shortcuts)
      * - auth (authentication pages)
      * - privacy, terms (public legal pages; must stay readable without sign-in)
+     * - word-lists (public SEO pattern pages; teachers use them without sign-in)
+     * - sitemap.xml, robots.txt (public discovery files; search engines fetch them without sign-in)
      */
-    '/((?!$|api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth|privacy|terms).*)',
+    '/((?!$|api/auth|api/version|_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|icon.svg|auth|privacy|terms|word-lists|sitemap.xml|robots.txt).*)',
   ],
 }

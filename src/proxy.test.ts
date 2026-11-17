@@ -90,4 +90,18 @@ describe('proxy config', () => {
     expect(pattern.test('/terms')).toBe(false)
     expect(pattern.test('/lists')).toBe(true)
   })
+
+  it('excludes public word-list pages so teachers can use them without sign-in', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/word-lists')).toBe(false)
+    expect(pattern.test('/word-lists/ufli-lesson-84-ai-ay')).toBe(false)
+    expect(pattern.test('/lists')).toBe(true)
+  })
+
+  it('excludes sitemap and robots so search engines can fetch them without sign-in', () => {
+    const pattern = new RegExp(`^${config.matcher[0]}$`)
+    expect(pattern.test('/sitemap.xml')).toBe(false)
+    expect(pattern.test('/robots.txt')).toBe(false)
+    expect(pattern.test('/lists')).toBe(true)
+  })
 })
