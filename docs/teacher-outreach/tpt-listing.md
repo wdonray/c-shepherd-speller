@@ -1,11 +1,12 @@
 # Teachers Pay Teachers listing: ai and ay spelling words
 
-Status: DRAFT Nov 17, 2026. Seller access VERIFIED Nov 17 (Basic
-active). Store RENAMED Nov 17 from Hide Zero Cards to Donray
-Williams (https://www.teacherspayteachers.com/store/donray-williams);
-existing product still live, seller now Donray Williams. Price
-DECIDED Nov 17: $1. Ready to publish once the cover is built
-and the PDF is rebuilt.
+Status: LIVE Nov 17, 2026.
+https://www.teacherspayteachers.com/Product/ai-and-ay-Spelling-Words-UFLI-Lesson-84-Grade-2-Printable-Word-List-18388158
+(Product ID 18388158), $1. Seller access VERIFIED Nov 17 (Basic
+active). Store: Donray Williams
+(https://www.teacherspayteachers.com/store/donray-williams).
+Payout method NOT set up yet (prompt dismissed with "Do this
+later" at publish time).
 
 ## Store question (decided Nov 17, 2026)
 
