@@ -83,14 +83,16 @@ accounts need no email.
    post of theirs, offer free access with no script and no obligation.
    Expect 0 to 1 replies; that is normal. Never pay, never ask for a
    positive review or a link.
-6. **Teachers Pay Teachers (later phase, not week 1-2).** Donray has a
-   TpT account (Nov 10, 2026). Publish one free resource built from the
-   flagship page, e.g. a printable ai/ay word list or worksheet, priced
-   Free, with a link back to patternspell.org. Verify seller access
-   when the step comes up: if the account is not a seller account yet,
-   Basic seller is a one-time $29, a deliberate decision, not a
-   surprise. Do not build the listing until the first pattern pages are
-   live and the Facebook and Pinterest work is running.
+6. **Teachers Pay Teachers (moved up Nov 17, 2026, after Facebook
+   and Pinterest both closed).** Donray has a TpT account (Nov 10,
+   2026). Publish one free resource built from the flagship page,
+   the printable ai/ay word list, priced Free, with a link back to
+   patternspell.org. The resource is built
+   (docs/teacher-outreach/patternspell-ai-ay-word-list.pdf); seller
+   access is being verified and the store question is open (the
+   existing Hide Zero Cards store vs a second PatternSpell store).
+   If the account is not a seller account yet, Basic seller is a
+   one-time $29, a deliberate decision, not a surprise.
 7. **Deferred:** Product Hunt (wrong audience, one shot, needs 20+ real
    users first), YouTube as a channel (support only: one 60 to 90 second
    screen demo embedded on the SEO pages).
@@ -139,9 +141,9 @@ Each weekly run does the next item in this order, as capacity allows:
 4. Draft helpful answers for open teacher questions found that week (posting
    needs Donray, GATE, and the Facebook account is permanently disabled).
 5. Draft one blogger pitch when the pitch queue runs dry (sending needs Donray, GATE).
-6. Later, once the first pattern pages are live: publish one free TpT
-   resource from the flagship page (GATE: posting publicly; verify
-   seller access first).
+6. TpT resource is built (ai/ay word list); publish once seller
+   access is verified and the store is decided (GATE: posting
+   publicly).
 
 Self-heal: if a step fails, a page underperforms, or a community removes a
 post, record the cause in the private marketing log and adjust the plan
