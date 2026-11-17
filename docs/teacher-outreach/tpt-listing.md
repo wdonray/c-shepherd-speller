@@ -28,8 +28,9 @@ renamed store. No second seller account.
   Grade 2 Week 7 list (Lesson 84). Donray should read it, edit
   it in his own voice, and list it as his own work only if he
   is comfortable doing so.
-- A resource must be accessible directly from TpT. This PDF is
-  the resource: a complete one-page word list with a lesson.
+- A resource must be accessible directly from TpT. This zip is
+  the resource: teacher instructions with a lesson, a black and
+  white word list and worksheet, and a color pattern chart.
   The link to patternspell.org is a supplement, not a gate.
   The tool is free with no login, no ads, and no student
   accounts, so nothing else is required to use it.
@@ -40,8 +41,21 @@ renamed store. No second seller account.
 
 ## Files to upload
 
-- Main file: `patternspell-ai-ay-word-list.pdf`, one page,
-  US Letter. Built from `tpt-lesson.md` in this folder.
+- Main file: `ai-ay-spelling-words-tpt-folder.zip`, one zip holding
+  three US Letter PDFs, in this order:
+  1. `01-Teacher-Instructions-ai-ay.pdf`, teacher instructions and
+     the 10-minute lesson, website first (2 pages).
+  2. `02-Printable-Word-List-and-Worksheet-Black-and-White.pdf`,
+     the word list plus a worksheet with a word bank, writing
+     lines, and an answer key, black and white only (2 pages).
+  3. `03-Printable-Pattern-Chart-Color.pdf`, the pattern chart in
+     color with the word list (1 page).
+- The three PDFs are built from the HTML sources in `tpt-html/` in
+  this folder by running `node build-tpt-pdfs.mjs` from the repo
+  root. Edit the HTML, rebuild, and re-upload the zip.
+- The old single-page `patternspell-ai-ay-word-list.pdf` was
+  replaced by this folder in Nov 2026 and deleted. It stays in git
+  history if it is ever needed again.
 - Cover image: `tpt-cover-ai-ay.png`, 1080x1080, built from a
   screenshot of the real flagship chart, not a redraw.
 
@@ -91,7 +105,7 @@ and what confused students.
 1. Confirm seller access and decide the store (see above).
 2. In the seller dashboard, Add New Product, product type
    Digital Download.
-3. Upload `patternspell-ai-ay-word-list.pdf` as the main file.
+3. Upload `ai-ay-spelling-words-tpt-folder.zip` as the main file.
 4. Paste the title, description, grades, subjects, and resource
    type above. Set the price to Free.
 5. Upload the cover image and thumbnails. Make the listing
