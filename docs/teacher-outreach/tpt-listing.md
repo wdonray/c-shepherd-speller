@@ -10,7 +10,7 @@ Payout method set up via Hyperwallet Nov 17, 2026 (Donray set
 up a transfer method himself). Main file is the folder zip (see
 below), uploaded Nov 17, 2026, 10:16 AM EST, 196.8 kB on TpT.
 Tags: Activities, Handouts, Lessons, Printables, Worksheets.
-Custom category "Spelling - UFLI Aligned", featured. Previews (v2, uploaded Nov 18, 2026): cover, what's included, the pattern taught, free digital tool. Files: tpt-preview-v2-1-cover.png, tpt-preview-v2-2-included.png, tpt-preview-v2-3-pattern.png, tpt-preview-v2-4-digital.png. These supersede the v1 previews (cover, teacher instructions page, color chart page). The store
+Custom category "Spelling - UFLI Aligned", featured. Previews (v3, uploaded Nov 18, 2026): cover, what's included, the pattern taught, free digital tool. Files: tpt-preview-v3-1-cover.png, tpt-preview-v3-2-included.png, tpt-preview-v3-3-pattern.png, tpt-preview-v3-4-digital.png. v3 adds the TpT buzzwords that fit truthfully: 12 WORDS and WORD WORK on the cover, BONUS digital tool, No prep. Bundle, Complete, Editable, 100+, and 'for the year' were left out because this is a single lesson, not a bundle or a year-long curriculum. These supersede the v2 previews. The store
 is now 2 free products / 0 paid, against TpT's majority-paid
 guideline; that is Donray's call for the signup goal.
 Recheck Nov 17, 10:17 AM EST: "Featured resources" on the
